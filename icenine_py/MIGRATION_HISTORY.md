@@ -11970,15 +11970,19 @@ combinations raise `ValueError` (`check_bfs_keys`). Stock paths (`local_optimiza
 
 Done: `ray_indexing.mixed_refinement` and `seed_by_indexing(refine_fn=)`; `index_seed(cma_first_evals,
 cma_sigma0_deg)`; the no-fallback branch of `_cma_first_fit`; counters `cma_not_fell`,
-`index_mixed_cands`, `index_mixed_cma_reached`, `index_mixed_mc_ran`; 62 new tests
-(`tests/test_bfs_ar5_keys.py`, written first; the plan expected 25 to 50); README key table; scripts
+`index_mixed_cands`, `index_mixed_cma_reached`, `index_mixed_mc_ran`; 68 new tests
+(`tests/test_bfs_ar5_keys.py`, written first, 62 plus 6 refusal rows of the fixes round; the plan
+expected 25 to 50); README key table; scripts
 `scripts/autoresearch/ar5/keys_*.py`. Parity (library run vs stored script run, same evaluations,
 seeds, reseeds, records, counters and `.mic` bytes before the pass): `big` S8 keys 7,201,863
 evaluations and 67 wrong voxels; `big` no fallback 4,767,135 (`S10`); `big` both keys 2,879,705
 (`S11`); first gradient sample both keys 8,622,191 with 11 grid fallbacks (`S11`). The pass from
 the stored maps gave the stored tries; totals with the pass 4,015,342 and 12,307,994. The pass
-inside a run differed from the stored pass by 1 and 4 tries in two `big` runs (reads the unrounded
-map, as step 10 found) and by 0 evaluations for `S11` on both samples. Full suite 1,718 passed,
-47 skipped, 1 deselected. Not tested: timing, `mid`, `held`, realistic images; no recommended
-setting. Page: `docs/autoresearch/findings_ar5_keys.md` (placed by the main session from
-`.claude/reports/20261111-2030-ar5e-page.md` because a write under `docs/` was refused).
+inside a run differed from the stored pass by 1 and 4 tries in two `big` runs. For `S11` it had the
+stored counts on both samples but not the stored contents: costs differ in 4,372 of 18,617 tries
+(`big`) and 15,813 of 60,423 (first gradient sample), ends up to 1.22 and 1.11 degrees apart,
+changed voxels 986 against 983 and 688 against 681 (`keys_pass_contents.py`,
+`pass_contents.json`). This is consistent with the in-run pass reading the unrounded map; that was
+shown for `S8L` in AR3 step 10 and not tested for `S10L` and `S11L`. Full suite after the fixes
+round 1,724 passed, 47 skipped, 1 deselected (`suite_counts.json`). Not tested: timing, `mid`,
+`held`, realistic images; no recommended setting. Page: `docs/autoresearch/findings_ar5_keys.md`.

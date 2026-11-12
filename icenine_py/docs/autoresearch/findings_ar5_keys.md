@@ -171,8 +171,10 @@ Reading line: the four predictions of the plan, written before any code.
 | 3 | Check 5 is exact from the stored maps; the pass inside the run differs by under 0.1% of the pass evaluations. | Met. Exact from both stored maps. Inside the run, `S11` differed by 0 evaluations on both samples; the largest difference in the other two runs was 244 evaluations (`S10L`), about 0.02%. The prediction is about evaluations only. Equal counts do not mean equal contents: inside the run, the costs of 4,372 tries on `big` and 15,813 on the first gradient sample differ from the stored ones. |
 | 4 | The step needs 25 to 50 new tests and no existing test changes. | Not met on the count: 62 new tests in the first round, 68 after the fixes round added 6 refusal rows (many are parametrized refusals). No existing test changed. |
 
-The full suite with the keys in place: 1,718 passed, 47 skipped, 1 deselected. No golden file
-changed. With both keys off, the library run of `S8` on `big` gave the stored 7,201,863
+The full suite with the keys in place, after the fixes round: 1,724 passed, 47 skipped, 1
+deselected, of which 68 tests are in `tests/test_bfs_ar5_keys.py`
+(`benchmarks/autoresearch/ar5/keys/suite_counts.json`). The first round counted 1,718 passed with
+62 new tests; the 6 added refusal rows make the difference. No golden file changed. With both keys off, the library run of `S8` on `big` gave the stored 7,201,863
 evaluations and 67 wrong voxels (check 1).
 
 ## What was not tested
