@@ -27,24 +27,24 @@ Read this file first after any restart or wake. It holds only what is true now a
 One step is open. Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent
 into a task branch before its fixes round (shared files conflict).
 
-1. AR5 step 4 (task `ar5d`; N16, N18, N20): on `held` with the pass `S11` needs 23.3% fewer
-   evaluations than `S8` and passes; `S10` 3.6% (fails). `S11v` was a defective arm. Phase B
-   is handed back (d01ceef, not yet reviewed): the rerun `S11v2` is a valid arm (24 of 24
-   accepted seeds kept, all right), 37,507,939 evaluations (37.4% fewer than `S8`, 18.4% fewer
-   than `S11`), 69 wrong; broken minus fixed 4 against `S11` (limit 5). Hand-back check: 0 FAIL.
-   BLOCKED: the page text is in `.claude/reports/20261111-2330-ar5d-phaseB-page.md`; the
-   implementer's Write was refused and the main session's copy into the worktree was refused
-   too (auto mode). Do not work around it; the owner places it or allows it. After that:
-   sync check, commit on `ar5d`, review fixes if any (decision N23), merge
-   (`finish_task.sh`), close (page version 45 with the `held` points, PR #43).
-2. After step 4 closes: plan the next step from the queue (decision first). The `S11v2`
-   result decides whether the verifier gets one more step. Items 14 + 3 need a quiet machine.
+1. AR5 step 4 (task `ar5d`; N16, N18, N20, N23): on `held` with the pass `S11` needs 23.3%
+   fewer evaluations than `S8`; the rerun `S11v2` (valid arm) 37.4% fewer, 18.4% fewer than
+   `S11`, 69 wrong, broken minus fixed 4 against `S11` (limit 5). Phase B re-review: approve,
+   three fixes (N23). Fix 3 is with the implementer (see "Running jobs").
+   BLOCKED on fix 1: the page text is in `.claude/reports/20261111-2330-ar5d-phaseB-page.md`;
+   the implementer's Write and the main session's copy into the worktree were both refused
+   (auto mode). Do not work around it; the owner places it or allows it. Then: sync check,
+   commit, fix 2 (MIGRATION_HISTORY names that commit), merge, close (page version 45, PR #43).
+2. Next step (AR5 step 6, task `ar5f`): the frozen `N1` rule on samples it has not seen, with
+   a plain control rule. A draft is being written. Read it, put it in `PLAN.md`, log the
+   decision (N24). Its implementer starts only after step 4 is merged.
 
 ## Running jobs
 
-- Re-review of phase B (Opus `code-reviewer`, started 2026-11-11 22:03): report to
-  `.claude/reports/20261111-2215-review-ar5d-phaseB.md`; it reports by hand-back. Branch
-  `ar5d` is held by worktree `agent-a8a1ac8e80f8913cf` (tip d01ceef).
+- Fix 3 of N23: agent `a8a1ac8e80f8913cf` (Opus, resumed 22:12 on 2026-11-11), worktree
+  `agent-a8a1ac8e80f8913cf` (holds branch `ar5d`). Reports by hand-back.
+- Plan draft for AR5 step 6: general-purpose agent (Opus, started 22:12); it writes only
+  `plan_ar5f_draft.md` in the scratchpad. Reports by hand-back; if lost, start it again.
 - Review page: version 44 (`run43.sh`, then `patch_v44.py`, scratchpad).
 
 ## Queue
@@ -106,14 +106,14 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - A choice: try test `P2 m=2` as an opt-in key (no gain lost; cuts 17% to 39% of the pass).
 - A choice: whether the documentation recommends the two `S11` keys. They were added off by
   default under N21, after `S11` passed on `held`; the documentation recommends none now.
-- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N22 (all
+- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N23 (all
   on the review page). N15 adds `held` (new seed); N17, N18: run caps of 480 minutes.
   The gradient levels of step 7's sample are my choice. Step 5's result files add about 50
   MB to git; say so if you want them pruned.
 
 ## Bookkeeping
 
-- Next decision ID: D-20261111-N23.
+- Next decision ID: D-20261111-N24.
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
