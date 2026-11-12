@@ -1491,3 +1491,16 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   14's timing arms, never beside them. The owner may overrule. Where:
   icenine_py/docs/autoresearch/PLAN.md, section 'C++ time on the pilot: one client, beside the
   Python timing A/B' (af6514a).
+
+### D-20261112-N2 · Track A / AR5 step 6 (order of work) · AR5 step 6 starts now from the tip of the step 4 branch; its merge waits for step 4's
+- 2026-11-12, owner. Recorded by Newt Agent. Supersedes: none.
+- The plan (D-20261111-N24) said step 6 starts after step 4 (task ar5d) merges. Step 4 is
+  re-reviewed and approved (N23); only the placing of its page text waits for the owner, and that
+  does not touch the scripts step 6 reuses. The machine is idle until the owner frees it for the
+  timing runs. So the step 6 task branch (feature/eval-reduction-ar5f) is cut from the tip of
+  feature/eval-reduction-ar5d (fac79f9), with feature/eval-reduction recorded as its parent. Its
+  review reads the diff against fac79f9. It merges only after step 4 has merged. Its four runs are
+  not timing results and never run beside a timing run of item 14 or of the C++ step. Nothing else
+  in the plan changes. The owner may overrule. Where: icenine_py/docs/autoresearch/PLAN.md,
+  section 'AR5 step 6: the frozen seed-accept rule on two more whole layers, against a plain
+  rule'.
