@@ -208,7 +208,7 @@ class DrawFake(PassFake):
     def local_optimization(self, *a: Any, **k: Any) -> Any:
         rng = k["rng"]
         i = self._idx(k["voxel_vertices"])
-        DrawFake.draws.append((i, int(rng.integers(0, 2**31 - 2))))
+        DrawFake.draws.append((i, int(rng.integers(0, BP.CMA_SEED_BOUND))))
         k = dict(k, rng=np.random.default_rng(0))  # PassFake's own rng.integers(0, 10) is private
         return super().local_optimization(*a, **k)
 
@@ -259,3 +259,48 @@ def test_key_off_draws_are_unchanged(monkeypatch: pytest.MonkeyPatch) -> None:
     b, d_b = _draw_run(monkeypatch, skip_hit=0.0)
     assert d_a == d_b and len(d_a) == len(a.tries) == 3
     assert [t["end"].tobytes() for t in a.tries] == [t["end"].tobytes() for t in b.tries]
+
+
+# ------------------------------------------------------------------------------ 5. draw premise
+# The aligned draws rest on two facts about the real ``CMAOptimizer.optimize``: one try takes
+# exactly one draw from the generator, and that draw is ``integers(0, BP.CMA_SEED_BOUND)``. If
+# either changes, the skipped tries would consume a different stream and the key would silently
+# fall back to unaligned draws (variant 1). This test ties both to the real optimizer.
+class _StubCost:
+    """A smooth cost on rotations (angle to a fixed target, radians); no images."""
+
+    def __init__(self) -> None:
+        self.target = _rz(0.3)
+        self.calls = 0
+
+    def evaluate(self, R: np.ndarray, verts: Any, phase: int) -> Any:
+        self.calls += 1
+        c = float(np.arccos(np.clip((np.trace(self.target.T @ R) - 1.0) / 2.0, -1.0, 1.0)))
+        return SimpleNamespace(cost=c)
+
+
+@pytest.mark.parametrize(
+    "kw",
+    [
+        dict(sigma0_deg=BP.PASS_SIGMA0_DEG, max_evals=BP.PASS_MAX_EVALS),  # the pass's settings
+        dict(sigma0_deg=0.2, max_evals=1),  # early return at the budget
+        dict(sigma0_deg=0.2, max_evals=50, max_convergence_cost=10.0),  # early return, converged
+    ],
+)
+@pytest.mark.parametrize("seed", [0, 7, 12345])
+def test_one_cma_try_takes_exactly_one_seed_draw_of_the_pass_bound(
+    kw: Dict[str, Any], seed: int
+) -> None:
+    from icenine.orientation_search import CMAOptimizer
+
+    rng = np.random.default_rng(seed)
+    rng.integers(0, 10, size=seed % 5)  # start from a generator that has already drawn
+    expected = np.random.default_rng(seed)
+    expected.integers(0, 10, size=seed % 5)
+    cost = _StubCost()
+    res = CMAOptimizer(cost_fn=cost, voxel_vertices=None, rng=rng, **kw).optimize(_rz(0.0))
+    assert cost.calls == res.n_evals >= 1
+    expected.integers(0, BP.CMA_SEED_BOUND)
+    assert rng.bit_generator.state == expected.bit_generator.state
+    # the next draw matches too (same position in the stream)
+    assert rng.integers(0, 2**63 - 1) == expected.integers(0, 2**63 - 1)
