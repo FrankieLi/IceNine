@@ -2553,10 +2553,10 @@ the A/B, (B - A) / B, the smooth key's share of the pilot. E0 walls are multi-wo
   it a sampler logs the 1-minute load every 30 s and the top CPU processes every 5 minutes. A run
   is quiet if no load sample exceeds 2.5 and no other process stays above 20% CPU. If a preflight
   refuses or a run is not quiet, the script stops; no time is reported, the step reports why.
-  The load limit of 2.5 is checked in phase A against the preflight's own limit and the run's
-  own load (one worker and its threads, measured on the 30-voxel check). If the run alone
-  passes it, phase A fixes the limit as the preflight's limit plus the run's own load, writes
-  it down before any timed run, and says so on the page. It is never changed after a timed run.
+  Phase A checks the limit of 2.5 first: it measures the load the run adds by itself (one
+  worker and its threads, on the 30-voxel check). If the idle load plus that is over 2.5, phase
+  A sets the limit to the preflight's own limit plus the run's own load, writes it down before
+  any timed run, and the page says so. The limit is never changed after a timed run.
 
 **Machine.** At most 6 heavy processes. E0 arms use 4 workers and run first. The warm-up, the timing
 arms and `split.py` then run alone: no other study, no build, no test suite (AR5 step 6 waits).
