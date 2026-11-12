@@ -2448,3 +2448,159 @@ as the flag of unfinished voxels. A library key. A timing. A second run of any a
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
 A/B of item 3), item 5 (the full-sample baseline), item 18 (does C++ fuse the clip), and a measured
 C++ time for the pilot region.
+
+### Items 14 and 3: both speed keys together, with a timing A/B
+
+Task `item14`. A measurement step: new scripts and one config only. Review page items 14 and 3,
+delegated by D-20261109-N3 (item 14) and D-20261109-N2 (item 3); plan approved by
+D-20261111-N25. The C++ time stays a separate step.
+
+**Why.** `FusedCost` (Track S) makes one strict evaluation about 15 times cheaper. `SmoothCostRank`
+(Track E) ranks the coarse-level candidates with a smooth cost that `FusedCost` does not cover. The
+two keys have never run together. Every stored pilot wall time is contended. Item 5 (the full-sample
+run) waits for this step, and N2 says a full-scale smooth arm runs only if item 14 shows a gain
+larger than the pilot's 3 voxels.
+
+**Terms.** **E0**: 200 hard test voxels, each solved by a **global search** (a search with no
+starting guess). **Pilot**: the 2,000-voxel BFS region of the 500-grain sample, clean images, Q-max
+8, BFS seed 0. **Full search**: a global search in a BFS run (seeds and reseeds). **Wrong**: over
+1 degree from the truth. **Arms**: `off` (neither key), `F` (`FusedCost 1` only), `S`
+(`SmoothCostRank E3+E4,tau=0.25` only), `FS` (both). **Quiet**: the timing preflight passed and the
+load stayed low during the run (rule below); anything else is **contended**.
+
+**Arms and what is stored.** Read each row as: what exists, and whether this step reads or runs it.
+E0: the Task E harness (`scripts/eval_reduction/smooth_rank_probe.py`), files gitignored in the main
+checkout's `benchmarks/eval_reduction/E/cache/rank/`. Pilot: `G/g2/bfs/runs/keyoff_rerun`,
+`G/g3/bfs/runs/smooth_only` (`G` = `benchmarks/eval_reduction/G`), `ar2/key/runs/key_off_fused`.
+
+| set | arm | stored files | wrong | evaluations | stored wall | this step |
+|---|---|---|---|---|---|---|
+| E0 | off | `e0_old_base` | 41 | 48,700 per voxel | 823 s, contended (2 workers) | read |
+| E0 | S | `e0_old_e34t25` | 7 | 49,215 + 252 smooth per voxel | none usable | read |
+| E0 | F | none in this harness | | | | run |
+| E0 | FS | none | | | | run |
+| pilot | off | `keyoff_rerun` | 37 | 25,547,935 | 8,997 s, contended | read |
+| pilot | S | `smooth_only` | 34 | 24,490,331 + 980,594 smooth | 11,136 s, contended | read |
+| pilot | F | `key_off_fused` | 24 | 25,602,383 | 1,633 s, contended | rerun, A |
+| pilot | FS | none | | | | run, B |
+
+Stored pairs: E0 off to S is 34 fixed, 0 broken (`E/e2e/tables.md`). Pilot off to S is 14 fixed, 11
+broken; off to F is 20 fixed, 7 broken (`G/g3/tables.md`, `ar2/key/tables.md`). This last pair is
+the scale of **route noise**: one pixel-edge flip changes the BFS path. S2's E0 (35 of 200 wrong
+with and without `FusedCost`, `benchmarks/s2_results/e0.json`) used another harness (`e0_run.py`)
+with another |sin eta| setting, so it is not an arm here. E0 `S` has no usable wall (resumed).
+
+**Timing A/B (item 3).** Arm A = pilot `F`, arm B = pilot `FS` (N2: `FusedCost` on in both, one
+worker, quiet machine). Order: an untimed warm-up (A config, `--max-voxels 5`, to fill the page
+cache), then A1, B1, A2, B2, with a 120 s pause and a preflight before each. Two repeats per arm.
+The expected effect (B about twice A) is far larger than a quiet machine's run-to-run spread, so a
+second repeat gives the spread and the identity check; a third pair would add about 75 minutes
+and decide nothing. Repeats are not random seeds: A2 must equal A1 and B2 must equal B1
+(`recon.mic` byte for byte; `records.json` and the `run.json` counts equal once every `wall*` field
+is dropped). A1 must equal the stored `key_off_fused` the same way. Only the clock may differ.
+
+**Where.** No file under `icenine_py/icenine/` changes. Reused: `scripts/phase_d/pilot_bfs.py`,
+`scripts/autoresearch/ar2/key_off_fused.config` (arm A), `smooth_rank_probe.py` (imported, not
+edited), `scripts/speed_parity/s2/s2_search.py` (its section timers, imported),
+`scripts/autoresearch/ar2/key_summary.py` (`load_run`), `scripts/common/stats.py` (`wilson`,
+`paired_discordant`), `doc_tables.py`, `scripts/dev/timing_preflight.py`, `job_status.sh`.
+New, under `scripts/autoresearch/item14/`:
+- `both_keys.config`: `key_off_fused.config` plus the line `SmoothCostRank E3+E4,tau=0.25`.
+- `e0_arms.py`: the Task E harness with `fused_cost` set and reset beside `smooth_rank` in each
+  worker (its own pool initializer, since spawned workers do not see a parent's patch), re-ranking
+  off; `run --spec off|E3+E4,tau=0.25 --fused`, and `check --n 20` (rerun stored arms, compare).
+- `same_run.py A B`: the identity check above; exit 1 on the first difference, naming it.
+- `split.py`: one full search on full-sample voxels 15901 and 17034, arms F and FS, timed by
+  section (s2_search's timers plus one on `SmoothRanker.__call__`): screen, smooth, strict, rest.
+- `run_item14.sh`: the one command (below). `summary.py`: summary.json, tables.md, figure.
+- `tests/test_item14_scripts.py`, written and committed before the scripts.
+Every run sets `PYTHONWARNINGS="error:FusedCost is not supported:RuntimeWarning"`, so a silent
+fall-back to the torch path stops the run instead of giving a wrong F arm.
+
+**Library changes:** none. Nothing under `icenine_py/icenine/` changes; no golden file moves.
+
+**What is measured.** (1) Wrong voxels per arm with a Wilson interval, and paired fixed/broken by
+voxel: E0 F against off, FS against S, FS against F; pilot FS against S, FS against F, F against
+off. No p-values. (2) Evaluations: strict and smooth, per voxel on E0, per run and per full search
+on the pilot. (3) Wall time of A and B: `wall_total_s` from `run.json` (the BFS; image reads happen
+inside it, the stack is memory-mapped) and the whole process under `/usr/bin/time -p`. Median and
+range over the two repeats, split into full searches (`wall_seed_s` + `wall_reseed_s`) and local
+optimizations. (4) The share each key does not cover: from `split.py`, the part of a full search
+spent in the batched screen and in the smooth evaluations (neither runs in the fused C call); from
+the A/B, (B - A) / B, the smooth key's share of the pilot. E0 walls are multi-worker and contended.
+
+**Predictions, written before any run.**
+1. E0 `F`: 41 wrong (39 to 43), at most 2 broken against `off`; evaluations within 0.1% of 48,700.
+2. E0 `FS`: 7 wrong (5 to 9), at most 2 broken against `S`.
+3. A1 equals the stored `key_off_fused`: 24 wrong, 25,602,383 evaluations, 69 full searches.
+4. Pilot `FS`: 17 to 31 wrong (24 plus or minus 7, the broken count of the route-noise pair); about
+   980,000 smooth evaluations (65 full searches at about 15,100 each).
+5. A quiet: 1,350 to 1,700 s. B quiet: 2,600 to 3,700 s. B / A between 1.7 and 2.4, because one
+   smooth evaluation costs about 1.7 ms, near 100 fused strict evaluations (G1: +25 s per full
+   search single-worker; S2: 15.9 us per fused call).
+6. Repeats of one arm differ by under 5% in wall time; every repeat is identical in results.
+7. Split, both keys: smooth evaluations 40 to 65% of a full search, the screen 20 to 40%, the fused
+   strict evaluation under 15%.
+
+**Decision rules, fixed now.**
+- R1, the keys work together on E0: `FS` within 3 voxels of `S` (7) and at most 3 broken against it.
+  Otherwise the page reports an interaction and does not recommend the pair.
+- R2, identity: a repeat that differs from its first run, or A1 from the stored run, stops the step
+  (stop rule); no time is reported.
+- R3, the full-scale smooth arm (N2 item 5): queued only if wrong(A1) - wrong(B1) > 3. Pilot wrong
+  counts are read against route noise (27 flips between `off` and `F`); no other claim on them.
+- R4, quiet: each timed run starts only after `timing_preflight.py --require --json` passes. During
+  it a sampler logs the 1-minute load every 30 s and the top CPU processes every 5 minutes. A run
+  is quiet if no load sample exceeds 2.5 and no other process stays above 20% CPU. If a preflight
+  refuses or a run is not quiet, the script stops; no time is reported, the step reports why.
+  The load limit of 2.5 is checked in phase A against the preflight's own limit and the run's
+  own load (one worker and its threads, measured on the 30-voxel check). If the run alone
+  passes it, phase A fixes the limit as the preflight's limit plus the run's own load, writes
+  it down before any timed run, and says so on the page. It is never changed after a timed run.
+
+**Machine.** At most 6 heavy processes. E0 arms use 4 workers and run first. The warm-up, the timing
+arms and `split.py` then run alone: no other study, no build, no test suite (AR5 step 6 waits).
+Estimate: E0 checks and arms about 15 minutes; A/B about 9,200 s; split about 5 minutes; total about
+2.9 h. All under `caffeinate -i`; logs and markers in `benchmarks/autoresearch/item14/cache`.
+
+**Stop rule:** stop and report if the run passes 6 hours, if a stored arm does not reproduce
+(`e0_arms.py check`, or A1 against `key_off_fused`), if a repeat is not identical, if a run falls
+back from the fused path, or if the machine is not quiet (R4). Nothing is tuned to match a count.
+
+**Phase A, prepare (implementer, own worktree).** `read_on_fetch.sh --save` first. Symlink the
+gitignored data from the main checkout (`Examples/Example2.ManyGrains/ScatteringData_PhaseD`,
+`icenine_py/scripts/findoptimal_robustness/cache`); never commit them. Build `_rasterize` with the
+fused entry. Tests first, then the scripts. Short checks: `e0_arms.py check --n 20` on `off` and
+`S` (identical to stored); E0 `F` and `FS` on 5 voxels; `pilot_bfs.py --max-voxels 30` with
+`both_keys.config` (no fall-back, smooth evaluations above 0); `split.py` on one voxel; a dry run of
+`run_item14.sh`. Then stop with `READY TO RUN` and the one command:
+`nohup caffeinate -i bash scripts/autoresearch/item14/run_item14.sh > /dev/null 2>&1 &`
+The script runs, in order: E0 `F` and `FS` (4 workers); the warm-up; A1, B1, A2, B2, each gated
+and followed by `same_run.py`; `split.py`; a closing preflight. The main session starts it.
+
+**Phase B, results.** `summary.py` writes `benchmarks/autoresearch/item14/summary.json`,
+`tables.md` and `item14_time.png`; A1 and B1 are copied to `runs/` (repeats stay in the cache). Page
+`docs/autoresearch/findings_item14.md`: first the plot (wall time per arm, the two repeats as dots,
+stacked into full searches and local optimizations; beside it the wrong counts of the four arms on
+E0 and on the pilot), then the tables, each with a reading line; predictions against results;
+every wall time labelled quiet or contended. Numbers: `sync_doc_tables.py`, `audit_numbers.py`.
+A `MIGRATION_HISTORY.md` section; a mailbox line to Ilium (S2's key ran with the smooth key).
+
+**What this step does not test.** Accuracy on realistic images, the full sample or another layer.
+`BatchedQuickMC`. The smooth key's cost with `FusedCost` off (N2: not run). The cause of any pilot
+difference beyond route noise. Other worker counts or machines. C++.
+
+**C++ time: out, a separate step.** The binary exists (Release, 2026-03-23, no `Src/` commit
+since), but its BFS (`LazyBFS`) runs only in the MPI mode `p` (`RunLazyBFS` in
+`Src/XDMServer.cpp`); the serial mode `r` has no BFS. That needs `mpirun` with one server and one
+client (not run on this machine in the record) and a C++ config without the Python-only keys (the
+parser refuses unknown lines, `Src/ConfigFile.cpp`), pointed at the pilot's `region_grid.mic`. Its
+BFS has no reseed, so its work differs and needs its own wrong count. Its wall would include
+reading the 360 ASCII image files. Plan it next, in the same quiet window if one remains.
+
+**Choices made.**
+- E0 in the Task E harness (stored `off` and `S`); not S2's harness, which has no smooth arm.
+- Stored pilot `S` not rerun on today's code (about 3 h with `FusedCost` off); A1 checks the code.
+- Two repeats per timing arm, not three. One warm-up run against a cold page cache.
+- The uncovered share from a separate timed split, not from timers inside the timed runs.
+- C++ time left out (above): a new MPI run, not a small addition.
