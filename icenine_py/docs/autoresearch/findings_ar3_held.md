@@ -1,15 +1,17 @@
-# AR3 step 11: a held-out sample, and the S8 baseline on it did not finish
+# AR3 step 11: a held-out sample, and the S8 baseline on it (finished on the second run)
 
 Step 11 of "AR3" in `docs/autoresearch/PLAN.md`, task `ar3k`. No file under `icenine/` changed.
 Scripts are `scripts/autoresearch/ar3/held_*.py`. Results are in
 `benchmarks/autoresearch/ar3/held/`. Every table below is filled from `tables.md` there.
 
 **Short answer.** The sample `held` was built and its images were rendered. The base check on `big`
-reproduced stored run `S8` exactly. The run of `S8` on `held` then reached its 120 minute cap
-before it finished. So there is no map, no count of wrong voxels and no boundary pass for `held`
-yet. The counters at the cap already show that `held` costs far more than the plan predicted. The
-plan's rule is that a run at its cap is reported as unfinished and is not extended. It was not
-extended, and no other run was made on `held`.
+reproduced stored run `S8` exactly. The first run of `S8` on `held` reached its 120 minute cap and
+did not finish, so the step missed its 120 minute budget. By decision D-20261111-N17 the same run
+was made again with a cap of 480 minutes and nothing else changed. That second run finished. With
+its boundary pass it needed 59,923,523 evaluations, 75 grid fallbacks, and left 95 wrong voxels
+before the pass and 70 after it. Prediction 2 is met; predictions 1 and 3 are not. All wall times
+are contended (other jobs were on the machine) and are not timing results. No other run was made
+on `held`, and no methods were compared.
 
 ## Terms
 
@@ -18,7 +20,8 @@ extended, and no other run was made on `held`.
 - **Grid fallback**: a seed step whose indexed result failed the seed test, so a full grid search
   ran. It is the most expensive event of the run.
 - **Boundary pass**: the last step of the pipeline, which retries the orientation of voxels next to
-  a different orientation.
+  a different orientation. A voxel counts as a boundary voxel when the pass finds a neighbour in
+  the map whose orientation is far from its own; this is read from the map, not from the truth.
 - **Wrong voxel**: a voxel more than 1 degree from the true orientation (symmetry-reduced).
 - **Held out**: no choice of any method has been made by reading this sample.
 
@@ -66,50 +69,81 @@ The script layer of AR5 step 2, with both of its changes off, was run on `big` f
 every stage, the same seed-step log (329 steps), the same map (largest difference 0.0) and 67 wrong
 voxels before the pass. The check passed, so the run on `held` went ahead.
 
-## The run on `held`
+## The two runs on `held`
 
-`S8` on `held` ran for 7,200 seconds (120 minutes) and was stopped by the cap. The counters at that
-moment are in `summary.json` (`capped`). Reading of the table: evaluations before the pass, by
-stage. The three finished samples are complete runs; the `held` row is a count at the cap, so each
-number can only grow.
+The first run was stopped by its 120 minute cap (7,200 seconds). Its counters at that moment are
+kept in `cache/S8_held_cap120/` (untracked) and in `summary.json` under `first_run_capped`:
+48,312,402 evaluations before the pass, 61 grid fallbacks, 305 first seeds and 2,932 reseeds. It
+left no map. The second run, with the cap at 480 minutes, finished in 8,001.6 seconds (about 133
+minutes), so it too would have missed the 120 minute budget. The boundary pass took another 583.1
+seconds. The second run did 3,567 seed steps (305 first seeds and 3,262 reseeds); 2,801 of them
+stopped early at a hit ratio of 0.95.
 
-<!-- table:ar3_held_capped -->
-| sample | state | seed | grid | neighbour | revisit | before | fallbacks |
-|---|---|---|---|---|---|---|---|
-| big | finished | 2,856,712 | 0 | 3,491,437 | 853,714 | 7,201,863 | 0 |
-| first gradient | finished | 3,008,757 | 5,449,501 | 2,798,001 | 3,060,730 | 14,316,989 | 16 |
-| mid | finished | 12,007,352 | 5,002,750 | 3,859,661 | 2,517,272 | 23,387,035 | 15 |
-| held | stopped at 120 minutes | 19,679,538 | 21,082,802 | 3,004,901 | 4,545,161 | 48,312,402 | 61 |
-<!-- /table:ar3_held_capped -->
+## Result: evaluations
 
-What the counters say about `held` at the cap:
+Reading of the table: evaluations by stage, with the boundary pass in its own column, and the
+number of grid fallbacks. The first three rows are the stored finished runs; the `held` row is the
+second, finished run.
 
-- 305 first seeds and 2,932 reseeds, 3,237 seed steps in all.
-- 61 grid fallbacks. They cost 21,082,802 evaluations (43.6% of the 48,312,402 before the pass),
-  about 345,620 evaluations each.
-- The run held 24,570 records, the number of voxels. The count of finished revisits at the cap is
-  not known.
-- Time in the reseeds was 6,236 of the 7,200 seconds; the grid searches took 1,428 seconds by
-  their own timers (whether that lies inside the 6,236 was not checked). These wall times are contended (other jobs were on the machine) and are not
-  timing results.
+<!-- table:ar3_held_evals -->
+| sample | grains | seed | grid | neighbour | revisit | pass_ | total | fallbacks |
+|---|---|---|---|---|---|---|---|---|
+| big | 32 | 2,856,712 | 0 | 3,491,437 | 853,714 | 1,138,565 | 8,340,428 | 0 |
+| first gradient | 497 | 3,008,757 | 5,449,501 | 2,798,001 | 3,060,730 | 3,683,241 | 18,000,230 | 16 |
+| mid | 120 | 12,007,352 | 5,002,750 | 3,859,661 | 2,517,272 | 3,056,039 | 26,443,074 | 15 |
+| held | 250 | 21,257,244 | 25,915,118 | 3,004,901 | 4,556,624 | 5,189,636 | 59,923,523 | 75 |
+<!-- /table:ar3_held_evals -->
+
+## Result: wrong voxels
+
+Reading of the table: wrong voxels before and after the pass, as a count with its Wilson 95%
+interval over the 24,570 voxels; then the median error over all voxels in degrees; then the
+boundary voxels the pass found and their share of the layer. The intervals count voxels as
+independent, but wrong voxels cluster in grains, so they are too narrow for statements across
+grains.
+
+<!-- table:ar3_held_wrong -->
+| sample | before | after | median_b | median_a | boundary |
+|---|---|---|---|---|---|
+| big | 67 (0.21 to 0.35%) | 24 (0.07 to 0.15%) | 0.0320 | 0.0316 | 11054 (45.0%) |
+| first gradient | 210 (0.75 to 0.98%) | 63 (0.20 to 0.33%) | 0.0229 | 0.0226 | 23126 (94.1%) |
+| mid | 84 (0.28 to 0.42%) | 31 (0.09 to 0.18%) | 0.0302 | 0.0297 | 17859 (72.7%) |
+| held | 95 (0.32 to 0.47%) | 70 (0.23 to 0.36%) | 0.0288 | 0.0286 | 21131 (86.0%) |
+<!-- /table:ar3_held_wrong -->
+
+On `held` the pass fixed 30 voxels, broke 5 and left 65 wrong both before and after. Reading of the
+next table: the same counts by the gradient level of the voxel's true grain.
+
+<!-- table:ar3_held_levels -->
+| level | grains | voxels | wrong_before | wrong_after |
+|---|---|---|---|---|
+| 0.0 | 39 | 4150 | 7 | 0 |
+| 0.2 | 40 | 3562 | 7 | 0 |
+| 0.5 | 44 | 4359 | 2 | 0 |
+| 1.0 | 37 | 3680 | 9 | 2 |
+| 2.0 | 46 | 4473 | 21 | 15 |
+| 4.0 | 44 | 4346 | 49 | 53 |
+<!-- /table:ar3_held_levels -->
+
+At level 4 degrees the pass did not help (49 wrong before, 53 after). At the five lower levels
+together there were 46 wrong before and 17 after. Why is not tested here.
 
 ## Predictions against the result
 
-1. 20 to 40 million evaluations: **not met.** The count before the pass is already 48,312,402 at the
-   cap, and the pass is still to come.
-2. 30 to 120 wrong voxels after the pass: **not evaluated.** There is no finished map.
-3. 5 to 40 grid fallbacks: **not met.** There were 61 at the cap, and the run was not finished.
+1. 20 to 40 million evaluations: **not met.** With the pass, 59,923,523 (54,733,887 before it).
+2. 30 to 120 wrong voxels after the pass: **met.** 70 (0.23 to 0.36%).
+3. 5 to 40 grid fallbacks: **not met.** 75.
 
 Why the guess was low is not tested here. It is consistent with the grid fallbacks: the first
-gradient sample and `mid` had 16 and 15 of them, `held` had 61. Whether the number of grains
-(250), the many small grains (smallest 9 voxels) or something else drives the fallbacks needs a
-test that was not made.
+gradient sample and `mid` had 16 and 15 of them, `held` had 75, and the grid searches cost
+25,915,118 of its evaluations. Whether the number of grains (250), the many small grains (smallest
+9 voxels) or something else drives the fallbacks needs a test that was not made.
 
 ## What this decides
 
-- There is no S8 baseline on `held` yet. Later steps that need one must have it first.
-- A longer cap would finish the run, but the plan forbids extending it. Whether to rerun with a
-  longer cap (the run took more than 120 minutes) is the owner's decision.
+- The S8 baseline on `held` now exists, with the map before and after the pass, the seed-step log
+  and the per-voxel records in the cache, so later steps can replay seed steps and pair voxels.
+- Nothing is claimed about whether any method carries over: no method was compared on `held`.
 - The sample stays unread for choices. Its image stack and sample files are untracked.
 
 ## How to reproduce
@@ -124,15 +158,16 @@ uv run python scripts/phase_d/render_full.py --tag held --workers 1 --variants c
 AR3_SAMPLE=held uv run python scripts/autoresearch/ar3/held_stack_note.py --build
 scripts/autoresearch/ar3/held_bg.sh big base_S8x_big ar5/fit_run.py --name S8x
 scripts/autoresearch/ar3/held_bg.sh big base_check ar3/held_base_check.py
-scripts/autoresearch/ar3/held_chain.sh
+scripts/autoresearch/ar3/held_chain.sh        # first run, cap 120 minutes
+# second run: the same chain with --cap-min 480 (cache/logs/chain_held_480.*)
 scripts/autoresearch/ar3/held_bg.sh held stats ar3/held_stats.py
 uv run python scripts/autoresearch/ar3/held_pareto_rows.py
 ```
 
 ## Deviations from the plan
 
-- The run did not finish, so there is no pass, no wrong count, no map and no row pair in
-  `pareto_rows.json`; the file lists the run under `excluded` instead.
+- The 120 minute budget was missed. The first run reached the cap; the second run finished under a
+  cap of 480 minutes, by decision D-20261111-N17.
 - The render used one worker (the plan allows up to two), to keep the machine at two heavy
   processes while the base check ran.
 - The image render record `preflight_render_held_nodrop.json` is not committed (it holds an
@@ -140,5 +175,6 @@ uv run python scripts/autoresearch/ar3/held_pareto_rows.py
 
 ## Limits and not claimed
 
-One sample, one run, one voxel order, and the run is unfinished. The counts at the cap are lower
-bounds. No timing result. No cause is claimed for the high number of grid fallbacks.
+One sample, one finished run, one voxel order. Wall times are contended and are not timing
+results. No cause is claimed for the high number of grid fallbacks or for the pass doing nothing
+at level 4 degrees.
