@@ -2594,6 +2594,15 @@ Task `ar5h`. Approved: D-20261112-N7. Starts from `feature/eval-reduction`; link
 stored runs of steps 2, 3 and 6 from their kept worktrees, imports nothing from unmerged branches.
 Phase A stops at "READY FOR KEY"; phase B starts only after a recorded decision.
 
+**Arms (amended, D-20261112-N8).** Both arms are the run `S11` (the merged keys
+`SeedIndexCMAFirst 200` and `BFSNeighborCMANoFallback 1`, script layer of step 3), without the
+`N1` seed-accept rule. That rule's code is on the unmerged branches of steps 4 and 6, and it acts
+only on failed seeds (13 on `mid`), after the seed step, so it does not touch the order tested
+here. The step then needs no unmerged code. Where the text below says `S11n` for the arms, read
+`S11`: step 1 checks the stored `S11` totals of step 3 instead of 14,105,137 and 9,539,809, and
+the runs are a little larger (about 16.1 and 12.3 million on `mid` and `grad`). The predictions
+and the decision rules are unchanged. The sweep order with `N1` is a later combined run.
+
 **Why.** After step 7 the largest stage left in `S11n` is the MC part of the seed step: the seed
 refinements where the stock MC optimizer runs because the CMA end stayed under hit ratio 0.95.
 The mixed seed refinement does this candidate by candidate: CMA on candidate 1, then MC on
