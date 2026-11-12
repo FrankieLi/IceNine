@@ -2443,6 +2443,151 @@ as the flag of unfinished voxels. A library key. A timing. A second run of any a
 - The step-4 script layer, not the step-5 keys plus a hook (key parity not shown on `mid`).
 - "Plain does as well" at 80% of the saving. Alternative: any saving within one grid fallback.
 
+### AR5 step 7: skip the boundary pass at voxels that already fit
+
+Task `ar5g`. Approved: D-20261112-N4. Starts from `feature/eval-reduction`; it links the
+stored passes of steps 3, 4 and 6 from their kept worktrees and does not need steps 4 and 6
+merged. Its scripts read those stored files themselves and import nothing from the two
+unmerged task branches. One implementer session runs phases A, B and C in order and stops
+only on the stop rule; no run needs a quiet machine.
+
+**Why.** After `N1`, the boundary pass is the largest stage of `S11n` on `grad` and the second
+on `mid`. It tries every neighbour orientation at every boundary voxel, also where the voxel's
+end already lights nearly all its predicted pixels. Step 1 tested skips that read each try's
+start; they failed, because winning tries start low. This step reads only the voxel's own end
+before any try: "can a nearby start still help this voxel?" That is goal 5, as a plain rule.
+
+**Where the evaluations go, by stage** (written with the draft of this plan, 2026-11-12).
+Files read (all stored, nothing rerun): step 6 `ar5/ver/summary_mid.json`, `summary_grad.json`,
+`tables.md` (fixes worktree `agent-a9420a98460078e81`); the run logs `mix_log.json` of `S11n`
+(`ar5/ver/cache/`, worktree `agent-a89458addd73332d9`) and of `S11` (`ar5/mix/cache/`, worktree
+`agent-a5a3601b746680640`). Clean images, Q-max 8, every total with the boundary pass.
+
+Reading line: one row per run and sample; each cell is millions of evaluations, then in brackets
+the share of that run's total in percent. "MC part" is the part of the seed step spent in
+refinements where the MC optimizer ran after the CMA fit ended under hit ratio 0.95 (their CMA
+part included); `S8` has no CMA fit there. "Nbr" is the neighbour local optimizations.
+
+| sample | run | seed step | MC part | grid fallback | nbr | revisit | pass | total |
+|---|---|---|---|---|---|---|---|---|
+| mid | S8 | 12.01(45.4) | n/a | 5.00(18.9) | 3.86(14.6) | 2.52(9.5) | 3.06(11.6) | 26.44 |
+| mid | S11 | 5.83(36.2) | 5.57(34.6) | 4.00(24.9) | 1.49(9.3) | 1.72(10.7) | 3.05(19) | 16.08 |
+| mid | S11n | 5.52(39.2) | 5.27(37.3) | 2.33(16.6) | 1.49(10.6) | 1.70(12) | 3.06(21.7) | 14.11 |
+| grad | S8 | 3.01(16.7) | n/a | 5.45(30.3) | 2.80(15.5) | 3.06(17) | 3.68(20.5) | 18.00 |
+| grad | S11 | 1.63(13.2) | 1.38(11.2) | 3.74(30.4) | 1.48(12) | 1.78(14.4) | 3.69(29.9) | 12.31 |
+| grad | S11n | 1.57(16.5) | 1.32(13.9) | 1.02(10.7) | 1.48(15.5) | 1.78(18.7) | 3.68(38.6) | 9.54 |
+
+What the rest of the seed step is: costing 20 candidates per seed step (33,040 on `mid`), the
+CMA-only refinements (223,110) and the `N1` score (26). Grid fallbacks: 7 on `mid` and 3 on
+`grad` in `S11n`, about 334,000 and 340,000 each. The pass has 50,151 and 60,408 tries of exactly
+61 evaluations, over 17,877 and 23,108 boundary voxels; it fixed 43 and broke 3 voxels on `mid`.
+
+So two pieces are left. On `mid` the MC part of the seed step is largest (37.3%). On `grad`
+the boundary pass is (38.6%), and it is second on `mid` (21.7%). The pass is the same size in
+every run (3.0 to 3.7 million per map), so its share grows as the other stages shrink.
+
+A what-if from the stored tries (not a result; computed while writing this draft). A voxel's
+pass tries are skipped when the hit ratio of its own end before the pass is at least 0.95. The
+replay is exact for the stored tries: a skipped voxel keeps its end from before the pass.
+Reading line: per stored pass, its evaluations, the share the skip removes, and wrong voxels.
+
+| sample, run | pass evaluations | cut | wrong, full | wrong, skip | fixed / broken | median error |
+|---|---|---|---|---|---|---|
+| mid, S11n | 3,059,211 | 68.9% | 35 | 35 | 0 / 0 | 0.02913 to 0.02913 |
+| grad, S11n | 3,684,888 | 83.3% | 59 | 59 | 0 / 0 | 0.02118 to 0.02122 |
+| big, S11 | 1,135,637 | 75.9% | 18 | 18 | 0 / 0 | 0.03077 to 0.03084 |
+| grad, S11 | 3,685,803 | 83.5% | 62 | 62 | 0 / 0 | 0.02104 to 0.02105 |
+| mid, S11 | 3,048,170 | 69.2% | 36 | 36 | 0 / 0 | 0.02913 to 0.02913 |
+
+The highest hit ratio before the pass of any wrong voxel is 0.944 (`mid`, `big`) and 0.936
+(`grad`), so the margin under 0.95 is small. At 0.92 the skip breaks 6 voxels on `mid`.
+
+**Terms.** **Boundary pass, try**: as in `icenine/boundary_pass.py`; a try is one CMA local
+optimization of 61 evaluations from one neighbour's orientation. **Own hit ratio**: the hit
+ratio of the voxel's end before the pass; the pass computes it already (one uncounted overlap
+evaluation per voxel, 24,570 on `mid`). **Skip cut** `h_s`: a voxel with own hit ratio at least
+`h_s` gets no try. **Net gain**: wrong voxels before the pass minus after it. **Replay**: the
+stored tries with the skipped ones removed. **Live pass**: the library pass run with the key.
+**Wrong**: more than 1 degree from the truth (the library's symmetry-reduced angle).
+
+**Samples, and what has touched them.** `big`, `grad`, `mid`: this draft computed the skip at
+0.95 on their stored passes (table 2 below); disclosed, not clean. `held` (250 grains, gradients
+0 to 4 degrees): its `S8`, `S11`, `S11v2` passes and wrong counts were read in step 4, but no
+skip has been computed on it. `held` is the test sample. `S11v2` on `held` is `S11n`'s rule.
+
+**Frozen now.** `h_s` = 0.95, the library's existing stop ratio (`SeedIndexStopHitRatio`) and
+step 1's flag pick on `big` and `grad`. No other value is tried as a decision.
+
+**What is measured**, per sample and run: pass evaluations with and without the skip, the cut,
+voxels and tries skipped; wrong voxels after the pass (Wilson 95%); fixed and broken against the
+full pass and against `S8`; median error; run totals with the skipped pass, against `S8`; the own
+hit ratio of every voxel the full pass fixed. A curve over `h_s` from 0.90 to 0.99 is a what-if.
+
+**Predictions, written before any run.**
+1. On `held` the replay at 0.95 cuts 55% to 85% of the pass and fixed / broken against the full
+   pass is at most 0 / 2.
+2. On `held`, `S11v2` with the skipped pass needs 5% to 12% fewer evaluations than with the full
+   pass (its pass is a smaller share: an estimate of 3.5 of about 36 million, from step 4's
+   totals; this draft did not open `held`'s pass files).
+3. The live pass spends exactly the replay's evaluations (61 per kept try) on every sample.
+4. Live wrong voxels are within 2 of the replay's on every sample (one generator for the pass,
+   so skipped tries shift the random draws of later tries).
+5. Median error rises by at most 0.0005 degree on every sample.
+
+**Decision rules, fixed now.** The skip passes on a sample if: the pass is cut by at least 50%;
+broken minus fixed against the full pass is at most 5% of the pass's net gain, rounded up, at
+least 1 voxel; median error is at most 0.001 degree higher; and the run with the skipped pass
+meets the house rules against `S8` (20% fewer, broken minus fixed at most 5, median at most
+0.005 degree higher). It passes the step if it passes on `held` live and on every disclosed
+sample. Then the owner decides whether the documentation recommends the key. If it fails on
+`held`: the key stays, off, the page says so; `h_s` is not tuned on `held`.
+
+**Machine.** Phase A reads stored files only, any time. Phase B runs passes alone on stored maps
+(no BFS): four skipped passes of 0.27 to 1.0 million evaluations and one key-off parity pass of
+3.06 million, under 10 minutes each, at most 2 side by side. Wall times are not timing results.
+
+**Stop rule:** stop and report if a stored total does not reproduce, if the replay at 0.95 fails
+the rule on a disclosed sample (before any library change), if live evaluations differ from the
+replay, or if the key-off pass differs from the stored one in any try.
+
+**Phase A (offline).** 1. Link the stored passes and maps; check the totals 3,059,211,
+3,684,888, 1,135,637, 3,685,803, 3,048,170. 2. Tests first: `tests/test_ar5_gate.py` (replay
+rule on a synthetic pass, the fixed/broken count). 3. `gate_replay.py` on the disclosed passes;
+commit `ar5/gate/frozen.json` (`h_s`, rule, file hashes). 4. Then `held`'s passes; per-voxel
+errors from the maps and the truth, no evaluation. If `held` has no stored `old_score`, it is
+tested live only. Write "READY FOR KEY".
+**Phase B (key and live passes).** Add the key; unit tests; key-off parity pass on `mid` `S11n`;
+live skipped passes on `mid`, `grad` (`S11n`), `big` (`S11`), `held` (`S11v2`).
+**Phase C.** Stats, the plot (cut against net gain lost, one line per sample, 0.95 marked)
+before the tables, predictions, page `findings_ar5_gate.md`, history entry, pareto rows.
+**Files:** `scripts/autoresearch/ar5/gate_*.py`, `tests/test_ar5_gate.py`,
+`benchmarks/autoresearch/ar5/gate/` (under 2 MB tracked), the page.
+
+**Library changes:** one opt-in key, `BoundaryPassSkipHitRatio h` (float; default 0, off). In
+`icenine/boundary_pass.py` a boundary voxel whose own hit ratio is at least `h` gets no try; its
+score is still recorded; `bfs.stats` gains `boundary_skipped`. `icenine/config_file.py` parses
+the key; `reconstructor.py` passes it with `BoundaryPass`. The off path is bit-identical; no
+default changes and no golden regeneration.
+
+**Not in this step.** Realistic images (lower hit ratios: more tries run, less saving). Another
+crystal system. `N1` as the skip score. The skip stacked with step 1's `P2 m=2`. Any change
+of the seed step or the grid fallback. A timing. A second run of any arm.
+
+**Choices made.**
+- This step is candidate (b) aimed at the pass: a saving already seen offline on five stored
+  passes with no voxel lost, so low risk. Not (a), the `N1` key: it adds no saving beyond the
+  12.3% measured; it makes that usable, moving the feature code of `held_keep.py` and `ver_*.py`
+  into the library with a parity test on the stored `S11n` runs. Other files; it can run beside.
+- Not (b) aimed at the MC part of the seed step (37.3% on `mid`, 13.9% on `grad`): the log keeps
+  only the CMA end, not the MC end or trace, so a first phase needs a replay of about 5 million
+  evaluations, and steps 2 and 3 already tried replacing that MC. It is the next target.
+- Not (c) `N1` as the stop test of a grown voxel's local optimization: those fits are short (about
+  660 evaluations in the pilot), no per-evaluation traces are stored, and `N1` costs 2
+  evaluations a call.
+- `h_s` = 0.95, not 0.97 (cut 53.7% on `mid`, safer margin) or a cut fit on the pass data.
+- One generator for the pass kept; alternative: a generator per voxel, which would make the live
+  pass equal the replay but would change the key-off tries.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
