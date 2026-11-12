@@ -829,6 +829,37 @@ request changes, 7 document and script fixes, no rerun). Page:
 - Data that stays untracked: worktree `agent-af8961874e131bda2` (the sample, the stack
   `held_clean.npy`, `ar3/held/cache/S8_held/` and `S8_held_cap120/`).
 
+### AR5 step 5 (two opt-in library keys for run `S11`; task `ar5e`), merged at a494bcd on 2026-11-11
+
+Library change (four files), tests, scripts, results. Suite after the merge:
+1724 passed, 47 skipped, 1 deselected.
+Decisions D-20261111-N21 (plan), N22 (review: request changes, six fixes to the page and the
+tests, no rerun, no library change). Page: `docs/autoresearch/findings_ar5_keys.md`. Reports in
+`.claude/reports/`: `20261111-2030-ar5e.md`, `20261111-2115-review-ar5e.md`,
+`20261111-2200-ar5e-fixes.md`. Heads-up to Ilium in the mailbox of `docs/ROADMAP.md` (dc0e6a5).
+
+- The keys, both off by default: `SeedIndexCMAFirst n` (mixed seed refinement: a CMA fit first
+  for each indexed seed candidate; MC after it only when the CMA end misses the stop ratio;
+  `S11` uses 200) and `BFSNeighborCMANoFallback 0|1` (a neighbour fit returns its CMA end).
+- Parity before the pass, library run against stored script run, all exact (evaluations,
+  seeds and reseeds, grid fallbacks, voxel records, map bytes): check 1 keys off on `big`
+  7,201,863 (67 wrong); check 2 `S10` on `big` 4,767,135; check 3 `S11` on `big` 2,879,705;
+  check 4 `S11` on the first gradient sample 8,622,191 (348 seeds, 986 reseeds, 11 grid
+  fallbacks, 207 wrong). The reviewer recomputed checks 1 to 4 from the raw files.
+- The boundary pass (check 5) is exact from the stored maps (totals 4,015,342 on `big`,
+  12,307,994 on the gradient sample). Inside the `S11` library run it has the stored tries and
+  evaluations but not the stored contents: costs differ in 4,372 of 18,617 tries on `big` and
+  in 15,813 of 60,423 on the gradient sample; changed voxels 986 against 983 and 688 against
+  681; wrong after the pass 19 against 18 and 62 against 62. The cause (the run reads the
+  unrounded map) was shown only for the `S8` library run in AR3 step 10; untested for the others.
+- The hit ratio of a CMA end is one more overlap evaluation per refined candidate; it is not
+  counted (as in the script runs).
+- Predictions: 1 to 3 met; 4 not met (62 new tests at the first hand-back, 68 after the fixes,
+  against 25 to 50). No existing test changed.
+- Not tested: timing; the keys on `mid` or `held`; no default changed; no setting recommended.
+- Data that stays untracked: worktree `agent-afc3f195cb4fffb30` (`ar5/keys/cache/`: the library
+  runs `S8L_big`, `S10L_big`, `S11L_big`, `S11L_grad` and the pass checks).
+
 ## For the owner
 
 - Still yours: item 12 (apply and commit, below), Ilium's plan approvals, and the note on what

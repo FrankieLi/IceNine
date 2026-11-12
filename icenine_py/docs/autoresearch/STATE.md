@@ -12,7 +12,7 @@ Read this file first after any restart or wake. It holds only what is true now a
 | finished steps, old notes (archive, use `grep`) | `docs/autoresearch/STATE_HISTORY.md` |
 | numbers of a finished step | its findings page, or `shmem query "IceNine autoresearch <step>"` |
 | review page for the owner | https://claude.ai/artifact/A63khAHf7nEx6NBZioSnGW |
-| open PR | #43 (AR3 steps 2 to 11, AR5 steps 1 to 3, AR4 step 1), https://github.com/FrankieLi/IceNine/pull/43 |
+| open PR | #43 (AR3 steps 2 to 11, AR5 steps 1 to 3 and 5, AR4 step 1), https://github.com/FrankieLi/IceNine/pull/43 |
 
 ## How to restart
 
@@ -24,7 +24,7 @@ Read this file first after any restart or wake. It holds only what is true now a
 
 ## Next action
 
-Two things are open. Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent
+One step is open. Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent
 into a task branch before its fixes round (shared files conflict).
 
 1. AR5 step 4 (task `ar5d`; N16, N18, N20): on `held` with the pass `S11` needs 23.3% fewer
@@ -34,29 +34,24 @@ into a task branch before its fixes round (shared files conflict).
    a new Opus one): statistics, page, predictions 5 and 6. Place the page if its Write is
    refused. Then hand-back check, merge (`finish_task.sh`), close (page with the `held`
    points, PR #43).
-2. AR5 step 5 (task `ar5e`; N21, N22): keys `SeedIndexCMAFirst`, `BFSNeighborCMANoFallback`.
-   Reviewed: checks 1 to 4 exact, keys off untouched; six fixes to the page and the tests
-   (the pass inside the `S11` library run has equal counts, not equal contents). Opus fixes
-   round goes. Then: place the page if refused, hand-back check, merge, close.
+2. After step 4 closes: plan the next step from the queue (decision first). The `S11v2`
+   result decides whether the verifier gets one more step. Items 14 + 3 need a quiet machine.
 
 ## Running jobs
 
 - `S11v2` on `held` (cap 480 minutes): background command of the main session, started
   2026-11-11 19:54 in worktree `agent-a8a1ac8e80f8913cf` (branch `ar5d`, tip 1983a40; report
   `20261111-2130-ar5d-fixes.md`). Marker there: `ar5/held/cache/logs/S11v2_held.done`.
-- AR5 step 5 fixes round (Opus, started 2026-11-11 21:10; review
-  `.claude/reports/20261111-2115-review-ar5e.md`; report `20261111-2200-ar5e-fixes.md`).
-- Review page: version 43 (builder `run43.sh`, scratchpad).
+- Review page: version 44 (`run43.sh`, then `patch_v44.py`, scratchpad).
 
 ## Queue
 
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
-7, 18, 22, 23, AR0 to AR2, AR3 1 to 11, AR5 1 to 3, AR4 1) are in `STATE_HISTORY.md`, "Queue".
+7, 18, 22, 23, AR0 to AR2, AR3 1 to 11, AR5 1 to 3 and 5, AR4 1) are in `STATE_HISTORY.md`, "Queue".
 
 | step | what | state |
 |---|---|---|
 | AR5 step 4 | `S10`, `S11`, `S11v` on the held-out sample (task `ar5d`) | fixes round, one rerun |
-| AR5 step 5 | library keys for `S11` (task `ar5e`) | fixes round |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
 | C++ time | measured C++ time on the pilot region | not started |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
@@ -64,12 +59,14 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 ## Last finished step
 
-AR3 step 11 (sample `held`, 250 grains, with its `S8` baseline; task `ar3k`; scripts only):
-merged into `feature/eval-reduction` at 504fadb on 2026-11-11, pushed; suite 1656 passed, 47
-skipped, 1 deselected. `S8` on `held`: 59,923,523 evaluations with the pass, 75 grid
-fallbacks, 70 wrong after the pass. Page: `docs/autoresearch/findings_ar3_held.md`.
-Decisions D-20261111-N15 (plan), N17 (cap 480 minutes), N19 (review). Before it: AR5 step 3
-(ab7e9fc). More: `STATE_HISTORY.md`.
+AR5 step 5 (two opt-in library keys for run `S11`: `SeedIndexCMAFirst`,
+`BFSNeighborCMANoFallback`; task `ar5e`): merged into `feature/eval-reduction` at a494bcd on
+2026-11-11, pushed; suite 1724 passed, 47 skipped, 1 deselected.
+Library runs equal the stored script runs before the pass on `big` and on the first gradient
+sample (2,879,705 and 8,622,191 evaluations for `S11`). The pass inside a library run has
+equal counts, not equal contents. Page:
+`docs/autoresearch/findings_ar5_keys.md`. Decisions D-20261111-N21 (plan), N22 (review).
+Before it: AR3 step 11 (504fadb). More: `STATE_HISTORY.md`.
 
 ## Untracked data that later steps need
 
@@ -94,7 +91,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 ## For the owner (open items only; details by `grep` in `STATE_HISTORY.md`, "For the owner")
 
-- Your word on PR #43 ("merge PR 43" in the session). It holds AR3 2 to 11, AR5 1 to 3, AR4 1.
+- Your word on PR #43 ("merge PR 43" in the session): AR3 2 to 11, AR5 1 to 3 and 5, AR4 1.
 - A choice: which seed step the documentation of the keys recommends. Step 10 added the
   keys and recommends none. My recommendation: the settings of `S8` (`SeedIndexCandidates 20
   5`, `SeedIndexStopHitRatio 0.95`): cheapest on all three samples, wrong counts not worse.
@@ -104,8 +101,8 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - A note: C++ parallel mode keeps the higher confidence for a voxel that two clients fit;
   that rule did harm in the Python test of step 5. A reading of the source, not a test.
 - A choice: try test `P2 m=2` as an opt-in key (no gain lost; cuts 17% to 39% of the pass).
-- A choice: an opt-in key for "no MC fallback" (`S10`) or the mixed seed refinement (`S11`)
-  now; N14 and N16 say not before the test on `held`.
+- A choice: whether the documentation recommends the two `S11` keys. They were added off by
+  default under N21, after `S11` passed on `held`; the documentation recommends none now.
 - Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N22 (all
   on the review page). N15 adds `held` (new seed); N17, N18: run caps of 480 minutes.
   The gradient levels of step 7's sample are my choice. Step 5's result files add about 50
