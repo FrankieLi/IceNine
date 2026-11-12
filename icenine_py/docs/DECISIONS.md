@@ -1344,3 +1344,15 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   icenine_py/docs/autoresearch/PLAN.md (AR5 step 3); review
   .claude/reports/20261111-1503-review-ar5c.md; page
   icenine_py/docs/autoresearch/findings_ar5_mix.md.
+
+### D-20261111-N17 · Track A / AR3 step 11 · AR3 step 11 hand-back (partial): rerun the S8 baseline on the sample held with a cap of 480 minutes
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- The S8 run on held reached its 120-minute cap: all 24,570 voxels had a record, 48,312,402
+  evaluations before the pass and 61 grid fallbacks (both lower bounds), and no map or log was
+  written. Predictions 1 and 3 of the plan missed. Decision under the mandate: run the same S8 run
+  on held again with a cap of 480 minutes and nothing else changed, started by the main session
+  from the task branch at e45bb0b; the counters of the capped run are kept as S8_held_cap120. The
+  120-minute cap was a budget taken from prediction 1; it is not part of the method. No choice of
+  method is made from the capped counters. After the run: a completion round (statistics, the
+  pass, pareto rows, the page), then one review of the whole step. The owner can overrule. Where:
+  icenine_py/docs/autoresearch/PLAN.md, AR3 step 11; report .claude/reports/20261111-1351-ar3k.md.
