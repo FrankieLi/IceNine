@@ -1623,6 +1623,10 @@ steps that use it are committed with their predictions.
 **Budgets.** Sample and images: 15 minutes. Baseline: at most 120 minutes, at most 2 heavy
 processes. All wall times are contended and are not timing results.
 
+**Amended on 2026-11-11 (D-20261111-N17).** The run reached the 120-minute cap unfinished (all
+24,570 voxels had a record; no map was written). The cap was a budget taken from prediction 1,
+which missed. The same run goes again with a cap of 480 minutes and nothing else changed.
+
 **Files.** `scripts/autoresearch/ar3/held_*.py`, a test of the sample builder's pure parts in
 `tests/test_ar3_held_sample.py`, results in `benchmarks/autoresearch/ar3/held/` (under 5 MB
 tracked; the image stack and the caches stay untracked), a short page
@@ -2089,9 +2093,17 @@ three samples that have all been read would fit the samples.
 ### AR5 step 4: the mixed seed refinement and the learned verifier on the held-out sample
 
 Task `ar5d`. Scripts and results only: no file under `icenine_py/icenine/` changes, no key is
-added, no default changes. It starts only when a finished `S8` baseline on the sample `held`
-(AR3 step 11) is merged. Drafted on 2026-11-11, while that baseline was still running: the
-predictions below were written before any number of `held` was read (D-20261111-N16).
+added, no default changes. Drafted on 2026-11-11 (commit 17a27c1), while the `S8` baseline of
+AR3 step 11 was still running: the predictions below were written before any number of `held`
+was read (D-20261111-N16).
+
+**Amended on 2026-11-11 (D-20261111-N18).** The baseline then reached its cap of 120 minutes
+with 48.3 million evaluations and 61 grid fallbacks (both lower bounds) and runs again with a
+cap of 480 minutes (D-20261111-N17). Two things changed here and nothing else: the cap of a
+run (150 to 480 minutes), and the start. The step no longer waits for step 11 to merge: its
+task branch merges the branch of step 11 first, its runs go next to the baseline run, and it
+merges after step 11. No comparison is read before the baseline has finished. The
+predictions were not touched.
 
 **Why.** Run `S11` (AR5 step 3) needs 32% to 52% fewer evaluations than `S8` on three samples,
 but its seed rule was found in a replay that included one of them (`mid`). The learned
@@ -2120,8 +2132,8 @@ script layer of AR5 steps 2 and 3.
 
 Reading the table: one row per run; each row adds one change to the row above it.
 
-At most 150 minutes a run, at most 3 heavy processes; a run at its cap is reported as
-unfinished. All wall times are contended and are not timing results.
+At most 480 minutes a run, at most 3 heavy processes next to the baseline run; a run at its
+cap is reported as unfinished. All wall times are contended and are not timing results.
 
 **Checks before the runs.** (1) On 20 seed steps of `big`, the script layer still gives the
 ends and counts of step 3. (2) On the 15 stored grid-fallback cases of `mid`, the score of
