@@ -1,0 +1,116 @@
+{
+ "kind": "S8L",
+ "sample": "big",
+ "keys": [
+  "BFSNeighborCMAFirst 1",
+  "CMASigma0 0.05",
+  "CMANeighborMaxEvals 60",
+  "BoundaryPass 1",
+  "SeedIndexCandidates 20 5",
+  "SeedIndexStopHitRatio 0.95"
+ ],
+ "stored_dir": "S8_big",
+ "plan_numbers": {
+  "evals_before_pass": [
+   7201863,
+   7201863
+  ],
+  "seeds": [
+   37,
+   37
+  ],
+  "reseeds": [
+   292,
+   292
+  ],
+  "grid_fallbacks": 0
+ },
+ "stored_evals_total": 7201863,
+ "counters": {
+  "n_stored_counters": 33,
+  "differ": {},
+  "only_in_stored": [],
+  "only_in_library": [
+   "boundary_changed",
+   "boundary_tries",
+   "boundary_voxels",
+   "cma_first_fallback_runs",
+   "cma_first_fallback_won",
+   "index_stopped_early",
+   "n_evals_boundary_pass",
+   "n_evals_boundary_score"
+  ]
+ },
+ "records": {
+  "equal": true,
+  "n": 24570
+ },
+ "map_before_pass_vs_stored_recon_mic": {
+  "equal": true,
+  "bytes": 6535568
+ },
+ "wrapper_counts": {
+  "fits": [
+   32563,
+   32563
+  ],
+  "cma_not_fell": [
+   null,
+   null
+  ],
+  "cma_first_fallback_runs": [
+   3197,
+   3197
+  ]
+ },
+ "seed_step_log": {
+  "steps": [
+   329,
+   329
+  ],
+  "equal": true
+ },
+ "pass_in_run": {
+  "tries": [
+   18664,
+   18665
+  ],
+  "evals": [
+   1138504,
+   1138565
+  ],
+  "n_pairs_only_in_library": 3,
+  "n_pairs_only_in_stored": 4,
+  "voxels_with_a_pair_in_one_list_only": [
+   8679,
+   8687
+  ]
+ },
+ "pass_counts": {
+  "tries": 18664,
+  "evals": 1138504,
+  "boundary_voxels": 11054,
+  "changed": 1084,
+  "evals_total_with_pass": 8340367,
+  "stored_with_pass": null
+ },
+ "wrong": {
+  "lib_before": 67,
+  "lib_after": 24,
+  "stored_before": 67,
+  "stored_after": 24,
+  "expected_before": 67
+ },
+ "paired_before": {
+  "fixed_vs_stored": 0,
+  "broken_vs_stored": 0,
+  "both_wrong": 67
+ },
+ "paired_after": {
+  "fixed_vs_stored": 5,
+  "broken_vs_stored": 5,
+  "both_wrong": 19
+ },
+ "timing_label": "contended: timing preflight refused (cpptools at 100% CPU); single run, one worker",
+ "wall_total_s": 854.7446398735046
+}

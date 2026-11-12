@@ -1,0 +1,127 @@
+{
+ "kind": "S10L",
+ "sample": "big",
+ "keys": [
+  "BFSNeighborCMAFirst 1",
+  "CMASigma0 0.05",
+  "CMANeighborMaxEvals 60",
+  "BoundaryPass 1",
+  "SeedIndexCandidates 20 5",
+  "SeedIndexStopHitRatio 0.95",
+  "BFSNeighborCMANoFallback 1"
+ ],
+ "stored_dir": "S10_big",
+ "plan_numbers": {
+  "evals_before_pass": [
+   4767135,
+   4767135
+  ],
+  "seeds": [
+   36,
+   36
+  ],
+  "reseeds": [
+   297,
+   297
+  ],
+  "grid_fallbacks": 0
+ },
+ "stored_evals_total": 4767135,
+ "counters": {
+  "n_stored_counters": 33,
+  "differ": {},
+  "only_in_stored": [],
+  "only_in_library": [
+   "boundary_changed",
+   "boundary_tries",
+   "boundary_voxels",
+   "cma_not_fell",
+   "index_stopped_early",
+   "n_evals_boundary_pass",
+   "n_evals_boundary_score"
+  ]
+ },
+ "records": {
+  "equal": true,
+  "n": 24570
+ },
+ "map_before_pass_vs_stored_recon_mic": {
+  "equal": true,
+  "bytes": 6535568
+ },
+ "wrapper_counts": {
+  "fits": [
+   32398,
+   32398
+  ],
+  "cma_not_fell": [
+   3152,
+   3152
+  ],
+  "cma_first_fallback_runs": [
+   null,
+   0
+  ]
+ },
+ "seed_steps": {
+  "steps": [
+   333,
+   333
+  ],
+  "stopped_early": [
+   323,
+   323
+  ]
+ },
+ "seed_step_log": {
+  "steps": [
+   333,
+   333
+  ],
+  "equal": true
+ },
+ "pass_in_run": {
+  "tries": [
+   18547,
+   18543
+  ],
+  "evals": [
+   1131367,
+   1131123
+  ],
+  "n_pairs_only_in_library": 4,
+  "n_pairs_only_in_stored": 0,
+  "voxels_with_a_pair_in_one_list_only": [
+   3188,
+   8741,
+   12351,
+   21045
+  ]
+ },
+ "pass_counts": {
+  "tries": 18547,
+  "evals": 1131367,
+  "boundary_voxels": 11030,
+  "changed": 1135,
+  "evals_total_with_pass": 5898502,
+  "stored_with_pass": null
+ },
+ "wrong": {
+  "lib_before": 77,
+  "lib_after": 26,
+  "stored_before": 77,
+  "stored_after": 22
+ },
+ "paired_before": {
+  "fixed_vs_stored": 0,
+  "broken_vs_stored": 0,
+  "both_wrong": 77
+ },
+ "paired_after": {
+  "fixed_vs_stored": 4,
+  "broken_vs_stored": 8,
+  "both_wrong": 18
+ },
+ "timing_label": "contended: timing preflight refused (cpptools at 100% CPU); single run, one worker",
+ "wall_total_s": 686.815701007843
+}
