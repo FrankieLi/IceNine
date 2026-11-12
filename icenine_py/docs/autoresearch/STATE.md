@@ -35,7 +35,7 @@ into a task branch before its fixes round (shared files conflict).
    the implementer's Write and the main session's copy were refused (auto mode). No way round:
    the owner places it or allows it. Then: sync check, commit, fix 2 (MIGRATION_HISTORY names
    that commit), merge, close (page version 45, PR #43).
-2. AR5 step 6 (`ar5f`; N24; D-20261112-N2, N3): reviewed, fixes round runs; see its Queue row.
+2. AR5 step 6 (`ar5f`; N24; D-20261112-N2, N3): fixed; waits for the owner; see its Queue row.
 3. Items 14 + 3 (task `item14`; N25): E0 arms done (`F` 41 wrong, `FS` 7 of 200, both as
    predicted). The run stopped at 00:01 on 2026-11-12 with exit 3: the preflight refused
    before A1 (`cpptools`, pid 18415, 99% CPU). Once the owner frees the machine: rerun the
@@ -56,8 +56,8 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 | step | what | state |
 |---|---|---|
-| AR5 step 4 | `S10`, `S11`, `S11v2` on the held-out sample (task `ar5d`) | waits for the owner (page) |
-| AR5 step 6 | `S11n`, `S11h` on `mid` and `grad` (task `ar5f`) | runs and phase B done (first agent and worktree `a89458addd73332d9`, detached at 4c18740; `h_c` 0.7904203, frozen at b451086 before the runs). Opus review (`.claude/reports/20261112-0510-review-ar5f.md`): every headline number recomputed, none differs; request changes, 11 wording fixes, no rerun. N3: all accepted; six of seven predictions met (5 not for `S11h` on `grad`). Numbers: on `mid` `S11n` 14,105,137 evaluations (12.3% fewer than `S11`, 6 seeds kept, 0 wrong), `S11h` 15,680,025 (2.5%, 1 kept); both pass; "plain does as well" not met on `mid` (20.4% of the saving; 62.2% on `grad`, in-sample). Fixes round: Opus agent `a9420a98460078e81` (05:25), brief `brief_ar5f_fixes.md` (scratchpad), report `.claude/reports/20261112-0517-ar5f-fixes.md` in its worktree. Then `verify_handback.sh --fixes`. The page is not in the repo (Write refused): the corrected text will be `.claude/reports/20261112-ar5f-page-v2.md` in the fixes worktree, for the owner to place at `docs/autoresearch/findings_ar5_ver.md`. Merge after step 4 and after the page |
+| AR5 step 4 | `S10`, `S11`, `S11v2` on the held-out sample (task `ar5d`) | waits for the owner (page): `.claude/reports/20261111-2330-ar5d-phaseB-page.md` (main checkout) goes to `icenine_py/docs/autoresearch/findings_ar5_held.md` in worktree `agent-a8a1ac8e80f8913cf` |
+| AR5 step 6 | `S11n`, `S11h` on `mid` and `grad` (task `ar5f`) | reviewed and fixed; waits for the owner (page) and for step 4's merge. Branch tip d643eff, held by the fixes worktree `agent-a9420a98460078e81`; the first worktree `agent-a89458addd73332d9` (detached, 4c18740) holds the run cache `ar5/ver/cache/`: keep both. Opus review (`.claude/reports/20261112-0510-review-ar5f.md`): every headline number recomputed, none differs; 11 wording fixes, no rerun (N3). Fixes round done (7f272ce, 18260d5, d643eff; report `.claude/reports/20261112-0517-ar5f-fixes.md` in the fixes worktree; hand-back check: only the expected format flag; no number changed, `predictions[4].met` now false; 14 tests pass). Numbers: on `mid` `S11n` 14,105,137 evaluations (12.3% fewer than `S11`, 6 seeds kept, 0 wrong), `S11h` 15,680,025 (2.5%, 1 kept); both pass; "plain does as well" not met on `mid` (20.4% of the saving; 62.2% on `grad`, in-sample); six of seven predictions met. PAGE: not in the repo (Write refused). Corrected text: `.claude/reports/20261112-ar5f-page-v2.md` in the fixes worktree; the owner places it at `icenine_py/docs/autoresearch/findings_ar5_ver.md` there (or allows it). Then: sync check, commit, merge after step 4 (`finish_task.sh` in the fixes worktree), close (pareto points, page, PR #43); then a decision on an opt-in key for the `N1` rule |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B (task `item14`) | E0 done; timing waits for a quiet machine |
 | C++ time | measured C++ time on the pilot region (MPI mode, own config) | D-20261112-N1, task `cpptime`: phase A done (agent and worktree `ad44bb90c441eca35`, tip 5d6cec2, report in that worktree's `.claude/reports/20261112-0012-cpptime.md`). Run, after item 14's timing and on a quiet machine: `caffeinate -i bash scripts/autoresearch/cpptime/run_cpp_time.sh` in its `icenine_py/` (background command); marker `benchmarks/autoresearch/cpptime/cache/cpptime.done`; then phase B by `SendMessage`. R4 limit 3.5 (own load 2.0: the server rank spins). `lldb` cannot run (developer mode off): evaluations missing unless the owner enables it or accepts a print in `Src/` |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
@@ -92,8 +92,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 - Free the machine for the item 14 timing: `cpptools` (VS Code C/C++ extension, pid 18415)
   has used a whole core for 2 days; the timing preflight refuses while it does. Yours to close.
-- Place the page of AR5 step 4 (or allow me to): `.claude/reports/20261111-2330-ar5d-phaseB-page.md`
-  goes to `icenine_py/docs/autoresearch/findings_ar5_held.md` in worktree `agent-a8a1ac8e80f8913cf`.
+- Place two pages, or allow me to: AR5 step 4's and step 6's. Paths: their Queue rows.
 - Your word on PR #43 ("merge PR 43" in the session): AR3 2 to 11, AR5 1 to 3 and 5, AR4 1.
 - A choice: which seed step the documentation of the keys recommends. Step 10 added the
   keys and recommends none. My recommendation: the settings of `S8` (`SeedIndexCandidates 20
