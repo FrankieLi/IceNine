@@ -40,10 +40,10 @@ Merge the parent into a task branch before its fixes round (shared files conflic
 
 ## Running jobs
 
-- `S8` on `held`, cap 480 minutes: background command of the main session, started
-  2026-11-11 16:27 in worktree `agent-af8961874e131bda2` at e45bb0b. Check:
-  `cat <that worktree>/icenine_py/benchmarks/autoresearch/ar3/held/cache/logs/chain_held_480.done`
-  (it exists only at the end; the log is next to it; `ps -Ao etime,command | grep fit_run`).
+- AR3 step 11 completion round: the `S8` rerun on `held` and its pass finished 18:51 (exit 0;
+  worktree `agent-af8961874e131bda2`, `ar3/held/cache/S8_held/`). The step's implementer was
+  resumed at 18:55 for statistics, pareto rows, page and report; it hands back by message.
+  Then: place the page if its Write was refused, Opus review, fixes, merge.
 - `S10`, `S11`, `S11v` on `held`, cap 480 minutes each: background command of the main
   session (`held_run_all.sh`), started 16:53 in worktree `agent-a814d0121e137b01c`. Markers:
   `<that worktree>/icenine_py/benchmarks/autoresearch/ar5/held/cache/logs/<run>_held.done`.
@@ -56,7 +56,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 | step | what | state |
 |---|---|---|
-| AR3 step 11 | sample `held` (250 grains) with its `S8` baseline (task `ar3k`) | baseline reruns |
+| AR3 step 11 | sample `held` (250 grains) with its `S8` baseline (task `ar3k`) | completion round |
 | AR5 step 4 | `S10`, `S11`, `S11v` on the held-out sample (task `ar5d`) | runs going |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
 | C++ time | measured C++ time on the pilot region | not started |
