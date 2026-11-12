@@ -1600,3 +1600,14 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   the CMA end (needs a new cut). The timing runs (items 14 + 3, C++ time) keep priority if the
   machine becomes quiet: they wait until these runs end, or the runs are started after them.
   Where: icenine_py/docs/autoresearch/PLAN.md (AR5 step 8).
+
+### D-20261112-N8 · Track A / AR5 step 8 (plan) · AR5 step 8 arms run on S11 (merged keys), not S11n, so the step needs no unmerged code
+- 2026-11-12, owner. Recorded by Newt Agent. Supersedes: none.
+- Amends D-20261112-N7. Both arms of AR5 step 8 (interleaved order and sweep order) are the run
+  S11 with the merged keys SeedIndexCMAFirst 200 and BFSNeighborCMANoFallback 1, without the N1
+  seed-accept rule. Reason: the N1 code is on the unmerged branches of steps 4 and 6, which wait
+  for the owner to place their pages; stacking a third step on them would block it too. N1 acts
+  only on failed seeds after the seed step, so it does not touch the order under test. Predictions
+  and decision rules are unchanged. The sweep order together with N1 and the boundary-pass skip is
+  a later combined run, after those branches merge. Where: icenine_py/docs/autoresearch/PLAN.md
+  (AR5 step 8, paragraph Arms).
