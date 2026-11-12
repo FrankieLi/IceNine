@@ -1476,3 +1476,18 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   is not quiet reports no time. The measured C++ time is left as a separate step (its BFS runs
   only in MPI mode and needs its own config). AR5 step 6 runs and any merge wait while the timing
   arms run. The owner can overrule. Where: icenine_py/docs/autoresearch/PLAN.md (Items 14 and 3).
+
+### D-20261112-N1 · Track A / C++ time on the pilot (review page item 3) · C++ time plan approved: one client on the pilot region, stored binary, beside the Python timing A/B
+- 2026-11-12, owner. Recorded by Newt Agent. Supersedes: none.
+- Plan approved under D-20261109-N1 (owner mandate) and N2 (item 3 delegated). The stored Release
+  binary runs mode p with one server and one client (mpirun -n 2) on the 2,000-voxel pilot region,
+  config generated from key_off_fused.config minus the three Python-only lines. Two timed runs
+  under the quiet rule R4 of item 14, plus one untimed run that reads the evaluation counter with
+  lldb. No change under Src/ or icenine_py/icenine/. The page must say the two sides do not do the
+  same work (C++ one-client has no revisit and no reseed; predicted 740 to 1,300 wrong voxels
+  against 24 for Python arm A) and compares unit costs (seconds per global search, per local
+  optimization, microseconds per evaluation). A print added in Src/ plus a rebuild, and a Python
+  arm with C++ rules, are left as open choices for the owner. Timed runs start only after item
+  14's timing arms, never beside them. The owner may overrule. Where:
+  icenine_py/docs/autoresearch/PLAN.md, section 'C++ time on the pilot: one client, beside the
+  Python timing A/B' (af6514a).
