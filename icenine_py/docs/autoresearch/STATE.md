@@ -24,25 +24,28 @@ Read this file first after any restart or wake. It holds only what is true now a
 
 ## Next action
 
-One step is open. Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into
-a task branch before its fixes round (shared files conflict).
+Two things are open. Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent
+into a task branch before its fixes round (shared files conflict).
 
-1. AR5 step 4 (task `ar5d`; N16, N18; plan in `PLAN.md`, predictions at 17a27c1): `S10`,
-   `S11`, `S11v` (= `S11` plus verifier `N1`) on `held`. The runs and the statistics are done
-   (branch tip 72be082; the page was placed by the main session; report
-   `20261111-1640-ar5d.md`). Reported, not yet reviewed: with the pass `S11` needs 23.3% fewer
-   evaluations than `S8` and passes; `S10` 3.6% (fails); `S11v` 36.3% but 82 wrong against 70
-   (fails). Predictions 3, 4 met; 1, 2, 5, 6 not. Now: read the review, decision N20, Opus
-   fixes round, merge, close (page with the `held` points of the three runs, PR #43).
-2. Then, if `S11` still passes after the review: plan the library step (one opt-in key pair:
-   mixed seed refinement and "no MC fallback"), with predictions; decision; Sonnet implementer.
+1. AR5 step 4 (task `ar5d`; N16, N18, N20): on `held` with the pass `S11` needs 23.3% fewer
+   evaluations than `S8` and passes; `S10` 3.6% (fails). Both reviewed. `S11v` was a defective
+   arm: the 24 seeds `N1` accepted were refused by the library's seed check afterwards. Fixes
+   round in two phases (plan amendment N20). Phase A (Opus): repair the hook, check it on
+   `mid` (never on `held`), document fixes, then "READY TO RUN" with a command. The main
+   session starts `S11v2` on `held` (cap 480 minutes) as a background command. Phase B
+   (`SendMessage` to the same agent, or a new Opus one): statistics, page, predictions 5, 6.
+   Then hand-back check, merge (`finish_task.sh`), close (page with the `held` points, PR #43).
+2. The library step for `S11` (one opt-in key pair: mixed seed refinement, "no MC fallback"):
+   a design note is being written by a Plan agent. Then write the plan section with
+   predictions, decision N21, a Sonnet implementer (it may run next to step 4's rerun).
 
 ## Running jobs
 
-- Opus review of AR5 step 4, started 2026-11-11 about 19:35; report
-  `.claude/reports/20261111-2000-review-ar5d.md`. No machine-time run is going.
+- AR5 step 4 fixes round, phase A (Opus implementer, started 2026-11-11 about 20:00; review
+  `.claude/reports/20261111-2000-review-ar5d.md`; report `20261111-2130-ar5d-fixes.md`).
+- A Plan agent writes the design note for the `S11` library keys (read only).
 - The review page is at version 42; version 43 (AR3 step 11) is being built
-  (`build_v43.py`, `run43.sh` in the scratchpad). PR #43's text: see its last section.
+  (`build_v43.py`, `run43.sh` in the scratchpad). No machine-time run is going.
 
 ## Queue
 
@@ -51,7 +54,8 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 | step | what | state |
 |---|---|---|
-| AR5 step 4 | `S10`, `S11`, `S11v` on the held-out sample (task `ar5d`) | in review |
+| AR5 step 4 | `S10`, `S11`, `S11v` on the held-out sample (task `ar5d`) | fixes round, one rerun |
+| AR5 step 5 | library keys for `S11` (mixed seed refinement, no MC fallback) | plan |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
 | C++ time | measured C++ time on the pilot region | not started |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
@@ -100,14 +104,14 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - A choice: try test `P2 m=2` as an opt-in key (no gain lost; cuts 17% to 39% of the pass).
 - A choice: an opt-in key for "no MC fallback" (`S10`) or the mixed seed refinement (`S11`)
   now; N14 and N16 say not before the test on `held`.
-- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N19 (all
+- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N20 (all
   on the review page). N15 adds `held` (new seed); N17, N18: run caps of 480 minutes.
   The gradient levels of step 7's sample are my choice. Step 5's result files add about 50
   MB to git; say so if you want them pruned.
 
 ## Bookkeeping
 
-- Next decision ID: D-20261111-N20.
+- Next decision ID: D-20261111-N21.
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
