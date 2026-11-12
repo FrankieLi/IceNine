@@ -2105,6 +2105,21 @@ task branch merges the branch of step 11 first, its runs go next to the baseline
 merges after step 11. No comparison is read before the baseline has finished. The
 predictions were not touched.
 
+**Amended on 2026-11-11 (D-20261111-N20), after the review.** The runs `S10` and `S11` stand.
+The run `S11v` did not test the planned rule: each of the 24 seeds that `N1` accepted was then
+refused by the library's own seed check (the same hit-ratio threshold as the seed test), so
+its grain did not grow. The run only skipped grid fallbacks. That is a defect of the script
+layer, not a result about the verifier. The fixes round repairs the hook in the script layer
+(no file under `icenine_py/icenine/` changes) so that an accepted seed is kept and its grain
+grows. The repair is checked on the stored grid-fallback cases of `mid`, not on `held`. Then
+`S11v` runs once more on `held` as `S11v2`: the same frozen model and cut, the same rule, the
+same pass rule, a cap of 480 minutes. Nothing is tuned and no setting is chosen from the first
+run. The first run stays on the page, labelled as a defective arm, and its rows leave the
+plots. The rule part of prediction 5 and prediction 6 are judged on `S11v2`; the predictions
+are not rewritten. The page says that `S11v2` ran after the numbers of the defective run on
+`held` had been seen. This is a repeat because of a bug. It is not a repeat with a new random
+seed to firm up a comparison.
+
 **Why.** Run `S11` (AR5 step 3) needs 32% to 52% fewer evaluations than `S8` on three samples,
 but its seed rule was found in a replay that included one of them (`mid`). The learned
 verifier `N1` (AR4 step 1) accepted 7 of 10 right and 0 of 5 wrong seeds that had failed the
