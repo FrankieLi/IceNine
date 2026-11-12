@@ -1356,3 +1356,15 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   method is made from the capped counters. After the run: a completion round (statistics, the
   pass, pareto rows, the page), then one review of the whole step. The owner can overrule. Where:
   icenine_py/docs/autoresearch/PLAN.md, AR3 step 11; report .claude/reports/20261111-1351-ar3k.md.
+
+### D-20261111-N18 · Track A / AR5 step 4 · AR5 step 4 plan approved with two amendments (cap 480 minutes; starts next to the baseline rerun)
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- The plan of AR5 step 4 (runs S10, S11 and S11v = S11 plus verifier N1 as an added seed-accept
+  rule, on the sample held, against S8) was committed at 17a27c1 with six predictions before any
+  number of held was read. Approved under the mandate with two amendments made after the hand-back
+  of AR3 step 11: the cap of a run is 480 minutes instead of 150, and the step starts now on a
+  task branch that merges the branch of step 11 first, with its runs next to the baseline rerun;
+  it merges after step 11 and reads no comparison before the baseline has finished. The
+  predictions, the pass rule, the frozen X200 rule and the frozen N1 model and cut were not
+  changed. The main session starts the long runs so that no agent has to wait on them. The owner
+  can overrule. Where: icenine_py/docs/autoresearch/PLAN.md, AR5 step 4.
