@@ -117,6 +117,8 @@ def check_bfs_keys(params: Any) -> None:
     stop = float(getattr(params, "seed_index_stop_hit", 0.0))
     seed_keys = cands != (5, 2) or stop != 0.0
     boundary = bool(getattr(params, "boundary_pass", False))
+    if float(getattr(params, "boundary_pass_skip_hit", 0.0)) > 0.0 and not boundary:
+        raise ValueError("BoundaryPassSkipHitRatio > 0 needs BoundaryPass 1")
     if seed_keys and not getattr(params, "seed_by_indexing", False):
         raise ValueError(
             "SeedIndexCandidates and SeedIndexStopHitRatio need SeedByIndexing 1 "
@@ -1886,7 +1888,11 @@ class BFSReconstruction:
             # BoundaryPass (opt-in, AR3 step 10): once on the whole map, before the write
             from . import boundary_pass as BP
 
-            BP.run_boundary_pass(self, mic)
+            skip_hit = float(getattr(self.setup.search_params, "boundary_pass_skip_hit", 0.0))
+            if skip_hit > 0.0:  # BoundaryPassSkipHitRatio (opt-in, AR5 step 7)
+                BP.run_boundary_pass(self, mic, skip_hit=skip_hit)
+            else:
+                BP.run_boundary_pass(self, mic)
 
         for i in self._refit_candidates:
             if mic.voxels[i].reconstruction_id != ReconstructionState.FITTED:

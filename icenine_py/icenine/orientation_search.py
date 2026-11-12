@@ -181,6 +181,10 @@ class SearchParameters:
     #   bfs_neighbor_cma_first.
     seed_index_cma_first: int = 0
     bfs_neighbor_cma_no_fallback: bool = False
+    # boundary_pass_skip_hit (BoundaryPassSkipHitRatio h, AR5 step 7; 0 = off, in [0, 1]): in the
+    #   boundary pass a voxel whose own hit ratio (that of its end before the pass) is at least h
+    #   gets no try. Off by default and not recommended yet. Needs boundary_pass.
+    boundary_pass_skip_hit: float = 0.0
     # paint_grains: opt-in (config key PaintGrains, default off; AR3 step 2). With the key on,
     #   ``BFSReconstruction.reconstruct_sample`` runs ``grain_paint.paint_grains`` in place of the
     #   BFS (seeds indexed, each grain flooded by single strict scores, each voxel painted with the
@@ -281,6 +285,10 @@ class SearchParameters:
             raise ValueError(
                 f"seed_index_stop_hit must be in [0, 1], got {self.seed_index_stop_hit}"
             )
+        if not 0.0 <= self.boundary_pass_skip_hit <= 1.0:
+            raise ValueError(
+                f"boundary_pass_skip_hit must be in [0, 1], got {self.boundary_pass_skip_hit}"
+            )
         if self.seed_index_cma_first != 0 and self.seed_index_cma_first < 2:
             raise ValueError(
                 f"seed_index_cma_first must be 0 (off) or >= 2, got {self.seed_index_cma_first}"
@@ -329,6 +337,7 @@ class SearchParameters:
             bfs_neighbor_cma_no_fallback=bool(
                 getattr(config, "bfs_neighbor_cma_no_fallback", False)
             ),
+            boundary_pass_skip_hit=float(getattr(config, "boundary_pass_skip_hit", 0.0)),
             paint_grains=bool(getattr(config, "paint_grains", False)),
             cpp_overlap_rule=bool(getattr(config, "cpp_overlap_rule", False)),
             cpp_edge_rules=bool(getattr(config, "cpp_edge_rules", False)),
