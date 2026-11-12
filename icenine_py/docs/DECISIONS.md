@@ -1368,3 +1368,16 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   predictions, the pass rule, the frozen X200 rule and the frozen N1 model and cut were not
   changed. The main session starts the long runs so that no agent has to wait on them. The owner
   can overrule. Where: icenine_py/docs/autoresearch/PLAN.md, AR5 step 4.
+
+### D-20261111-N19 · Track A / AR3 step 11 · AR3 step 11 review: request changes, 7 document and script fixes, no rerun; then merge
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- The Opus review recomputed the finished S8 run on held from the cache (54,733,887 evaluations
+  before the pass, 59,923,523 with it, 75 grid fallbacks, wrong 95 then 70, the pass fixed 30 and
+  broke 5, boundary share 86.0%) and rebuilt mid and held from the builder; no code defect in the
+  run path. Decision under the mandate: apply all 7 required fixes of
+  .claude/reports/20261111-1900-review-ar3k.md in one Opus fixes round (fixed and broken by
+  gradient level, the scope of the held-out statement with the AR5 step 4 runs of N18 named,
+  contended labels, the process-count deviation, derived values in summary.json, the history note,
+  the cap as an argument of held_chain.sh), no new run, then merge into feature/eval-reduction.
+  The owner can overrule. Where: .claude/reports/20261111-1900-review-ar3k.md;
+  icenine_py/docs/autoresearch/findings_ar3_held.md.

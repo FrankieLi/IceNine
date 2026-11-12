@@ -40,10 +40,10 @@ Merge the parent into a task branch before its fixes round (shared files conflic
 
 ## Running jobs
 
-- `S8` on `held`, cap 480 minutes: background command of the main session, started
-  2026-11-11 16:27 in worktree `agent-af8961874e131bda2` at e45bb0b. Check:
-  `cat <that worktree>/icenine_py/benchmarks/autoresearch/ar3/held/cache/logs/chain_held_480.done`
-  (it exists only at the end; the log is next to it; `ps -Ao etime,command | grep fit_run`).
+- AR3 step 11 fixes round (Opus implementer, started 19:15; review REQUEST CHANGES with 7
+  document and script fixes, no rerun; decision N19; report `20261111-1930-ar3k-fixes.md`).
+  `S8` on `held`: 59,923,523 evaluations with the pass, 75 grid fallbacks, 70 wrong after it.
+  At its hand-back: place the page if needed, hand-back check, merge (`finish_task.sh`).
 - `S10`, `S11`, `S11v` on `held`, cap 480 minutes each: background command of the main
   session (`held_run_all.sh`), started 16:53 in worktree `agent-a814d0121e137b01c`. Markers:
   `<that worktree>/icenine_py/benchmarks/autoresearch/ar5/held/cache/logs/<run>_held.done`.
@@ -56,7 +56,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 | step | what | state |
 |---|---|---|
-| AR3 step 11 | sample `held` (250 grains) with its `S8` baseline (task `ar3k`) | baseline reruns |
+| AR3 step 11 | sample `held` (250 grains) with its `S8` baseline (task `ar3k`) | fixes round |
 | AR5 step 4 | `S10`, `S11`, `S11v` on the held-out sample (task `ar5d`) | runs going |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
 | C++ time | measured C++ time on the pilot region | not started |
@@ -106,14 +106,14 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - A choice: try test `P2 m=2` as an opt-in key (no gain lost; cuts 17% to 39% of the pass).
 - A choice: an opt-in key for "no MC fallback" (`S10`) or the mixed seed refinement (`S11`)
   now; N14 and N16 say not before the test on `held`.
-- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N18 (all
+- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N19 (all
   on the review page). N15 adds `held` (new seed); N17, N18: run caps of 480 minutes.
   The gradient levels of step 7's sample are my choice. Step 5's result files add about 50
   MB to git; say so if you want them pruned.
 
 ## Bookkeeping
 
-- Next decision ID: D-20261111-N19.
+- Next decision ID: D-20261111-N20.
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
