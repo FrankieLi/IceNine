@@ -34,18 +34,18 @@ into a task branch before its fixes round (shared files conflict).
    a new Opus one): statistics, page, predictions 5 and 6. Place the page if its Write is
    refused. Then hand-back check, merge (`finish_task.sh`), close (page with the `held`
    points, PR #43).
-2. AR5 step 5 (task `ar5e`; N21): keys `SeedIndexCMAFirst`, `BFSNeighborCMANoFallback`.
-   Done on the branch (tip 37739e4; the page was placed by the main session): checks 1 to 5
-   exact against the stored runs, 62 tests, suite 1718 passed. Heads-up to Ilium is in the
-   mailbox (dc0e6a5). Now: read the Opus review, decision N22, Opus fixes round, merge, close.
+2. AR5 step 5 (task `ar5e`; N21, N22): keys `SeedIndexCMAFirst`, `BFSNeighborCMANoFallback`.
+   Reviewed: checks 1 to 4 exact, keys off untouched; six fixes to the page and the tests
+   (the pass inside the `S11` library run has equal counts, not equal contents). Opus fixes
+   round goes. Then: place the page if refused, hand-back check, merge, close.
 
 ## Running jobs
 
 - `S11v2` on `held` (cap 480 minutes): background command of the main session, started
   2026-11-11 19:54 in worktree `agent-a8a1ac8e80f8913cf` (branch `ar5d`, tip 1983a40; report
   `20261111-2130-ar5d-fixes.md`). Marker there: `ar5/held/cache/logs/S11v2_held.done`.
-- Opus review of AR5 step 5, started 2026-11-11 about 21:05 (branch in worktree
-  `agent-afc3f195cb4fffb30`); its report: `.claude/reports/20261111-2115-review-ar5e.md`.
+- AR5 step 5 fixes round (Opus, started 2026-11-11 21:10; review
+  `.claude/reports/20261111-2115-review-ar5e.md`; report `20261111-2200-ar5e-fixes.md`).
 - Review page: version 43 (builder `run43.sh`, scratchpad).
 
 ## Queue
@@ -56,7 +56,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 | step | what | state |
 |---|---|---|
 | AR5 step 4 | `S10`, `S11`, `S11v` on the held-out sample (task `ar5d`) | fixes round, one rerun |
-| AR5 step 5 | library keys for `S11` (task `ar5e`) | in review |
+| AR5 step 5 | library keys for `S11` (task `ar5e`) | fixes round |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
 | C++ time | measured C++ time on the pilot region | not started |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
@@ -106,14 +106,14 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - A choice: try test `P2 m=2` as an opt-in key (no gain lost; cuts 17% to 39% of the pass).
 - A choice: an opt-in key for "no MC fallback" (`S10`) or the mixed seed refinement (`S11`)
   now; N14 and N16 say not before the test on `held`.
-- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N21 (all
+- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N22 (all
   on the review page). N15 adds `held` (new seed); N17, N18: run caps of 480 minutes.
   The gradient levels of step 7's sample are my choice. Step 5's result files add about 50
   MB to git; say so if you want them pruned.
 
 ## Bookkeeping
 
-- Next decision ID: D-20261111-N22.
+- Next decision ID: D-20261111-N23.
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
