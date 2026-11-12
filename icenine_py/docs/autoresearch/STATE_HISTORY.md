@@ -708,6 +708,99 @@ Pilot region, 2,000 voxels, clean images, Q-max 8, FusedCost on, one fixed voxel
   refused; the standing exception). Worktree with the cache: `agent-a68538c58665829a1`.
 - What it led to: AR4 recast from proposer to verifier (N13), AR5 step 2 (N12).
 
+### AR5 step 2 (two long local optimizations; task `ar5b`), merged at c688191 on 2026-11-11
+
+- Page `findings_ar5_fits.md`; results `benchmarks/autoresearch/ar5/fit/`; scripts
+  `scripts/autoresearch/ar5/fit_*.py`; tests `tests/test_ar5_fit_rules.py` (13). Decisions
+  D-20261111-N12 (plan), N14 (review). Suite at the merge: 1609 passed, 47 skipped, 1
+  deselected.
+- Scripts only, clean images, one run each; picks on `big` and the first gradient sample, test
+  on `mid`. The pick file was committed at 12:00:26, the first `mid` replay started 12:00:47.
+- Base check: the script layer with both changes off gives stored `S8` on `big` exactly
+  (7,201,863 evaluations, 67 wrong before the pass).
+- Part 1, replay of 3,219 seed steps. Arm `M` (stored MC) matched the log on every step. No
+  CMA arm met the 1% rule: `C200` loses 60 seed-test passes net on the 1,608 steps of the pick
+  samples (64 with `M` only, 4 with the arm only; limit 16). Pick stays `M`. End errors on
+  `mid`, median / 90th percentile / within 0.2 degree: `M` 0.020 / 0.076 / 97.8%, `C60` 0.160
+  / 23.341 / 56.0%, `C200` 0.013 / 0.317 / 85.5%, `C0` 0.423 / 41.431 / 16.1%.
+- MC fallback after CMA ended lower than the CMA end in 3 of 3,197, 3 of 3,903 and 45 of 4,568
+  runs (`big`, first gradient sample, `mid`; the last is 0.985%).
+- Part 2, run `S10` (`S8` with no MC fallback), with the pass: 5,898,258 / 15,167,998 /
+  22,668,704 evaluations against 8,340,428 / 18,000,230 / 26,443,074 (29.3 / 15.7 / 14.3%
+  fewer). Wrong after the pass 22 / 67 / 35 against 24 / 63 / 31; fixed and broken 11/9,
+  29/33, 11/15. Passes the 20% rule on `big` only. `S10a` and `S10b` were not run (with pick
+  `M` they equal `S8` and `S10`). Predictions 1, 3, 5 agree; 2 and 4 do not.
+- Review's what-if from the stored replay (arithmetic, not a run): `C200` first, MC only when
+  the CMA end hit ratio is below 0.95: passes 1,596 against 1,592 (pick samples), 1,600
+  against 1,596 (`mid`); seed-step evaluations 2,501,991 against 5,865,469 and 5,643,374
+  against 12,007,352. This became AR5 step 3 (N14). No key for `S10` alone (N14).
+- The findings page was placed by the main session from the implementer's text (commit
+  591ad30). Six `S10` rows in `docs/autoresearch/pareto/pareto_rows.json`.
+- Commits: 71bbdee (tests first) to aeda9e4, 591ad30; fixes dbd4a9f (parent merged), 573a599,
+  a186b34. Reports in `.claude/reports/`: `20261111-1134-ar5b.md`,
+  `20261111-1310-review-ar5b.md`, `20261111-1317-ar5b-fixes.md`. Cache (untracked):
+  worktree `agent-acc78ac2a483ed86f`, `ar5/fit/cache/`.
+
+### AR4 step 1 (a learned verifier, offline; task `ar4a`), merged at 1ffee63 on 2026-11-11
+
+- Page `findings_ar4_verifier.md`; results `benchmarks/autoresearch/ar4/`; scripts
+  `scripts/autoresearch/ar4/verify_*.py`; tests `tests/test_ar4_verifier.py` (26). Decisions
+  D-20261111-N13 (plan; AR4 recast from a learned proposer to a learned verifier), N15
+  (review: request changes, 10 fixes, all applied; no new run). Suite at the merge: 1635
+  passed, 47 skipped, 1 deselected.
+- Scripts only, clean images. Models `B0` (hit ratio), `B1` (logistic regression), `N1` (small
+  set network). Trained on `big` and the first gradient sample; thresholds committed at
+  12:43:51 (669b9a3), first read of `mid` at 12:44:18.
+- Use 1, flag of unfinished voxels on `mid` (31 wrong of 24,570, all at boundary voxels): `B0`
+  flags 31 of 31 at 1,760 voxels, `N1` 23 of 31 at 190, `B1` 31 of 31 at 13,653. No model
+  passes. `N1` scores 8 wrong voxels at 0.83 to 0.99 (it misses 4 of 87 in-sample).
+- Use 2, accept a seed that failed the seed test (15 fallback cases on `mid`): `N1` accepts 7
+  of 10 right ends and 0 of 5 wrong. Arithmetic on stored numbers, not a run: as an added rule
+  it skips 2,325,301 of 5,002,750 grid evaluations on `mid` (3,744,760 of 5,449,501 on the
+  first gradient sample, in-sample). In place of the seed test it refuses 20 right and 9 wrong
+  passing seeds on `mid` (about 6,670,333 and 3,001,650 extra evaluations at the mean grid
+  search of 333,517).
+- Grid-only evaluations of the fallback cases equal the library counter of `S8`; AR5 step 1's
+  figures were larger by the seed steps of the reseed cases (85,014 and 69,086).
+- The share of peaks with any lit pixel does not separate right from wrong at boundary voxels
+  (AUC 0.496 against 0.974 for the hit ratio; every peak lit for 77.1% of right and 77.4% of
+  wrong). Predictions 1 and 3 agree; 2 and 4 do not. The vote-count input was skipped.
+- Per-peak sums differ from the fused evaluation on 2.5% to 2.8% of pairs, the same for right
+  and wrong; consistent with D-20261027-I2, not traced pair by pair.
+- Next (N15): use 2 only as an added rule, tested on the unread sample `held` (AR3 step 11).
+- Worktrees: `agent-ab349f0b6193c2ca1` (first round; `ar4/cache`), `agent-a5a51f7021e6cc8c1`
+  (fixes round; a link to that cache). Reports `.claude/reports/20261111-1208-ar4a.md`,
+  `20261111-1335-review-ar4a.md`, `20261111-1351-ar4a-fixes.md`.
+
+### AR5 step 3 (a mixed seed refinement, run `S11`; task `ar5c`), merged at ab7e9fc on 2026-11-11
+
+- Page `findings_ar5_mix.md`; results `benchmarks/autoresearch/ar5/mix/`; scripts
+  `scripts/autoresearch/ar5/mix_*.py`; tests `tests/test_ar5_mix_rules.py` (14). Decisions
+  D-20261111-N14 (plan), N16 (review: approve, 8 wording and traceability fixes, all applied;
+  no new run). Suite at the merge: 1649 passed, 47 skipped, 1 deselected.
+- Scripts only, clean images, one run per sample. The pick was committed at 13:57:26; the
+  20-step check started 13:58:20 (it matched Part 1 on all 20 steps) and the runs at 14:05:51.
+- Part 1, from the stored replay: pick `X200` (CMA with 200 evaluations first; MC from the same
+  candidate only when the CMA end hit ratio is under 0.95; the lower cost of the two). Pick
+  samples: 57.3% fewer seed-step evaluations than `M`, 1,596 seed-test passes against 1,592,
+  1,589 ends within 1 degree against 1,583. `X60` meets both rules too but saves 25.2%. On
+  `mid` 5,643,575 seed-step evaluations; the plan's what-if 5,643,374 is a variant that stops
+  when either end reaches 0.95 and differs at replay step 442 only.
+- Part 2, run `S11` (`S8` + `X200` + no MC fallback), with the pass: 4,015,342 / 12,307,994 /
+  16,082,696 evaluations on `big`, the first gradient sample and `mid` (51.9 / 31.6 / 39.2%
+  fewer than `S8`). Wrong 18 / 62 / 36 against 24 / 63 / 31. Broken minus fixed against `S8`:
+  -6, -1, +5 (`mid`: 15 broken, 10 fixed; exactly at the limit). The pass rule is met on all
+  three.
+- Grid fallbacks 0 / 11 / 12 against 0 / 16 / 15. They are 30.0% and 9.6% of the saving against
+  `S8` on the first gradient sample and `mid` (47.8% and 15.2% against `S10`); one fallback
+  costs 333,517 to 340,594 evaluations. Why they drop was not tested.
+- Predictions 1, 2 and 4 agree; 3 (fallbacks within 2 of `S8`) does not.
+- The rule was found in a replay that included `mid`: no sample is held out for it. N16: no
+  key before the test on `held` (`S10`, `S11`, `S11` plus verifier `N1`, by stage).
+- Worktrees: `agent-a5a3601b746680640` (first round; the `S11` caches), `agent-a566790c79fbe9096`
+  (fixes round; links). Reports `.claude/reports/20261111-1351-ar5c.md`,
+  `20261111-1503-review-ar5c.md`, `20261111-1520-ar5c-fixes.md`.
+
 ## For the owner
 
 - Still yours: item 12 (apply and commit, below), Ilium's plan approvals, and the note on what

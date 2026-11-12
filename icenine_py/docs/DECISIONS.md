@@ -1326,3 +1326,45 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   repeat to firm up a comparison (owner rule of 2026-10-12). Where:
   icenine_py/docs/autoresearch/PLAN.md (AR4 step 1; AR3 step 11),
   .claude/reports/20261111-1335-review-ar4a.md.
+
+### D-20261111-N16 · Track A / AR5 step 3 · AR5 step 3 review: approve, 8 document fixes; no key for the mixed seed refinement before the test on the sample held; that test splits evaluations by stage
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Review of AR5 step 3 (task ar5c): APPROVE with 8 required fixes, all wording or traceability, no
+  new run. All 8 are applied in a fixes round (Opus), then the step is merged as a study with
+  scripts only. Reviewed numbers: pick X200; run S11 with the boundary pass needs 51.9%, 31.6% and
+  39.2% fewer evaluations than S8 on big, the first gradient sample and mid and meets the pass
+  rule on all three; on mid broken minus fixed is 5 (15 broken, 10 fixed), exactly at the limit,
+  with 36 wrong voxels against 31. The mixed rule was found in a replay that included mid, so no
+  sample is held out for it. Therefore no library key is added now. The test on the sample held
+  (AR3 step 11) comes first: runs S10 and S11, and S11 plus the verifier N1 as an added
+  seed-accept rule, against the S8 baseline, with evaluations by stage and the grid-fallback cases
+  paired by seed step, so that the fallback part of the saving (30% and 10% of it against S8,
+  untested why) is seen separately. Its plan and predictions are written after held exists and
+  before any run on it. Decided under the mandate D-20261109-N1; the owner may overrule. Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR5 step 3); review
+  .claude/reports/20261111-1503-review-ar5c.md; page
+  icenine_py/docs/autoresearch/findings_ar5_mix.md.
+
+### D-20261111-N17 · Track A / AR3 step 11 · AR3 step 11 hand-back (partial): rerun the S8 baseline on the sample held with a cap of 480 minutes
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- The S8 run on held reached its 120-minute cap: all 24,570 voxels had a record, 48,312,402
+  evaluations before the pass and 61 grid fallbacks (both lower bounds), and no map or log was
+  written. Predictions 1 and 3 of the plan missed. Decision under the mandate: run the same S8 run
+  on held again with a cap of 480 minutes and nothing else changed, started by the main session
+  from the task branch at e45bb0b; the counters of the capped run are kept as S8_held_cap120. The
+  120-minute cap was a budget taken from prediction 1; it is not part of the method. No choice of
+  method is made from the capped counters. After the run: a completion round (statistics, the
+  pass, pareto rows, the page), then one review of the whole step. The owner can overrule. Where:
+  icenine_py/docs/autoresearch/PLAN.md, AR3 step 11; report .claude/reports/20261111-1351-ar3k.md.
+
+### D-20261111-N18 · Track A / AR5 step 4 · AR5 step 4 plan approved with two amendments (cap 480 minutes; starts next to the baseline rerun)
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- The plan of AR5 step 4 (runs S10, S11 and S11v = S11 plus verifier N1 as an added seed-accept
+  rule, on the sample held, against S8) was committed at 17a27c1 with six predictions before any
+  number of held was read. Approved under the mandate with two amendments made after the hand-back
+  of AR3 step 11: the cap of a run is 480 minutes instead of 150, and the step starts now on a
+  task branch that merges the branch of step 11 first, with its runs next to the baseline rerun;
+  it merges after step 11 and reads no comparison before the baseline has finished. The
+  predictions, the pass rule, the frozen X200 rule and the frozen N1 model and cut were not
+  changed. The main session starts the long runs so that no agent has to wait on them. The owner
+  can overrule. Where: icenine_py/docs/autoresearch/PLAN.md, AR5 step 4.

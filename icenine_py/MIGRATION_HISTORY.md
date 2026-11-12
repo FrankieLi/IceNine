@@ -11840,3 +11840,89 @@ reached the 120 minute cap (contended) before it finished: no map, no wrong coun
 pareto rows (listed under `excluded`). Counters at the cap: 48,312,402 evaluations before the pass,
 61 grid fallbacks (21,082,802 evaluations), 3,237 seed steps. Predictions 1 and 3 not met, 2 not
 evaluated. Not rerun, by the plan's rule.
+
+## Autoresearch AR4 step 1: a learned verifier, measured offline against the hit ratio (done 2026-11-11, task ar4a)
+
+No change under `icenine/`; no key, no default, no dependency (`pyproject.toml` and `uv.lock`
+unchanged). Scripts `scripts/autoresearch/ar4/verify_*.py` (pure functions in `verify_lib.py`,
+tests `tests/test_ar4_verifier.py`, written and committed first; model definitions in
+`verify_models.py` and the training script `verify_fit.py` committed before any training); results
+`benchmarks/autoresearch/ar4/` (slim; the pair inputs stay in an untracked cache); findings page
+`docs/autoresearch/findings_ar4_verifier.md` (placed by the main session from the implementer's
+text, commit `1d862a5`). Approval D-20261111-N13.
+Simulated samples (`big`, the first gradient sample, `mid`), clean images only; realistic images
+untested; one training run per model, generator seed 0; wall times contended.
+Pairs: 229,651 (49,103, 94,306, 86,242), one evaluation each; per-peak pixel counts come from the
+same overlap data in a script (the library returns totals only). Per-peak sums equal the totals of
+the per-peak path exactly and differ from the fused evaluation by at most 6 pixels (hit ratio at
+most 0.0047). The seed-step replays (329, 1,279, 1,611) matched the stored logs. The vote count
+among unexplained rays (50 to 200 ms a pair) was not computed; no model uses it.
+Order rule: models, training and the thresholds file (`669b9a3`) were committed before the first
+script that read `mid` (12:44 on 11 Nov 2026).
+Use 1 (flag unfinished voxels, `mid`, 31 wrong voxels): `B0` (cut 0.926) flags 31 and 1,760 voxels;
+`B1` 31 and 13,653; `N1` (21,953 parameters, cut 0.749) 23 (0.57 to 0.86) and 190: no model passes
+the plan's rule. `N1` misses 8 of 31 wrong voxels (hit ratios 0.889 to 0.910; all 31 are
+boundary voxels), against 4 of 87 on the train voxels where its cut was picked.
+Use 2 (accept a seed without a grid search, the 15 fallback cases of `mid`): `N1` accepts 7 of 10
+right ends and 0 of 5 wrong ends; `B0` 0 of 10 and 0 of 5, by construction (fallback ends have
+hit ratios under 0.80, its cut is 0.926). By arithmetic from stored numbers, not a run: as an OR
+rule (seed test or `N1`) `N1` skips 2,325,301 of the 5,002,750 grid-only evaluations of the 15
+cases; as a replace rule its 20 refused right passing seeds cost about 6,670,333. AR5 step 1's
+5,087,764 is larger by the seed steps of the reseed cases (85,014), which run before any accept
+decision. Predictions 1 (on a `B1` without `best_votes`) and 3 agree; 2 and 4 do not (the share
+of lit peaks has `auc` 0.496 against 0.974 for the hit ratio at boundary voxels). No whole-layer
+run; step 2 (wiring a verifier in) is not triggered by the plan's rule.
+
+Fixes round (review `20261111-1335-review-ar4a`, decision D-20261111-N15; no new evaluation, no
+change under `icenine/`). The parent was merged into the task branch. `verify_summary.py`
+subtracts the seed-step evaluations of the reseed cases (stored `S8` log) from AR5's
+`grid_evals` and checks the total against the library counter `index_fallback_grid_evals`
+(equal on both samples: 5,449,501 and 5,002,750); first gradient sample, in-sample: 3,744,760
+skipped. The page states both readings of use 2 with their counts, the per-peak inputs of `N1`
+and its two deviations from the plan, the sum-back difference as consistent with D-20261027-I2
+(about 2.6% of pairs, alike for right and wrong pairs; not traced per pair), why AR5's stored
+vote counts (2,017, 3,803, 4,420 voxels) were not used, and the lit-share distribution. Use-2
+counts, the rule prices and the sum-back check are pure functions in `verify_lib.py` with tests.
+
+## Autoresearch AR5 step 3: a mixed seed refinement, tested on whole layers (done 2026-11-11, task ar5c)
+
+Scripts and results only (D-20261111-N14): nothing under `icenine/` changed, no key, no default, no
+golden, no dependency, no step 2 script changed (so no rerun of step 2's base check). Scripts
+`scripts/autoresearch/ar5/mix_*.py` (they import step 2's `fit_*.py`; `mix_common.py` adds the arms
+`X60` and `X200` to `fit_common.refine_arm` at run time), tests of the pure rule functions
+`tests/test_ar5_mix_rules.py` (12 tests, committed before `mix_rules.py`), results in
+`benchmarks/autoresearch/ar5/mix/`, findings page `docs/autoresearch/findings_ar5_mix.md`
+(placed by the main session from the implementer's text, commit `6174af7`).
+Mixed refinement: a CMA fit (at most 60 or 200 evaluations); the stock MC optimizer from the same
+candidate only when the CMA end hit ratio is below 0.95; the lower-cost end is kept; the early
+stop is tested on it.
+Part 1 (stored replay, no new evaluation): on the pick samples pooled (1,608 steps) `X200` has
+1,596 seed-test passes and 1,589 ends within 1 degree against 1,592 and 1,583 for the stock
+refinement, with 2,501,991 against 5,865,469 seed-step evaluations (57.3% fewer); `X60` meets
+the same two rules with 4,390,198 (25.2% fewer). Pick: `X200` (commit `22db075`, 13:57; the
+first whole-layer run started 14:05:51). On `mid` the plan's what-if differs by one step
+(5,643,575 here, 5,643,374 there: the lower-cost end is kept and the early stop tested on it).
+Check of the script layer on 20 seed steps of `big` (10 with an MC run): 20 of 20 identical to
+Part 1 (121,659 evaluations both).
+Part 2: `S11` (= `S10` plus `X200`, with the pass): 4,015,342, 12,307,994 and 16,082,696
+evaluations against 8,340,428, 18,000,230 and 26,443,074 for `S8` (51.9%, 31.6%, 39.2% fewer) and
+against 5,898,258, 15,167,998 and 22,668,704 for `S10`; wrong after the pass 18, 62 and 36
+against 24, 63 and 31; broken minus fixed against `S8` -6, -1 and 5; the step 2 rule passes on all
+three (`mid` is at the limit of 5). `S11a` not needed. Grid fallbacks 0, 11, 12 (`S8`: 0, 16, 15).
+Predictions 1, 2 and 4 agree; 3 does not. The mixed rule was found in a replay that included
+`mid`, so no sample is held out for it. Rows of the three `S11` runs (before and after the pass)
+were added to `docs/autoresearch/pareto/pareto_rows.json`. Walls contended, not timing results.
+
+Fixes round (review `20261111-1503-review-ar5c`, decision D-20261111-N16; documents, the Part 1
+and summary scripts only, no new run and no new evaluation). The parent was merged into the
+task branch. `mix_part1.py --all` also stores the plan's what-if count: a variant that stops
+when either end of a candidate reaches 0.95 (`mix_rules.mixed_step(stop_on_either=True)`, off
+by default, two new tests) gives 5,643,374 on `mid`; it differs from the rule as run only at
+replay step 442 (CMA end hit 0.94752, cost 0.06939; MC end hit 0.95300, cost 0.07189).
+`mix_summary.py` adds the share of `S11`'s saving by stage against `S8` and `S10` (against `S10`
+the grid-fallback stage is 47.8% on the first gradient sample and 15.2% on `mid`), the cost of
+one grid fallback (333,517 to 340,594 evaluations), and the uncounted hit-ratio checks of the
+mixed refinement (436, 2,158 and 2,814, under 0.02%). The page no longer calls the seed step
+the largest piece of the saving (false against `S8` on `big` and the first gradient sample),
+words the lower fallback count as consistent with a direct or a path effect, and says plainly
+that `mid` has 36 wrong voxels after the pass against 31 for `S8`, at the rule's limit.
