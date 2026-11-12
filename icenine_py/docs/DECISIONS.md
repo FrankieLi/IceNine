@@ -1412,3 +1412,20 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   implementer; it may share the machine with the one rerun of AR5 step 4. The owner may overrule;
   whether the documentation recommends the keys is the owner's choice. Where:
   icenine_py/docs/autoresearch/PLAN.md (AR5 step 5).
+
+### D-20261111-N22 · Track A / AR5 step 5 · AR5 step 5 review: request changes; six fixes to the page and the tests, no rerun, no library change
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- The Opus review (.claude/reports/20261111-2115-review-ar5e.md) recomputed parity checks 1 to 4
+  from the raw files and found them exact; with both keys off the library path is untouched. It
+  requests changes: (1) the page must say that the boundary pass inside the S11 library run has
+  the stored try counts and evaluations but not the stored contents (one try with another
+  candidate on big, costs differ in 4,372 of 18,617 tries on big and 15,813 of 60,423 on the
+  gradient sample, ends up to 1.2 degrees apart, changed sets 986 against 983 and 688 against
+  681); (2) the unrounded-map cause is shown only for S8L (AR3 step 10) and is untested for S10L
+  and S11L, and the page must say so; (3) refusal tests that only the new code refuses; (4) README
+  and page state that the hit ratio of the CMA end is one more overlap evaluation per candidate
+  that is not counted; (5) more terms defined; (6) a tracked source for the suite counts. Decided
+  under the mandate: apply all six in one Opus fixes round on the task branch, no new run, no
+  library behaviour change, then merge into feature/eval-reduction. The keys stay off by default
+  with no recommended setting. Where: icenine_py/docs/autoresearch/PLAN.md (AR5 step 5);
+  .claude/reports/20261111-2115-review-ar5e.md.
