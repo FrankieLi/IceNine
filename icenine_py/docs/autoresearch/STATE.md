@@ -24,8 +24,8 @@ Read this file first after any restart or wake. It holds only what is true now a
 
 ## Next action
 
-One step is open. Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent
-into a task branch before its fixes round (shared files conflict).
+Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a task branch
+before its fixes round (shared files conflict).
 
 1. AR5 step 4 (task `ar5d`; N16, N18, N20, N23): on `held` with the pass `S11` needs 23.3%
    fewer evaluations than `S8`; the rerun `S11v2` (valid arm) 37.4% fewer, 18.4% fewer than
@@ -35,7 +35,7 @@ into a task branch before its fixes round (shared files conflict).
    the implementer's Write and the main session's copy were refused (auto mode). No way round:
    the owner places it or allows it. Then: sync check, commit, fix 2 (MIGRATION_HISTORY names
    that commit), merge, close (page version 45, PR #43).
-2. AR5 step 6 (`ar5f`; N24; D-20261112-N2, N3): fixed; waits for the owner; see its Queue row.
+2. AR5 step 6 (`ar5f`; N3): fixed, waits for the owner. Step 7 (`ar5g`; N4): runs. Queue rows.
 3. Items 14 + 3 (task `item14`; N25): E0 arms done (`F` 41 wrong, `FS` 7 of 200, both as
    predicted). The run stopped at 00:01 on 2026-11-12 with exit 3: the preflight refused
    before A1 (`cpptools`, pid 18415, 99% CPU). Once the owner frees the machine: rerun the
@@ -60,7 +60,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 | AR5 step 6 | `S11n`, `S11h` on `mid` and `grad` (task `ar5f`) | reviewed and fixed; waits for the owner (page) and for step 4's merge. Branch tip d643eff, held by the fixes worktree `agent-a9420a98460078e81`; the first worktree `agent-a89458addd73332d9` (detached, 4c18740) holds the run cache `ar5/ver/cache/`: keep both. Opus review (`.claude/reports/20261112-0510-review-ar5f.md`): every headline number recomputed, none differs; 11 wording fixes, no rerun (N3). Fixes round done (7f272ce, 18260d5, d643eff; report `.claude/reports/20261112-0517-ar5f-fixes.md` in the fixes worktree; hand-back check: only the expected format flag; no number changed, `predictions[4].met` now false; 14 tests pass). Numbers: on `mid` `S11n` 14,105,137 evaluations (12.3% fewer than `S11`, 6 seeds kept, 0 wrong), `S11h` 15,680,025 (2.5%, 1 kept); both pass; "plain does as well" not met on `mid` (20.4% of the saving; 62.2% on `grad`, in-sample); six of seven predictions met. PAGE: not in the repo (Write refused). Corrected text: `.claude/reports/20261112-ar5f-page-v2.md` in the fixes worktree; the owner places it at `icenine_py/docs/autoresearch/findings_ar5_ver.md` there (or allows it). Then: sync check, commit, merge after step 4 (`finish_task.sh` in the fixes worktree), close (pareto points, page, PR #43); then a decision on an opt-in key for the `N1` rule |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B (task `item14`) | E0 done; timing waits for a quiet machine |
 | C++ time | measured C++ time on the pilot region (MPI mode, own config) | D-20261112-N1, task `cpptime`: phase A done (agent and worktree `ad44bb90c441eca35`, tip 5d6cec2, report in that worktree's `.claude/reports/20261112-0012-cpptime.md`). Run, after item 14's timing and on a quiet machine: `caffeinate -i bash scripts/autoresearch/cpptime/run_cpp_time.sh` in its `icenine_py/` (background command); marker `benchmarks/autoresearch/cpptime/cache/cpptime.done`; then phase B by `SendMessage`. R4 limit 3.5 (own load 2.0: the server rank spins). `lldb` cannot run (developer mode off): evaluations missing unless the owner enables it or accepts a print in `Src/` |
-| next step | plan for the step after AR5 step 6 (stage shares of `S11n`, then one step: an opt-in key for `N1`, or a rule against the largest remaining stage) | draft being written by Opus agent `a1ce63ad1d9caddaf` (2026-11-12 12:58) to `plan_next_draft.md` in the scratchpad; no repo change. Then: place it in PLAN.md, decision (next ID below), brief, implementer from the tip of `ar5f` if it needs step 6's files. Offline phases only while the machine is not quiet |
+| AR5 step 7 | opt-in key `BoundaryPassSkipHitRatio`: no boundary-pass try at a voxel whose own hit ratio is at least 0.95 (task `ar5g`) | D-20261112-N4 (72e9027), plan 2a4db6b. Why: in `S11n` the pass is 21.7% of `mid` and 38.6% of `grad`; a replay written with the plan (a what-if) cuts 69% to 84% of five stored passes with 0 fixed, 0 broken; margin small (wrong voxels up to 0.944). Test sample `held`, cut frozen at 0.95. Branch from `feature/eval-reduction`, does not wait for steps 4 and 6. Sonnet implementer and worktree `a331e7882919e74aa` (13:03), all phases in one session, brief `brief_ar5g.md` (scratchpad), report `.claude/reports/20261112-1302-ar5g.md` in its worktree. Then hand-back check, Opus review, decision, fixes, merge (library change: full suite; not beside a timing run). Not chosen: a key for `N1` (open choice after step 6 closes); the MC part of the seed step (next target, 37.3% of `S11n` on `mid`) |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
 | tooling | `audit_numbers.py`: thousands separators; false misses in wide table rows | small |
 
@@ -107,13 +107,13 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - A choice: whether the documentation recommends the two `S11` keys. They were added off by
   default under N21, after `S11` passed on `held`; the documentation recommends none now.
 - Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N25 and
-  D-20261112-N1 to N3. N15 adds `held` (new seed); N17, N18: run caps of 480 minutes.
+  D-20261112-N1 to N4. N15 adds `held` (new seed); N17, N18: run caps of 480 minutes.
   The gradient levels of step 7's sample are my choice. Step 5's result files add about 50
   MB to git; say so if you want them pruned.
 
 ## Bookkeeping
 
-- Next decision ID: D-20261112-N4 (first of a day is N1).
+- Next decision ID: D-20261112-N5 (first of a day is N1).
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
