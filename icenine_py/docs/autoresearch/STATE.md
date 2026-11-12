@@ -30,18 +30,20 @@ into a task branch before its fixes round (shared files conflict).
 1. AR5 step 4 (task `ar5d`; N16, N18, N20): on `held` with the pass `S11` needs 23.3% fewer
    evaluations than `S8` and passes; `S10` 3.6% (fails). Both reviewed. `S11v` was a defective
    arm. Fixes round (Opus), phase A done: hook repaired in scripts, checked on `mid`. The
-   rerun `S11v2` goes now. When it ends: phase B (`SendMessage` to the fixes implementer, or
-   a new Opus one): statistics, page, predictions 5 and 6. Place the page if its Write is
-   refused. Then hand-back check, merge (`finish_task.sh`), close (page with the `held`
-   points, PR #43).
+   rerun `S11v2` ended cleanly (`run=0 pass=0`); no number of it is read yet. Phase B runs
+   (see "Running jobs"): statistics, page, predictions 5 and 6. On its hand-back: place the
+   page if its Write was refused. Then hand-back check, merge (`finish_task.sh`), close (page
+   with the `held` points, PR #43).
 2. After step 4 closes: plan the next step from the queue (decision first). The `S11v2`
    result decides whether the verifier gets one more step. Items 14 + 3 need a quiet machine.
 
 ## Running jobs
 
-- `S11v2` on `held` (cap 480 minutes): background command of the main session, started
-  2026-11-11 19:54 in worktree `agent-a8a1ac8e80f8913cf` (branch `ar5d`, tip 1983a40; report
-  `20261111-2130-ar5d-fixes.md`). Marker there: `ar5/held/cache/logs/S11v2_held.done`.
+- AR5 step 4 phase B: agent `a8a1ac8e80f8913cf` (Opus, resumed with `SendMessage`
+  2026-11-11 21:55) in worktree `agent-a8a1ac8e80f8913cf` (branch `ar5d`; report
+  `20261111-2130-ar5d-fixes.md`). It reports by hand-back. If it is gone: a new Opus
+  implementer with the same brief. `S11v2` ran 19:54 to 21:52; results in
+  `ar5/held/cache/S11v2_held` of that worktree.
 - Review page: version 44 (`run43.sh`, then `patch_v44.py`, scratchpad).
 
 ## Queue
