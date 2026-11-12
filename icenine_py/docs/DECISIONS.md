@@ -1398,3 +1398,17 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   random seed; (3) because S11 passed on held, the library step for one opt-in key pair is planned
   next under its own decision. The owner may overrule. Where: icenine_py/docs/autoresearch/PLAN.md
   (AR5 step 4, amendment N20).
+
+### D-20261111-N21 · Track A / AR5 step 5 · AR5 step 5 plan approved: two opt-in library keys for run S11 (SeedIndexCMAFirst, BFSNeighborCMANoFallback), off by default, parity with the stored script runs
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- S11 met the pass rule on the held-out sample (23.3% fewer evaluations than S8 with the pass,
+  reviewed, D-20261111-N20), after passing on the three earlier samples; N14 and N16 made the key
+  wait for that test. Decision under the mandate: add two opt-in keys, both off by default, with
+  no default change and no recommended setting: SeedIndexCMAFirst n (the mixed seed refinement;
+  first step from CMASigma0, stop ratio from SeedIndexStopHitRatio) and BFSNeighborCMANoFallback
+  0|1. Tests first. Parity checks against the stored script runs S10 and S11 on big and S11 on the
+  first gradient sample (counts, records, map bytes); keys off is bit-identical. Four predictions
+  are in the plan, committed before any code. The verifier gets no key. Task ar5e, Sonnet
+  implementer; it may share the machine with the one rerun of AR5 step 4. The owner may overrule;
+  whether the documentation recommends the keys is the owner's choice. Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR5 step 5).
