@@ -2610,6 +2610,8 @@ reading the 360 ASCII image files. Plan it next, in the same quiet window if one
 Task `cpptime`. A measurement step after "Items 14 and 3": new scripts and one generated config.
 No file under `Src/` or `icenine_py/icenine/` changes; the stored binary is used as it is.
 
+**Library changes:** none. Nothing under `icenine_py/icenine/` or `Src/` changes; no rebuild.
+
 **Why.** The owner wants an honest Python-against-C++ wall time and work count for one region.
 Item 14 times Python on the pilot (arm A, `FusedCost` on, about 1,500 s, one worker). The only
 C++ timing on record is ThreeVoxels (3 voxels, March 2026: 2.25 s, 150,251 evaluations, 15 us
