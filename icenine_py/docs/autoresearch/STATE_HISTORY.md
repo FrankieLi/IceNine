@@ -860,6 +860,32 @@ tests, no rerun, no library change). Page: `docs/autoresearch/findings_ar5_keys.
 - Data that stays untracked: worktree `agent-afc3f195cb4fffb30` (`ar5/keys/cache/`: the library
   runs `S8L_big`, `S10L_big`, `S11L_big`, `S11L_grad` and the pass checks).
 
+### AR5 step 7 (opt-in key `BoundaryPassSkipHitRatio`; task `ar5g`), merged at 50c3b9c on 2026-11-12
+
+Library change (four files: `boundary_pass.py`, `config_file.py`, `orientation_search.py`,
+`reconstructor.py`), tests, scripts, results. Suite after the merge: 1759 passed, 47 skipped,
+1 deselected. Decisions D-20261112-N4 (plan), N5 (phase D: aligned draws, decided after the
+first live result), N6 (review: request changes, twelve fixes, 1 to 11 applied; fix 12, placing
+the page, waits for the owner). Reports: `20261112-1302-ar5g.md` (worktree
+`agent-a331e7882919e74aa`), `20261112-1345-review-ar5g.md` (main checkout),
+`20261112-1355-ar5g-fixes.md` and the page text `20261112-ar5g-page-v2.md` (worktree
+`agent-a0db870adb7758a69`). The page `findings_ar5_gate.md` is not in the tree yet.
+
+- The key, off by default: with `BoundaryPass 1`, a boundary voxel whose own hit ratio before
+  the pass is at least `h` gets no try. A skipped try still consumes its random draw (aligned
+  draws), so the kept tries are the same as in the full pass.
+- Replay at 0.95 on stored passes: 0 fixed, 0 broken on `held` and on five disclosed passes;
+  the pass is cut by 69% to 84% (`held` 72.3%, pass 1,436,977 evaluations).
+- Variant 1 (the plan's pre-set live test, skipped tries do not draw): same evaluations, but
+  fixed / broken against the full pass 4/7 `mid`, 15/12 `grad`, 2/6 `big`, 4/10 `held` (75
+  wrong against 69). It fails the plan's rule on `held`. Runs only at commit 7b4fd0f.
+- Variant 2 (aligned draws): every kept try identical to the stored full pass (15,592 `mid`,
+  10,074 `grad`, 4,491 `big`, 23,557 `held`), 0 fixed, 0 broken, wrong 35, 59, 18, 69. `held`
+  run total 33,753,877: 10.0% below the full pass, 43.7% below `S8`. The rule passes on all
+  four samples, but `held` is not a clean test: the variant was decided after `held` was read.
+- Lesson: one shifted draw stream alone moved 4 to 15 voxels each way per sample (one re-draw
+  per sample). A live test of a change that only removes work uses aligned draws.
+
 ## For the owner
 
 - Still yours: item 12 (apply and commit, below), Ilium's plan approvals, and the note on what
