@@ -35,17 +35,17 @@ into a task branch before its fixes round (shared files conflict).
    refused. Then hand-back check, merge (`finish_task.sh`), close (page with the `held`
    points, PR #43).
 2. AR5 step 5 (task `ar5e`; N21): keys `SeedIndexCMAFirst`, `BFSNeighborCMANoFallback`.
-   Phase A done (tip fb5ecc3): 62 tests, suite 1718 passed, checks 1 to 3 on `big` exact.
-   Check 4 (first gradient sample) runs now. When it ends: phase B (`SendMessage` to the
-   implementer): results, page `findings_ar5_keys.md`. Then hand-back check, review, N22.
+   Done on the branch (tip 37739e4; the page was placed by the main session): checks 1 to 5
+   exact against the stored runs, 62 tests, suite 1718 passed. Heads-up to Ilium is in the
+   mailbox (dc0e6a5). Now: read the Opus review, decision N22, Opus fixes round, merge, close.
 
 ## Running jobs
 
 - `S11v2` on `held` (cap 480 minutes): background command of the main session, started
   2026-11-11 19:54 in worktree `agent-a8a1ac8e80f8913cf` (branch `ar5d`, tip 1983a40; report
   `20261111-2130-ar5d-fixes.md`). Marker there: `ar5/held/cache/logs/S11v2_held.done`.
-- AR5 step 5 chain (check 4 and the pass checks, cap 90 minutes), started 20:13 in worktree
-  `agent-afc3f195cb4fffb30` (report `20261111-2030-ar5e.md`); marker `grad_chain.done` in its logs.
+- Opus review of AR5 step 5, started 2026-11-11 about 21:05 (branch in worktree
+  `agent-afc3f195cb4fffb30`); its report: `.claude/reports/20261111-2115-review-ar5e.md`.
 - Review page: version 43 (builder `run43.sh`, scratchpad).
 
 ## Queue
@@ -56,7 +56,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 | step | what | state |
 |---|---|---|
 | AR5 step 4 | `S10`, `S11`, `S11v` on the held-out sample (task `ar5d`) | fixes round, one rerun |
-| AR5 step 5 | library keys for `S11` (task `ar5e`) | check 4 runs |
+| AR5 step 5 | library keys for `S11` (task `ar5e`) | in review |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
 | C++ time | measured C++ time on the pilot region | not started |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
