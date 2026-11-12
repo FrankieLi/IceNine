@@ -35,7 +35,7 @@ into a task branch before its fixes round (shared files conflict).
    the implementer's Write and the main session's copy were refused (auto mode). No way round:
    the owner places it or allows it. Then: sync check, commit, fix 2 (MIGRATION_HISTORY names
    that commit), merge, close (page version 45, PR #43).
-2. AR5 step 6 (`ar5f`; plan 2ed6618; N24): `S11n`, `S11h` on `mid`, `grad`; after step 4 merges.
+2. AR5 step 6 (`ar5f`; N24; D-20261112-N2: cut from the `ar5d` tip): phase A with the agent.
 3. Items 14 + 3 (task `item14`; N25): E0 arms done (`F` 41 wrong, `FS` 7 of 200, both as
    predicted). The run stopped at 00:01 on 2026-11-12 with exit 3: the preflight refused
    before A1 (`cpptools`, pid 18415, 99% CPU). Once the owner frees the machine: rerun the
@@ -57,7 +57,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 | step | what | state |
 |---|---|---|
 | AR5 step 4 | `S10`, `S11`, `S11v2` on the held-out sample (task `ar5d`) | waits for the owner (page) |
-| AR5 step 6 | `S11n`, `S11h` on `mid` and `grad` (task `ar5f`) | planned; after step 4 |
+| AR5 step 6 | `S11n`, `S11h` on `mid` and `grad` (task `ar5f`) | phase A: agent `a89458addd73332d9` (Sonnet, worktree, 03:54 on 2026-11-12), report `20261112-0353-ar5f.md`. On READY TO RUN: read `ver_run_all.sh`, start it as a background command (4 runs, about 1.5 h; not beside a timing run); then phase B by `SendMessage`. Review against fac79f9; merge only after step 4 |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B (task `item14`) | E0 done; timing waits for a quiet machine |
 | C++ time | measured C++ time on the pilot region (MPI mode, own config) | D-20261112-N1, task `cpptime`: phase A done (agent and worktree `ad44bb90c441eca35`, tip 5d6cec2, report in that worktree's `.claude/reports/20261112-0012-cpptime.md`). Run, after item 14's timing and on a quiet machine: `caffeinate -i bash scripts/autoresearch/cpptime/run_cpp_time.sh` in its `icenine_py/` (background command); marker `benchmarks/autoresearch/cpptime/cache/cpptime.done`; then phase B by `SendMessage`. R4 limit 3.5 (own load 2.0: the server rank spins). `lldb` cannot run (developer mode off): evaluations missing unless the owner enables it or accepts a print in `Src/` |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
@@ -107,13 +107,13 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - A choice: whether the documentation recommends the two `S11` keys. They were added off by
   default under N21, after `S11` passed on `held`; the documentation recommends none now.
 - Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N25 and
-  D-20261112-N1. N15 adds `held` (new seed); N17, N18: run caps of 480 minutes.
+  D-20261112-N1, N2. N15 adds `held` (new seed); N17, N18: run caps of 480 minutes.
   The gradient levels of step 7's sample are my choice. Step 5's result files add about 50
   MB to git; say so if you want them pruned.
 
 ## Bookkeeping
 
-- Next decision ID: D-20261112-N2 (first of a day is N1).
+- Next decision ID: D-20261112-N3 (first of a day is N1).
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
