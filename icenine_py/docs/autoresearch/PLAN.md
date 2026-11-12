@@ -2197,6 +2197,100 @@ tests of the pure functions in `tests/test_ar5_held_rules.py`, results in
 second run of any arm with another random seed.
 
 
+### AR5 step 5: opt-in keys for the mixed seed refinement and for no MC fallback
+
+Task `ar5e`. A library step: two opt-in keys, both off by default. No default changes, no
+golden file is regenerated, C++ is not touched. Planned on 2026-11-11 (D-20261111-N21), after
+the review of AR5 step 4 (D-20261111-N20).
+
+**Why.** Run `S11` is `S8` with two changes that so far exist only in scripts. With the
+boundary pass it needs 51.9%, 31.6% and 39.2% fewer evaluations than `S8` on `big`, the first
+gradient sample and `mid` (AR5 step 3), and 23.3% fewer on the held-out sample `held` (AR5
+step 4, reviewed). It met the pass rule on all four. Decisions N14 and N16 said: no key before
+the test on `held`. That test is done. A user of the library cannot switch the two changes on
+today. This step moves them into the library, as AR3 step 10 did for the seed step of `S8`.
+
+**Terms.** As in `findings_ar5_mix.md`. **Mixed seed refinement**: for each indexed seed
+candidate, a CMA fit first; its end is kept when its hit ratio reaches the stop ratio; if not,
+the stock MC optimizer runs from the same candidate and the end with the lower cost is kept.
+**No MC fallback**: in a neighbour local optimization or revisit that starts with CMA, the CMA
+end is returned and the MC optimizer does not run after it. **Parity**: a library run with the
+keys gives the same evaluation counts, the same per-voxel records and the same map file, byte
+for byte, as the stored script run.
+
+**The two keys.**
+
+- `SeedIndexCMAFirst n`. Default 0 (off). A value of 2 or more switches the mixed seed
+  refinement on, with `n` as the largest number of CMA evaluations for a candidate (`S11` uses
+  200). The first step of the fit comes from `CMASigma0` and the stop ratio from
+  `SeedIndexStopHitRatio`; no new constant is added. The key is refused with a clear message
+  unless `SeedByIndexing 1` is set and the stop ratio is above 0, and it is refused together
+  with `PaintGrains 1`, `LocalOptimizer cma` or the hybrid optimizer. A value of 1 is refused.
+- `BFSNeighborCMANoFallback 0|1`. Default 0. With 1 the CMA end of a neighbour local
+  optimization or revisit is returned as it is. It is refused unless `BFSNeighborCMAFirst 1`
+  is set.
+
+Counters that exist only when a key is on: how often the CMA end did not fall below its start
+cost, and per seed candidate whether the CMA end reached the stop ratio and whether the MC
+optimizer ran. Evaluations are counted as in the scripts (a CMA fit of 200 counts 201: the
+fit and the final overlap).
+
+**Where.** `icenine/reconstructor.py` (the CMA-first fit; the seed step that builds the
+refinement), `icenine/ray_indexing.py` (the loop over seed candidates), `icenine/config_file.py`
+and `icenine/orientation_search.py` (the keys, their checks), following the pattern of step 10.
+The stock paths (`local_optimization`, `refine_from_candidates`, `_reconstruct_seed`, the
+branch without a stop ratio) are not edited.
+
+**Order of work.** Tests first: `tests/test_bfs_ar5_keys.py` is written and committed before
+the library code (parsing, defaults, every refused combination, the off path, the rule itself
+on small synthetic cases with a fixed generator). Then the code. Then the parity runs.
+
+**Parity checks.** All against stored runs; the stored files are read only.
+
+1. Keys off: the full suite passes with no golden change, and the library run of `S8` on `big`
+   still gives 7,201,863 evaluations and 67 wrong voxels before the pass.
+2. `BFSNeighborCMANoFallback 1` alone, on top of the keys of `S8`, against the stored script
+   run `S10` on `big` (4,767,135 evaluations before the pass, 36 seeds, 297 reseeds): parity.
+3. Both keys (`SeedIndexCMAFirst 200`) against the stored script run `S11` on `big`
+   (2,879,705 evaluations before the pass, 35 seeds, 295 reseeds): parity.
+4. Both keys against the stored `S11` on the first gradient sample: parity. `big` has no grid
+   fallback, so this run is the one that tests the mixed seed refinement next to grid
+   fallbacks (11 in the stored run).
+5. The boundary pass after the library runs of checks 3 and 4, started from the stored maps
+   before the pass: the totals with the pass equal the stored ones (4,015,342 and 12,307,994).
+   The pass inside a library run reads the unrounded map and may differ by single tries, as
+   step 10 found; that difference is reported, not repaired.
+
+If a parity check fails, the step stops and reports the first voxel that differs. Nothing is
+tuned to make a count match. No run on `mid` or `held` is needed; none is made.
+
+**Predictions, written before any code.**
+
+1. Checks 1, 2 and 3 are exact at the first full run of each.
+2. Check 4 is exact. If one check fails, it is this one (the order of evaluations around a
+   grid fallback is the part that the small tests cover least).
+3. Check 5 is exact from the stored maps; the pass inside the library run differs from the
+   stored pass by under 0.1% of the pass evaluations on each sample.
+4. The step needs between 25 and 50 new tests, and no existing test changes.
+
+**What is reported.** The page `docs/autoresearch/findings_ar5_keys.md`: the two keys with an
+example config block, each parity check with its counts, the predictions against the results,
+and the limits. The keys go into the key table of `icenine_py/README.md` with a plain statement
+that they are off by default and that no setting is recommended yet. A section in
+`MIGRATION_HISTORY.md`. No new row on the plots of cost against accuracy: the runs are the
+stored `S10` and `S11` again.
+
+**Limits to state.** Parity is shown on two samples with clean images, one voxel order each.
+Evaluation counts are costs; no timing was made. The keys were not run on a real sample or on
+realistic images. Whether the documentation recommends them is the owner's choice.
+
+**Budgets.** Each run on `big` about 15 minutes, the run on the first gradient sample at most
+90 minutes; at most 2 heavy processes at a time (the rerun of AR5 step 4 may share the
+machine). All wall times are contended and are not timing results.
+
+**Not in this step.** A key for the learned verifier (AR5 step 4 decides whether it gets a
+further test). A default change. A recommended setting. A timing. C++.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
