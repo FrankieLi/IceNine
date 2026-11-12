@@ -66,6 +66,7 @@ def main() -> int:
     ap.add_argument("--label", default="single-worker, preflight gated by the caller")
     ap.add_argument("--no-warmup", action="store_true")
     a = ap.parse_args()
+    a.out = a.out.resolve()  # before PyContext changes the working directory
 
     import numpy as np
     import s2_search as S2
