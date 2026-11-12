@@ -2604,3 +2604,154 @@ reading the 360 ASCII image files. Plan it next, in the same quiet window if one
 - Two repeats per timing arm, not three. One warm-up run against a cold page cache.
 - The uncovered share from a separate timed split, not from timers inside the timed runs.
 - C++ time left out (above): a new MPI run, not a small addition.
+
+### C++ time on the pilot: one client, beside the Python timing A/B
+
+Task `cpptime`. A measurement step after "Items 14 and 3": new scripts and one generated config.
+No file under `Src/` or `icenine_py/icenine/` changes; the stored binary is used as it is.
+
+**Why.** The owner wants an honest Python-against-C++ wall time and work count for one region.
+Item 14 times Python on the pilot (arm A, `FusedCost` on, about 1,500 s, one worker). The only
+C++ timing on record is ThreeVoxels (3 voxels, March 2026: 2.25 s, 150,251 evaluations, 15 us
+each; memory `project_reconstruction_benchmark`). C++ never ran on the 500-grain sample
+(`MIGRATION_HISTORY.md` line 4600).
+
+**Terms.** **Pilot**: the 2,000-voxel BFS region of the 500-grain sample
+(`benchmarks/phase_d_pilot/region_grid.mic`, 60 grains), clean images, Q-max 8. **Global search**:
+a search with no starting guess (C++ `ReconstructVoxel`, Python `reconstruct_voxel`). **Local
+optimization**: the MC fit from a neighbour's orientation. **Server** and **client**: the two MPI
+processes of C++ mode `p`; the server hands out seed voxels, the client fits. **Wrong**: over
+1 degree from the truth (`rand_500grains_1mm_neworient_s0.mic`, `region_index.npy`).
+**Start-up**: process start to the first BFS work (config, image reads, setup). **Quiet** and
+**contended**: as rule R4 of item 14.
+
+**What is known (checked 2026-11-12).**
+- Binary `IceNine` at the root of the main checkout (gitignored, not in worktrees): arm64, built
+  2026-03-23 19:56, `CMakeCache.txt` says `Release`, `-O3 -DNDEBUG`. Three sources are newer:
+  exactly the files of commit `b9b566b` (the evaluation counter); the binary already holds its
+  symbol `g_cost_eval_count` and its `VOXEL_SUMMARY` strings. Single-threaded: `#pragma omp` in
+  `ReconstructionSetup.cpp:78` is inert (no OpenMP flag in `CMakeLists.txt`).
+- MPI: `/opt/homebrew/bin/mpirun` is MPICH Hydra 5.0.0; the binary links MPICH (`otool -L`).
+- Mode `p`: `Driver.cpp:94-96` to `ParallelDriver.h:65-83`: rank 0 is the server, every other rank
+  a client. `-n 1` hangs: with no client the server waits forever (`BreadthFirstReconstructor
+  .tmpl.cpp:374-408`). So `mpirun -n 2` = one server (fits nothing) + one fitting client: the
+  match for Python's single worker. Several clients change the search (private grids) and make
+  the order depend on timing.
+- Config: the parser exits on an unknown line (`ConfigFile.cpp:704-708`). Of
+  `scripts/autoresearch/ar2/key_off_fused.config` (arm A) only three lines are Python-only:
+  `BFSRevisitRefit 1`, `BFSReseed 1`, `FusedCost 1` (checked against the keyword list,
+  `ConfigFile.cpp:74-180`). `SampleFilename` must point at `region_grid.mic` (`pilot_bfs.py:76`).
+  No C++ config for this sample exists (`Examples/Example2.ManyGrains/ConfigFiles/`: simulation).
+- Every C++ failure exits with code 0 (`RUNTIME_ASSERT`, `XDM++/libXDM/Error.h:25-31`; config
+  errors, `ConfigFile.cpp:707`), and one rank exiting can leave the other blocked in MPI.
+- Output: `<OutStructureBasename>.mic.LBFS`, reduced to the fundamental zone
+  (`XDMServer.cpp:219-222`, `:132-133`), voxels in grid order, unvisited voxels left out
+  (`ReconstructionStrategies.tmpl.cpp:233-244`). Logs `ParallelReconLog_<rank>.log` in the cwd.
+- Timers (whole seconds, `time_t`): server `Total Time elapsed`, from after the image reads (the
+  constructor reads them, `XDMServer.h:116`; timer `XDMServer.cpp:405-425`); client `Total
+  Processing Time`, BFS only (`XDMClient.cpp:64-103`); client `First Voxel Required: N Sec` per
+  global search (`BreadthFirstReconstructor.tmpl.cpp:127-132`); one `QueueSize` line per local
+  optimization (`:174`). Stderr prints `Before reading experimental data` and `After reading
+  experimental data` (`ReconstructionSetup.cpp:124-126`): timestamped per line, they give the
+  image-read time without a code change. Only the server reads; the client gets a broadcast.
+- Evaluations: `g_cost_eval_count` counts each `CalculateDiffractionOverlap` call
+  (`OverlapInfo.tmpl.cpp:160`) but only serial mode `r` prints it. Mode `p` reports no count.
+- Determinism: `std::random_shuffle` and default-seeded `std::mt19937` (`ReconstructionStrategies
+  .tmpl.cpp:67`, `XDM++/libXDM/Sampling.h:43-49`): one client should repeat exactly.
+
+**The search is not the same work.** Read each row as: what C++ one-client does, then Python arm A.
+
+| part | C++ LazyBFS, one client | Python arm A (`key_off_fused.config`) |
+|---|---|---|
+| seed order | `random_shuffle`, server grid (`ReconstructionStrategies.tmpl.cpp:67`) | `rng.shuffle`, seed 0 (`reconstructor.py:1840`) |
+| seed test | reject if hit < 0.8 and not converged (`BreadthFirstReconstructor.tmpl.cpp:142`) | reject if hit < 0.8 (`reconstructor.py:2224-2225`) |
+| neighbour test | ratio to best hit > 0.9 (`:163`) | the same (`reconstructor.py:2596`) |
+| REFIT voxel later | never fitted again: client grid keeps marks (`ReconstructionStrategies.tmpl.cpp:322-354`) | revisited (`BFSRevisitRefit 1`) |
+| reseed | none; server seeds only NOT_VISITED (`:151-193`) | `BFSReseed 1`: 32 reseeds in the stored run |
+| cost | C++ overlap count | fused C call (`FusedCost 1`) |
+
+Stored arm A: 37 seeds + 32 reseeds = 69 global searches, 25,602,383 evaluations, 24 wrong. The
+closest Python run to C++ rules (`phase_d_pilot/runs/mc_clean`: revisit on, no reseed, no fused
+cost): 34 seeds, 740 wrong, 12.6 million evaluations, 8,163 s contended.
+
+**Stored, run, where.** Python: item 14's A1 and A2 (read, not rerun). C++: nothing stored; run
+C0 (untimed warm-up and evaluation count), C1 and C2 (timed). New, under
+`icenine_py/scripts/autoresearch/cpptime/`: `make_config.py` (writes
+`cpp_pilot.config` from `key_off_fused.config`: drops the three lines, makes every path absolute,
+sets `SampleFilename` to `region_grid.mic`, `OutStructureBasename cpp_pilot`, `SecondsBetweenSave
+100000` so no partial file is written; the search lines are untouched); `run_cpp_time.sh` (the one
+command); `parse_logs.py` (global searches, local optimizations, seconds, read time); `score_cpp.py`
+(matches C++ voxels to the region by centroid and up/down within 1e-3 mm, then wrong per
+`score_bfs.pair_misorientation_deg`; missing voxels counted apart); `same_cpp_run.py A B`;
+`summary.py`; `tests/test_cpptime_scripts.py`, written first. Reused: `timing_preflight.py`,
+`job_status.sh`, `common/stats.py` (`wilson`), `doc_tables.py`. Results:
+`benchmarks/autoresearch/cpptime/`.
+
+**What is measured.** (1) Wall: whole process under `/usr/bin/time -p` (also user+sys of both
+ranks); start-up and image reads from the timestamped stderr; BFS time from the client timer;
+split into global searches (sum of `First Voxel Required`) and the rest. Python: `wall_total_s`
+(BFS only; memory-mapped `stacks/clean.npy`, `setup_s` about 0.1 s) and its process time.
+(2) Work: global searches, local optimizations, voxels fitted, evaluations (C0 only). (3) Unit
+cost: seconds per global search, per local optimization, microseconds per evaluation. (4) Wrong
+voxels with a Wilson interval; voxels wrong in both, only in C++, only in Python. No p-values.
+Not comparable: total evaluations as "the same job" (different rules), and C++ timers below 1 s.
+
+**Rules.** Quiet: R4 of item 14 (preflight `--require --json` before each timed run; load sampled
+every 30 s, top processes every 5 minutes; limit 2.5, set in phase A from the run's own load and
+never changed after a timed run). The run's own processes (`mpirun`, `hydra_pmi_proxy`, both
+`IceNine` ranks) are not "other" processes. Repeats: two timed runs; C1, C2 and C0 must be
+identical (`.mic.LBFS` byte for byte, client log equal once time fields are dropped), or the
+difference is reported. No extra random seeds. No p-values. Nothing is tuned to match a count.
+
+**Predictions, written before any run.**
+1. The generated config parses; the server log says 2,000 voxels in the queue.
+2. C++ wrong: 740 to 1,300 (no revisit and no reseed; Python with revisit, no reseed: 740).
+3. C++ global searches: 30 to 45 (Python without reseed: 34); local optimizations 1,900 to 2,000.
+4. C++ evaluations: 10 to 16 million.
+5. C++ BFS time, quiet: 100 to 600 s; 10 to 30 us per evaluation (ThreeVoxels: 15 us).
+6. Start-up 10 to 120 s, most of it the 360 ASCII files (135 MB).
+7. C1 and C2 identical in results; walls within 5%. The server uses about one core while waiting.
+8. Python A (item 14) over C++ BFS time: 2.5 to 15; per evaluation: 2 to 6.
+
+**Machine.** At most 2 busy processes plus the sampler; nothing else (no build, test suite or
+study). After item 14's closing preflight, or a later quiet window. Estimate: C0 about 10
+minutes, C1 and C2 2 to 12 minutes each with 120 s pauses; total under 45 minutes; under
+`caffeinate -i`; logs and markers in `benchmarks/autoresearch/cpptime/cache`.
+
+**Stop rule:** stop and report if the whole run passes 2 hours, one run passes 1 hour, a log does
+not grow for 10 minutes (a blocked rank), stderr holds `RUNTIME_ASSERT` or `[ConfigFile] Error`,
+the `.mic.LBFS` is missing, or the machine is not quiet (R4). A differing repeat is reported.
+
+**Phase A, prepare (implementer, own worktree).** `read_on_fetch.sh --save` first. Symlink the
+gitignored data from the main checkout (`Examples/Example2.ManyGrains/ScatteringData_PhaseD`); the
+binary is called by its main-checkout path. Tests first, then scripts. Short checks:
+`mpirun -n 2 hostname`; `make_config.py` and a C++ run on a 30-voxel sub-grid of the region
+(parses, reads 360 files, writes `.mic.LBFS`, `score_cpp.py` matches every voxel); the run's own
+load (sets the R4 limit); `lldb` reads `g_cost_eval_count` at a breakpoint on `MPI_Finalize` in the
+client (`mpirun -n 1 IceNine p cfg : -n 1 lldb -b ...`); a few frames of `stacks/clean.npy` equal
+the ASCII files; a dry run. Then stop with `READY TO RUN` and the one command, which the main
+session starts with the Bash tool in the background (no `&`, no `|| true`, no `/dev/null`):
+`caffeinate -i bash scripts/autoresearch/cpptime/run_cpp_time.sh`
+The script logs to the cache, turns every check above into its own non-zero exit (IceNine always
+exits 0), and runs C0, C1, C2 (each gated, then `same_cpp_run.py`) and a closing preflight.
+
+**Phase B, results.** `summary.py` writes `summary.json`, `tables.md` and `cpp_time.png`. Page
+`docs/autoresearch/findings_cpp_time.md`: first the plot (wall per run, Python A1/A2 and C++ C1/C2,
+stacked into start-up, global searches and local optimizations; beside it wrong voxels and global
+searches per side), then tables, each with a reading line: walls, work, unit costs, wrong voxels.
+Predictions against results; every wall labelled quiet or contended. Optional orientation maps
+(skill `mic-maps`). `sync_doc_tables.py`, `audit_numbers.py`; a `MIGRATION_HISTORY.md` section.
+
+**What this step does not test.** C++ with several clients (its usual use). Python with C++ rules.
+Realistic images, the full sample, another Q-max, layer or machine. Why unit costs differ.
+
+**Choices made.**
+- One client (`-n 2`), not several: repeatable and the match for one Python worker.
+- Evaluations from the untimed C0 under `lldb`, not a print added at `XDMClient.cpp:103` and a
+  rebuild (a `Src/` change). If `lldb` cannot read the counter, evaluations are reported as
+  missing; the print is then an open choice for the owner.
+- The stored binary, not a rebuild: Release, and the newer sources are only the counter commit.
+- Python not rerun: item 14's A is the Python number. A Python arm with C++ rules (no revisit, no
+  reseed) is not run; `pilot_bfs.py:77` requires `BFSRevisitRefit 1`, so it needs a new wrapper.
+  Unit costs carry the like-for-like comparison instead.
+- Image reads timed from stderr timestamps, not a new C++ timer; each side reads its usual images.
