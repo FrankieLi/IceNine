@@ -35,17 +35,19 @@ into a task branch before its fixes round (shared files conflict).
    session starts `S11v2` on `held` (cap 480 minutes) as a background command. Phase B
    (`SendMessage` to the same agent, or a new Opus one): statistics, page, predictions 5, 6.
    Then hand-back check, merge (`finish_task.sh`), close (page with the `held` points, PR #43).
-2. The library step for `S11` (one opt-in key pair: mixed seed refinement, "no MC fallback"):
-   a design note is being written by a Plan agent. Then write the plan section with
-   predictions, decision N21, a Sonnet implementer (it may run next to step 4's rerun).
+2. AR5 step 5 (task `ar5e`; N21; plan in `PLAN.md`): two opt-in library keys for `S11`
+   (`SeedIndexCMAFirst`, `BFSNeighborCMANoFallback`). Phase A (Sonnet): tests first, code,
+   parity checks 1 to 3 on `big`, the full suite, then "READY TO RUN" with the command for
+   check 4 (first gradient sample, cap 90 minutes). The main session starts it in the
+   background. Phase B (`SendMessage`): results, page `findings_ar5_keys.md`. Then review.
 
 ## Running jobs
 
-- AR5 step 4 fixes round, phase A (Opus implementer, started 2026-11-11 about 20:00; review
+- AR5 step 4 fixes round, phase A (Opus implementer, started 2026-11-11 about 19:30; review
   `.claude/reports/20261111-2000-review-ar5d.md`; report `20261111-2130-ar5d-fixes.md`).
-- A Plan agent writes the design note for the `S11` library keys (read only).
-- The review page is at version 42; version 43 (AR3 step 11) is being built
-  (`build_v43.py`, `run43.sh` in the scratchpad). No machine-time run is going.
+- AR5 step 5, phase A (Sonnet implementer, started 19:35; report
+  `20261111-2030-ar5e.md`; brief `brief_ar5e.md` in the scratchpad).
+- Review page: version 43 (builder `run43.sh`, scratchpad). No machine-time run is going.
 
 ## Queue
 
@@ -55,7 +57,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 | step | what | state |
 |---|---|---|
 | AR5 step 4 | `S10`, `S11`, `S11v` on the held-out sample (task `ar5d`) | fixes round, one rerun |
-| AR5 step 5 | library keys for `S11` (mixed seed refinement, no MC fallback) | plan |
+| AR5 step 5 | library keys for `S11` (task `ar5e`) | phase A |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
 | C++ time | measured C++ time on the pilot region | not started |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
@@ -104,14 +106,14 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - A choice: try test `P2 m=2` as an opt-in key (no gain lost; cuts 17% to 39% of the pass).
 - A choice: an opt-in key for "no MC fallback" (`S10`) or the mixed seed refinement (`S11`)
   now; N14 and N16 say not before the test on `held`.
-- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N20 (all
+- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N21 (all
   on the review page). N15 adds `held` (new seed); N17, N18: run caps of 480 minutes.
   The gradient levels of step 7's sample are my choice. Step 5's result files add about 50
   MB to git; say so if you want them pruned.
 
 ## Bookkeeping
 
-- Next decision ID: D-20261111-N21.
+- Next decision ID: D-20261111-N22.
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
