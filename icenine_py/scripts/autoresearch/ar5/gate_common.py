@@ -63,6 +63,8 @@ PLAN_CUT_PCT: Dict[Tuple[str, str], float] = {
 
 
 def cache_of(run: str) -> Path:
+    if run == "S11v2":  # held's run (step 4); see HELD_V2 below
+        return HELD_V2
     return VER_CACHE if run == "S11n" else MIX_CACHE
 
 
@@ -145,4 +147,25 @@ def s8_baseline(sample: str) -> Dict[str, Any]:
         err_before=np.asarray(e["s8_before"], dtype=float),
         err_after=np.asarray(e["s8_after"], dtype=float),
         stages=j["stages_s8"],
+    )
+
+
+# ---- held (read only after frozen.json is committed; see gate_held.py) ----------------------
+HELD_V2 = WORKTREES / f"agent-a8a1ac8e80f8913cf/{AR5}/held/cache"  # S11v2 run and pass
+HELD_S8 = WORKTREES / "agent-af8961874e131bda2/icenine_py/benchmarks/autoresearch/ar3/held/cache"
+
+
+def s8_from_maps(
+    truth: "Truth", run_json: Path, pass_json: Path, after_npy: Path
+) -> Dict[str, Any]:
+    """S8's numbers on a sample whose S8 errors are not stored: score its map after the pass."""
+    j = json.loads(run_json.read_text())
+    pj = json.loads(pass_json.read_text())
+    err = truth.err(np.load(after_npy).astype(np.float64))
+    return dict(
+        err_before=err,
+        err_after=err,
+        stages=dict(
+            before_pass=int(j["evals_total"]), total=int(j["evals_total"]) + int(pj["evals"])
+        ),
     )
