@@ -34,19 +34,18 @@ into a task branch before its fixes round (shared files conflict).
    a new Opus one): statistics, page, predictions 5 and 6. Place the page if its Write is
    refused. Then hand-back check, merge (`finish_task.sh`), close (page with the `held`
    points, PR #43).
-2. AR5 step 5 (task `ar5e`; N21; plan in `PLAN.md`): two opt-in library keys for `S11`
-   (`SeedIndexCMAFirst`, `BFSNeighborCMANoFallback`). Phase A (Sonnet): tests first, code,
-   parity checks 1 to 3 on `big`, the full suite, then "READY TO RUN" with the command for
-   check 4 (first gradient sample, cap 90 minutes). The main session starts it in the
-   background. Phase B (`SendMessage`): results, page `findings_ar5_keys.md`. Then review.
+2. AR5 step 5 (task `ar5e`; N21): keys `SeedIndexCMAFirst`, `BFSNeighborCMANoFallback`.
+   Phase A done (tip fb5ecc3): 62 tests, suite 1718 passed, checks 1 to 3 on `big` exact.
+   Check 4 (first gradient sample) runs now. When it ends: phase B (`SendMessage` to the
+   implementer): results, page `findings_ar5_keys.md`. Then hand-back check, review, N22.
 
 ## Running jobs
 
 - `S11v2` on `held` (cap 480 minutes): background command of the main session, started
   2026-11-11 19:54 in worktree `agent-a8a1ac8e80f8913cf` (branch `ar5d`, tip 1983a40; report
   `20261111-2130-ar5d-fixes.md`). Marker there: `ar5/held/cache/logs/S11v2_held.done`.
-- AR5 step 5, phase A (Sonnet implementer, started 19:35; report
-  `20261111-2030-ar5e.md`; brief `brief_ar5e.md` in the scratchpad).
+- AR5 step 5 chain (check 4 and the pass checks, cap 90 minutes), started 20:13 in worktree
+  `agent-afc3f195cb4fffb30` (report `20261111-2030-ar5e.md`); marker `grad_chain.done` in its logs.
 - Review page: version 43 (builder `run43.sh`, scratchpad).
 
 ## Queue
@@ -57,7 +56,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 | step | what | state |
 |---|---|---|
 | AR5 step 4 | `S10`, `S11`, `S11v` on the held-out sample (task `ar5d`) | fixes round, one rerun |
-| AR5 step 5 | library keys for `S11` (task `ar5e`) | phase A |
+| AR5 step 5 | library keys for `S11` (task `ar5e`) | check 4 runs |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
 | C++ time | measured C++ time on the pilot region | not started |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
@@ -81,6 +80,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - `agent-af8961874e131bda2` (AR3 step 11): the sample `held`, its image stack, the baseline
   cache (`S8_held/`, `S8_held_cap120/`).
 - AR5 step 4: `agent-a814d0121e137b01c` (three run caches on `held`), `agent-a8a1ac8e80f8913cf`.
+- AR5 step 5: `agent-afc3f195cb4fffb30` (the library runs under `ar5/keys/cache/`).
 - `agent-a68538c58665829a1` (AR5 step 1, detached at 29e9b56): `ar5/cache/` and links.
 - Step 10: `agent-a6c7c67b4a03d1843` (`ar3/keys/cache/`), `agent-a3145f902bf0a61fb` (two reruns).
 - `agent-a9c88b610fb10e1b6` (step 9): `ar3/start/cache/`, the image stack and samples of `mid`.
