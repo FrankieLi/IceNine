@@ -1,7 +1,7 @@
 """Score a C++ pilot run against the truth (cpptime).
 
   uv run python scripts/autoresearch/cpptime/score_cpp.py RUN_DIR [--python-run DIR] [--out F]
-      [--region-grid FILE]          (default: the pilot region grid)
+      [--rows ROWS.npy] [--mic-name NAME]   (a sub-grid run: rows of the pilot grid)
 
 Matches the voxels of ``RUN_DIR/cpp_pilot.mic.LBFS`` to the rows of the region grid by centroid and
 up/down within 1e-3 mm (every output voxel must match exactly one row; region rows without an
@@ -87,19 +87,27 @@ def _errors(mic_path: Path, truth_q: np.ndarray, rows: np.ndarray) -> np.ndarray
 
 
 def score_run(
-    run: Path, python_run: Optional[Path] = None, region_grid: Path = BENCH / "region_grid.mic"
+    run: Path,
+    python_run: Optional[Path] = None,
+    rows: Optional[np.ndarray] = None,
+    mic_name: str = MIC_NAME,
 ) -> Dict[str, Any]:
+    """Score ``run``. ``rows`` restricts the region to those rows of the pilot grid (a sub-grid
+    run); default all rows."""
     from icenine.mic_file import MicFile
     from score_bfs import mats_to_quats
 
-    region = read_positions(region_grid)
-    out = read_positions(run / MIC_NAME)
-    idx, missing = match_voxels(region, out)
+    full = read_positions(BENCH / "region_grid.mic")
     truth_idx = np.load(BENCH / "region_index.npy")
-    assert len(truth_idx) == len(region)
+    assert len(truth_idx) == len(full)
+    rows = np.arange(len(full)) if rows is None else np.asarray(rows, dtype=int)
+    region = full[rows]
+    out = read_positions(run / mic_name)
+    local, missing = match_voxels(region, out)
+    idx = rows[local]  # row of the pilot grid of each output voxel
     truth = MicFile.read(str(TRUTH / "rand_500grains_1mm_neworient_s0.mic"))
     q_all = mats_to_quats(np.array([truth.voxels[i].orientation for i in truth_idx]))
-    err = _errors(run / MIC_NAME, q_all, idx)
+    err = _errors(run / mic_name, q_all, idx)
     wrong = err > WRONG_DEG
     lo, hi = wilson(int(wrong.sum()), len(err))
     res: Dict[str, Any] = dict(
@@ -112,7 +120,7 @@ def score_run(
         median_err_deg=float(np.median(err)) if len(err) else float("nan"),
     )
     if python_run is not None:
-        perr = _errors(python_run / "recon.mic", q_all, np.arange(len(region)))
+        perr = _errors(python_run / "recon.mic", q_all, np.arange(len(full)))
         pw = perr > WRONG_DEG
         res["python_wrong_all"] = int(pw.sum())
         res["python_wrong_on_cpp_voxels"] = int(pw[idx].sum())
@@ -124,10 +132,11 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("run", type=Path)
     ap.add_argument("--python-run", type=Path, default=None)
-    ap.add_argument("--region-grid", type=Path, default=BENCH / "region_grid.mic")
+    ap.add_argument("--rows", type=Path, default=None, help="npy of pilot-grid rows (a sub-grid)")
+    ap.add_argument("--mic-name", default=MIC_NAME)
     ap.add_argument("--out", type=Path, default=None)
     a = ap.parse_args()
-    res = score_run(a.run, a.python_run, a.region_grid)
+    res = score_run(a.run, a.python_run, np.load(a.rows) if a.rows else None, a.mic_name)
     text = json.dumps(res, indent=1) + "\n"
     if a.out:
         a.out.write_text(text)

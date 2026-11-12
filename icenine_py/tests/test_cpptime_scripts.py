@@ -122,6 +122,8 @@ QueueSize 4 Fitted 3 continuous voxels
   First Voxel Required: 16 Sec
  [Conf, HitRatio ] 0.5 0.5
 Total Processing Time: (sec) 40... Client Exiting
+Stop: Thu Nov 12 00:37:37 2026
+Total Time elapsed (sec): 77
 """
 
 
@@ -186,6 +188,31 @@ def test_match_voxels_rejects_unmatched_output() -> None:
         SCORE.match_voxels(region, out, tol=1e-3)
 
 
+def test_subgrid_takes_nearest_rows_in_grid_order(tmp_path: Path) -> None:
+    import make_subgrid as MS
+
+    pts = np.array([[0.0, 0.0], [5.0, 5.0], [0.1, 0.0], [0.0, 0.2], [9.0, 9.0]])
+    g = _grid(tmp_path, pts)
+    text, rows = MS.make(g, centre=0, n=3)
+    assert list(rows) == [0, 2, 3]
+    lines = text.splitlines()
+    assert lines[0] == "0.600000" and len(lines) == 4
+    assert lines[2].split()[0] == "0.100000"
+
+
+def test_stack_vs_ascii_pixels(tmp_path: Path) -> None:
+    import stacks_check as SK
+
+    f = tmp_path / "frame"
+    f.write_text("3, 1, 100\n4, 1, 0\n5, 2, 7\n")
+    frame = np.zeros((4, 8), dtype=np.uint8)
+    frame[1, 3] = 1  # row 1, column 3: ASCII "x, y" = "3, 1"
+    frame[2, 5] = 1
+    assert SK.ascii_pixels(f) == {(3, 1), (5, 2)}
+    assert SK.stack_pixels(frame, swap=False) == {(3, 1), (5, 2)}
+    assert SK.stack_pixels(frame, swap=True) != SK.ascii_pixels(f)
+
+
 def test_split_wrong_overlap() -> None:
     py = np.array([True, True, False, False])
     cpp = np.array([True, False, True, False])
@@ -202,7 +229,13 @@ def _cpp_run(d: Path, mic: bytes, log: str) -> Path:
 
 def test_same_cpp_run_ignores_clock(tmp_path: Path) -> None:
     a = _cpp_run(tmp_path / "a", b"m", CLIENT)
-    b = _cpp_run(tmp_path / "b", b"m", CLIENT.replace("15 Sec", "16 Sec").replace("40...", "41..."))
+    slower = (
+        CLIENT.replace("15 Sec", "16 Sec")
+        .replace("40...", "41...")
+        .replace("00:37", "00:38")
+        .replace("(sec): 77", "(sec): 78")
+    )
+    b = _cpp_run(tmp_path / "b", b"m", slower)
     assert SC.diff_runs(a, b) is None
 
 

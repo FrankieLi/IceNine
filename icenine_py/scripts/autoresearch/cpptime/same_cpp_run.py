@@ -18,6 +18,8 @@ CLIENT_LOG = "ParallelReconLog_1.log"
 NUM = r"[-+]?(?:\d+(?:\.\d+)?(?:e[-+]?\d+)?|nan|inf)"
 TIME_PATTERNS = [
     (re.compile(r"^StartTime:.*$", re.M), "StartTime: <t>"),
+    (re.compile(r"^Stop:.*$", re.M), "Stop: <t>"),
+    (re.compile(r"(Total Time elapsed \(sec\):)\s*" + NUM), r"\1 <t>"),
     (re.compile(r"(First Voxel Required:)\s*" + NUM), r"\1 <t>"),
     (re.compile(r"(Time elapsed for this set of voxels \(sec\):)\s*" + NUM), r"\1 <t>"),
     (re.compile(r"(Time per voxel \(sec\):)\s*" + NUM), r"\1 <t>"),

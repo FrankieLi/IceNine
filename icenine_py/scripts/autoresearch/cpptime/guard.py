@@ -66,7 +66,13 @@ def run(
 ) -> int:
     stderr_path.parent.mkdir(parents=True, exist_ok=True)
     with stderr_path.open("wb") as err:
-        proc = subprocess.Popen(cmd, stderr=subprocess.PIPE, start_new_session=True, cwd=cwd)
+        proc = subprocess.Popen(
+            cmd,
+            stdin=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            start_new_session=True,
+            cwd=cwd,
+        )
         assert proc.stderr is not None
         reader = threading.Thread(target=stamp_lines, args=(proc.stderr, err), daemon=True)
         reader.start()
