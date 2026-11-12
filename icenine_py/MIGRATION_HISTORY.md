@@ -12018,8 +12018,8 @@ recommended; `h` was not tuned. Every flipped voxel is a kept voxel (none skippe
 with the kept tries drawing other random numbers from the one generator, not tested. Wall times
 are contended; no timing claim. Tests run: the touched files and the `boundary_pass`,
 `config_file`, `reconstructor`, BFS key files (201 passed); the full suite is left to the merge.
-Page: `docs/autoresearch/findings_ar5_gate.md` (its Write was refused; the text is in the
-agent's report folder).
+Page: `docs/autoresearch/findings_ar5_gate.md`; the page text waits for the owner to place it at
+that path.
 
 ### AR5 step 7, phase D: variant 2, aligned draws (decided after the first live result, D-20261112-N5)
 
@@ -12034,9 +12034,18 @@ tries get the full pass's draws; key-off draws unchanged. Live passes, same seed
 samples: every kept try identical to the stored full pass (voxel, candidate, end, cost, hit ratio,
 confidence, evaluations): 15,592 of 15,592 (`mid`), 10,074 (first gradient), 4,491 (`big`),
 23,557 (`held`); fixed / broken 0 / 0 on all four; wrong voxels equal the replay's (35, 59, 18,
-69); pass evaluations equal the replay's; the rule passes on all four. Consistent with the draw
-order being the whole cause of variant 1's flips. `held` was read live once, under variant 1,
-before variant 2 was decided. Variant 1's files are unchanged; variant 2's carry `_v2`. Variant 1's
-flips are also a finding: one re-draw of the pass changes 820 to 1,674 kept voxels' ends and gives
-4/7, 15/12, 2/6 and 4/10 fixed / broken against the full pass; a tilt toward broken cannot be
-judged from these counts.
+69); pass evaluations equal the replay's; the rule passes on all four. Draw order was the whole
+cause of variant 1's flips on these four stored maps (one run each): variant 2 changes only the
+discarded draws, and every kept try is then identical. The other cause named in D-20261112-N5
+(kept tries starting from neighbour ends the pass had changed) is ruled out by the code: tries
+start from `R`, a snapshot of the map before the pass. `held` was read live once, under variant 1,
+before variant 2 was decided, so `held` is not a clean test of variant 2; its variant 2 entries in
+`tables.md` and `pareto_rows.json` say so. With the key on, the library always gives variant 2:
+variant 1 cannot be selected and is reproducible only at commit `7b4fd0f` (library as at
+`31cfa0b`). Variant 1's files are unchanged; variant 2's carry `_v2`. Variant 1's flips are also a
+finding, from one shifted re-draw of the kept tries per sample (n = 1; the spread over re-draws is
+not measured): it changes 820 to 1,674 kept voxels' ends and gives 4/7, 15/12, 2/6 and 4/10 fixed
+/ broken against the full pass; a tilt toward broken cannot be judged from these counts. Review
+fixes (2026-11-12): a test ties `CMA_SEED_BOUND` and the one draw per try to the real
+`CMAOptimizer.optimize` (9 new test cases, 26 in `tests/test_boundary_pass_skip.py`); the plot
+title no longer clips.
