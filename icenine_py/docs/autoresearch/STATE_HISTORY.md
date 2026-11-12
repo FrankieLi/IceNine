@@ -772,6 +772,35 @@ Pilot region, 2,000 voxels, clean images, Q-max 8, FusedCost on, one fixed voxel
   (fixes round; a link to that cache). Reports `.claude/reports/20261111-1208-ar4a.md`,
   `20261111-1335-review-ar4a.md`, `20261111-1351-ar4a-fixes.md`.
 
+### AR5 step 3 (a mixed seed refinement, run `S11`; task `ar5c`), merged at ab7e9fc on 2026-11-11
+
+- Page `findings_ar5_mix.md`; results `benchmarks/autoresearch/ar5/mix/`; scripts
+  `scripts/autoresearch/ar5/mix_*.py`; tests `tests/test_ar5_mix_rules.py` (14). Decisions
+  D-20261111-N14 (plan), N16 (review: approve, 8 wording and traceability fixes, all applied;
+  no new run). Suite at the merge: 1649 passed, 47 skipped, 1 deselected.
+- Scripts only, clean images, one run per sample. The pick was committed at 13:57:26; the
+  20-step check started 13:58:20 (it matched Part 1 on all 20 steps) and the runs at 14:05:51.
+- Part 1, from the stored replay: pick `X200` (CMA with 200 evaluations first; MC from the same
+  candidate only when the CMA end hit ratio is under 0.95; the lower cost of the two). Pick
+  samples: 57.3% fewer seed-step evaluations than `M`, 1,596 seed-test passes against 1,592,
+  1,589 ends within 1 degree against 1,583. `X60` meets both rules too but saves 25.2%. On
+  `mid` 5,643,575 seed-step evaluations; the plan's what-if 5,643,374 is a variant that stops
+  when either end reaches 0.95 and differs at replay step 442 only.
+- Part 2, run `S11` (`S8` + `X200` + no MC fallback), with the pass: 4,015,342 / 12,307,994 /
+  16,082,696 evaluations on `big`, the first gradient sample and `mid` (51.9 / 31.6 / 39.2%
+  fewer than `S8`). Wrong 18 / 62 / 36 against 24 / 63 / 31. Broken minus fixed against `S8`:
+  -6, -1, +5 (`mid`: 15 broken, 10 fixed; exactly at the limit). The pass rule is met on all
+  three.
+- Grid fallbacks 0 / 11 / 12 against 0 / 16 / 15. They are 30.0% and 9.6% of the saving against
+  `S8` on the first gradient sample and `mid` (47.8% and 15.2% against `S10`); one fallback
+  costs 333,517 to 340,594 evaluations. Why they drop was not tested.
+- Predictions 1, 2 and 4 agree; 3 (fallbacks within 2 of `S8`) does not.
+- The rule was found in a replay that included `mid`: no sample is held out for it. N16: no
+  key before the test on `held` (`S10`, `S11`, `S11` plus verifier `N1`, by stage).
+- Worktrees: `agent-a5a3601b746680640` (first round; the `S11` caches), `agent-a566790c79fbe9096`
+  (fixes round; links). Reports `.claude/reports/20261111-1351-ar5c.md`,
+  `20261111-1503-review-ar5c.md`, `20261111-1520-ar5c-fixes.md`.
+
 ## For the owner
 
 - Still yours: item 12 (apply and commit, below), Ilium's plan approvals, and the note on what
