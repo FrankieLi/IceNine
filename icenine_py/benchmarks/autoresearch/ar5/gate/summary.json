@@ -696,7 +696,7 @@
     "text": "2. On `held`, `S11v2` with the skipped pass needs 5% to 12% fewer evaluations than with the full pass (its pass is a smaller share: an estimate of 3.5 of about 36 million, from step 4's totals; this draft did not open `held`'s pass files).",
     "sample": "held (live)",
     "observed": "10.0% fewer (33,753,877 against 37,507,939); the pass was 5,191,039",
-    "verdict": "met"
+    "verdict": "met (not clean: decided after held was read live under variant 1)"
    },
    {
     "no": 3,
@@ -724,7 +724,7 @@
     "text": "3. The live pass spends exactly the replay's evaluations (61 per kept try) on every sample.",
     "sample": "held S11v2",
     "observed": "live 1,436,977, replay 1,436,977; 23557 tries at 61.0 each",
-    "verdict": "met"
+    "verdict": "met (not clean: decided after held was read live under variant 1)"
    },
    {
     "no": 4,
@@ -752,7 +752,7 @@
     "text": "4. Live wrong voxels are within 2 of the replay's on every sample (one generator for the pass, so skipped tries shift the random draws of later tries).",
     "sample": "held S11v2",
     "observed": "live 69, replay 69 (difference +0)",
-    "verdict": "met"
+    "verdict": "met (not clean: decided after held was read live under variant 1)"
    },
    {
     "no": 5,
@@ -780,7 +780,7 @@
     "text": "5. Median error rises by at most 0.0005 degree on every sample.",
     "sample": "held S11v2",
     "observed": "+0.00006 degree against the full pass",
-    "verdict": "met"
+    "verdict": "met (not clean: decided after held was read live under variant 1)"
    }
   ],
   "live": {

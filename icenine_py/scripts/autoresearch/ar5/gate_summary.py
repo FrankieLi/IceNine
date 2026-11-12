@@ -22,6 +22,10 @@ from doc_tables import markdown_table, write_tables  # noqa: E402
 G = GC.GATE
 ENTRIES: List[Tuple[str, str]] = GC.DISCLOSED + [("held", "S11v2")]
 LIVE: List[Tuple[str, str]] = [("mid", "S11n"), ("grad", "S11n"), ("big", "S11"), ("held", "S11v2")]
+# held was read live once under variant 1 before variant 2 was decided: its variant 2 entries
+# carry this mark wherever they appear (tables.md and pareto_rows.json)
+NOT_CLEAN = "not clean: decided after held was read live under variant 1"
+HELD_FLAG = "; held read live once under variant 1 before this variant; not a clean test"
 COLORS = {"big": "tab:purple", "grad": "tab:green", "mid": "tab:blue", "held": "tab:red"}
 NAME = {"big": "big", "grad": "first gradient", "mid": "mid", "held": "held"}
 
@@ -476,8 +480,9 @@ def plot(
     ax.set_ylabel("net gain lost (wrong voxels after the skip minus after the full pass)")
     ax.set_title(
         "What-if curve over h from 0.99 (left) to 0.90 (right); circle = 0.95 (frozen)\n"
-        "x = live pass, variant 1 (one draw stream); + = live pass, variant 2 (aligned draws,\n"
-        "decided after the first live result)"
+        "x = live pass, variant 1 (one draw stream)\n"
+        "+ = live pass, variant 2 (aligned draws, decided after the first live result)",
+        fontsize=9,
     )
     ax.legend(fontsize=8)
     fig.tight_layout()
@@ -536,7 +541,8 @@ def pareto(
                     evals_total=v2["total_with_pass"],
                     wrong=v2["live"]["wrong"],
                     kind="live",
-                    flag="variant 2, decided after the first live result, D-20261112-N5",
+                    flag="variant 2, decided after the first live result, D-20261112-N5"
+                    + (HELD_FLAG if s == "held" else ""),
                 )
             )
         if v is None:
@@ -580,9 +586,10 @@ def v2_tables(L1: Dict[Tuple[str, str], Any], L2: Dict[Tuple[str, str], Any]) ->
             continue
         u, u1 = v["rule"], v1["rule"]
         fd = v.get("first_difference")
+        mark = f" ({NOT_CLEAN})" if s == "held" else ""
         rows.append(
             dict(
-                sample=NAME[s],
+                sample=NAME[s] + mark,
                 run=run,
                 ev=f"{v['live_pass_evals']:,}",
                 ident=f"{v['kept_tries_identical']:,} of {v['kept_tries_total']:,}",
@@ -608,7 +615,7 @@ def v2_tables(L1: Dict[Tuple[str, str], Any], L2: Dict[Tuple[str, str], Any]) ->
                 s8e=yn(u["pass_s8_evals"]),
                 s8w=f"{yn(u['pass_s8_wrong'])} ({v['broken_vs_s8'] - v['fixed_vs_s8']} <= 5)",
                 s8m=f"{yn(u['pass_s8_median'])} ({dm_s8:+.5f})",
-                passes="yes" if u["passes"] else "no",
+                passes=("yes" if u["passes"] else "no") + mark,
             )
         )
         vs.append(
@@ -617,7 +624,7 @@ def v2_tables(L1: Dict[Tuple[str, str], Any], L2: Dict[Tuple[str, str], Any]) ->
                 run=run,
                 a="yes" if u1["passes"] else "no",
                 b=f"{v1['fixed_vs_full']} / {v1['broken_vs_full']}",
-                c="yes" if u["passes"] else "no",
+                c=("yes" if u["passes"] else "no") + mark,
                 d=f"{v['fixed_vs_full']} / {v['broken_vs_full']}",
             )
         )
@@ -665,6 +672,10 @@ def v2_tables(L1: Dict[Tuple[str, str], Any], L2: Dict[Tuple[str, str], Any]) ->
         "the full pass | fixed / broken vs the full pass | wrong, live against full pass |",
     )
     pred = predictions(rows_replay(), L2)
+    for p in pred:
+        # held's live rows only; prediction 1 is the replay (computed before any live pass)
+        if p["sample"] in ("held (live)", "held S11v2"):
+            p["verdict"] = f"{p['verdict']} ({NOT_CLEAN})"
     T["predictions_v2"] = markdown_table(pred, ["no", "sample", "observed", "verdict"]).replace(
         "| no | sample | observed | verdict |", "| prediction | sample | observed | verdict |"
     )

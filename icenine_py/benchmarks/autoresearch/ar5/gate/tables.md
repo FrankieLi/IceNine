@@ -48,7 +48,7 @@
 | mid | S11n | 951,112 | 15,592 of 15,592 | none | 35 (0.10 to 0.20%) | 0 / 0 | 13 / 17 | 0.02913 | 11,997,038 | 54.6% |
 | first gradient | S11n | 614,514 | 10,074 of 10,074 | none | 59 (0.19 to 0.31%) | 0 / 0 | 33 / 29 | 0.02122 | 6,469,435 | 64.1% |
 | big | S11 | 273,951 | 4,491 of 4,491 | none | 18 (0.05 to 0.12%) | 0 / 0 | 13 / 7 | 0.03084 | 3,153,656 | 62.2% |
-| held | S11v2 | 1,436,977 | 23,557 of 23,557 | none | 69 (0.22 to 0.36%) | 0 / 0 | 24 / 23 | 0.02610 | 33,753,877 | 43.7% |
+| held (not clean: decided after held was read live under variant 1) | S11v2 | 1,436,977 | 23,557 of 23,557 | none | 69 (0.22 to 0.36%) | 0 / 0 | 24 / 23 | 0.02610 | 33,753,877 | 43.7% |
 <!-- /table:live_v2 -->
 
 <!-- table:noise -->
@@ -89,19 +89,19 @@
 | prediction | sample | observed | verdict |
 |---|---|---|---|
 | 1 | held (replay) | cut 72.3%; fixed / broken 0 / 0 | met |
-| 2 | held (live) | 10.0% fewer (33,753,877 against 37,507,939); the pass was 5,191,039 | met |
+| 2 | held (live) | 10.0% fewer (33,753,877 against 37,507,939); the pass was 5,191,039 | met (not clean: decided after held was read live under variant 1) |
 | 3 | mid S11n | live 951,112, replay 951,112; 15592 tries at 61.0 each | met |
 | 3 | grad S11n | live 614,514, replay 614,514; 10074 tries at 61.0 each | met |
 | 3 | big S11 | live 273,951, replay 273,951; 4491 tries at 61.0 each | met |
-| 3 | held S11v2 | live 1,436,977, replay 1,436,977; 23557 tries at 61.0 each | met |
+| 3 | held S11v2 | live 1,436,977, replay 1,436,977; 23557 tries at 61.0 each | met (not clean: decided after held was read live under variant 1) |
 | 4 | mid S11n | live 35, replay 35 (difference +0) | met |
 | 4 | grad S11n | live 59, replay 59 (difference +0) | met |
 | 4 | big S11 | live 18, replay 18 (difference +0) | met |
-| 4 | held S11v2 | live 69, replay 69 (difference +0) | met |
+| 4 | held S11v2 | live 69, replay 69 (difference +0) | met (not clean: decided after held was read live under variant 1) |
 | 5 | mid S11n | +0.00000 degree against the full pass | met |
 | 5 | grad S11n | +0.00003 degree against the full pass | met |
 | 5 | big S11 | +0.00007 degree against the full pass | met |
-| 5 | held S11v2 | +0.00006 degree against the full pass | met |
+| 5 | held S11v2 | +0.00006 degree against the full pass | met (not clean: decided after held was read live under variant 1) |
 <!-- /table:predictions_v2 -->
 
 <!-- table:replay -->
@@ -130,7 +130,7 @@
 | mid | S11n | met (68.9%) | met (0 <= 2) | met (+0.00000) | met | met (4 <= 5) | met (-0.00060) | yes |
 | first gradient | S11n | met (83.3%) | met (0 <= 8) | met (+0.00003) | met | met (-4 <= 5) | met (-0.00142) | yes |
 | big | S11 | met (75.9%) | met (0 <= 3) | met (+0.00007) | met | met (-6 <= 5) | met (-0.00077) | yes |
-| held | S11v2 | met (72.3%) | met (0 <= 2) | met (+0.00006) | met | met (-1 <= 5) | met (-0.00248) | yes |
+| held | S11v2 | met (72.3%) | met (0 <= 2) | met (+0.00006) | met | met (-1 <= 5) | met (-0.00248) | yes (not clean: decided after held was read live under variant 1) |
 <!-- /table:rule_live_v2 -->
 
 <!-- table:rule_replay -->
@@ -150,5 +150,5 @@
 | mid | S11n | no | 4 / 7 | yes | 0 / 0 |
 | first gradient | S11n | yes | 15 / 12 | yes | 0 / 0 |
 | big | S11 | no | 2 / 6 | yes | 0 / 0 |
-| held | S11v2 | no | 4 / 10 | yes | 0 / 0 |
+| held | S11v2 | no | 4 / 10 | yes (not clean: decided after held was read live under variant 1) | 0 / 0 |
 <!-- /table:variants -->

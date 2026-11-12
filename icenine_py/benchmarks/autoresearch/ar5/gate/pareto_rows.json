@@ -225,6 +225,6 @@
   "evals_total": 33753877,
   "wrong": 69,
   "kind": "live",
-  "flag": "variant 2, decided after the first live result, D-20261112-N5"
+  "flag": "variant 2, decided after the first live result, D-20261112-N5; held read live once under variant 1 before this variant; not a clean test"
  }
 ]
