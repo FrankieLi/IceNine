@@ -1583,3 +1583,20 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   aligned draws, because one shifted draw stream alone moved 4 to 15 voxels each way per sample
   (one re-draw per sample). Where: icenine_py/docs/autoresearch/PLAN.md (AR5 step 7); review
   report .claude/reports/20261112-1345-review-ar5g.md; branch feature/eval-reduction-ar5g.
+
+### D-20261112-N7 · Track A / AR5 step 8 (plan) · AR5 step 8 approved: CMA on every seed candidate before any MC refinement (sweep order), tested on held with aligned draws
+- 2026-11-12, owner. Recorded by Newt Agent. Supersedes: none.
+- The plan section 'AR5 step 8: fit every candidate with CMA before any MC refinement' (PLAN.md,
+  commit 334d2e2) is approved. It changes only the order of the seed step: CMA on every candidate
+  first, the MC refinement only if no CMA end reaches hit ratio 0.95. No new threshold, budget or
+  model. Reason: in the stored S11n runs 48.0% (mid) and 64.3% (grad) of the MC evaluations buy an
+  end that is then discarded, and a replay on stored seed steps cuts seed-step evaluations by
+  75.4% (big), 16.8% (grad), 42.1% (mid) with 0 fixed and 0 broken; those three samples are
+  disclosed, held is the test sample. Both orders are rerun as whole layers with aligned random
+  draws (lesson of step 7, D-20261112-N6), at most 4 heavy processes. Phase A has no library
+  change and ends at READY FOR KEY; phase B (the opt-in key SeedIndexCMASweep) needs a further
+  recorded decision. Phase A also records the MC traces for a later early-stop step. Not chosen
+  now: an early stop inside the MC run (needs a fitted predictor and a replay), a skip of MC from
+  the CMA end (needs a new cut). The timing runs (items 14 + 3, C++ time) keep priority if the
+  machine becomes quiet: they wait until these runs end, or the runs are started after them.
+  Where: icenine_py/docs/autoresearch/PLAN.md (AR5 step 8).
