@@ -11986,3 +11986,66 @@ changed voxels 986 against 983 and 688 against 681 (`keys_pass_contents.py`,
 shown for `S8L` in AR3 step 10 and not tested for `S10L` and `S11L`. Full suite after the fixes
 round 1,724 passed, 47 skipped, 1 deselected (`suite_counts.json`). Not tested: timing, `mid`,
 `held`, realistic images; no recommended setting. Page: `docs/autoresearch/findings_ar5_keys.md`.
+
+## Autoresearch AR5 step 7: skip the boundary pass at voxels that already fit (done 2026-11-12, task ar5g)
+
+Plan (D-20261112-N4): one opt-in key, `BoundaryPassSkipHitRatio h` (float in [0, 1], 0 = off): in
+the boundary pass a voxel whose own hit ratio (the hit ratio of its end before the pass, from the
+score the pass already makes) is at least `h` gets no try and keeps its end. `run_boundary_pass`
+takes `skip_hit` (default 0); the reconstructor passes it only when it is above 0, so the key-off
+call and path are unchanged. `bfs.stats` gains `boundary_skipped` (key on only). The own-hit-ratio
+evaluation is the pass's old-end score, counted in `n_evals_boundary_score` (one per boundary
+voxel) with and without the key. `BoundaryPassSkipHitRatio > 0` without `BoundaryPass 1` (and with
+`PaintGrains 1`) raises `ValueError`. No default, golden, dependency or C++ change.
+
+Done: key and parser (`config_file.py`, `orientation_search.py`, `reconstructor.py`,
+`boundary_pass.py`); 14 new tests in `tests/test_boundary_pass_skip.py` (parsing, bad values,
+refusals, key off equals key absent, key on skips exactly the voxels at or above `h`, counts, the
+call from the BFS) and 9 in `tests/test_ar5_gate.py` (replay rule, fixed / broken, decision rule);
+scripts `scripts/autoresearch/ar5/gate_*.py`; results `benchmarks/autoresearch/ar5/gate/`.
+`h` = 0.95, the rule and the predictions were frozen in `frozen.json` (commit `b32f1de`, 13:11:16)
+before any file of `held` was opened (13:12:10). Replay at 0.95 on five stored passes of the
+disclosed samples and on `held` `S11v2`: cut 68.9% to 83.5% (`held` 72.3%), 0 fixed / 0 broken
+against the full pass on all six; the plan's five pass totals reproduced. Key-off parity pass on
+`mid` `S11n`: all 50,151 tries identical to the stored ones (voxel, candidate, end, cost, hit
+ratio, confidence, evaluations), same 1,491 changed voxels. Live skipped passes spend exactly the
+replay's evaluations on all four samples; live wrong voxels differ from the replay by +3 (`mid`),
+-3 (first gradient), +4 (`big`) and +6 (`held`), so prediction 4 fails on all four. On `held`
+live: 75 wrong against 69 with the full pass, fixed / broken 4 / 10, the run needs 10.0% fewer
+evaluations than with the full pass. The skip fails the plan's rule on `held`, `mid` and `big`
+and passes on the first gradient sample, so it fails the step: the key stays off, not
+recommended; `h` was not tuned. Every flipped voxel is a kept voxel (none skipped); consistent
+with the kept tries drawing other random numbers from the one generator, not tested. Wall times
+are contended; no timing claim. Tests run: the touched files and the `boundary_pass`,
+`config_file`, `reconstructor`, BFS key files (201 passed); the full suite is left to the merge.
+Page: `docs/autoresearch/findings_ar5_gate.md`; the page text waits for the owner to place it at
+that path.
+
+### AR5 step 7, phase D: variant 2, aligned draws (decided after the first live result, D-20261112-N5)
+
+Variant 1's live skipped passes (above) failed the plan's rule on `held`, `mid` and `big`. Phase D
+tests whether the order of random draws caused the flips. Read from the code: a CMA try draws
+exactly one integer (`CMAOptimizer.optimize`, before any early return) from the pass's generator,
+and the pass draws nothing else; a voxel's number of tries is its candidate count, known before
+any try. Library change in `boundary_pass.py` only, with the key on: each skipped try draws and
+discards that integer (no evaluation). Key off is unchanged. Tests first (3 new, 17 in
+`tests/test_boundary_pass_skip.py`): a cut that skips nothing equals key off try by try; kept
+tries get the full pass's draws; key-off draws unchanged. Live passes, same seed 0, same four
+samples: every kept try identical to the stored full pass (voxel, candidate, end, cost, hit ratio,
+confidence, evaluations): 15,592 of 15,592 (`mid`), 10,074 (first gradient), 4,491 (`big`),
+23,557 (`held`); fixed / broken 0 / 0 on all four; wrong voxels equal the replay's (35, 59, 18,
+69); pass evaluations equal the replay's; the rule passes on all four. Draw order was the whole
+cause of variant 1's flips on these four stored maps (one run each): variant 2 changes only the
+discarded draws, and every kept try is then identical. The other cause named in D-20261112-N5
+(kept tries starting from neighbour ends the pass had changed) is ruled out by the code: tries
+start from `R`, a snapshot of the map before the pass. `held` was read live once, under variant 1,
+before variant 2 was decided, so `held` is not a clean test of variant 2; its variant 2 entries in
+`tables.md` and `pareto_rows.json` say so. With the key on, the library always gives variant 2:
+variant 1 cannot be selected and is reproducible only at commit `7b4fd0f` (library as at
+`31cfa0b`). Variant 1's files are unchanged; variant 2's carry `_v2`. Variant 1's flips are also a
+finding, from one shifted re-draw of the kept tries per sample (n = 1; the spread over re-draws is
+not measured): it changes 820 to 1,674 kept voxels' ends and gives 4/7, 15/12, 2/6 and 4/10 fixed
+/ broken against the full pass; a tilt toward broken cannot be judged from these counts. Review
+fixes (2026-11-12): a test ties `CMA_SEED_BOUND` and the one draw per try to the real
+`CMAOptimizer.optimize` (9 new test cases, 26 in `tests/test_boundary_pass_skip.py`); the plot
+title no longer clips.

@@ -234,6 +234,8 @@ class ConfigFile:
     # AR5 step 5 (opt-in, off at these defaults; see SearchParameters)
     seed_index_cma_first: int = 0  # mixed seed refinement: CMA evaluations per candidate (0 = off)
     bfs_neighbor_cma_no_fallback: bool = False  # the CMA end of a neighbour fit is returned
+    # AR5 step 7 (opt-in, off at 0): boundary pass skips voxels whose own hit ratio is >= this
+    boundary_pass_skip_hit: float = 0.0
     cpp_overlap_rule: bool = False  # C++ CountQualifiedPeaks rule + centroid screen (opt-in)
     cpp_edge_rules: bool = False  # C++ conventions at the low edges (opt-in, see VoxelCostFunction)
     cpp_omega_interp: bool = False  # C++ omega interpolation in the level screen (opt-in)
@@ -490,6 +492,7 @@ class ConfigFile:
             "BoundaryPass": self._parse_bool("boundary_pass"),
             "SeedIndexCMAFirst": self._parse_off_or_min2("seed_index_cma_first"),
             "BFSNeighborCMANoFallback": self._parse_bool("bfs_neighbor_cma_no_fallback"),
+            "BoundaryPassSkipHitRatio": self._parse_unit_interval("boundary_pass_skip_hit"),
             "CppOverlapRule": self._parse_bool("cpp_overlap_rule"),
             "CppEdgeRules": self._parse_bool("cpp_edge_rules"),
             "CppOmegaInterp": self._parse_bool("cpp_omega_interp"),

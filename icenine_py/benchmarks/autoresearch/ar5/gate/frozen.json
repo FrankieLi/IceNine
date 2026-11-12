@@ -1,0 +1,51 @@
+{
+ "frozen_at": "2026-11-12T13:11:16-08:00",
+ "code_head": "1607daec985186f7ce13417c858bfdb38144aa76",
+ "h_s": 0.95,
+ "h_s_note": "the library's SeedIndexStopHitRatio and step 1's flag pick on big and grad; no other value is a decision; the 0.90-0.99 curve is a what-if",
+ "rule": {
+  "text": "The skip passes on a sample if: the pass is cut by at least 50%; broken minus fixed against the full pass is at most 5% of the pass's net gain, rounded up, at least 1 voxel; median error is at most 0.001 degree higher; and the run with the skipped pass meets the house rules against `S8` (20% fewer, broken minus fixed at most 5, median at most 0.005 degree higher). It passes the step if it passes on `held` live and on every disclosed sample. Then the owner decides whether the documentation recommends the key. If it fails on `held`: the key stays, off, the page says so; `h_s` is not tuned on `held`.",
+  "min_cut": 0.5,
+  "loss_share_pct": 5,
+  "loss_min_voxels": 1,
+  "median_tol_full_deg": 0.001,
+  "house_fewer_pct": 20,
+  "house_broken_minus_fixed": 5,
+  "house_median_tol_deg": 0.005
+ },
+ "predictions": [
+  "1. On `held` the replay at 0.95 cuts 55% to 85% of the pass and fixed / broken against the full pass is at most 0 / 2.",
+  "2. On `held`, `S11v2` with the skipped pass needs 5% to 12% fewer evaluations than with the full pass (its pass is a smaller share: an estimate of 3.5 of about 36 million, from step 4's totals; this draft did not open `held`'s pass files).",
+  "3. The live pass spends exactly the replay's evaluations (61 per kept try) on every sample.",
+  "4. Live wrong voxels are within 2 of the replay's on every sample (one generator for the pass, so skipped tries shift the random draws of later tries).",
+  "5. Median error rises by at most 0.0005 degree on every sample."
+ ],
+ "held_read": false,
+ "disclosed_sha256": {
+  "mid/S11n/tries": "1c4878ef78e795e5ab218fbd3055fe445eaf28224a925bee4b1ab7f1ee6a3c33",
+  "mid/S11n/pass_json": "427f34a9aaaec1acb2cff5905e46c164502ff3cf8636826da0e0de5c53def845",
+  "mid/S11n/before": "57a97ebee494b5838811fcf39f617e8852089e999b0f37406ad27c55333c3b91",
+  "mid/S11n/after": "7251b3d9f198105b46c21bc2fe5a1e353d6b11e6363f4d57292e72804c583fea",
+  "mid/S11n/run_json": "5a6c32755436d8243781427f99914028f96aa716167753f5be7acc2259dba723",
+  "grad/S11n/tries": "966cadc08982fb7093c60b61292b04e3f23b4ccd7c8853d6049a5b35134cec73",
+  "grad/S11n/pass_json": "a5e1bc2e78fb7656f0aa481bbc3034b3924714ffc34495bc3ca7b8231a6c49c2",
+  "grad/S11n/before": "936a7e9cb117e430b07848e8c6be64f3e3190a77dffeefc015a8ec4200d53377",
+  "grad/S11n/after": "1f6bd3222a2c27b01a2f0feac5c5e0431d85365d2febe55c17b7fe715b740983",
+  "grad/S11n/run_json": "49fc070a713f8524f0453c14a2ee0b25a831c300e300f6882960c9fe05884363",
+  "big/S11/tries": "0e272c4e1918d72c586aabaca3878a9139ef63090d2b601ac190856b4a5691e2",
+  "big/S11/pass_json": "3d9c894497e45c0a2565a550d7faa3870ff198889550b187d731f5e1099aeb06",
+  "big/S11/before": "42dcffd9272b204a1944f3d2bbad01eda9b9b844cbbac0a3413fe5385b1fd9f5",
+  "big/S11/after": "60da2c06e6b088d31b65ad77461c37e42a85f4e9dfe21db8de36e45be1c179a5",
+  "big/S11/run_json": "bda6e3cd09509d058ff8fb693190f5485da4491373d62256bbf5fe3601451a12",
+  "grad/S11/tries": "7e8201a475ea8c967720478cb87afa089aa2495c12f01b85789bb117750ac787",
+  "grad/S11/pass_json": "775913175cd96cc8d060f5143547c3429b02116dd27808849e8620f7f3716758",
+  "grad/S11/before": "69a66d9aa61bac2a35a4a1e0cce97a4cba68f04c3745cc6c30777bdc239ec8cf",
+  "grad/S11/after": "060fa39b41410c02d1615fa60ac0eee39e2e0ed9ba699c28af8a7627a63f5312",
+  "grad/S11/run_json": "19a46fb2be203a1fcfddb0759eedcd8688a6b1a92a3e5502ec99aa71d72e9cf3",
+  "mid/S11/tries": "5ea6bbb085eec261d357dcd465b01ecad66ec19bf7fe0f23f8b8a3ab5ae37c21",
+  "mid/S11/pass_json": "5735185dd39b19d43cb1c70f36866ca525827023b9dfcf8dadbfd6f214aa1f12",
+  "mid/S11/before": "4d0186875afd7a87640c5a007deff79b67642760f0aee446625d807469f8046f",
+  "mid/S11/after": "4a799d131facfc0bea63f2d0c7863a5800b69cb6e074c1033fb2645696569fdb",
+  "mid/S11/run_json": "6173de8539787da78a0dd8d2158ec5f19eaac7fd0c39c457258a33699c480714"
+ }
+}
