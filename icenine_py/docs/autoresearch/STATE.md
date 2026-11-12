@@ -12,7 +12,7 @@ Read this file first after any restart or wake. It holds only what is true now a
 | finished steps, old notes (archive, use `grep`) | `docs/autoresearch/STATE_HISTORY.md` |
 | numbers of a finished step | its findings page, or `shmem query "IceNine autoresearch <step>"` |
 | review page for the owner | https://claude.ai/artifact/A63khAHf7nEx6NBZioSnGW |
-| open PR | #43 (AR3 steps 2 to 10, AR5 steps 1 to 3, AR4 step 1), https://github.com/FrankieLi/IceNine/pull/43 |
+| open PR | #43 (AR3 steps 2 to 11, AR5 steps 1 to 3, AR4 step 1), https://github.com/FrankieLi/IceNine/pull/43 |
 
 ## How to restart
 
@@ -24,40 +24,34 @@ Read this file first after any restart or wake. It holds only what is true now a
 
 ## Next action
 
-Two things run (see "Running jobs"). Runbook: "A step, from plan to merge", points 5 to 9.
-Merge the parent into a task branch before its fixes round (shared files conflict).
+One step is open. Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into
+a task branch before its fixes round (shared files conflict).
 
-1. AR3 step 11 (task `ar3k`; N15 plan, N17): the first `S8` run on `held` reached its cap of
-   120 minutes (48,312,402 evaluations before the pass, 61 grid fallbacks, lower bounds; no
-   map). It runs again with a cap of 480 minutes. When it ends: read the `.done` file, then
-   resume the step's implementer (`SendMessage`, or a new Sonnet one) for a completion round
-   (statistics, pareto rows, page, report), then one Opus review, fixes, merge.
-2. AR5 step 4 (task `ar5d`; N16, N18; plan in `PLAN.md`, predictions at 17a27c1): `S10`,
-   `S11`, `S11v` (= `S11` plus verifier `N1`) on `held`. Phase A is done (9cd627f on the task
-   branch; both checks exact; report `20261111-1640-ar5d.md`). The three runs go now. When
-   they and the baseline have ended: resume the implementer (`SendMessage`, or a new Sonnet
-   one) for phase B (statistics, page). Review; merge after step 11. A key only then.
+1. AR5 step 4 (task `ar5d`; N16, N18; plan in `PLAN.md`, predictions at 17a27c1): `S10`,
+   `S11`, `S11v` (= `S11` plus verifier `N1`) on `held`. The runs and the statistics are done
+   (branch tip 72be082; the page was placed by the main session; report
+   `20261111-1640-ar5d.md`). Reported, not yet reviewed: with the pass `S11` needs 23.3% fewer
+   evaluations than `S8` and passes; `S10` 3.6% (fails); `S11v` 36.3% but 82 wrong against 70
+   (fails). Predictions 3, 4 met; 1, 2, 5, 6 not. Now: read the review, decision N20, Opus
+   fixes round, merge, close (page with the `held` points of the three runs, PR #43).
+2. Then, if `S11` still passes after the review: plan the library step (one opt-in key pair:
+   mixed seed refinement and "no MC fallback"), with predictions; decision; Sonnet implementer.
 
 ## Running jobs
 
-- AR3 step 11 fixes round (Opus implementer, started 19:15; review REQUEST CHANGES with 7
-  document and script fixes, no rerun; decision N19; report `20261111-1930-ar3k-fixes.md`).
-  `S8` on `held`: 59,923,523 evaluations with the pass, 75 grid fallbacks, 70 wrong after it.
-  At its hand-back: place the page if needed, hand-back check, merge (`finish_task.sh`).
-- `S10`, `S11`, `S11v` on `held`, cap 480 minutes each: background command of the main
-  session (`held_run_all.sh`), started 16:53 in worktree `agent-a814d0121e137b01c`. Markers:
-  `<that worktree>/icenine_py/benchmarks/autoresearch/ar5/held/cache/logs/<run>_held.done`.
-- The review page is at version 42. The text of PR #43 holds AR5 steps 1 to 3, AR4 step 1.
+- Opus review of AR5 step 4, started 2026-11-11 about 19:35; report
+  `.claude/reports/20261111-2000-review-ar5d.md`. No machine-time run is going.
+- The review page is at version 42; version 43 (AR3 step 11) is being built
+  (`build_v43.py`, `run43.sh` in the scratchpad). PR #43's text: see its last section.
 
 ## Queue
 
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
-7, 18, 22, 23, AR0 to AR2, AR3 1 to 10, AR5 1 to 3, AR4 1) are in `STATE_HISTORY.md`, "Queue".
+7, 18, 22, 23, AR0 to AR2, AR3 1 to 11, AR5 1 to 3, AR4 1) are in `STATE_HISTORY.md`, "Queue".
 
 | step | what | state |
 |---|---|---|
-| AR3 step 11 | sample `held` (250 grains) with its `S8` baseline (task `ar3k`) | fixes round |
-| AR5 step 4 | `S10`, `S11`, `S11v` on the held-out sample (task `ar5d`) | runs going |
+| AR5 step 4 | `S10`, `S11`, `S11v` on the held-out sample (task `ar5d`) | in review |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
 | C++ time | measured C++ time on the pilot region | not started |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
@@ -65,12 +59,12 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 ## Last finished step
 
-AR5 step 3 (mixed seed refinement, run `S11`; task `ar5c`; scripts only): merged into
-`feature/eval-reduction` at ab7e9fc on 2026-11-11, pushed; suite 1649 passed, 47 skipped, 1
-deselected. `S11` with the pass needs 51.9 / 31.6 / 39.2% fewer evaluations than `S8` and
-passes on all three samples (`mid` at the limit). Page: `docs/autoresearch/findings_ar5_mix.md`.
-Decisions D-20261111-N14 (plan), N16 (review; no key before the test on `held`). Before it:
-AR4 step 1 (1ffee63). More: `STATE_HISTORY.md`.
+AR3 step 11 (sample `held`, 250 grains, with its `S8` baseline; task `ar3k`; scripts only):
+merged into `feature/eval-reduction` at 504fadb on 2026-11-11, pushed; suite 1656 passed, 47
+skipped, 1 deselected. `S8` on `held`: 59,923,523 evaluations with the pass, 75 grid
+fallbacks, 70 wrong after the pass. Page: `docs/autoresearch/findings_ar3_held.md`.
+Decisions D-20261111-N15 (plan), N17 (cap 480 minutes), N19 (review). Before it: AR5 step 3
+(ab7e9fc). More: `STATE_HISTORY.md`.
 
 ## Untracked data that later steps need
 
@@ -78,8 +72,8 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 - `agent-acc78ac2a483ed86f` (AR5 step 2), `agent-ab349f0b6193c2ca1` (AR4 step 1): caches, links.
 - `agent-a5a3601b746680640` (AR5 step 3): the `S11` caches and maps under `ar5/mix/`, links.
-- `agent-af8961874e131bda2` (AR3 step 11, branch `ar3k`): the sample `held`, its image stack,
-  the baseline cache (`S8_held/`, and `S8_held_cap120/` from the capped run).
+- `agent-af8961874e131bda2` (AR3 step 11): the sample `held`, its image stack, the baseline
+  cache (`S8_held/`, `S8_held_cap120/`). `agent-a9fcb8cf18fe801c4`: links only.
 - `agent-a814d0121e137b01c` (AR5 step 4, branch `ar5d`): the three run caches on `held`.
 - `agent-a68538c58665829a1` (AR5 step 1, detached at 29e9b56): `ar5/cache/` and links.
 - Step 10: `agent-a6c7c67b4a03d1843` (`ar3/keys/cache/`), `agent-a3145f902bf0a61fb` (two reruns).
@@ -94,7 +88,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 ## For the owner (open items only; details by `grep` in `STATE_HISTORY.md`, "For the owner")
 
-- Your word on PR #43 ("merge PR 43" in the session). It holds AR3 2 to 10, AR5 1 to 3, AR4 1.
+- Your word on PR #43 ("merge PR 43" in the session). It holds AR3 2 to 11, AR5 1 to 3, AR4 1.
 - A choice: which seed step the documentation of the keys recommends. Step 10 added the
   keys and recommends none. My recommendation: the settings of `S8` (`SeedIndexCandidates 20
   5`, `SeedIndexStopHitRatio 0.95`): cheapest on all three samples, wrong counts not worse.

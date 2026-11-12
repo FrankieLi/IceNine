@@ -801,6 +801,34 @@ Pilot region, 2,000 voxels, clean images, Q-max 8, FusedCost on, one fixed voxel
   (fixes round; links). Reports `.claude/reports/20261111-1351-ar5c.md`,
   `20261111-1503-review-ar5c.md`, `20261111-1520-ar5c-fixes.md`.
 
+### AR3 step 11 (a held-out sample with its `S8` baseline; task `ar3k`), merged at 504fadb on 2026-11-11
+
+Scripts and results only. Suite after the merge: 1656 passed, 47 skipped, 1 deselected.
+Decisions D-20261111-N15 (plan), N17 (second run with a cap of 480 minutes), N19 (review:
+request changes, 7 document and script fixes, no rerun). Page:
+`docs/autoresearch/findings_ar3_held.md`. Reports in `.claude/reports/`: `20261111-1351-ar3k.md`,
+`20261111-1900-review-ar3k.md`, `20261111-1930-ar3k-fixes.md`.
+
+- The sample `held`: 250 Voronoi grains (9 to 271 voxels, median 89.5), generator seed 1, the
+  24,570 voxel centres and six gradient levels of `mid`; 21,131 boundary voxels (86.0%);
+  10,897,893 lit pixels, 179,718 spots. The builder rebuilds `mid` and `held` exactly.
+- The first `S8` run reached its cap of 120 minutes with no map written (48,312,402
+  evaluations before the pass, 61 grid fallbacks, 3,237 seed steps; lower bounds).
+- The second run (cap 480 minutes) finished: 54,733,887 evaluations before the pass,
+  59,923,523 with it. By stage: seed step 21,257,244, grid fallback 25,915,118 (75 fallbacks),
+  neighbour 3,004,901, revisit 4,556,624, pass 5,189,636. 3,567 seed steps, 3,262 reseeds.
+- Wrong voxels: 95 before the pass (Wilson 0.32 to 0.47%), 70 after (0.23 to 0.36%). Median
+  error 0.0288 and 0.0286 degree. The pass fixed 30 and broke 5. At gradient level 4 degrees it
+  fixed 0 and broke 4 (49 wrong before, 53 after); the five lower levels went from 46 to 17.
+- Predictions: 1 (20 to 40 million evaluations) missed, 2 (30 to 120 wrong) met, 3 (5 to 40
+  grid fallbacks) missed. Why `held` has so many fallbacks, and why the pass harms level 4,
+  was not tested.
+- Base check on `big` exact (7,201,863 evaluations, 67 wrong). No other run on `held` in this
+  step. Four heavy processes shared the machine in the second run (the plan allowed two); all
+  wall times are contended.
+- Data that stays untracked: worktree `agent-af8961874e131bda2` (the sample, the stack
+  `held_clean.npy`, `ar3/held/cache/S8_held/` and `S8_held_cap120/`).
+
 ## For the owner
 
 - Still yours: item 12 (apply and commit, below), Ilium's plan approvals, and the note on what
