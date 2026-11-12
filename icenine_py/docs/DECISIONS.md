@@ -1565,3 +1565,21 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   as in N4. The owner may overrule. Where: report .claude/reports/20261112-1302-ar5g.md in
   worktree agent-a331e7882919e74aa; PLAN.md section 'AR5 step 7: skip the boundary pass at voxels
   that already fit'.
+
+### D-20261112-N6 · Track A / AR5 step 7 · AR5 step 7 review: fixes 1 to 11 accepted; the key keeps aligned draws and stays off; the page placement (fix 12) waits for the owner
+- 2026-11-12, owner. Recorded by Newt Agent. Supersedes: none.
+- The Opus review (.claude/reports/20261112-1345-review-ar5g.md) reproduced every headline number
+  of both variants from the raw files and asked for changes in labels, documents and one test.
+  Fixes 1 to 11 are accepted and go to a fresh Opus implementer. Fix 12 (place the page at
+  docs/autoresearch/findings_ar5_gate.md) is not done by an agent: the write of that file was
+  refused by a guard, so the owner places it or allows it; the fixed page text stays in the task's
+  report folder and MIGRATION_HISTORY says the page waits for the owner. The key
+  BoundaryPassSkipHitRatio keeps the aligned draws (variant 2: a skipped try consumes its random
+  draw) as its only behaviour and stays off by default. The record is: variant 1, the plan's
+  pre-set test, failed the rule on held (4 fixed, 10 broken); variant 2 passes on all four samples
+  with every kept try identical to the full pass, but held is not a clean test for it, because it
+  was decided after held was read live. Whether the documentation recommends the key is the
+  owner's choice. For later plans: a live test of a change that only removes work is compared with
+  aligned draws, because one shifted draw stream alone moved 4 to 15 voxels each way per sample
+  (one re-draw per sample). Where: icenine_py/docs/autoresearch/PLAN.md (AR5 step 7); review
+  report .claude/reports/20261112-1345-review-ar5g.md; branch feature/eval-reduction-ar5g.
