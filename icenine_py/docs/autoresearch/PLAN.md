@@ -2588,6 +2588,157 @@ of the seed step or the grid fallback. A timing. A second run of any arm.
 - One generator for the pass kept; alternative: a generator per voxel, which would make the live
   pass equal the replay but would change the key-off tries.
 
+### AR5 step 8: fit every candidate with CMA before any MC refinement
+
+Task `ar5h`. Approved: D-20261112-N7. Starts from `feature/eval-reduction`; links the
+stored runs of steps 2, 3 and 6 from their kept worktrees, imports nothing from unmerged branches.
+Phase A stops at "READY FOR KEY"; phase B starts only after a recorded decision.
+
+**Why.** After step 7 the largest stage left in `S11n` is the MC part of the seed step: the seed
+refinements where the stock MC optimizer runs because the CMA end stayed under hit ratio 0.95.
+The mixed seed refinement does this candidate by candidate: CMA on candidate 1, then MC on
+candidate 1 if needed, then CMA on candidate 2, and so on. Often the MC end of candidate 1 is
+thrown away, because a later candidate's plain CMA end reaches 0.95. This step changes only the
+order: CMA on every candidate first, MC only if no CMA end reached 0.95. It is the owner's goal 5
+as a plain rule: run the cheap fit everywhere before deciding that the costly one is needed.
+
+**What the stored logs say about each MC refinement** (computed while drafting; files read, nothing
+rerun: `mix_log.json`, `index_log.json.gz`, `e1_log.json.gz`, `n1_log.json` of `S11n` in
+`ar5/ver/cache/`, worktree `agent-a89458addd73332d9`; voxel errors from `errors_<sample>.npz`).
+Stored per refinement: the CMA end hit ratio, whether MC ran, evaluations, the hit ratio and cost
+of the kept end, the candidate's place in the order, and whether the step took it. Per failed seed:
+the `N1` score, accepted or not, the seed end and its error. Not stored: the MC end apart from the
+kept one, any trace, or an error per refinement. Reading line: one row per count; "steps" are
+seed steps; evaluations include the 201 of the CMA fit. (The `S11` run folder has no index log.)
+
+| per MC refinement, run `S11n` | mid | grad |
+|---|---|---|
+| MC refinements (seed steps with one) | 1,653 (811 of 1,652) | 996 (491 of 1,343) |
+| evaluations, total (share of the run with the pass) | 5,266,711 (37.3%) | 1,322,010 (13.9%) |
+| evaluations each: mean, median, largest | 3,186; 1,973; 33,499 | 1,327; 1,126; 9,893 |
+| MC end not below the CMA end in cost (MC gained nothing) | 481 | 520 |
+| end reached 0.95 and stopped the step: refinements; evaluations | 406; 2,352,519 | 132; 297,908 |
+| taken as the lowest cost, under 0.95 | 136; 387,459 | 94; 174,071 |
+| discarded, a later candidate was taken | 1,111; 2,526,733 | 770; 850,031 |
+| step accepted, voxel right before the pass: steps; refinements; evaluations | 786; 1,528; 5,086,143 | 465; 866; 1,175,685 |
+| step accepted, voxel wrong before the pass | 12; 60; 89,588 | 17; 85; 96,813 |
+| step failed the seed test, seed kept by `N1` | 6; 30; 45,948 | 6; 30; 30,683 |
+| step failed the seed test, grid fallback | 7; 35; 45,032 | 3; 15; 18,829 |
+| MC-only evaluations of steps that a later CMA end stopped | 832,456 (269 steps) | 350,959 (265 steps) |
+
+"Voxel right" uses the voxel's error before the pass, which is the seed end unless a later revisit
+changed it. Most of the MC part (96.6% and 88.9%) is in steps that end with a right seed; 48.0%
+and 64.3% of it buys an end that the step then discards.
+
+**What steps 2 and 3 tried.** Step 2 replaced the MC refinement by CMA alone (`C60`, `C200`, `C0`);
+`C200` lost 60 seed-test passes in 1,608 steps (limit 16), so MC is sometimes needed. Step 3 kept
+MC but ran it only after that candidate's CMA end missed 0.95 (`X200`). This step keeps both the
+MC and the 0.95 test and changes only when MC runs. No new threshold, budget or model.
+
+**A what-if on step 2's stored replay** (computed while drafting; arithmetic, not a run). The replay
+(`ar5/mix/cache/replay_*.json.gz`, worktree `agent-a5a3601b746680640`) holds, for every `S8` seed
+step, the `C200` end and the MC end of each candidate up to where each arm stopped. Every refinement
+starts a fresh generator (`default_rng(0)`), so its end depends only on its start, and the replay
+gives both orders exactly. No step needed an end the replay lacked.
+Reading line: one row per sample; seed-step evaluations of the two orders; then counts.
+
+| sample | seed steps | `X200` | sweep order | cut | passes, both | right, both | paired split | taken end differs | median error |
+|---|---|---|---|---|---|---|---|---|---|
+| big | 329 | 938,875 | 230,604 | 75.4% | 329 | 329 | 0 / 0 | 37 | 0.01232 to 0.01232 |
+| grad | 1,279 | 1,563,116 | 1,301,274 | 16.8% | 1,267 | 1,260 | 0 / 0 | 7 | 0.00898 to 0.00906 |
+| mid | 1,611 | 5,643,575 | 3,268,675 | 42.1% | 1,600 | 1,599 | 0 / 0 | 188 | 0.01135 to 0.01121 |
+
+(`X200` on `mid` is 201 above step 3's 5,643,374: the one-step variant explained in `mix_part1.py`.)
+On `mid` the saving splits into steps stopped later by a CMA end (888,498) and steps where `X200`
+stopped on an MC end but a later CMA end also reaches 0.95 (188 steps, 1,616,248), less extra CMA
+fits where MC is still needed (205 steps, 129,846). On `grad` only 7 steps are of the second kind.
+
+**Terms.** **Candidate**: one of the indexer's orientations, refined in the order of strict cost,
+at most 5. **CMA end**: the end of the 200-evaluation CMA fit. **MC refinement**: the stock MC
+optimizer from the same candidate. **Interleaved order** (`X200`, today's `SeedIndexCMAFirst 200`):
+per candidate CMA, then MC if the CMA end is under 0.95. **Sweep order** (`Y200`): CMA on candidates
+in order until a CMA end reaches 0.95; if none does, MC on candidates in order, each candidate's end
+the lower cost of its two, stopping at the first end that reaches 0.95; else the lowest cost of all
+ends. **Seed test**: hit ratio at least 0.80. **Wrong**: over 1 degree from the truth (the library's
+symmetry-reduced angle). **Aligned draws**: every local optimization, grid fallback and pass try in
+the layer draws from its own generator, seeded by the voxel, the kind of call and its count there.
+
+**Samples, and what has touched them.** `big`, `grad`, `mid`: the what-if above was computed on
+them while drafting; disclosed, not clean. `grad` was also `N1`'s fitting sample (that part is
+unchanged). `held` (250 grains, gradients 0 to 4 degrees): its whole-layer runs were read in steps
+4, 6 and 7, but no seed-order count was computed on it and this draft opened none of its seed logs.
+The rule has no value fit to any sample. `held` is the test sample; `S11v2` there is `S11n`'s rule.
+
+**Frozen now.** The sweep order as defined; 0.95, 200, 5 candidates and the `N1` cut unchanged.
+**What is measured**, per sample and arm (with the pass): evaluations by stage; seed-step
+evaluations and MC refinements; grid fallbacks; seeds kept by `N1`; wrong voxels (Wilson 95%);
+fixed and broken by voxel against the other arm and against `S8`; median error; the seed steps
+whose taken end differs, and how many of those are wrong. Each MC refinement's trace (best cost
+after each improvement, with the evaluation count) is written to the cache and not read here.
+
+**Predictions, written before any run.** Arms `A` (interleaved) and `Y` (sweep), aligned draws.
+1. `held`: `Y` needs 20% to 45% fewer seed-step evaluations and 6% to 16% fewer in total than `A`.
+2. `mid`: 30% to 45% fewer in the seed step, 11% to 18% in total; `grad`: 10% to 25% and 1% to
+   5%; `big`: 60% to 80% and 12% to 22%.
+3. On every sample, grid fallbacks of `Y` are within 2 of `A`'s, and broken minus fixed against
+   `A` is between -3 and 3 voxels.
+4. Median error moves by at most 0.0005 degree on every sample.
+5. Where both arms refine the same candidate at the same voxel, the ends are identical.
+
+**Decision rules, fixed now.** `Y` passes on a sample if, against `A` on that sample: (1) seed-step
+evaluations at least 10% fewer and the total fewer; (2) broken minus fixed at most 5; (3) median
+error at most 0.001 degree higher; (4) at most 2 more grid fallbacks; and (5) the house rule against
+`S8` with the pass: at least 20% fewer evaluations, broken minus fixed at most 5, median error at
+most 0.005 degree higher. If `A` itself fails (5) on a sample, the page says so and `Y` is judged
+there by (1) to (4). The step passes if `Y` passes on `held` and on all three disclosed samples.
+Then phase B adds the key, and the owner decides on any recommendation. If it fails on `held`: no
+key, the page says so, nothing is tuned.
+
+**Machine.** Phase A: checks under 10 million evaluations; eight whole-layer runs (`A`, `Y` on four
+samples) of about 37.5 + 33 (`held`), 14 + 12 (`mid`), 9.5 + 9.3 (`grad`), 4 + 3.3 (`big`)
+million, and one run `Yl` on `big` (3.3 million): about 126 million. At 19 to 22 million an hour
+per process, about 6.5 process-hours, about 2.5 hours wall with 4 processes side by side. Cap 300
+minutes for `held`, 240 for the rest; at most 4 heavy processes; wall times are not timing results.
+
+**Stop rule:** stop and report if a stored total or a stored refinement end does not reproduce, if
+two runs of `A` on `big` differ, if a validity check fails (a step with a CMA end at 0.95 ran MC in
+`Y`; a refinement shared by both arms differs), or if the key-on library run differs from `Yl`.
+
+**Phase A (script layer only).** 1. Link the stored replay and `S11n` runs; check the totals
+14,105,137 and 9,539,809 and the replay counts above. 2. Tests first: `tests/test_ar5_order.py`
+(the sweep rule on synthetic steps, the aligned-draw seeding). 3. `order_whatif.py` writes the
+what-if table; commit `ar5/order/frozen.json` (rule, file hashes). 4. Checks: 20 stored seed steps
+of `mid` give the stored per-candidate ends in both orders; `A` twice on `big` is identical.
+5. The eight runs, `held` first, then `Yl` (sweep order with the library's own draws). Validity,
+stats, the plot (seed-step evaluations against wrong voxels, one point per arm and sample) before
+the tables, predictions. Write "READY FOR KEY" and stop.
+**Phase B (key).** Add the key; unit tests; key-off suite with no golden change and the library
+`S11` on `big` at 2,879,705 before the pass (step 5, check 3); key on, library run on `big` equal to
+`Yl` byte for byte. Page `findings_ar5_order.md`, history entry, pareto rows.
+**Files:** `scripts/autoresearch/ar5/order_*.py`, `tests/test_ar5_order.py`,
+`benchmarks/autoresearch/ar5/order/` (under 3 MB tracked; traces untracked), the page.
+
+**Library changes:** phase A none. Phase B, only if the step passes: one opt-in key,
+`SeedIndexCMASweep 0|1` (default 0, off), refused unless `SeedIndexCMAFirst` is 2 or more. With 1,
+`ray_indexing.seed_by_indexing` runs the sweep order with the existing CMA and MC functions of
+`reconstructor.index_seed`; `config_file.py` and `orientation_search.py` parse and check it. The
+off path is bit-identical; no default changes, no golden regeneration. The aligned draws stay in
+the script layer as a test device; the library keeps its own draws.
+
+**Not in this step.** An early stop inside the MC run (traces only recorded). A skip of MC from the
+CMA end's hit ratio. Other values of 0.95, 200 or 5. Realistic images. Another crystal system. A
+timing. A second run of any arm with another random seed.
+
+**Choices made.**
+- Sweep order, not (a) an early stop read from the MC run's own trace: that needs a replay of about
+  5 million evaluations, a fitted predictor and a sample to fit it on; it is the natural next step
+  on what is left, and phase A records the traces for it at no extra evaluation.
+- Not (b) skipping MC when the CMA end is low: on `mid`, CMA ends under 0.5 hold 462 MC runs
+  (772,418 evaluations, 5.5% of `S11n`), of which 37 still reached 0.95; it needs a new cut.
+- Test sample `held`, not a new sample from `scripts/autoresearch/ar3/held_make_sample.py`
+  (another generator seed): `held` saw no count of this rule. A new sample would also need `S8`.
+- Both arms rerun with aligned draws (step 7's lesson), not `Y` against the stored `S11n`.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
