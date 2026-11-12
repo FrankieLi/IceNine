@@ -1429,3 +1429,21 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   library behaviour change, then merge into feature/eval-reduction. The keys stay off by default
   with no recommended setting. Where: icenine_py/docs/autoresearch/PLAN.md (AR5 step 5);
   .claude/reports/20261111-2115-review-ar5e.md.
+
+### D-20261111-N23 · Track A / AR5 step 4 · AR5 step 4 phase B re-review: approve; three small fixes; the verifier gets one whole-layer step next
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- The Opus re-review of phase B (report .claude/reports/20261111-2215-review-ar5d-phaseB.md)
+  recomputed every S11v2 number from the stored files and approves. Three required fixes, no rerun
+  and no library change: (1) place the page text of
+  .claude/reports/20261111-2330-ar5d-phaseB-page.md as findings_ar5_held.md and confirm the table
+  sync check; this waits for the owner, because the implementer's write and the main session's
+  copy were both refused; (2) MIGRATION_HISTORY names the commit that places the page; (3) a note
+  in s11v2_validity and summary.json that the hook's fitted-voxel fields miss reseed growth and
+  that the log count 16 is the figure. Then merge the task into feature/eval-reduction. On the
+  question the reviewer left: S11v2 passed both rules on held (37.4% fewer evaluations than S8,
+  18.4% fewer than S11), but broken minus fixed against S11 is 4 of a limit of 5 from one run on
+  one sample, so no key and no recommendation follow from it. The next plan tests the same frozen
+  rule (N1, cut 0.74914) on samples it has not been run on with the whole layer, with predictions
+  written first; no extra random seeds. The owner can overrule. Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR5 step 4);
+  .claude/reports/20261111-2215-review-ar5d-phaseB.md.
