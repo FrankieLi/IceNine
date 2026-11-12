@@ -1,0 +1,147 @@
+"""Tests of the pure parts of the item 14 scripts (scripts/autoresearch/item14/).
+
+Item 14 and 3: both speed keys together (FusedCost + SmoothCostRank), with a timing A/B. The
+tests pin: the identity check of two runs (same_run), the E0 arm bookkeeping (e0_arms), the
+quiet verdict of the load sampler (quiet), the section shares of split, and the config file.
+"""
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any, Dict
+
+import numpy as np
+import pytest
+
+ICE = Path(__file__).resolve().parents[1]
+SCRIPTS = ICE / "scripts" / "autoresearch" / "item14"
+sys.path.insert(0, str(SCRIPTS))
+
+import e0_arms as E  # noqa: E402
+import quiet as Q  # noqa: E402
+import same_run as S  # noqa: E402
+import split as SP  # noqa: E402
+
+RECORD: Dict[str, Any] = dict(voxel_idx=3, n_evals=10, wall_s=1.5, hit_ratio=0.9)
+
+
+def _make_run(d: Path, wall: float = 10.0, mic: bytes = b"mic", n_evals: int = 10) -> Path:
+    d.mkdir(parents=True)
+    (d / "recon.mic").write_bytes(mic)
+    rec = {"3": dict(RECORD, n_evals=n_evals, wall_s=wall)}
+    (d / "records.json").write_text(json.dumps(rec))
+    stats = dict(
+        n_seeds=2,
+        wall_seed_s=wall,
+        wall_total_s=wall,
+        reseeds=[dict(voxel=1, seconds=wall, full_search_seconds=wall, evaluations=5)],
+    )
+    run = dict(wall_total_s=wall, setup_s=wall, timing_label="x" * int(wall), stats=stats)
+    (d / "run.json").write_text(json.dumps(run))
+    return d
+
+
+def test_same_run_ignores_the_clock_only(tmp_path: Path) -> None:
+    a = _make_run(tmp_path / "a", wall=10.0)
+    b = _make_run(tmp_path / "b", wall=11.0)
+    assert S.diff_runs(a, b) is None
+
+
+def test_same_run_names_a_changed_count(tmp_path: Path) -> None:
+    a = _make_run(tmp_path / "a")
+    b = _make_run(tmp_path / "b", n_evals=11)
+    msg = S.diff_runs(a, b)
+    assert msg is not None and "records.json" in msg and "n_evals" in msg
+
+
+def test_same_run_names_a_changed_mic(tmp_path: Path) -> None:
+    a = _make_run(tmp_path / "a")
+    b = _make_run(tmp_path / "b", mic=b"mid")
+    msg = S.diff_runs(a, b)
+    assert msg is not None and "recon.mic" in msg
+
+
+def test_same_run_exit_code(tmp_path: Path) -> None:
+    a = _make_run(tmp_path / "a")
+    b = _make_run(tmp_path / "b", n_evals=12)
+    c = _make_run(tmp_path / "c", wall=3.0)
+    py = [sys.executable, str(SCRIPTS / "same_run.py")]
+    assert subprocess.run([*py, str(a), str(c)], capture_output=True).returncode == 0
+    r = subprocess.run([*py, str(a), str(b)], capture_output=True, text=True)
+    assert r.returncode == 1 and "differ" in (r.stdout + r.stderr)
+
+
+def test_strip_clock_drops_nested_wall_fields() -> None:
+    obj = {"wall_x": 1, "a": [{"seconds": 2, "keep": 3}], "stats": {"wall_s": 4, "n": 5}}
+    assert S.strip_clock(obj) == {"a": [{"keep": 3}], "stats": {"n": 5}}
+
+
+def test_e0_arm_tags() -> None:
+    assert E.arm_tag("off", True) == "old_off_fused"
+    assert E.arm_tag("E3+E4,tau=0.25", True) == "old_e34t25_fused"
+    assert E.arm_tag("E3+E4,tau=0.25", False) == "old_e34t25"
+    assert E.stored_tag("off") == "old_base"
+    assert E.stored_tag("E3+E4,tau=0.25") == "old_e34t25"
+
+
+def _voxel(**kw: Any) -> Dict[str, Any]:
+    d: Dict[str, Any] = dict(
+        voxel=np.int64(5),
+        err_deg=np.float64(0.2),
+        evals=np.int64(100),
+        smooth_evals=np.int64(0),
+        R_final=np.eye(3),
+        cost_final=np.float64(0.1),
+    )
+    d.update(kw)
+    return d
+
+
+def test_diff_voxel() -> None:
+    assert E.diff_voxel(_voxel(), _voxel()) is None
+    assert "evals" in (E.diff_voxel(_voxel(evals=np.int64(101)), _voxel()) or "")
+    r = np.eye(3)
+    r[0, 1] = 1e-9
+    assert "R_final" in (E.diff_voxel(_voxel(R_final=r), _voxel()) or "")
+
+
+def test_wrong_count() -> None:
+    errs = np.array([0.1, 1.5, 1.0, 3.0])
+    assert E.n_wrong(errs) == 2  # over 1 degree: strictly greater
+
+
+def test_quiet_verdict_load_and_busy() -> None:
+    ok = [dict(t=0, load=1.2), dict(t=30, load=2.4)]
+    assert Q.verdict(ok, [], limit=2.5)["quiet"] is True
+    hot = ok + [dict(t=60, load=2.6)]
+    v = Q.verdict(hot, [], limit=2.5)
+    assert v["quiet"] is False and v["max_load"] == pytest.approx(2.6)
+    busy = [dict(t=0, procs=[dict(pid=9, cpu=35.0, command="/x/cpptools")])]
+    v = Q.verdict(ok, busy, limit=2.5)
+    assert v["quiet"] is False and v["busy"][0]["pid"] == 9
+
+
+def test_quiet_limit_rule() -> None:
+    # idle + own under 2.5: keep 2.5; over: preflight limit + own
+    assert Q.choose_limit(idle=1.0, own=1.1) == 2.5
+    assert Q.choose_limit(idle=1.4, own=1.3) == pytest.approx(1.5 + 1.3)
+
+
+def test_shares_sum_to_one() -> None:
+    s = SP.shares(wall=10.0, screen=3.0, smooth=4.0, strict=1.0)
+    assert s["rest"] == pytest.approx(0.2)
+    assert sum(s.values()) == pytest.approx(1.0)
+
+
+def test_both_keys_config_is_arm_a_plus_one_line() -> None:
+    a = (ICE / "scripts/autoresearch/ar2/key_off_fused.config").read_text().rstrip("\n").split("\n")
+    b = (SCRIPTS / "both_keys.config").read_text().rstrip("\n").split("\n")
+    assert [x for x in b if x not in a] == ["SmoothCostRank E3+E4,tau=0.25"]
+    assert [x for x in a if x not in b] == []
+    assert "FusedCost 1" in b
+
+
+def test_run_script_parses() -> None:
+    r = subprocess.run(["bash", "-n", str(SCRIPTS / "run_item14.sh")], capture_output=True)
+    assert r.returncode == 0
