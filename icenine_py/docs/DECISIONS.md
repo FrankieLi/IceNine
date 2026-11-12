@@ -1542,3 +1542,26 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   runs all phases; no run needs a quiet machine and none runs beside a timing run. The owner may
   overrule. Where: icenine_py/docs/autoresearch/PLAN.md, section 'AR5 step 7: skip the boundary
   pass at voxels that already fit' (2a4db6b).
+
+### D-20261112-N5 · Track A / AR5 step 7 (first result, added phase D) · AR5 step 7: the skip fails the plan's rule on held live (4 fixed, 10 broken); the key stays off; a phase D tests whether the order of random draws is the cause
+- 2026-11-12, owner. Recorded by Newt Agent. Supersedes: none.
+- First result, recorded as it is: the replay of the frozen skip (own hit ratio at least 0.95)
+  gives 0 fixed and 0 broken on held and on the five disclosed passes and cuts the pass by 69 to
+  84 percent (72.3 percent on held, the run 10.0 percent cheaper). The live pass with the key
+  spends exactly the replay's evaluations but its wrong voxels differ from the full pass: fixed
+  and broken 4 and 7 on mid, 15 and 12 on grad, 2 and 6 on big, 4 and 10 on held (75 wrong against
+  69). The plan's rule allows broken minus fixed of 2 on held, so the skip fails there; prediction
+  4 fails on all four samples. The cut is not tuned and the key stays off and not recommended.
+  Every flipped voxel is a kept voxel, none is skipped. Two causes are possible and untested: the
+  pass uses one random generator, so skipped tries shift the draws of the kept tries; or kept
+  tries start from neighbour ends that the full pass had changed. Added phase D, decided after
+  seeing this result and to be labelled so everywhere: with the key on, a skipped try consumes the
+  draw it would have made, so kept tries get the draws of the full pass; the off path stays
+  bit-identical. The four live passes run again with the same seed (no new random seed). If every
+  kept try then equals the stored full pass, the draw order was the whole cause, the key keeps
+  this behaviour, and the page reports both variants and the size of the draw noise of one pass
+  (the flips above). If not, the step stops and reports the first difference. held has now been
+  read once live; that is disclosed. The key for the N1 rule and the MC part of the seed step stay
+  as in N4. The owner may overrule. Where: report .claude/reports/20261112-1302-ar5g.md in
+  worktree agent-a331e7882919e74aa; PLAN.md section 'AR5 step 7: skip the boundary pass at voxels
+  that already fit'.
