@@ -28,22 +28,23 @@ One step is open. Runbook: "A step, from plan to merge", points 5 to 9. Merge th
 into a task branch before its fixes round (shared files conflict).
 
 1. AR5 step 4 (task `ar5d`; N16, N18, N20): on `held` with the pass `S11` needs 23.3% fewer
-   evaluations than `S8` and passes; `S10` 3.6% (fails). Both reviewed. `S11v` was a defective
-   arm. Fixes round (Opus), phase A done: hook repaired in scripts, checked on `mid`. The
-   rerun `S11v2` ended cleanly (`run=0 pass=0`); no number of it is read yet. Phase B runs
-   (see "Running jobs"): statistics, page, predictions 5 and 6. On its hand-back: place the
-   page if its Write was refused. Then hand-back check, merge (`finish_task.sh`), close (page
-   with the `held` points, PR #43).
+   evaluations than `S8` and passes; `S10` 3.6% (fails). `S11v` was a defective arm. Phase B
+   is handed back (d01ceef, not yet reviewed): the rerun `S11v2` is a valid arm (24 of 24
+   accepted seeds kept, all right), 37,507,939 evaluations (37.4% fewer than `S8`, 18.4% fewer
+   than `S11`), 69 wrong; broken minus fixed 4 against `S11` (limit 5). Hand-back check: 0 FAIL.
+   BLOCKED: the page text is in `.claude/reports/20261111-2330-ar5d-phaseB-page.md`; the
+   implementer's Write was refused and the main session's copy into the worktree was refused
+   too (auto mode). Do not work around it; the owner places it or allows it. After that:
+   sync check, commit on `ar5d`, review fixes if any (decision N23), merge
+   (`finish_task.sh`), close (page version 45 with the `held` points, PR #43).
 2. After step 4 closes: plan the next step from the queue (decision first). The `S11v2`
    result decides whether the verifier gets one more step. Items 14 + 3 need a quiet machine.
 
 ## Running jobs
 
-- AR5 step 4 phase B: agent `a8a1ac8e80f8913cf` (Opus, resumed with `SendMessage`
-  2026-11-11 21:55) in worktree `agent-a8a1ac8e80f8913cf` (branch `ar5d`; report
-  `20261111-2130-ar5d-fixes.md`). It reports by hand-back. If it is gone: a new Opus
-  implementer with the same brief. `S11v2` ran 19:54 to 21:52; results in
-  `ar5/held/cache/S11v2_held` of that worktree.
+- Re-review of phase B (Opus `code-reviewer`, started 2026-11-11 22:10): report to
+  `.claude/reports/20261111-2215-review-ar5d-phaseB.md`; it reports by hand-back. Branch
+  `ar5d` is held by worktree `agent-a8a1ac8e80f8913cf` (tip d01ceef).
 - Review page: version 44 (`run43.sh`, then `patch_v44.py`, scratchpad).
 
 ## Queue
