@@ -2291,6 +2291,158 @@ machine). All wall times are contended and are not timing results.
 **Not in this step.** A key for the learned verifier (AR5 step 4 decides whether it gets a
 further test). A default change. A recommended setting. A timing. C++.
 
+### AR5 step 6: the frozen seed-accept rule on two more whole layers, against a plain rule
+
+Task `ar5f`. Direction: D-20261111-N23; plan approved by D-20261111-N24. Starts after AR5
+step 4 (`ar5d`) merges (it reuses that step's script layer).
+
+**Library changes:** none. No file under `icenine_py/icenine/` changes; no key, no default.
+
+**Why.** On `held`, `S11v2` (`S11` plus the learned verifier `N1` as an added seed-accept rule)
+needed 18.4% fewer evaluations than `S11`, broken minus fixed 4 (limit 5): one run, one sample.
+The owner's question: can a cheap test say "more search will not help here"? The accepted seeds
+sat just under the seed test, so a plain rule with no network is tested next to `N1`.
+
+**Terms.** **Seed test**: a refined seed is accepted when its hit ratio (the share of predicted
+pixels on observed intensity) is at least 0.80. **Grid fallback**: the global search (a search
+with no starting guess) on the adaptive grid that runs when a seed fails the seed test.
+**Added seed-accept rule**: a seed that fails the seed test is still kept when a score of its
+end is at or above a cut; its grid fallback is skipped and its grain grows by the library's
+neighbour rule. **Kept seed**: an accepted seed that the layer marked fitted. An end is
+**right** when it is within 1 degree of the truth (the library's symmetry-reduced angle).
+
+**Which samples are clean (question 1).** Reading line: one row per sample, what has touched it.
+
+| sample | grains, gradient levels | `N1` trained | cut picked | rule run before | stored `S8`, `S11` with pass |
+|---|---|---|---|---|---|
+| `big` | 32, 0 to 4 degrees | yes | yes | no | yes, yes (0 grid fallbacks) |
+| `grad` | 497, 0 to 1 degree | yes | yes | no | yes, yes (11 fallbacks in `S11`) |
+| `mid` | 120, 0 to 4 degrees | no | no | offline only | yes, yes (12 fallbacks in `S11`) |
+| `held` | 250, 0 to 4 degrees | no | no | `S11v`, `S11v2` | yes, yes |
+
+Sources: `findings_ar3_big.md`, `findings_ar3_start.md`, `findings_ar3_gradient.md` (levels);
+`findings_ar4_verifier.md` (trained on all 143,409 pairs of `big` and `grad`,
+including the ends of `grad`'s 16 fallbacks; cut picked on the same voxels), `findings_ar5_mix.md`
+(tables "stages", "fallback_cost"), step 4's page. No sample is fully clean. `mid` is the
+cleanest, but AR4 step 1 scored its 15 `S8` fallback ends (7 of 10 right, 0 of 5 wrong accepted),
+the OR reading of the rule came from that arithmetic, and step 4 used `mid` for two checks (the
+score on 15 cases; a partial run that saw 3 failed seeds). Every sample has grains with
+gradients; `grad`'s scores are in-sample. On `big` the arm would equal `S11` (no fallback).
+
+**Choice.** Test sample `mid`. `grad` runs too, labelled in-sample for the scores: only its
+whole-layer effects (growth of kept seeds, the pass, fixed and broken) are new. No new sample.
+
+**The plain control (question 2).** AR4 step 1 compared `N1` with the hit ratio at its use-1 cut
+(0.926; it accepts no failed seed by construction), a logistic rule and the share of lit peaks.
+It did not compare a lowered seed test. The review of AR5 step 1 noted that 0.78 would accept 14
+right and 1 wrong of 31 ends, but that pool included `mid`. The C++ rule
+(`Src/BreadthFirstReconstructor.tmpl.cpp` lines 141-148) keeps a failed seed when its search
+converged, and convergence there means cost under `MaxConvergenceCost` (`Src/CostFunctions.h`,
+`ClassifyConvergence`). The stored configs set it to 0.0001. The lowest end cost of a failed seed
+in the stored `S11` run on `held` is 0.227. So the C++ rule is the seed test itself here: its
+run is `S11`, already stored. The control is therefore a lowered hit ratio:
+
+- `S11h`: a failed seed is kept when its end's hit ratio is at least `h_c`; 0 extra evaluations.
+- `h_c` is fixed in phase A, before any run, from a pool without `mid`: the 16 `S8` fallback ends
+  of `grad` (`ar4/summary.json`, `use2.grad.rows_fallback`) and the 63 failed ends of `S11v2` on
+  `held` (`n1_log.json`, errors from `summary.json`). Rule: the lowest cut that accepts no wrong
+  end of the pool, midway between the highest wrong hit ratio and the next right one above it
+  (near 0.791 by a look at those files). This cut is picked on accept data, `N1`'s for another
+  use, so the comparison favours the control.
+
+**Arms, one run each, clean images, Q-max 8, with the boundary pass.**
+
+| run | samples | what it is |
+|---|---|---|
+| `S11n` | `mid`, `grad` | `S11` plus `N1` (stored `models.npz`, cut 0.74914), repaired hook `held_keep.py` |
+| `S11h` | `mid`, `grad` | `S11` plus the plain rule with `h_c`, through the same hook |
+
+Reading the table: `S11n` is step 4's `S11v2` renamed; both change only the accept decision of a
+failed seed, in the script layer of `S11v2` (`held_run.RUNS`).
+
+**Frozen before any run** (`ar5/ver/frozen.json`, committed): sha256 of `models.npz`, the cut,
+`h_c` and its pool counts, `held_keep.LIB_SHA256`, `X200`, configs (stored `S11` plus the hook).
+
+**Pass rule, unchanged.** Against `S8` with the pass: at least 20% fewer evaluations; broken
+minus fixed at most 5 voxels; median error at most 0.005 degree higher. Against `S11`: fewer
+evaluations, and broken minus fixed at most 5. Each arm on each sample is judged alone.
+**"Plain does as well"** is fixed now: on `mid`, `S11h` passes and saves at least 80% of
+`S11n`'s saving against `S11`. Then the page says the verifier is not needed on this evidence.
+
+**Validity, asserted after each run and before any result is read.** Every accepted seed has
+`seed_rejected` false and its "Seed kept" log line; accepted equals kept; no accepted seed is
+refused downstream; `S11n` spends 2 evaluations per scored seed, `S11h` none; the run ended
+before its cap; the hook's library guard passed. If any part fails, the stats script stops.
+
+**What is measured**, per arm and sample, next to `S8` and `S11`: evaluations by stage (seed
+step, grid fallback, neighbour local optimization, revisit, pass); grid fallbacks; failed seeds
+scored, accepted and kept, with Wilson 95% intervals; the error of each accepted end; voxels
+grown from each kept seed (from the library's line "k of n cluster voxels fitted", not the hook
+field, which misses reseed growth) and how many are wrong before and after the pass; fixed and
+broken by voxel against `S8`, `S11`, and `S11n` against `S11h`; wrong voxels with Wilson
+intervals; median error over all voxels. For goal 5, each refused seed's log row also stores
+its grid end, so the page can say how often the global search moved a failed end by more than 1
+degree, split by whether the seed end was right.
+
+**Predictions, written before any run** (`mid` per-fallback cost 333,715, `grad` 340,128).
+
+1. `S11n` on `mid` keeps 4 to 8 failed seeds; at most 1 accepted end is over 1 degree.
+2. `S11n` on `mid` needs 8% to 18% fewer evaluations than `S11` (44% to 50% fewer than `S8`)
+   and passes both rules.
+3. `S11h` on `mid` keeps at most 3 failed seeds and saves under half of `S11n`'s saving, so
+   "plain does as well" is not met.
+4. `S11n` on `grad` keeps 6 to 10 failed seeds and needs 15% to 28% fewer evaluations than
+   `S11`; it passes both rules.
+5. On both samples the median kept seed grows at most 3 voxels, seed included.
+6. Wrong voxels after the pass of each `S11n` run are within 5 of `S11`'s.
+7. Of the refused seeds whose end was right, the grid fallback moves the end by more than 1
+   degree in at most 1 case per sample.
+
+**Cost.** At most 56.8 million evaluations (each run as costly as `S11`), about 50 million
+expected. Stored `S11` fits ran at 19 to 22 million an hour per process (`grad` 8,622,191 in
+1,485 s, `mid` 13,034,526 in 2,144 s): about 3 process-hours, about 1.5 hours with four runs side
+by side. Cap 240 minutes a run (at the cap: unfinished). At most 4 heavy processes. Wall times
+are contended and are not timing results.
+
+**Stop rule:** stop and report if the `held_keep` guard refuses the current library (step 5
+edited `reconstructor.py`), a phase A check differs, or a validity assertion fails. Nothing is
+tuned to pass a check; no arm reruns with another random seed.
+
+**Phase A: prepare and check, stop at "READY TO RUN".**
+1. Merge the parent; confirm `held_keep.install` accepts the current `_fit_from_seed`.
+2. Link the stored `S8` and `S11` runs and passes of `mid` and `grad`; check their totals
+   against `findings_ar5_mix.md` (26,443,074; 18,000,230; 16,082,696; 12,307,994).
+3. Tests first: `tests/test_ar5_ver_rules.py` (the `h_c` pick on a synthetic pool, the plain
+   accept, the validity assertion, the growth-line parser), committed before the scripts.
+4. `ver_pick.py` computes `h_c`; `frozen.json` is committed before any run on `mid` or `grad`.
+5. Checks: 20 seed steps of `mid` give the stored `S11` ends and counts; the in-run `N1` score
+   equals the offline score on `mid`'s 15 stored cases to 1e-6; two forced pilots of `S11h` on
+   `big` voxels (accept path kept and grown; refuse path runs the grid). No pilot on `grad`.
+6. `ver_run_all.sh --dry-run` passes its guards. Write "READY TO RUN" and stop.
+
+The main session starts `ver_run_all.sh` (four runs, each then its pass).
+
+**Phase B.** Validity, `ver_stats.py`, `ver_tables.py`; the plot (evaluations by stage and wrong
+voxels per run and sample) before the tables; predictions, pareto rows, page, history entry.
+**Files:** `scripts/autoresearch/ar5/ver_*.py` and `ver_run_all.sh` (`held_*.py` unchanged),
+`tests/test_ar5_ver_rules.py`, `benchmarks/autoresearch/ar5/ver/` (under 5 MB tracked), page
+`docs/autoresearch/findings_ar5_ver.md`. **Limit:** about 12 failed seeds per sample (63 on
+`held`), so counts are small. **What follows:** `S11n` passes on `mid` and plain does not do as
+well: a decision on an opt-in key; plain does as well: any key is the plain cut; else no key.
+
+**Not in this step.** Realistic images. Another material or crystal system. A new sample. Any
+tuning of `N1`, its cut or `h_c` on `mid` or `grad`. `N1` as a replacement for the seed test, or
+as the flag of unfinished voxels. A library key. A timing. A second run of any arm.
+
+**Choices made.**
+- Test sample `mid`, with `grad` labelled in-sample. Alternatives: `mid` alone (cheaper, about
+  12 cases); a new sample as a different test condition (for example grains with gradients
+  above 4 degrees), which would also need `S8` and `S11` runs and its own decision.
+- `big` not run (no grid fallback). Control `h_c` with no wrong end in the pool; alternatives: a
+  cut matching `N1`'s accept rate on the pool; the C++ convergence rule (equals `S11` here).
+- The step-4 script layer, not the step-5 keys plus a hook (key parity not shown on `mid`).
+- "Plain does as well" at 80% of the saving. Alternative: any saving within one grid fallback.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
