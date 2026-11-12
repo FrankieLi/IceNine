@@ -1381,3 +1381,20 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   the cap as an argument of held_chain.sh), no new run, then merge into feature/eval-reduction.
   The owner can overrule. Where: .claude/reports/20261111-1900-review-ar3k.md;
   icenine_py/docs/autoresearch/findings_ar3_held.md.
+
+### D-20261111-N20 · Track A / AR5 step 4 · AR5 step 4 review: request changes; S10 and S11 stand; S11v was a defective arm, repair the hook and rerun it once as S11v2
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Opus review of task ar5d (report .claude/reports/20261111-2000-review-ar5d.md): every number
+  recomputed from the raw run files matches. S10 and S11 on held stand: with the pass S11 needs
+  23.3% fewer evaluations than S8 and meets the pass rule; S10 needs 3.6% fewer and fails part
+  (a). S11v did not test the planned rule: all 24 seeds that N1 accepted were refused by the
+  library's seed check afterwards, so no grain grew from them; the run only skipped grid
+  fallbacks. Decision under the mandate: (1) one Opus fixes round with the 10 required fixes; the
+  hook is repaired in the script layer only, checked on the stored fallback cases of mid, not on
+  held; (2) S11v runs once more on held as S11v2 with the frozen model, cut, rule and pass rule,
+  cap 480 minutes; the first run stays reported as a defective arm, its pareto rows are removed;
+  the rule part of prediction 5 and prediction 6 are judged on S11v2 and the page says the rerun
+  came after the defective numbers were seen; this is a bug repair, not tuning and not an extra
+  random seed; (3) because S11 passed on held, the library step for one opt-in key pair is planned
+  next under its own decision. The owner may overrule. Where: icenine_py/docs/autoresearch/PLAN.md
+  (AR5 step 4, amendment N20).
