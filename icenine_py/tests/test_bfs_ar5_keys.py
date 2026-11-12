@@ -139,9 +139,60 @@ def test_invalid_combinations_raise_before_any_search(
         _bfs_with(monkeypatch, kw)
 
 
+# Rows that only the AR5 step 5 refusal block refuses: the parent branch's check passes each of
+# them (no BFSNeighborCMAFirst, no SeedIndexCandidates, stop ratio 0 where named), so each test
+# matches the new message and would fail if that block were deleted.
+NEW_ONLY = "SeedIndexCMAFirst and BFSNeighborCMANoFallback"
+
+
+@pytest.mark.parametrize(
+    "kw, message",
+    [
+        (
+            _without(
+                "bfs_neighbor_cma_first", "bfs_neighbor_cma_no_fallback", local_optimizer="cma"
+            ),
+            f"{NEW_ONLY} need LocalOptimizer mc",
+        ),
+        (
+            _without(
+                "bfs_neighbor_cma_first", "bfs_neighbor_cma_no_fallback", use_hybrid_optimizer=True
+            ),
+            f"{NEW_ONLY} cannot be combined with use_hybrid_optimizer",
+        ),
+        (
+            dict(bfs_neighbor_cma_no_fallback=True, paint_grains=True, seed_by_indexing=True),
+            f"{NEW_ONLY} cannot be combined with PaintGrains 1",
+        ),
+        (
+            _without("seed_by_indexing", "seed_index_stop_hit", "bfs_neighbor_cma_first"),
+            "SeedIndexCMAFirst needs SeedByIndexing 1",
+        ),
+        (
+            _without(
+                "seed_index_stop_hit", "bfs_neighbor_cma_first", "bfs_neighbor_cma_no_fallback"
+            ),
+            r"SeedIndexCMAFirst needs SeedIndexStopHitRatio > 0",
+        ),
+        (
+            dict(bfs_neighbor_cma_no_fallback=True),
+            "BFSNeighborCMANoFallback 1 needs BFSNeighborCMAFirst 1",
+        ),
+    ],
+)
+def test_refusals_only_the_new_block_makes(
+    monkeypatch: pytest.MonkeyPatch, kw: Dict[str, Any], message: str
+) -> None:
+    with pytest.raises(ValueError) as e:
+        _bfs_with(monkeypatch, kw)
+    assert str(e.value).startswith(message), str(e.value)
+
+
 def test_cma_first_refusal_messages_name_the_missing_key(monkeypatch: pytest.MonkeyPatch) -> None:
     with pytest.raises(ValueError, match="SeedByIndexing"):
         _bfs_with(monkeypatch, _without("seed_by_indexing"))
+    with pytest.raises(ValueError, match="SeedIndexCMAFirst needs SeedByIndexing 1"):
+        _bfs_with(monkeypatch, _without("seed_by_indexing", "seed_index_stop_hit"))
     with pytest.raises(ValueError, match="SeedIndexStopHitRatio"):
         _bfs_with(monkeypatch, _without("seed_index_stop_hit"))
     with pytest.raises(ValueError, match="BFSNeighborCMAFirst"):
