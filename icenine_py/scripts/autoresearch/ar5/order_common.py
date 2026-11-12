@@ -23,7 +23,7 @@ from typing import Dict
 HERE = Path(__file__).resolve().parent
 ICE = HERE.parents[2]
 ORDER = ICE / "benchmarks" / "autoresearch" / "ar5" / "order"  # tracked results (small)
-ORDER_CACHE = ORDER / "cache"  # untracked
+ORDER_CACHE = Path(os.environ.get("ORDER_CACHE", str(ORDER / "cache")))  # untracked
 FROZEN = ORDER / "frozen.json"
 ORDER_CACHE.mkdir(parents=True, exist_ok=True)
 (ORDER_CACHE / "logs").mkdir(parents=True, exist_ok=True)
