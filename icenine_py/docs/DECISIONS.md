@@ -1447,3 +1447,19 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   written first; no extra random seeds. The owner can overrule. Where:
   icenine_py/docs/autoresearch/PLAN.md (AR5 step 4);
   .claude/reports/20261111-2215-review-ar5d-phaseB.md.
+
+### D-20261111-N24 · Track A / AR5 step 6 · AR5 step 6 plan approved: the frozen N1 seed-accept rule on mid and grad, next to a plain hit-ratio rule
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Plan in PLAN.md, section AR5 step 6 (2ed6618), task ar5f, scripts only, no library change. Arms,
+  one run each with the boundary pass: S11n (S11 plus N1 at the frozen cut 0.74914 through the
+  repaired hook) and S11h (S11 plus a plain rule: keep a failed seed whose hit ratio is at least
+  h_c; h_c is fixed in phase A from a pool without mid, as the lowest cut that accepts no wrong
+  end). Test sample mid; grad runs too but N1 was trained on it, so its scores are labelled
+  in-sample. No sample is fully clean and none is generated: a new sample would be close to a
+  repeat with a new random seed, which the owner ruled out. The C++ converged-seed rule is not a
+  separate arm because it never fires at these costs. Pass rule unchanged; the reading plain does
+  as well (S11h passes on mid and saves at least 80% of what S11n saves against S11) and seven
+  numbered predictions are written before any run. Known limit: about 12 failed seeds per sample,
+  so counts are small. Cost at most 56.8 million evaluations, four runs side by side. The
+  implementer starts only after AR5 step 4 is merged, which waits for the owner to place its page.
+  The owner can overrule. Where: icenine_py/docs/autoresearch/PLAN.md (AR5 step 6).
