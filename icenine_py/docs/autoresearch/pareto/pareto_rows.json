@@ -117,7 +117,7 @@
    "label": "Whole layer, 250 grains with orientation gradients (sample held): 24,570 voxels",
    "n_voxels": 24570,
    "wrong_definition": "more than 1 degree from the true orientation, after crystal symmetry (icenine_py/docs/autoresearch/findings_ar3_gradient.md:14)",
-   "note": "AR3 step 11. 250 grains from a Voronoi grain map on the same 24,570-voxel grid, built like mid with generator seed 1; orientations drawn so that adjacent grains differ by at least 5 degrees; orientation gradients at six levels (0, 0.2, 0.5, 1, 2 and 4 degrees on 39, 40, 44, 37, 46, 44 grains); clean images. Held out: no setting of any method was chosen on this sample, and only run S8 has been run on it."
+   "note": "AR3 step 11. 250 grains from a Voronoi grain map on the same 24,570-voxel grid, built like mid with generator seed 1; orientations drawn so that adjacent grains differ by at least 5 degrees; orientation gradients at six levels (0, 0.2, 0.5, 1, 2 and 4 degrees on 39, 40, 44, 37, 46, 44 grains); clean images. Held out: no setting of any method was chosen on this sample. In AR3 step 11 only run S8 was run on it; runs of later steps are in their own rows (AR5 step 4, D-20261111-N18)."
   }
  ],
  "rows": [
@@ -2887,7 +2887,7 @@
    "what_evals_include": "seed step 21,257,244, grid-search fallbacks 25,915,118, neighbour local optimizations 3,004,901, revisit local optimizations 4,556,624",
    "source_json": "icenine_py/benchmarks/autoresearch/ar3/held/summary.json :: held.{stages, before}",
    "source_page": "icenine_py/docs/autoresearch/findings_ar3_held.md",
-   "flag": "run S8 on the held-out sample held: run S5 whose seed step stops at the first refinement with a hit ratio of at least 0.95; 75 grid-search fallbacks; no setting was chosen on this sample; this is the baseline for later whole-layer tests on held; derived: evals_total = total minus the pass"
+   "flag": "run S8 on the held-out sample held: run S5 whose seed step stops at the first refinement with a hit ratio of at least 0.95; 75 grid-search fallbacks; no setting was chosen on this sample; this is the baseline for later whole-layer tests on held; second run, cap 480 minutes (D-20261111-N17); the first run reached its 120 minute cap; derived: evals_total = total minus the pass"
   },
   {
    "sample": "held_24570",
@@ -2908,7 +2908,7 @@
    "what_evals_include": "seed step 21,257,244, grid-search fallbacks 25,915,118, neighbour local optimizations 3,004,901, revisit local optimizations 4,556,624, boundary pass 5,189,636",
    "source_json": "icenine_py/benchmarks/autoresearch/ar3/held/summary.json :: held.{stages, after}",
    "source_page": "icenine_py/docs/autoresearch/findings_ar3_held.md",
-   "flag": "run S8 on the held-out sample held: run S5 whose seed step stops at the first refinement with a hit ratio of at least 0.95; 75 grid-search fallbacks; no setting was chosen on this sample; this is the baseline for later whole-layer tests on held"
+   "flag": "run S8 on the held-out sample held: run S5 whose seed step stops at the first refinement with a hit ratio of at least 0.95; 75 grid-search fallbacks; no setting was chosen on this sample; this is the baseline for later whole-layer tests on held; second run, cap 480 minutes (D-20261111-N17); the first run reached its 120 minute cap"
   }
  ],
  "excluded": [

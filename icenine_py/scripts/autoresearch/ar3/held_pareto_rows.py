@@ -41,7 +41,8 @@ def sample_entry(d: Dict[str, Any]) -> Dict[str, Any]:
             "like mid with generator seed 1; orientations drawn so that adjacent grains differ by "
             "at least 5 degrees; orientation gradients at six levels (0, 0.2, 0.5, 1, 2 and 4 "
             f"degrees on {levels} grains); clean images. Held out: no setting of any method was "
-            "chosen on this sample, and only run S8 has been run on it."
+            "chosen on this sample. In AR3 step 11 only run S8 was run on it; runs of later steps "
+            "are in their own rows (AR5 step 4, D-20261111-N18)."
         ),
     }
 
@@ -52,7 +53,8 @@ def rows_for(d: Dict[str, Any]) -> List[Dict[str, Any]]:
     flag = (
         "run S8 on the held-out sample held: run S5 whose seed step stops at the first refinement "
         f"with a hit ratio of at least 0.95; {nfb} grid-search fallbacks; no setting was chosen "
-        "on this sample; this is the baseline for later whole-layer tests on held"
+        "on this sample; this is the baseline for later whole-layer tests on held; second run, "
+        "cap 480 minutes (D-20261111-N17); the first run reached its 120 minute cap"
     )
     inc_b = f"seed step {commas(st['seed_step'])}, "
     if st["grid_fallback"]:
