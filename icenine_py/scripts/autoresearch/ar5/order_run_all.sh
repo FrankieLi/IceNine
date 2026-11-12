@@ -104,7 +104,7 @@ if [ "$smoke_cap" = "0" ]; then
   ferr="$(mktemp)"
   if ! uv run python scripts/autoresearch/ar5/order_freeze.py --check > /dev/null 2>"$ferr"; then
     msg="$(tail -1 "$ferr" 2>/dev/null)"; rm -f "$ferr"
-    refuse "freeze check failed: $msg"
+    refuse "${msg:-freeze check failed}"
   fi
   rm -f "$ferr"
 fi

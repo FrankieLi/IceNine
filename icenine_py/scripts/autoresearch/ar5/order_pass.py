@@ -12,6 +12,7 @@ generator), for ``Yl``. Reads ``<cache>/<name>_<sample>/recon.mic.gz``; writes
 """
 
 import argparse
+import json
 import sys
 
 import order_common as OC  # noqa: E402,F401  (first: sets the cache)
@@ -26,10 +27,16 @@ def main() -> None:
     ap.add_argument("--name", required=True)
     ap.add_argument("--aligned", type=int, default=1)
     a, rest = ap.parse_known_args()
+    book = OD.DrawBook()
     if a.aligned:
-        B.try_fit = OD.aligned_try_fit(OD.DrawBook(), B.try_fit)
+        B.try_fit = OD.aligned_try_fit(book, B.try_fit)
     sys.argv = ["fit_pass.py", "--name", a.name] + rest
     FPASS.main()
+    # pass.json keeps the unchanged pass's generator label; this file says what was done here
+    d = FPASS.PASSES / f"D4_{a.name}"
+    (d / "aligned.json").write_text(
+        json.dumps(dict(aligned_draws=bool(a.aligned), aligned_tries=book.n_issued)) + "\n"
+    )
 
 
 if __name__ == "__main__":
