@@ -2086,6 +2086,90 @@ passes). A timing. A real sample or realistic images. Other thresholds than 0.95
 budgets than 60 and 200: the two values come from keys that already exist, and tuning them on
 three samples that have all been read would fit the samples.
 
+### AR5 step 4: the mixed seed refinement and the learned verifier on the held-out sample
+
+Task `ar5d`. Scripts and results only: no file under `icenine_py/icenine/` changes, no key is
+added, no default changes. It starts only when a finished `S8` baseline on the sample `held`
+(AR3 step 11) is merged. Drafted on 2026-11-11, while that baseline was still running: the
+predictions below were written before any number of `held` was read (D-20261111-N16).
+
+**Why.** Run `S11` (AR5 step 3) needs 32% to 52% fewer evaluations than `S8` on three samples,
+but its seed rule was found in a replay that included one of them (`mid`). The learned
+verifier `N1` (AR4 step 1) accepted 7 of 10 right and 0 of 5 wrong seeds that had failed the
+seed test on `mid`, but that is 15 cases and arithmetic, not a run. `held` (250 grains, a new
+generator seed) has been read for no choice. This step tests whether both results carry over.
+
+**Terms.** As in `findings_ar5_mix.md` and `findings_ar4_verifier.md`. **Seed test**: the
+hit-ratio test that a refined seed must pass before its grain is painted. **Grid fallback**:
+the full adaptive grid search that runs when the seed step fails that test. **Added
+seed-accept rule** (the OR rule of AR4 step 1): a seed that fails the seed test is still
+accepted when the score of `N1` for its end is at or above the stored cut; the grid fallback
+is then skipped.
+
+**Frozen inputs.** Nothing is tuned on `held`. The mixed seed refinement is `X200` as in step
+3. `N1` is the stored model of AR4 step 1 (`models.npz`) with its stored cut. The runs use the
+script layer of AR5 steps 2 and 3.
+
+**Runs, all on `held`, clean images, with the boundary pass, one run each.**
+
+| run | what it is |
+|---|---|
+| `S10` | `S8` with no MC fallback after CMA in a neighbour local optimization or revisit |
+| `S11` | `S10` plus the mixed seed refinement `X200` |
+| `S11v` | `S11` plus `N1` as an added seed-accept rule |
+
+Reading the table: one row per run; each row adds one change to the row above it.
+
+At most 150 minutes a run, at most 3 heavy processes; a run at its cap is reported as
+unfinished. All wall times are contended and are not timing results.
+
+**Checks before the runs.** (1) On 20 seed steps of `big`, the script layer still gives the
+ends and counts of step 3. (2) On the 15 stored grid-fallback cases of `mid`, the score of
+`N1` computed inside the run layer equals the stored offline score to 1e-6. If either check
+differs, stop and report. The evaluations that `N1` needs for its inputs are counted and
+reported; they are part of the total of `S11v`.
+
+**What is reported.** For each run, next to the `S8` baseline: evaluations by stage (seed
+step, grid fallback, neighbour local optimization, revisit, boundary pass); grid fallbacks;
+wrong voxels before and after the pass with Wilson 95% intervals; fixed and broken against
+`S8` paired by voxel (and `S11v` against `S11`); the median error over all voxels. The grid
+fallback cases are listed one row per seed step, paired across the runs by the seed voxel:
+which runs fell back there, and for `S11v` the score, whether the seed was accepted, and
+whether the accepted seed was within 1 degree of the truth. The rows of every finished run go
+into `docs/autoresearch/pareto/pareto_rows.json`.
+
+**Pass rule, the same as steps 2 and 3, not re-tuned.** Against `S8` with the pass: at least
+20% fewer evaluations; broken minus fixed at most 5 voxels; median error at most 0.005 degree
+higher. For `S11v` the same three against `S8`, and in addition against `S11`: fewer
+evaluations, and broken minus fixed at most 5 voxels.
+
+**Predictions, written before the baseline of `held` was read.**
+
+1. `S10` needs 12% to 20% fewer evaluations than `S8` and so misses the 20% rule (it gave
+   29%, 16% and 14% on the three earlier samples).
+2. `S11` needs 30% to 45% fewer evaluations than `S8` and meets all three parts of the rule.
+3. `S11` has no more grid fallbacks than `S8`.
+4. Wrong voxels of `S11` after the pass are within 10 of `S8`'s.
+5. `S11v` accepts at least half of the seeds that fail the seed test, at most one of the
+   accepted seeds is more than 1 degree from the truth, and it meets its rule against `S11`.
+6. The saving of `S11v` against `S11` is under 15% of the total of `S11` (few cases).
+
+**What follows.** If `S11` passes: the next step adds one opt-in key pair to the library for
+the mixed seed refinement and "no MC fallback", with the tests of the library path. If it
+fails: the failing stage is read from the split, and no key is added. `S11v` decides only
+whether the verifier gets a whole-layer step of its own. After this step `held` is no longer
+unread for these rules.
+
+**Files.** `scripts/autoresearch/ar5/held_*.py` (reusing `fit_*.py`, `mix_*.py` and
+`ar4/verify_lib.py`; a change to an earlier script must leave its results reproducible),
+tests of the pure functions in `tests/test_ar5_held_rules.py`, results in
+`benchmarks/autoresearch/ar5/held/` (under 5 MB tracked), page
+`docs/autoresearch/findings_ar5_held.md`.
+
+**Not in this step.** Any tuning on `held`. A library key. A timing. Realistic images. A
+second run of any arm with another random seed.
+
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
