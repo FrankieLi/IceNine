@@ -35,7 +35,7 @@ into a task branch before its fixes round (shared files conflict).
    the implementer's Write and the main session's copy were refused (auto mode). No way round:
    the owner places it or allows it. Then: sync check, commit, fix 2 (MIGRATION_HISTORY names
    that commit), merge, close (page version 45, PR #43).
-2. AR5 step 6 (`ar5f`; N24; D-20261112-N2): runs done, phase B going; see its Queue row.
+2. AR5 step 6 (`ar5f`; N24; D-20261112-N2): phase B done, in review; see its Queue row.
 3. Items 14 + 3 (task `item14`; N25): E0 arms done (`F` 41 wrong, `FS` 7 of 200, both as
    predicted). The run stopped at 00:01 on 2026-11-12 with exit 3: the preflight refused
    before A1 (`cpptools`, pid 18415, 99% CPU). Once the owner frees the machine: rerun the
@@ -57,7 +57,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 | step | what | state |
 |---|---|---|
 | AR5 step 4 | `S10`, `S11`, `S11v2` on the held-out sample (task `ar5d`) | waits for the owner (page) |
-| AR5 step 6 | `S11n`, `S11h` on `mid` and `grad` (task `ar5f`) | phase A done (agent and worktree `a89458addd73332d9`, tip f39e0eb; `h_c` 0.7904203, frozen at b451086). The four runs and passes finished (exit 0, 04:59 on 2026-11-12, 40 minutes). Phase B is with the same agent (`SendMessage`, 05:00), report `20261112-0353-ar5f.md` in its worktree. Then: `verify_handback.sh`, Opus review against fac79f9, fixes; merge only after step 4 |
+| AR5 step 6 | `S11n`, `S11h` on `mid` and `grad` (task `ar5f`) | phase A done (agent and worktree `a89458addd73332d9`, tip f39e0eb; `h_c` 0.7904203, frozen at b451086). Runs and phase B done (tip 4c18740; hand-back check 0 FAIL). Unreviewed numbers: on `mid` `S11n` 14,105,137 evaluations (12.3% fewer than `S11`, 6 seeds kept, 0 wrong), `S11h` 15,680,025 (2.5%, 1 kept); both pass; "plain does as well" not met (20.4% of the saving). The page Write was refused: text in the worktree's `.claude/reports/20261112-ar5f-phaseB-page.md`, for the owner to place at `docs/autoresearch/findings_ar5_ver.md`. Opus review `a817b1436a6b88032` (05:10), report `.claude/reports/20261112-0510-review-ar5f.md`. Then decision, fixes; merge after step 4 |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B (task `item14`) | E0 done; timing waits for a quiet machine |
 | C++ time | measured C++ time on the pilot region (MPI mode, own config) | D-20261112-N1, task `cpptime`: phase A done (agent and worktree `ad44bb90c441eca35`, tip 5d6cec2, report in that worktree's `.claude/reports/20261112-0012-cpptime.md`). Run, after item 14's timing and on a quiet machine: `caffeinate -i bash scripts/autoresearch/cpptime/run_cpp_time.sh` in its `icenine_py/` (background command); marker `benchmarks/autoresearch/cpptime/cache/cpptime.done`; then phase B by `SendMessage`. R4 limit 3.5 (own load 2.0: the server rank spins). `lldb` cannot run (developer mode off): evaluations missing unless the owner enables it or accepts a print in `Src/` |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
