@@ -11825,6 +11825,12 @@ limits). The Reproduce section names the two sibling worktrees that hold the sto
 
 ## Autoresearch AR3 step 11: a held-out sample and its S8 baseline (done 2026-11-11, task ar3k)
 
+**Superseded in part by the completion round below** (paragraph "Completion round of AR3 step 11",
+after the AR5 step 3 section; D-20261111-N17) and its fixes round: the run was made again with a
+cap of 480 minutes and finished, the pareto rows replaced the `excluded` entry, and the main
+session placed the page in `docs/`. The lines "no pareto rows", "Not rerun" and "left in the
+report folder" below describe the first round only.
+
 Scripts and results only (D-20261111-N15): nothing under `icenine/` changed, no key, no default, no
 golden, no dependency. Scripts `scripts/autoresearch/ar3/held_*.py` (builder `held_make_sample.py`
 with pure parts in `held_sample_lib.py`, tests `tests/test_ar3_held_sample.py`, 7 tests); the three
@@ -11939,3 +11945,14 @@ before and 70 (0.23 to 0.36%) after the pass; median error over all voxels 0.028
 the capped run are kept in `cache/S8_held_cap120/` (untracked). The updated page text is in the
 report folder (`20261111-1351-ar3k-findings-page.md`), because the Write to `docs/` was refused
 again; the main session places it.
+
+Fixes round of AR3 step 11 (review 20261111-1900, D-20261111-N19; documents, tables and small
+scripts, no new run): at the 4 degree level the pass fixed 0 wrong voxels and broke 4 (49 before,
+53 after; "did not help" above understates it), and `ar3_held_levels` now has `fixed` and `broken`
+columns; `summary.json` has a `derived` block (3,262 reseeds, 133.4 wall minutes, 46 and 17 wrong
+over the five lower levels, 53 and 34 grains holding wrong voxels, 28 grains under 40 voxels); the
+page scopes "no other run" to this step and names the three AR5 step 4 runs on `held` (N18, started
+16:53), labels both wall times contended inline, drops the 120 minute counterfactual, lists the
+four heavy processes as a deviation (the plan allowed two) and gives the exact second-run command;
+`held_chain.sh` takes the cap and log name as arguments (default 120, `chain_held`); the
+`held_24570` sample note says only run S8 was run on `held` in AR3 step 11.
