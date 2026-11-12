@@ -33,10 +33,10 @@ Merge the parent into a task branch before its fixes round (shared files conflic
    resume the step's implementer (`SendMessage`, or a new Sonnet one) for a completion round
    (statistics, pareto rows, page, report), then one Opus review, fixes, merge.
 2. AR5 step 4 (task `ar5d`; N16, N18; plan in `PLAN.md`, predictions at 17a27c1): `S10`,
-   `S11`, `S11v` (= `S11` plus verifier `N1`) on `held`. Phase A (Sonnet implementer) hands
-   back "READY TO RUN". Then the main session starts `scripts/autoresearch/ar5/held_run_all.sh`
-   as a background command in that worktree; when it and the baseline have ended, resume the
-   implementer for phase B (statistics, page). Review; merge after step 11. A key only then.
+   `S11`, `S11v` (= `S11` plus verifier `N1`) on `held`. Phase A is done (9cd627f on the task
+   branch; both checks exact; report `20261111-1640-ar5d.md`). The three runs go now. When
+   they and the baseline have ended: resume the implementer (`SendMessage`, or a new Sonnet
+   one) for phase B (statistics, page). Review; merge after step 11. A key only then.
 
 ## Running jobs
 
@@ -44,8 +44,9 @@ Merge the parent into a task branch before its fixes round (shared files conflic
   2026-11-11 16:27 in worktree `agent-af8961874e131bda2` at e45bb0b. Check:
   `cat <that worktree>/icenine_py/benchmarks/autoresearch/ar3/held/cache/logs/chain_held_480.done`
   (it exists only at the end; the log is next to it; `ps -Ao etime,command | grep fit_run`).
-- AR5 step 4 phase A implementer (started 16:45); it hands back by message. Its report:
-  `20261111-1640-ar5d.md`.
+- `S10`, `S11`, `S11v` on `held`, cap 480 minutes each: background command of the main
+  session (`held_run_all.sh`), started 16:53 in worktree `agent-a814d0121e137b01c`. Markers:
+  `<that worktree>/icenine_py/benchmarks/autoresearch/ar5/held/cache/logs/<run>_held.done`.
 - The review page is at version 42. The text of PR #43 holds AR5 steps 1 to 3, AR4 step 1.
 
 ## Queue
@@ -56,7 +57,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 | step | what | state |
 |---|---|---|
 | AR3 step 11 | sample `held` (250 grains) with its `S8` baseline (task `ar3k`) | baseline reruns |
-| AR5 step 4 | `S10`, `S11`, `S11v` on the held-out sample (task `ar5d`) | phase A |
+| AR5 step 4 | `S10`, `S11`, `S11v` on the held-out sample (task `ar5d`) | runs going |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
 | C++ time | measured C++ time on the pilot region | not started |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
@@ -79,9 +80,9 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - `agent-a5a3601b746680640` (AR5 step 3): the `S11` caches and maps under `ar5/mix/`, links.
 - `agent-af8961874e131bda2` (AR3 step 11, branch `ar3k`): the sample `held`, its image stack,
   the baseline cache (`S8_held/`, and `S8_held_cap120/` from the capped run).
+- `agent-a814d0121e137b01c` (AR5 step 4, branch `ar5d`): the three run caches on `held`.
 - `agent-a68538c58665829a1` (AR5 step 1, detached at 29e9b56): `ar5/cache/` and links.
-- `agent-a6c7c67b4a03d1843` (step 10, detached at 84ce8b5): `ar3/keys/cache/` (28 MB) and
-  links; `agent-a3145f902bf0a61fb` (step 10 fixes): a copy of it plus the two reruns.
+- Step 10: `agent-a6c7c67b4a03d1843` (`ar3/keys/cache/`), `agent-a3145f902bf0a61fb` (two reruns).
 - `agent-a9c88b610fb10e1b6` (step 9): `ar3/start/cache/`, the image stack and samples of `mid`.
 - `agent-a635b2f904279bdc9` (step 8): `ar3/reseed/cache/` (logged rerun, `S8` maps), stack links.
 - `agent-a38ba6f5a25aa033e` (step 7): its caches and runs under `ar3/big/`, and its report.
@@ -109,7 +110,6 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   on the review page). N15 adds `held` (new seed); N17, N18: run caps of 480 minutes.
   The gradient levels of step 7's sample are my choice. Step 5's result files add about 50
   MB to git; say so if you want them pruned.
-- Not done unless you ask: a repo-wide rename of "finisher". Ilium's plan approvals are yours.
 
 ## Bookkeeping
 
@@ -117,4 +117,4 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
-  mailbox in `docs/ROADMAP.md`.
+  mailbox in `docs/ROADMAP.md`. Its plan approvals are the owner's; so is a "finisher" rename.
