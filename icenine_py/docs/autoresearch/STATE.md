@@ -30,21 +30,23 @@ into a task branch before its fixes round (shared files conflict).
 1. AR5 step 4 (task `ar5d`; N16, N18, N20, N23): on `held` with the pass `S11` needs 23.3%
    fewer evaluations than `S8`; the rerun `S11v2` (valid arm) 37.4% fewer, 18.4% fewer than
    `S11`, 69 wrong, broken minus fixed 4 against `S11` (limit 5). Phase B re-review: approve,
-   three fixes (N23). Fix 3 is with the implementer (see "Running jobs").
+   three fixes (N23). Fix 3 is done (fac79f9 on `ar5d`).
    BLOCKED on fix 1: the page text is in `.claude/reports/20261111-2330-ar5d-phaseB-page.md`;
-   the implementer's Write and the main session's copy into the worktree were both refused
-   (auto mode). Do not work around it; the owner places it or allows it. Then: sync check,
-   commit, fix 2 (MIGRATION_HISTORY names that commit), merge, close (page version 45, PR #43).
-2. Next step (AR5 step 6, task `ar5f`): the frozen `N1` rule on samples it has not seen, with
-   a plain control rule. A draft is being written. Read it, put it in `PLAN.md`, log the
-   decision (N24). Its implementer starts only after step 4 is merged.
+   the implementer's Write and the main session's copy were refused (auto mode). No way round:
+   the owner places it or allows it. Then: sync check, commit, fix 2 (MIGRATION_HISTORY names
+   that commit), merge, close (page version 45, PR #43).
+2. AR5 step 6 (task `ar5f`; plan in `PLAN.md`, 2ed6618; N24): the frozen `N1` rule (`S11n`)
+   and a plain hit-ratio rule (`S11h`) on `mid` and `grad`. Its implementer (Sonnet,
+   worktree) starts only after step 4 is merged.
+3. Items 14 + 3 (both speed keys together, timing A/B; N2, N3 of 2026-11-09): the machine is
+   quiet while step 4 waits. On the draft's hand-back: read it, put it in `PLAN.md`, decision
+   N25, start its implementer. Timing arms run alone, before step 6's runs.
 
 ## Running jobs
 
-- Fix 3 of N23: agent `a8a1ac8e80f8913cf` (Opus, resumed 22:12 on 2026-11-11), worktree
-  `agent-a8a1ac8e80f8913cf` (holds branch `ar5d`). Reports by hand-back.
-- Plan draft for AR5 step 6: general-purpose agent (Opus, started 22:12); it writes only
-  `plan_ar5f_draft.md` in the scratchpad. Reports by hand-back; if lost, start it again.
+- Plan draft for items 14 + 3: general-purpose agent (Opus, started 22:23 on 2026-11-11);
+  writes only `plan_item14_draft.md` (scratchpad); reports by hand-back. Branch `ar5d` is
+  held by worktree `agent-a8a1ac8e80f8913cf` (tip fac79f9).
 - Review page: version 44 (`run43.sh`, then `patch_v44.py`, scratchpad).
 
 ## Queue
@@ -54,22 +56,18 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 | step | what | state |
 |---|---|---|
-| AR5 step 4 | `S10`, `S11`, `S11v` on the held-out sample (task `ar5d`) | fixes round, one rerun |
-| items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | needs a quiet machine |
+| AR5 step 4 | `S10`, `S11`, `S11v2` on the held-out sample (task `ar5d`) | waits for the owner (page) |
+| AR5 step 6 | `S11n`, `S11h` on `mid` and `grad` (task `ar5f`) | planned; after step 4 |
+| items 14 + 3 | both speed keys on E0 and the pilot, timing A/B | plan being drafted |
 | C++ time | measured C++ time on the pilot region | not started |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
 | tooling | `audit_numbers.py`: thousands separators; false misses in wide table rows | small |
 
 ## Last finished step
 
-AR5 step 5 (two opt-in library keys for run `S11`: `SeedIndexCMAFirst`,
-`BFSNeighborCMANoFallback`; task `ar5e`): merged into `feature/eval-reduction` at a494bcd on
-2026-11-11, pushed; suite 1724 passed, 47 skipped, 1 deselected.
-Library runs equal the stored script runs before the pass on `big` and on the first gradient
-sample (2,879,705 and 8,622,191 evaluations for `S11`). The pass inside a library run has
-equal counts, not equal contents. Page:
-`docs/autoresearch/findings_ar5_keys.md`. Decisions D-20261111-N21 (plan), N22 (review).
-Before it: AR3 step 11 (504fadb). More: `STATE_HISTORY.md`.
+AR5 step 5 (two opt-in library keys for run `S11`; task `ar5e`): merged at a494bcd on
+2026-11-11; suite 1724 passed, 47 skipped, 1 deselected. Page:
+`docs/autoresearch/findings_ar5_keys.md`. Decisions N21, N22. More: `STATE_HISTORY.md`.
 
 ## Untracked data that later steps need
 
@@ -86,14 +84,15 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - `agent-a9c88b610fb10e1b6` (step 9): `ar3/start/cache/`, the image stack and samples of `mid`.
 - `agent-a635b2f904279bdc9` (step 8): `ar3/reseed/cache/` (logged rerun, `S8` maps), stack links.
 - `agent-a38ba6f5a25aa033e` (step 7): its caches and runs under `ar3/big/`, and its report.
-- `agent-a6db3cabf8ab230e9` (step 6): `seed/cache/`, `seed/runs/`, a `boundary/cache/`, its
-  report; `agent-a27b4a932b0dd99b6`: step 6's fixes report.
+- Step 6: `agent-a6db3cabf8ab230e9` (`seed/`, a `boundary/cache/`), `agent-a27b4a932b0dd99b6`.
 - Step 5: `agent-a4fd6282107a76186` (`boundary/cache/`, the maps after the pass) and
   `agent-ad88d4ade1ca5a039` (fixes). Steps 3 and 4: `agent-ae68d32fb972a8ad4`,
   `agent-ac609f1c28c619ed0`. More: `grep -n "worktrees/agent-" docs/autoresearch/STATE_HISTORY.md`.
 
 ## For the owner (open items only; details by `grep` in `STATE_HISTORY.md`, "For the owner")
 
+- Place the page of AR5 step 4 (or allow me to): `.claude/reports/20261111-2330-ar5d-phaseB-page.md`
+  goes to `icenine_py/docs/autoresearch/findings_ar5_held.md` in worktree `agent-a8a1ac8e80f8913cf`.
 - Your word on PR #43 ("merge PR 43" in the session): AR3 2 to 11, AR5 1 to 3 and 5, AR4 1.
 - A choice: which seed step the documentation of the keys recommends. Step 10 added the
   keys and recommends none. My recommendation: the settings of `S8` (`SeedIndexCandidates 20
@@ -106,14 +105,14 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - A choice: try test `P2 m=2` as an opt-in key (no gain lost; cuts 17% to 39% of the pass).
 - A choice: whether the documentation recommends the two `S11` keys. They were added off by
   default under N21, after `S11` passed on `held`; the documentation recommends none now.
-- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N23 (all
+- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N24 (all
   on the review page). N15 adds `held` (new seed); N17, N18: run caps of 480 minutes.
   The gradient levels of step 7's sample are my choice. Step 5's result files add about 50
   MB to git; say so if you want them pruned.
 
 ## Bookkeeping
 
-- Next decision ID: D-20261111-N24.
+- Next decision ID: D-20261111-N25.
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
