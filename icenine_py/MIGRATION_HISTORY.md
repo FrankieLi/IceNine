@@ -12049,3 +12049,20 @@ not measured): it changes 820 to 1,674 kept voxels' ends and gives 4/7, 15/12, 2
 fixes (2026-11-12): a test ties `CMA_SEED_BOUND` and the one draw per try to the real
 `CMAOptimizer.optimize` (9 new test cases, 26 in `tests/test_boundary_pass_skip.py`); the plot
 title no longer clips.
+
+## Autoresearch AR5 step 8, phase A: sweep order of the mixed seed refinement, scripts and checks (2026-11-12, task ar5h)
+
+Scripts and checks only (D-20261112-N7, amended by D-20261112-N8): nothing under `icenine/` changed, no key,
+no default, no golden, no dependency. Both arms are the run `S11` (merged keys, no `N1` rule). Scripts
+`scripts/autoresearch/ar5/order_*.py` and `order_run_all.sh` (they import steps 2 and 3), tests
+`tests/test_ar5_order.py` (14 tests: the sweep rule on synthetic steps, the aligned-draw seeding), results in
+`benchmarks/autoresearch/ar5/order/`. Aligned draws live in the script layer (`order_draws.py`): every
+neighbour/revisit fit, grid fallback and pass try draws from its own generator seeded by (voxel, kind of
+call, count at that voxel). The what-if table of the plan was reproduced from the stored replay to the
+digit (329, 1,279 and 1,611 steps; sweep order 230,604, 1,301,274 and 3,268,675 seed-step evaluations).
+Checks: 20 stored seed steps of `mid`, both orders, run live: 20 of 20 identical in both orders (86 fits,
+63,306 and 21,011 evaluations, as stored); arm `A` twice on `big`: identical map, seed log, MC traces,
+totals (2,672,415 before the pass) and pass (1,135,332 evaluations); the interleaved order with the
+library draws (`Al`) reproduces step 3 `S11` on `big` exactly (2,879,705 before the pass, same map).
+The freeze (`order/frozen.json`) was committed before any `held` read. The nine whole-layer runs are
+started by `order_run_all.sh` (phase A step 5, not made in this task).
