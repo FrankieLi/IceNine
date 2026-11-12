@@ -127,6 +127,33 @@ def check_bfs_keys(params: Any) -> None:
             "BFSNeighborCMAFirst, SeedIndexCandidates, SeedIndexStopHitRatio and BoundaryPass "
             "cannot be combined with PaintGrains 1"
         )
+    mixed = int(getattr(params, "seed_index_cma_first", 0))
+    no_fb = bool(getattr(params, "bfs_neighbor_cma_no_fallback", False))
+    if mixed or no_fb:  # the AR5 step 5 keys
+        if getattr(params, "paint_grains", False):
+            raise ValueError(
+                "SeedIndexCMAFirst and BFSNeighborCMANoFallback cannot be combined with "
+                "PaintGrains 1"
+            )
+        if getattr(params, "local_optimizer", "mc") != "mc":
+            raise ValueError(
+                "SeedIndexCMAFirst and BFSNeighborCMANoFallback need LocalOptimizer mc"
+            )
+        if getattr(params, "use_hybrid_optimizer", False):
+            raise ValueError(
+                "SeedIndexCMAFirst and BFSNeighborCMANoFallback cannot be combined with "
+                "use_hybrid_optimizer"
+            )
+    if mixed:
+        if not getattr(params, "seed_by_indexing", False):
+            raise ValueError("SeedIndexCMAFirst needs SeedByIndexing 1 (it refines indexed seeds)")
+        if stop <= 0:
+            raise ValueError(
+                "SeedIndexCMAFirst needs SeedIndexStopHitRatio > 0 (the ratio that decides "
+                "whether the MC refinement runs)"
+            )
+    if no_fb and not cma_first:
+        raise ValueError("BFSNeighborCMANoFallback 1 needs BFSNeighborCMAFirst 1")
     if cma_first:
         if getattr(params, "local_optimizer", "mc") != "mc":
             raise ValueError("BFSNeighborCMAFirst 1 needs LocalOptimizer mc")
@@ -1527,15 +1554,24 @@ class AdaptiveVoxelReconstructor:
         n_cost: int = 5,
         n_refine: int = 2,
         stop_hit: float = 0.0,
+        cma_first_evals: int = 0,
+        cma_sigma0_deg: float = 0.2,
     ) -> Any:
         """SeedByIndexing (opt-in): the voxel's seed search from its observed rays
         (``ray_indexing.seed_by_indexing``): strict cost on the first ``n_cost`` candidates, the
         finisher on the ``n_refine`` lowest, the lowest final cost. Returns a ``SeedResult``
         (``orientation`` None: no candidate). The caller applies the seed acceptance test.
         ``stop_hit`` > 0 (SeedIndexStopHitRatio): the finisher runs stop at the first end whose
-        hit ratio (one overlap evaluation, not counted) is at least ``stop_hit``."""
+        hit ratio (one overlap evaluation, not counted) is at least ``stop_hit``.
+        ``cma_first_evals`` >= 2 (SeedIndexCMAFirst, needs ``stop_hit`` > 0): the mixed seed
+        refinement (``ray_indexing.mixed_refinement``) in place of the MC refinement of each
+        candidate: a CMA fit (first step ``cma_sigma0_deg`` degrees, ``cma_first_evals``
+        evaluations, ``default_rng(0)``); the MC refinement from the same candidate (fresh
+        ``default_rng(0)``) only if the CMA end's hit ratio is below ``stop_hit``."""
         from . import ray_indexing as RI
 
+        if cma_first_evals and (cma_first_evals < 2 or stop_hit <= 0):
+            raise ValueError("cma_first_evals needs a value >= 2 and stop_hit > 0")
         sc, crystal, params, strict_cf = self._index_context(phase_index)
 
         def strict(R: np.ndarray) -> float:
@@ -1552,9 +1588,45 @@ class AdaptiveVoxelReconstructor:
             info = self.evaluate_overlap(np.asarray(R, np.float64), voxel_vertices, phase_index)
             return float(BFSReconstruction._ratios(info)[0])
 
+        refine_fn = None
+        if cma_first_evals:
+            from .orientation_search import SearchCandidate
+
+            def cma_fn(R: np.ndarray, cost: float) -> Any:
+                r = self.local_optimization(
+                    voxel_vertices=voxel_vertices,
+                    phase_index=phase_index,
+                    initial_orientation=np.asarray(R, np.float64),
+                    rng=np.random.default_rng(0),
+                    cma_sigma0_deg=cma_sigma0_deg,
+                    cma_max_evals=cma_first_evals,
+                    optimizer="cma",
+                )
+                return (
+                    np.asarray(r.orientation, np.float64),
+                    float(r.cost),
+                    int(self.last_local_optimization_evals),
+                )
+
+            def mc_fn(R: np.ndarray, cost: float) -> Any:
+                r = self.refine_from_candidates(
+                    [SearchCandidate(orientation=R.copy(), cost=float(cost))],
+                    voxel_vertices,
+                    phase_index,
+                    rng=np.random.default_rng(0),
+                )
+                return (
+                    np.asarray(r.orientation, np.float64),
+                    float(r.cost),
+                    int(self.last_eval_counts[1]),
+                )
+
+            def refine_fn(R: np.ndarray, cost: float) -> Any:  # type: ignore[misc]
+                return RI.mixed_refinement(R, cost, cma_fn, mc_fn, hit_fn, stop_hit)
+
         return RI.seed_by_indexing(
             self, sc, crystal, voxel_vertices, phase_index, params, strict, n_cost, n_refine,
-            stop_hit=stop_hit, hit_fn=hit_fn,
+            stop_hit=stop_hit, hit_fn=hit_fn, refine_fn=refine_fn,
         )  # fmt: skip
 
 
@@ -2243,6 +2315,10 @@ class BFSReconstruction:
         c0 = getattr(r1, "start_cost", None)
         if c0 is None:
             raise RuntimeError("the CMA fit returned no start_cost")
+        if getattr(params, "bfs_neighbor_cma_no_fallback", False):
+            # BFSNeighborCMANoFallback (opt-in): the CMA end is returned, MC does not follow
+            self._count("cma_not_fell", 0 if r1.cost < c0 else 1)
+            return r1
         if r1.cost < c0:
             self._count("cma_first_fallback_runs", 0)
             self._count("cma_first_fallback_won", 0)
@@ -2334,6 +2410,9 @@ class BFSReconstruction:
             kw.update(n_cost=n_cost, n_refine=n_refine)
         if stop_hit > 0:
             kw["stop_hit"] = stop_hit
+        cma_first = int(getattr(sp, "seed_index_cma_first", 0))
+        if cma_first:
+            kw.update(cma_first_evals=cma_first, cma_sigma0_deg=float(sp.cma_sigma0_deg))
         res = self.reconstructor.index_seed(vertices, voxel.phase, **kw)
         dt = time.time() - t0  # includes the one-time pairing on the first call
         rec.n_evals += res.evals
@@ -2359,6 +2438,13 @@ class BFSReconstruction:
         if stop_hit > 0:
             entry["stopped_at"] = int(res.stopped_at)
             self._count("index_stopped_early", 1 if res.stopped_at >= 0 else 0)
+        if (
+            cma_first
+        ):  # SeedIndexCMAFirst: per candidate, did the CMA end reach the ratio, did MC run
+            entry["mixed"] = [dict(m) for m in res.mixed]
+            self._count("index_mixed_cands", len(res.mixed))
+            self._count("index_mixed_cma_reached", sum(1 for m in res.mixed if not m["mc_ran"]))
+            self._count("index_mixed_mc_ran", sum(1 for m in res.mixed if m["mc_ran"]))
         self.index_log.append(entry)
         self._count("index_runs")
         self._count("index_evals", res.evals)
