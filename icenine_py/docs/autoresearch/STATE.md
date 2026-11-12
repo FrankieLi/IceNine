@@ -59,7 +59,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 | AR5 step 4 | `S10`, `S11`, `S11v2` on the held-out sample (task `ar5d`) | waits for the owner (page) |
 | AR5 step 6 | `S11n`, `S11h` on `mid` and `grad` (task `ar5f`) | planned; after step 4 |
 | items 14 + 3 | both speed keys on E0 and the pilot, timing A/B (task `item14`) | E0 done; timing waits for a quiet machine |
-| C++ time | measured C++ time on the pilot region (MPI mode, own config) | planned (D-20261112-N1, task `cpptime`); phase A: agent `ad44bb90c441eca35` (Sonnet, worktree, 00:13 on 2026-11-12), report `20261112-0012-cpptime.md`; timed runs only after item 14's and on a quiet machine |
+| C++ time | measured C++ time on the pilot region (MPI mode, own config) | D-20261112-N1, task `cpptime`: phase A done (agent and worktree `ad44bb90c441eca35`, tip 5d6cec2, report in that worktree's `.claude/reports/20261112-0012-cpptime.md`). Run, after item 14's timing and on a quiet machine: `caffeinate -i bash scripts/autoresearch/cpptime/run_cpp_time.sh` in its `icenine_py/` (background command); marker `benchmarks/autoresearch/cpptime/cache/cpptime.done`; then phase B by `SendMessage`. R4 limit 3.5 (own load 2.0: the server rank spins). `lldb` cannot run (developer mode off): evaluations missing unless the owner enables it or accepts a print in `Src/` |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
 | tooling | `audit_numbers.py`: thousands separators; false misses in wide table rows | small |
 
@@ -76,8 +76,8 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - `agent-a5a3601b746680640` (AR5 step 3): the `S11` caches and maps under `ar5/mix/`, links.
 - `agent-af8961874e131bda2` (AR3 step 11): the sample `held`, its image stack, the baseline
   cache (`S8_held/`, `S8_held_cap120/`).
-- AR5 step 4: `agent-a814d0121e137b01c` (three run caches on `held`), `agent-a8a1ac8e80f8913cf`.
-- AR5 step 5: `agent-afc3f195cb4fffb30` (`ar5/keys/cache/`). Item 14: `agent-a012b8f461d1630a1`.
+- AR5 step 4: `agent-a814d0121e137b01c` (caches on `held`), `agent-a8a1ac8e80f8913cf`. Step 5:
+  `agent-afc3f195cb4fffb30`. Item 14: `agent-a012b8f461d1630a1`. C++: `agent-ad44bb90c441eca35`.
 - `agent-a68538c58665829a1` (AR5 step 1, detached at 29e9b56): `ar5/cache/` and links.
 - Step 10: `agent-a6c7c67b4a03d1843` (`ar3/keys/cache/`), `agent-a3145f902bf0a61fb` (two reruns).
 - `agent-a9c88b610fb10e1b6` (step 9): `ar3/start/cache/`, the image stack and samples of `mid`.
