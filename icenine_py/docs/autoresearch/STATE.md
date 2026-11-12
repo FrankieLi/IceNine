@@ -29,12 +29,11 @@ into a task branch before its fixes round (shared files conflict).
 
 1. AR5 step 4 (task `ar5d`; N16, N18, N20): on `held` with the pass `S11` needs 23.3% fewer
    evaluations than `S8` and passes; `S10` 3.6% (fails). Both reviewed. `S11v` was a defective
-   arm: the 24 seeds `N1` accepted were refused by the library's seed check afterwards. Fixes
-   round in two phases (plan amendment N20). Phase A (Opus): repair the hook, check it on
-   `mid` (never on `held`), document fixes, then "READY TO RUN" with a command. The main
-   session starts `S11v2` on `held` (cap 480 minutes) as a background command. Phase B
-   (`SendMessage` to the same agent, or a new Opus one): statistics, page, predictions 5, 6.
-   Then hand-back check, merge (`finish_task.sh`), close (page with the `held` points, PR #43).
+   arm. Fixes round (Opus), phase A done: hook repaired in scripts, checked on `mid`. The
+   rerun `S11v2` goes now. When it ends: phase B (`SendMessage` to the fixes implementer, or
+   a new Opus one): statistics, page, predictions 5 and 6. Place the page if its Write is
+   refused. Then hand-back check, merge (`finish_task.sh`), close (page with the `held`
+   points, PR #43).
 2. AR5 step 5 (task `ar5e`; N21; plan in `PLAN.md`): two opt-in library keys for `S11`
    (`SeedIndexCMAFirst`, `BFSNeighborCMANoFallback`). Phase A (Sonnet): tests first, code,
    parity checks 1 to 3 on `big`, the full suite, then "READY TO RUN" with the command for
@@ -43,11 +42,12 @@ into a task branch before its fixes round (shared files conflict).
 
 ## Running jobs
 
-- AR5 step 4 fixes round, phase A (Opus implementer, started 2026-11-11 about 19:30; review
-  `.claude/reports/20261111-2000-review-ar5d.md`; report `20261111-2130-ar5d-fixes.md`).
+- `S11v2` on `held` (cap 480 minutes): background command of the main session, started
+  2026-11-11 19:54 in worktree `agent-a8a1ac8e80f8913cf` (branch `ar5d`, tip 1983a40; report
+  `20261111-2130-ar5d-fixes.md`). Marker there: `ar5/held/cache/logs/S11v2_held.done`.
 - AR5 step 5, phase A (Sonnet implementer, started 19:35; report
   `20261111-2030-ar5e.md`; brief `brief_ar5e.md` in the scratchpad).
-- Review page: version 43 (builder `run43.sh`, scratchpad). No machine-time run is going.
+- Review page: version 43 (builder `run43.sh`, scratchpad).
 
 ## Queue
 
@@ -79,8 +79,8 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - `agent-acc78ac2a483ed86f` (AR5 step 2), `agent-ab349f0b6193c2ca1` (AR4 step 1): caches, links.
 - `agent-a5a3601b746680640` (AR5 step 3): the `S11` caches and maps under `ar5/mix/`, links.
 - `agent-af8961874e131bda2` (AR3 step 11): the sample `held`, its image stack, the baseline
-  cache (`S8_held/`, `S8_held_cap120/`). `agent-a9fcb8cf18fe801c4`: links only.
-- `agent-a814d0121e137b01c` (AR5 step 4, branch `ar5d`): the three run caches on `held`.
+  cache (`S8_held/`, `S8_held_cap120/`).
+- AR5 step 4: `agent-a814d0121e137b01c` (three run caches on `held`), `agent-a8a1ac8e80f8913cf`.
 - `agent-a68538c58665829a1` (AR5 step 1, detached at 29e9b56): `ar5/cache/` and links.
 - Step 10: `agent-a6c7c67b4a03d1843` (`ar3/keys/cache/`), `agent-a3145f902bf0a61fb` (two reruns).
 - `agent-a9c88b610fb10e1b6` (step 9): `ar3/start/cache/`, the image stack and samples of `mid`.
