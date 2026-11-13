@@ -28,6 +28,7 @@
    "other_map_err_after_deg": 0.04113050922751427,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.027722714468836784,
    "cut_in_step": false
   },
   {
@@ -44,6 +45,7 @@
    "other_map_err_after_deg": 0.05442386120557785,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.030721431598067284,
    "cut_in_step": false
   },
   {
@@ -60,6 +62,7 @@
    "other_map_err_after_deg": 0.0957987979054451,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.040855396538972855,
    "cut_in_step": false
   },
   {
@@ -76,6 +79,7 @@
    "other_map_err_after_deg": 0.11532800644636154,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.16966745257377625,
    "cut_in_step": false
   }
  ],

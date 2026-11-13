@@ -22,6 +22,7 @@ sys.path.insert(0, str(HERE.parent.parent / "common"))
 
 import doc_tables as DT  # noqa: E402
 import patience_judge as PJ  # noqa: E402
+import stats as ST  # noqa: E402
 
 SAMPLES = ("held", "mid", "grad", "big")
 N = 24570
@@ -424,6 +425,85 @@ def tables(st: Dict[str, Any], pred: Dict[str, Any], um: Dict[str, Any]) -> Dict
     return t
 
 
+def wilson_cell(k: int, total: int) -> str:
+    lo, hi = ST.wilson(k, total)
+    return f"{n(k)} of {n(total)} ({100 * lo:.1f}% to {100 * hi:.1f}%)"
+
+
+def history_tables(st: Dict[str, Any], gate: Dict[str, Any]) -> Dict[str, str]:
+    """Tables for the MIGRATION_HISTORY section (review fix 1): the gate and two small shares."""
+    t: Dict[str, str] = {}
+    ps = gate["per_sample"]
+    gs = ("mid", "grad", "big")
+    lim = dict(mid=30, grad=3, big=6)
+
+    def row(label: str, cell: Any) -> Dict[str, Any]:
+        out: Dict[str, Any] = {"gate item": label}
+        for s in gs:
+            out[s] = cell(s)
+        return out
+
+    rows = [
+        row(
+            "seed steps replayed (all with an MC refinement)", lambda s: n(ps[s]["steps_replayed"])
+        ),
+        row(
+            "(g1) equal to G where uncut or cut after the last gain",
+            lambda s: "yes" if ps[s]["g1_ok"] else "no",
+        ),
+        row(
+            "(g2) taken ends changed (limit)",
+            lambda s: f"{ps[s]['taken_changed']} ({lim[s]})",
+        ),
+        row(
+            "(g3) changed end wrong where G right",
+            lambda s: n(len(ps[s]["changed_wrong_where_g_right"])),
+        ),
+        row(
+            "(g3) failed seed tests G / replay",
+            lambda s: f"{ps[s]['failed_seed_tests']['g']} / {ps[s]['failed_seed_tests']['s']}",
+        ),
+        row(
+            "(g4) evaluations saved, share of G's run (mid at least 8%)",
+            lambda s: f"{n(ps[s]['saved_evals'])} ({100 * ps[s]['saved_share_of_g_run']:.2f}%)",
+        ),
+        row(
+            "new rescues / new grid searches",
+            lambda s: f"{ps[s]['changed_paths']['rescued']} / {ps[s]['grid_searches_new']}",
+        ),
+    ]
+    t["patience_gate"] = DT.markdown_table(rows, ["gate item"] + list(gs))
+    rows = []
+    tot_cut = tot_under = 0
+    for s in SAMPLES:
+        d = st[s]
+        c = d["cuts"]
+        tot_cut += int(c["cut_refinements"])
+        tot_under += int(c["cut_end_hit_under_095"])
+        rows.append(
+            {
+                "sample": s,
+                "taken seed ends changed, of matched steps (Wilson 95%)": wilson_cell(
+                    d["taken_changed_n"], d["validity"]["matched_steps"]
+                ),
+                "cut refinements whose end is under hit ratio 0.95 (Wilson 95%)": wilson_cell(
+                    c["cut_end_hit_under_095"], c["cut_refinements"]
+                ),
+            }
+        )
+    rows.append(
+        {
+            "sample": "all four",
+            "taken seed ends changed, of matched steps (Wilson 95%)": "n/a",
+            "cut refinements whose end is under hit ratio 0.95 (Wilson 95%)": wilson_cell(
+                tot_under, tot_cut
+            ),
+        }
+    )
+    t["patience_shares"] = DT.markdown_table(rows, list(rows[0].keys()))
+    return t
+
+
 def main() -> None:
     st = {s: json.loads((PAT / f"stats_{s}.json").read_text()) for s in SAMPLES}
     um = {s: json.loads((PAT / f"unmatched_{s}.json").read_text()) for s in SAMPLES}
@@ -431,7 +511,7 @@ def main() -> None:
     plot(st)  # the plot comes first
     pareto(st)
     pred = predictions(st, gate)
-    DT.write_tables(PAT / "tables.md", tables(st, pred, um))
+    DT.write_tables(PAT / "tables.md", {**tables(st, pred, um), **history_tables(st, gate)})
     per = {s: bool(st[s]["rules"]["passes"]) for s in SAMPLES}
     verdict = PJ.step_verdict(per)
     failed = [

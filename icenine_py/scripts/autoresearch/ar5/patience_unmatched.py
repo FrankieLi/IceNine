@@ -8,7 +8,8 @@ script reads the same stored files (read only: both arms' ``e1_log.json.gz`` and
 error maps ``stats/part2_<arm>_<sample>_err.npz`` that ``patience_stats.py`` left in the cache)
 and lists the steps of each arm that the other arm does not have. For each one it gives the taken
 end (``order_logs.taken_end``: hit ratio, cost, error to the truth, whether it passes the seed test
-0.80), the other arm's map error at that voxel, before and after the boundary pass, and (S only)
+0.80), the other arm's map error at that voxel, before and after the boundary pass, the stored
+``S8`` map's error there after its pass, and (S only)
 whether any MC refinement of the step was cut (``mc_traces.json.gz``).
 
 The broad reading of rule (4) counts, among S's unmatched steps, a taken end that is wrong (over 1
@@ -70,6 +71,7 @@ def side(
             other_map_err_after_deg=float(err_other["after"][v]),
             other_map_wrong_before=bool(err_other["before"][v] > G.WRONG),
             other_map_wrong_after=bool(err_other["after"][v] > G.WRONG),
+            s8_map_err_after_deg=float(err_other["s8_after"][v]),
         )
         rows.append(row)
     return rows

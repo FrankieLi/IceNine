@@ -16,6 +16,18 @@
 | big | 162 | 55 | 206,422 | 23 | 32 | 4 | 0.0193 | 0 (281) | 0 (35) |
 <!-- /table:patience_cuts -->
 
+<!-- table:patience_gate -->
+| gate item | mid | grad | big |
+|---|---|---|---|
+| seed steps replayed (all with an MC refinement) | 770 | 478 | 99 |
+| (g1) equal to G where uncut or cut after the last gain | yes | yes | yes |
+| (g2) taken ends changed (limit) | 25 (30) | 1 (3) | 4 (6) |
+| (g3) changed end wrong where G right | 0 | 0 | 0 |
+| (g3) failed seed tests G / replay | 12 / 12 | 11 / 11 | 0 / 0 |
+| (g4) evaluations saved, share of G's run (mid at least 8%) | 1,431,626 (11.01%) | 20,390 (0.20%) | 230,137 (6.04%) |
+| new rescues / new grid searches | 0 / 0 | 0 / 0 | 0 / 0 |
+<!-- /table:patience_gate -->
+
 <!-- table:patience_layer -->
 | sample | arm | evaluations with the pass | seed step | wrong after pass | Wilson 95% (%) | fixed / broken vs G | fixed / broken vs S8 | broken minus fixed vs S8 |
 |---|---|---|---|---|---|---|---|---|
@@ -60,6 +72,16 @@
 | grad | 0.14 | pass | -1 | pass | -0.00000 | pass | 0; 5/5 | pass | 43.4; -8; -0.00130 | pass | yes | pass |
 | big | 5.01 | pass | 0 | pass | -0.00000 | pass | 0; 0/0 | pass | 56.6; -3; -0.00116 | pass | yes | pass |
 <!-- /table:patience_rules -->
+
+<!-- table:patience_shares -->
+| sample | taken seed ends changed, of matched steps (Wilson 95%) | cut refinements whose end is under hit ratio 0.95 (Wilson 95%) |
+|---|---|---|
+| held | 41 of 3,640 (0.8% to 1.5%) | 420 of 763 (51.5% to 58.5%) |
+| mid | 20 of 1,478 (0.9% to 2.1%) | 151 of 348 (38.3% to 48.6%) |
+| grad | 1 of 1,280 (0.0% to 0.4%) | 3 of 15 (7.0% to 45.2%) |
+| big | 4 of 281 (0.6% to 3.6%) | 23 of 55 (29.7% to 55.0%) |
+| all four | n/a | 597 of 1,181 (47.7% to 53.4%) |
+<!-- /table:patience_shares -->
 
 <!-- table:patience_stages -->
 | sample | arm | seed step | rescue | grid | neighbour | revisit | pass | total |

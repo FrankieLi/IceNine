@@ -28,6 +28,7 @@
    "other_map_err_after_deg": 0.022037645801901817,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.006296263542026281,
    "cut_in_step": false
   },
   {
@@ -44,6 +45,7 @@
    "other_map_err_after_deg": 0.09594348818063736,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.026914577931165695,
    "cut_in_step": false
   },
   {
@@ -60,6 +62,7 @@
    "other_map_err_after_deg": 0.05903880298137665,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.06747342646121979,
    "cut_in_step": false
   },
   {
@@ -76,6 +79,7 @@
    "other_map_err_after_deg": 0.1380043923854828,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.03976462408900261,
    "cut_in_step": false
   },
   {
@@ -92,6 +96,7 @@
    "other_map_err_after_deg": 0.06745751202106476,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.09549368172883987,
    "cut_in_step": false
   },
   {
@@ -108,6 +113,7 @@
    "other_map_err_after_deg": 0.031127221882343292,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.21183627843856812,
    "cut_in_step": true
   },
   {
@@ -124,6 +130,7 @@
    "other_map_err_after_deg": 0.04831189662218094,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.09306560456752777,
    "cut_in_step": true
   },
   {
@@ -140,6 +147,7 @@
    "other_map_err_after_deg": 0.02383963018655777,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.015689242631196976,
    "cut_in_step": false
   },
   {
@@ -156,6 +164,7 @@
    "other_map_err_after_deg": 0.05488187447190285,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.01926656812429428,
    "cut_in_step": false
   },
   {
@@ -172,6 +181,7 @@
    "other_map_err_after_deg": 0.027074182406067848,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.02994273044168949,
    "cut_in_step": true
   },
   {
@@ -188,6 +198,7 @@
    "other_map_err_after_deg": 0.07128608226776123,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.031980954110622406,
    "cut_in_step": true
   },
   {
@@ -204,6 +215,7 @@
    "other_map_err_after_deg": 0.051927823573350906,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.006982115097343922,
    "cut_in_step": true
   },
   {
@@ -220,6 +232,7 @@
    "other_map_err_after_deg": 0.04376675561070442,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.0005946292658336461,
    "cut_in_step": false
   },
   {
@@ -236,6 +249,7 @@
    "other_map_err_after_deg": 0.03641147539019585,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.0021246529649943113,
    "cut_in_step": true
   },
   {
@@ -252,6 +266,7 @@
    "other_map_err_after_deg": 0.181523859500885,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.09147173166275024,
    "cut_in_step": true
   },
   {
@@ -268,6 +283,7 @@
    "other_map_err_after_deg": 0.035681214183568954,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.012124077416956425,
    "cut_in_step": false
   },
   {
@@ -284,6 +300,7 @@
    "other_map_err_after_deg": 0.02445472963154316,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.046006940305233,
    "cut_in_step": true
   },
   {
@@ -300,6 +317,7 @@
    "other_map_err_after_deg": 0.019518399611115456,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.04419570416212082,
    "cut_in_step": false
   },
   {
@@ -316,6 +334,7 @@
    "other_map_err_after_deg": 0.01912890188395977,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.027416042983531952,
    "cut_in_step": false
   },
   {
@@ -332,6 +351,7 @@
    "other_map_err_after_deg": 0.05558916553854942,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.11541130393743515,
    "cut_in_step": false
   },
   {
@@ -348,6 +368,7 @@
    "other_map_err_after_deg": 0.14098112285137177,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.0471726655960083,
    "cut_in_step": true
   },
   {
@@ -364,6 +385,7 @@
    "other_map_err_after_deg": 0.08465680480003357,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.07861198484897614,
    "cut_in_step": true
   },
   {
@@ -380,6 +402,7 @@
    "other_map_err_after_deg": 0.0332147553563118,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.01952417939901352,
    "cut_in_step": true
   },
   {
@@ -396,6 +419,7 @@
    "other_map_err_after_deg": 0.13147549331188202,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.18784989416599274,
    "cut_in_step": false
   },
   {
@@ -412,6 +436,7 @@
    "other_map_err_after_deg": 0.029090669006109238,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.039084527641534805,
    "cut_in_step": false
   },
   {
@@ -428,6 +453,7 @@
    "other_map_err_after_deg": 0.07241217792034149,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.0236242413520813,
    "cut_in_step": false
   },
   {
@@ -444,6 +470,7 @@
    "other_map_err_after_deg": 0.06074647977948189,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.027362721040844917,
    "cut_in_step": false
   },
   {
@@ -460,6 +487,7 @@
    "other_map_err_after_deg": 0.04730883240699768,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.08567816764116287,
    "cut_in_step": false
   },
   {
@@ -476,6 +504,7 @@
    "other_map_err_after_deg": 0.03465116769075394,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.1483226716518402,
    "cut_in_step": true
   },
   {
@@ -492,6 +521,7 @@
    "other_map_err_after_deg": 0.04828204959630966,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.11399659514427185,
    "cut_in_step": true
   },
   {
@@ -508,6 +538,7 @@
    "other_map_err_after_deg": 0.1199323907494545,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.11380542814731598,
    "cut_in_step": true
   },
   {
@@ -524,6 +555,7 @@
    "other_map_err_after_deg": 0.03711257129907608,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.18725422024726868,
    "cut_in_step": false
   },
   {
@@ -540,6 +572,7 @@
    "other_map_err_after_deg": 0.04617075249552727,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.03366390988230705,
    "cut_in_step": true
   },
   {
@@ -556,6 +589,7 @@
    "other_map_err_after_deg": 0.04543444886803627,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.06473036855459213,
    "cut_in_step": false
   },
   {
@@ -572,6 +606,7 @@
    "other_map_err_after_deg": 0.033741146326065063,
    "other_map_wrong_before": false,
    "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.061986155807971954,
    "cut_in_step": false
   }
  ],
@@ -589,7 +624,8 @@
    "other_map_err_before_deg": 0.1686793714761734,
    "other_map_err_after_deg": 0.1686793714761734,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.024006351828575134
   },
   {
    "voxel": 2733,
@@ -604,7 +640,8 @@
    "other_map_err_before_deg": 0.05028219893574715,
    "other_map_err_after_deg": 0.05028219893574715,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.035592544823884964
   },
   {
    "voxel": 2740,
@@ -619,7 +656,8 @@
    "other_map_err_before_deg": 0.018570788204669952,
    "other_map_err_after_deg": 0.018570788204669952,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.04042050242424011
   },
   {
    "voxel": 2741,
@@ -634,7 +672,8 @@
    "other_map_err_before_deg": 0.04412582144141197,
    "other_map_err_after_deg": 0.04412582144141197,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.020600387826561928
   },
   {
    "voxel": 2792,
@@ -649,7 +688,8 @@
    "other_map_err_before_deg": 0.05495578423142433,
    "other_map_err_after_deg": 0.05495578423142433,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.0057913572527468204
   },
   {
    "voxel": 5016,
@@ -664,7 +704,8 @@
    "other_map_err_before_deg": 0.04555561766028404,
    "other_map_err_after_deg": 0.04555561766028404,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.023881997913122177
   },
   {
    "voxel": 5024,
@@ -679,7 +720,8 @@
    "other_map_err_before_deg": 0.04588792473077774,
    "other_map_err_after_deg": 0.04588792473077774,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.047046780586242676
   },
   {
    "voxel": 5025,
@@ -694,7 +736,8 @@
    "other_map_err_before_deg": 0.13573779165744781,
    "other_map_err_after_deg": 0.13573779165744781,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.07363993674516678
   },
   {
    "voxel": 6687,
@@ -709,7 +752,8 @@
    "other_map_err_before_deg": 0.09346234798431396,
    "other_map_err_after_deg": 0.13385780155658722,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.00672568753361702
   },
   {
    "voxel": 6703,
@@ -724,7 +768,8 @@
    "other_map_err_before_deg": 0.019380249083042145,
    "other_map_err_after_deg": 0.019380249083042145,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.00787378754466772
   },
   {
    "voxel": 11185,
@@ -739,7 +784,8 @@
    "other_map_err_before_deg": 0.11750409752130508,
    "other_map_err_after_deg": 0.11750409752130508,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.2149297147989273
   },
   {
    "voxel": 11194,
@@ -754,7 +800,8 @@
    "other_map_err_before_deg": 0.02057824470102787,
    "other_map_err_after_deg": 0.02057824470102787,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.03531786799430847
   },
   {
    "voxel": 11204,
@@ -769,7 +816,8 @@
    "other_map_err_before_deg": 0.04102465137839317,
    "other_map_err_after_deg": 0.04102465137839317,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.0564250573515892
   },
   {
    "voxel": 11347,
@@ -784,7 +832,8 @@
    "other_map_err_before_deg": 0.023601753637194633,
    "other_map_err_after_deg": 0.03432159125804901,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.03604796156287193
   },
   {
    "voxel": 11363,
@@ -799,7 +848,8 @@
    "other_map_err_before_deg": 0.06676433980464935,
    "other_map_err_after_deg": 0.018519330769777298,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.04497138783335686
   },
   {
    "voxel": 11364,
@@ -814,7 +864,8 @@
    "other_map_err_before_deg": 0.07902811467647552,
    "other_map_err_after_deg": 0.03358159214258194,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.037605106830596924
   },
   {
    "voxel": 11367,
@@ -829,7 +880,8 @@
    "other_map_err_before_deg": 0.03445591405034065,
    "other_map_err_after_deg": 0.03445591405034065,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.009458418935537338
   },
   {
    "voxel": 11995,
@@ -844,7 +896,8 @@
    "other_map_err_before_deg": 0.17657887935638428,
    "other_map_err_after_deg": 0.17657887935638428,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.062148116528987885
   },
   {
    "voxel": 12010,
@@ -859,7 +912,8 @@
    "other_map_err_before_deg": 0.06472644954919815,
    "other_map_err_after_deg": 0.06472644954919815,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.11539661139249802
   },
   {
    "voxel": 12011,
@@ -874,7 +928,8 @@
    "other_map_err_before_deg": 0.08545980602502823,
    "other_map_err_after_deg": 0.05367733910679817,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.0026211836375296116
   },
   {
    "voxel": 12961,
@@ -889,7 +944,8 @@
    "other_map_err_before_deg": 0.20463603734970093,
    "other_map_err_after_deg": 0.20463603734970093,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.04843927174806595
   },
   {
    "voxel": 13527,
@@ -904,7 +960,8 @@
    "other_map_err_before_deg": 0.043891724199056625,
    "other_map_err_after_deg": 0.043891724199056625,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.022796427831053734
   },
   {
    "voxel": 15019,
@@ -919,7 +976,8 @@
    "other_map_err_before_deg": 0.05451152101159096,
    "other_map_err_after_deg": 0.05451152101159096,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.007268174085766077
   },
   {
    "voxel": 15063,
@@ -934,7 +992,8 @@
    "other_map_err_before_deg": 0.09055887907743454,
    "other_map_err_after_deg": 0.09055887907743454,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.07410934567451477
   },
   {
    "voxel": 15071,
@@ -949,7 +1008,8 @@
    "other_map_err_before_deg": 0.043732576072216034,
    "other_map_err_after_deg": 0.043732576072216034,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.05667010694742203
   },
   {
    "voxel": 15076,
@@ -964,7 +1024,8 @@
    "other_map_err_before_deg": 0.11456949263811111,
    "other_map_err_after_deg": 0.11456949263811111,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.0588139072060585
   },
   {
    "voxel": 15079,
@@ -979,7 +1040,8 @@
    "other_map_err_before_deg": 0.03631306439638138,
    "other_map_err_after_deg": 0.03631306439638138,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.063321053981781
   },
   {
    "voxel": 17241,
@@ -994,7 +1056,8 @@
    "other_map_err_before_deg": 0.009419286623597145,
    "other_map_err_after_deg": 0.009419286623597145,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.004184403922408819
   },
   {
    "voxel": 23461,
@@ -1009,7 +1072,8 @@
    "other_map_err_before_deg": 0.037498150020837784,
    "other_map_err_after_deg": 0.037498150020837784,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.056991513818502426
   },
   {
    "voxel": 23467,
@@ -1024,7 +1088,8 @@
    "other_map_err_before_deg": 0.055209364742040634,
    "other_map_err_after_deg": 0.055209364742040634,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.03858351334929466
   },
   {
    "voxel": 23476,
@@ -1039,7 +1104,8 @@
    "other_map_err_before_deg": 0.012180336751043797,
    "other_map_err_after_deg": 0.012180336751043797,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.02261597290635109
   },
   {
    "voxel": 23485,
@@ -1054,7 +1120,8 @@
    "other_map_err_before_deg": 0.08789502084255219,
    "other_map_err_after_deg": 0.08789502084255219,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.04900587350130081
   },
   {
    "voxel": 23487,
@@ -1069,7 +1136,8 @@
    "other_map_err_before_deg": 0.0382823683321476,
    "other_map_err_after_deg": 0.0382823683321476,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.10227364301681519
   },
   {
    "voxel": 23610,
@@ -1084,7 +1152,8 @@
    "other_map_err_before_deg": 0.09097616374492645,
    "other_map_err_after_deg": 0.09097616374492645,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.11117315292358398
   },
   {
    "voxel": 23619,
@@ -1099,7 +1168,8 @@
    "other_map_err_before_deg": 0.03214000537991524,
    "other_map_err_after_deg": 0.03214000537991524,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.07403575628995895
   },
   {
    "voxel": 24249,
@@ -1114,7 +1184,8 @@
    "other_map_err_before_deg": 0.07975272089242935,
    "other_map_err_after_deg": 0.07975272089242935,
    "other_map_wrong_before": false,
-   "other_map_wrong_after": false
+   "other_map_wrong_after": false,
+   "s8_map_err_after_deg": 0.02994096465408802
   }
  ]
 }
