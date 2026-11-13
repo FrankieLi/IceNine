@@ -2897,6 +2897,157 @@ A timing. A second run of any arm with another random seed.
 - Not a library key for the seed-accept rule of `N1` now: its code is on two branches that wait
   for the owner.
 
+### AR5 step 10: a cheaper level 0 for the grid search that is left after the rescue
+
+Task `ar5j`. Approved: D-20261113-N3. Starts from `feature/eval-reduction` at `a5a473d` (step 9
+merged, `28b75fa`); reuses `order_run.py`, `order_pass.py`, `order_draws.py`, `rescue_rules.py`.
+Phase A ends at "READY FOR KEY" or at its gate; phase B starts only after a recorded decision.
+
+**Why.** After rule `G1` the grid search still runs 19 times on `held` (6.56 million evaluations,
+21.3% of arm `G`), 4 on `mid`, 5 on `grad`. The owner asks for a cheap approximation of that
+search, with a final local optimization after it. Level 0 is about 61% of a grid search (AR0's
+split), mostly a quick MC refinement of each of about 10,200 listed candidates. The per-level
+record says a candidate near the right orientation is always near the top of that list.
+
+**What was read** (stored files only, nothing rerun). Arm `G` of step 9: `ar5/rescue/stats_*.json`
+and `tables.md` (all four samples, evaluations by stage); in the untracked cache (worktree
+`agent-a8d20b3821621fd41`) `G_mid`, `G_grad`, `G_big`: `records.json.gz`, `rescue_log.json.gz`,
+`mc_traces.json.gz`, `run.json`; the per-level record of arm `A`'s 23 grid searches on `mid` and
+`grad` (`levels_<sample>.json`, `levels/<sample>_<voxel>.npz`); step 9's MC-stop draft. Angles
+to the final end use the 24 cubic rotations, only to read the record; the rule uses no symmetry.
+
+**Where arm `G`'s evaluations go.** Reading line: one row per sample; each stage's evaluations
+as a share of the run with the boundary pass. "Seed step" includes its MC refinements.
+
+| sample | total | seed step | rescue | grid search | neighbour | revisit | pass |
+|---|---|---|---|---|---|---|---|
+| held | 30,768,867 | 46.0% | 0.5% | 21.3% (19) | 4.8% | 10.4% | 16.9% |
+| mid | 13,004,457 | 41.7% | 0.2% | 10.3% (4) | 11.4% | 12.9% | 23.5% |
+| grad | 10,196,692 | 15.0% | 0.3% | 16.6% (5) | 14.5% | 17.5% | 36.1% |
+| big | 3,807,747 | 18.1% | 0 | 0 (0) | 39.3% | 12.8% | 29.8% |
+
+Seed-step MC refinements (arm `A`'s traces) are 37.3% (`mid`), 10.7% (`grad`), 15.7% (`big`) of
+`G`'s run. A neighbour fit is a fixed 61 evaluations; a revisit is 122 to 1,220.
+
+**What the per-level record says** (23 grid searches of arm `A`; the 9 that `G1` did not rescue
+are exactly arm `G`'s grid searches on `mid` and `grad`). Reading line: one row per finding;
+"place" counts from 0 in the level-0 list sorted by the discrete score.
+
+| finding, 23 grid searches | mid (12) | grad (11) |
+|---|---|---|
+| evaluations each; of which discrete stages | 329,721 to 338,416; 23% | 333,524 to 342,487; 23% |
+| level-0 list length | 10,092 to 10,249 | 10,300 to 10,439 |
+| place of the first candidate within 5 degrees of the end: 0 to 4; largest | 11; 92 | 8; 165 |
+| after the quick MC, first within 3 degrees: 0 to 4; largest | 12; 4 | 10; 88 |
+| level-0 best right (at most 1 degree); wrong by 17 to 60 degrees | 5; 7 | 4; 5 (2 at 1.07) |
+| level-3 best right; final end right | 12; 12 | 9; 11 |
+| `G1` failed: rescue end nearest the grid end, degrees | 0.08, 0.19, 0.29; 15.0 | 0.004 to 0.58 |
+| `G1` failed: hit ratio of that nearest end | 0.72, 0.77, 0.75; 0.20 | 0.59 to 0.81 |
+
+So `G1` failed in 8 of 9 cases with an end already 0.004 to 0.58 degree from the grid's end that
+stayed under 0.95; in one (`mid` 16979) no end was near. A stop after a level does not work: the
+level-0 best is wrong in 14 of 23, the level-3 best in 2, and level bests cost 0.13 to 0.84
+against about 0.07 for a 0.95 end. All 23 are in grains with orientation gradients.
+
+**Terms.** **Grid search**: the global search on the adaptive grid, levels 0 to 3. Each level
+has a discrete stage (screen of the start set times a 9-point local grid, strict re-cost, spacing
+filter; a list sorted by the **discrete score**), a quick MC refinement of every listed candidate
+(10 steps, 5 restarts), and keeps the best quarter as the next start set. Then the final local
+optimization (FindOptimal on the best 30, the variance stage). **Level-0 cut**: run the quick MC
+of level 0 only on the first N of its list; the quarter kept is counted from the cut list. **Arm
+`C`**: arm `G` with the level-0 cut, N = 1,000. **Right**/**wrong**: at most / over 1 degree from
+the truth (the library's symmetry-reduced angle). **Aligned draws**: as step 8; each grid search
+keeps its generator (voxel, "grid", 0), so the cut moves no other draw in the layer.
+
+**Samples, and what has touched them.** `mid`, `grad`: this draft read their records and chose
+N on them; disclosed. `big`: no grid search, so `C` must equal `G` there exactly. `held` (250
+grains, gradients 0 to 4 degrees): this draft read arm `G`'s and `A`'s stage totals and counts in
+`stats_held.json` and `tables.md`, and listed the file names in `cache/G_held`; no seed log, trace,
+rescue log, map or level record of `held` was opened. `held` is the test sample. Clean, Q-max 8.
+
+**Frozen now.** N = 1,000 at level 0 only; levels 1 to 3, the final local optimization, `G1`,
+0.80, 0.95 unchanged. Chosen from the record: 1,000 is about 6 times the largest place (165) and
+about 10% of the list. Not tuned after any run.
+
+**What is measured**, per sample: evaluations by stage; grid searches and evaluations each;
+error, hit ratio and cost of each cut search's end and of the full search's end it replaces (in
+the replay); wrong grid ends; voxels whose end changed against `G`; wrong voxels (Wilson 95%);
+fixed and broken against `G` and `S8`; median error. The runs also write each neighbour and
+revisit fit's best cost per generation to the cache (no evaluation added), not read here.
+
+**Predictions, written before any run.**
+1. Replay (23 disclosed cases): the cut search's end is right in 23; hit ratio at least 0.95 in
+   20 or 21 (the full search: 21); within 0.1 degree of the full search's end in at least 18;
+   85,000 to 135,000 evaluations a search (AR0's split: level 0's screen and re-cost stay).
+2. `held`: grid evaluations 60% to 75% fewer than `G`'s; total 12% to 17% fewer.
+3. `mid` 5% to 8% fewer in total; `grad` 9% to 13%; `big` identical to `G`.
+4. Grid searches within 2 of `G`'s on each sample; no wrong grid end on `mid` or `grad`.
+5. Broken minus fixed against `G` between -3 and 3 voxels; median error moves at most 0.001 degree.
+
+**Decision rules, fixed now.** Gate before any whole-layer run: in the replay, the cut search
+is right in at least 22 of 23, reaches 0.95 in at least 20, and the 23 need at least 50% fewer
+evaluations than the full searches (7,733,964); else stop, report, no tuning. The replay's count
+is a cost estimate only. Then `C` passes on a sample if, against `G`: (1) on `held`, `mid`, `grad`
+grid evaluations at least 50% fewer and the total fewer, on `held` at least 8% fewer; on `big`
+identical; (2) broken minus fixed at most 5; (3) median error at most 0.001 degree higher; (4) at
+most 1 more wrong grid end; (5) the house rule against `S8` with the pass: at least 20% fewer
+evaluations, broken minus fixed at most 5, median error at most 0.005 degree higher. The step
+passes if `C` passes on `held` and on all disclosed samples. If it fails on `held`: no key.
+
+**Machine.** Reproduction of 2 stored searches: about 0.7 million evaluations. Replay: about 2.5
+million. Arm `C` whole-layer: about 26 (`held`), 12.1 (`mid`), 9.0 (`grad`), 3.8 (`big`) million.
+About 54 million, 2.5 to 2.9 process-hours at 19 to 22 million an hour: about 1.5 hours wall with
+4 processes side by side (`held` is the long pole). Phase B: two runs on `mid` before the pass,
+about 18 million, about 30 minutes wall. Caps: 300 minutes `held`, 240 the rest; at most 4 heavy
+processes. Arm `G` is the stored step 9 run; `C` on `big` doubles as its parity check.
+
+**Stop rule:** stop and report if a stored total does not reproduce (the 2 searches: 335,077 for
+`mid` 7167 and 341,304 for `grad` 19058; the record's totals 4,007,241 and 3,726,723), if the gate
+fails, if `C` on `big` differs from `G_big`, if a cut search on a disclosed sample ends wrong in a
+whole-layer run, or if the key-on library run differs from the script arm before the pass.
+
+**Phase A (script layer).** 1. Link step 9's `G` runs and records; check totals; rerun the 2
+full searches with the recorder. 2. Tests first: `tests/test_ar5_cut.py` (the cut on a synthetic
+list: first N kept, level 0 only, quarter from the cut list; draws outside the grid unchanged).
+3. Commit `ar5/cut/frozen.json` (rule, N, hashes) before any `held` run. 4. Replay the cut on the
+23 cases (wrapping `run_discrete_search_spaced` in the script layer); gate. 5. `C` on `held`
+first, then `mid`, `grad`, `big`; passes; validity, stats, the plot (run evaluations against wrong
+voxels) before the tables; predictions. "READY FOR KEY".
+**Phase B (key).** The key; unit tests; key-off suite with no golden change; key on, a library
+run on `mid` equal to a script arm `Cl` (library draws) before the pass. Page
+`findings_ar5_cut.md`, history, pareto rows.
+**Files:** `scripts/autoresearch/ar5/cut_*.py`, `tests/test_ar5_cut.py`,
+`benchmarks/autoresearch/ar5/cut/` (under 3 MB tracked; records and traces untracked), the page.
+
+**Library changes:** phase A none. Phase B, only if the step passes: one opt-in key,
+`GridLevel0Top N` (default 0, off), used by `AdaptiveVoxelReconstructor.reconstruct_voxel` after
+level 0's discrete stage and before its quick MC; refused with `CandidateDedup` or
+`SmoothCostRank`; `config_file.py`, `orientation_search.py` parse and check it. Off path
+bit-identical; no default changes, no golden regeneration.
+
+**Not in this step.** A cut of the level-0 screen or re-cost (about 79,000 of what is left). A
+learned ranking of level-0 candidates (the 23 records are its data). A stronger local optimization
+from the near ends. An early stop of MC or neighbour fits. The pass-skip key in the base arm.
+Other values of N, 0.80, 0.95. Realistic images. Another crystal system. A timing. A second run
+of any arm with another random seed.
+
+**Choices made.**
+- (a) The level-0 cut, not a stop after a level (the level bests above are often wrong and never
+  near a 0.95 cost) and not a learned ranker yet: the discrete score already puts a candidate
+  within 5 degrees of the end at place 165 or better in 23 of 23 (Wilson 95% 86% to 100%).
+- N = 1,000, not 500 (3 times the largest place) or 2,000 (at least 12,000 more a search).
+- Not a stronger local optimization from `G1`'s near ends first: 8 of 9 failures have one, but
+  both the seed step's MC refinement and `G1`'s CMA stopped there under 0.95, so what would reach
+  0.95 is unknown, and it cannot help a case like `mid` 16979. A next step; the cut search would
+  be its fallback.
+- Not (b) the MC stop `P(2000)`: about 15% of `G` on `mid`, 8% on `big`, 0.5% on `grad`; its
+  `held` share is unknown (no `held` trace read); it changes 39 taken seed ends on `mid`, where
+  `G` against `S8` is already at net 4 broken (limit 5); its replay costs about 6.5 million.
+- Not (c) an early stop of neighbour fits: they are fixed at 61 evaluations and no trace is
+  stored; this step records the traces at no cost.
+- Not (d) the pass: the skip key of step 7 is measured (69% to 83% of the pass); stacking it is
+  a combined run, not a new test.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
