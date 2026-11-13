@@ -298,6 +298,7 @@ class RescueFake(IndexFake):
             return super().local_optimization(voxel_vertices, phase_index, **kw)
         i = self._idx(voxel_vertices)
         RescueFake.lo_calls.append(dict(idx=i, **{k: v for k, v in kw.items() if k != "rng"}))
+        kw["rng"].random()  # a CMA run draws from the generator it is given
         self.last_local_optimization_evals = int(kw["cma_max_evals"]) + 1
         R0 = np.asarray(kw["initial_orientation"], np.float64)
         R = self.truth[i].astype(np.float64) if i in self.rescuable else R0
@@ -363,21 +364,55 @@ def test_key_on_a_rescued_seed_skips_the_grid_search(monkeypatch: pytest.MonkeyP
     assert mic.voxels[0].overlap_ratio == pytest.approx(0.97)
 
 
+_ORIG_GRID = RescueFake.reconstruct_voxel
+_ORIG_SAMPLE = BFSReconstruction.reconstruct_sample
+
+
+class _NoShuffle(np.random.Generator):
+    """A real generator (PCG64) whose ``shuffle`` keeps the order, so the seed order of ``_run``
+    stays voxel 0 first while the grid search gets a generator with a state to compare."""
+
+    def shuffle(self, x: Any, axis: int = 0) -> None:
+        return None
+
+
+def _grid_generator(monkeypatch: pytest.MonkeyPatch, kw: Dict[str, Any]) -> Tuple[Any, Any, Any]:
+    """One BFS run with a real generator passed to ``reconstruct_sample``. Returns the run, the
+    generator, and what the grid search received: the generator object and its
+    ``bit_generator.state`` when the grid search is called."""
+    _reset_rescue(failing=(0,), rescuable=())
+    gen = _NoShuffle(np.random.PCG64(7))
+    seen: List[Tuple[Any, Dict[str, Any]]] = []
+    orig_grid, orig_sample = _ORIG_GRID, _ORIG_SAMPLE  # unpatched, so two runs do not stack
+
+    def grid(self: Any, voxel_vertices: Any, phase_index: int, rng: Any) -> Any:
+        seen.append((rng, rng.bit_generator.state))
+        return orig_grid(self, voxel_vertices, phase_index, rng)
+
+    def sample(self: Any, *a: Any, rng: Any = None, **k: Any) -> Any:
+        return orig_sample(self, *a, rng=gen, **k)
+
+    monkeypatch.setattr(RescueFake, "reconstruct_voxel", grid)
+    monkeypatch.setattr(BFSReconstruction, "reconstruct_sample", sample)
+    bfs, _ = _run((0.5,), monkeypatch, fake=RescueFake, **kw)
+    assert len(seen) == 1
+    return bfs, gen, seen[0]
+
+
 def test_key_on_a_failed_rescue_runs_the_grid_with_the_bfs_generator(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _reset_rescue(failing=(0,), rescuable=())
-    seen: List[Any] = []
-    orig = RescueFake.reconstruct_voxel
-
-    def grid(self: Any, voxel_vertices: Any, phase_index: int, rng: Any) -> Any:
-        seen.append(rng)
-        return orig(self, voxel_vertices, phase_index, rng)
-
-    monkeypatch.setattr(RescueFake, "reconstruct_voxel", grid)
-    bfs, _ = _run((0.5,), monkeypatch, fake=RescueFake, **ON)
+    # key off: the failed seed goes straight to the grid search
+    _, gen_off, (rng_off, state_off) = _grid_generator(monkeypatch, BASE)
+    assert rng_off is gen_off
+    # key on: two rescue tries fail, then the grid search gets the same generator object, in the
+    # same state as with the key off (the rescue draws nothing from it, so later draws do not move)
+    bfs, gen, (rng, state) = _grid_generator(monkeypatch, ON)
+    assert rng is gen
+    assert state == state_off
+    assert len(RescueFake.lo_calls) == 2
     s = bfs.stats
-    assert len(seen) == 1 and s["index_rescue_runs"] == 1 and "index_rescued" not in s
+    assert s["index_rescue_runs"] == 1 and "index_rescued" not in s
     assert s["index_rescue_tries"] == 2 and s["index_rescue_evals"] == 2002
     assert s["index_fallback_grid_evals"] == 1000  # the grid alone
     assert s["n_evals_seed"] == 1234 + 2002 + 1000
