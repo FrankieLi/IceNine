@@ -887,6 +887,29 @@ writes). The page `findings_ar5_gate.md` is not in the tree yet.
 - Lesson: one shifted draw stream alone moved 4 to 15 voxels each way per sample (one re-draw
   per sample). A live test of a change that only removes work uses aligned draws.
 
+### AR5 step 8 (sweep order of the seed step; task `ar5h`), merged at 949dc61 on 2026-11-12
+
+A study with scripts only: no library change, no key. Suite after the merge: 1783 passed, 44
+skipped, 1 deselected. Decisions D-20261112-N7 (plan), N8 (both arms are `S11` with merged
+keys), N9 (review: fails, no key, merge as a study). Reports: `20261112-1419-ar5h.md`,
+`20261112-1419-ar5h-corrected.md`, `20261112-2200-review-ar5h.md`, `20261112-2215-ar5h-fixes.md`
+(all in the main `.claude/reports/`). The page text `20261112-ar5h-page.md` (main checkout; the
+write was refused) goes to `icenine_py/docs/autoresearch/findings_ar5_order.md`; it waits for the
+owner.
+
+- The run: CMA on every seed candidate before any MC refinement (`Y`), against the order of
+  `S11` (`A`). Seed-step evaluations cut: 22.6% `held`, 38.8% `mid`, 16.4% `grad`, 60.1% `big`.
+  Whole run: 7.7%, 13.4%, 2.1%, 10.6%.
+- Verdict: FAIL by rule 5 (house rule against `S8`): broken minus fixed 8 on `held` and 7 on
+  `mid`, limit 5. `Y` against `A`, fixed / broken: 1/6, 2/5, 0/0, 3/0. Wrong after the pass,
+  `A` / `Y`: 73/78, 35/38, 56/56, 21/18. No key.
+- Lesson 1: a seed-step replay is a cost estimate only; it does not show the result.
+- Lesson 2: a background command of the main session dies with the session. Start long runs
+  detached (`nohup perl -MPOSIX -e 'POSIX::setsid(); exec @ARGV' <script>`); the cron wake-up
+  checks the marker file.
+- Data that stays untracked: worktree `agent-abdf64302f4022c0a` (detached): the run cache
+  `ar5/order/cache` (step 9 links the `A` runs) and the MC traces.
+
 ## For the owner
 
 - Still yours: item 12 (apply and commit, below), Ilium's plan approvals, and the note on what
