@@ -1,0 +1,98 @@
+{
+ "sample": "held",
+ "n_voxels": 24570,
+ "rescued_voxels": [
+  228,
+  641,
+  747,
+  748,
+  1093,
+  1094,
+  1627,
+  2007,
+  2068,
+  2428,
+  3258,
+  3547,
+  3665,
+  3691,
+  4064,
+  4198,
+  5969,
+  7316,
+  7317,
+  7524,
+  8588,
+  9208,
+  9377,
+  9657,
+  9674,
+  13032,
+  13097,
+  13284,
+  13596,
+  15639,
+  15827,
+  15831,
+  17192,
+  17285,
+  17506,
+  18259,
+  18554,
+  18601,
+  18869,
+  18884,
+  20074,
+  21687,
+  23203,
+  23472,
+  23489,
+  23995
+ ],
+ "differ_before": {
+  "n": 67,
+  "rescued_in": 46,
+  "rescued_not_in": 0,
+  "others": 21,
+  "others_in_a_rescued_grain": 20,
+  "others_max_deg": 0.10103715932070281,
+  "equals_rescued_set": false,
+  "n_over_1e6_deg": 67
+ },
+ "differ_after": {
+  "n": 68,
+  "rescued_in": 46,
+  "rescued_not_in": 0,
+  "others": 22,
+  "others_in_a_rescued_grain": 21,
+  "others_max_deg": 0.5348479155501883,
+  "equals_rescued_set": false,
+  "n_over_1e6_deg": 68
+ },
+ "rescued": {
+  "n": 46,
+  "median_deg": 0.009666344187355139,
+  "max_deg": 57.60605864479767,
+  "max_voxel": 9657,
+  "a_right": 43,
+  "max_deg_where_a_right": 0.7050324208791927,
+  "a_wrong": [
+   {
+    "voxel": 1093,
+    "err_a": 47.32333310445275,
+    "err_g": 0.00100265143469214
+   },
+   {
+    "voxel": 7316,
+    "err_a": 51.59065379815893,
+    "err_g": 0.0006447860964938882
+   },
+   {
+    "voxel": 9657,
+    "err_a": 57.60885401202364,
+    "err_g": 0.004841881086974473
+   }
+  ]
+ },
+ "note": "voxels whose stored orientation differs between arm A and arm G; with aligned draws only the rescued voxels and voxels grown from them may change"
+}

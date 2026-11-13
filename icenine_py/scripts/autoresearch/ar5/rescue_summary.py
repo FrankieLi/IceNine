@@ -22,6 +22,7 @@ N = 24570
 
 import doc_tables as DT  # noqa: E402
 import rescue_judge as RJ  # noqa: E402
+import stats as ST  # noqa: E402
 
 STORED = {  # the plan's stop-rule totals (arm A, with the pass) and fallback evaluations
     "grad": (12_189_777, 3_726_723),
@@ -38,6 +39,14 @@ def n(x: int) -> str:
     return f"{x:,}"
 
 
+def wil(k: int, m: int) -> str:
+    """``k / m (lo% to hi%)`` with the Wilson 95% interval (``-`` when ``m`` is 0)."""
+    if m == 0:
+        return "-"
+    lo, hi = ST.wilson(k, m)
+    return f"{k} / {m} ({100 * lo:.1f}% to {100 * hi:.1f}%)"
+
+
 def validity(st: Dict[str, Any]) -> Dict[str, Any]:
     v: Dict[str, Any] = {}
     for s in SAMPLES:
@@ -50,12 +59,39 @@ def validity(st: Dict[str, Any]) -> Dict[str, Any]:
             ok["stored_total_reproduces"] = a["stages"]["total"] == STORED[s][0]
             ok["stored_fallback_evals_reproduce"] = a["stages"]["grid_fallback"] == STORED[s][1]
         if s == "big":
-            ok["g_equals_a_evals_and_map"] = bool(
+            # no seed test fails on big, so the rescue never runs there: this shows only that the
+            # idle wrapper adds no draw or side effect, not that the draws are isolated
+            ok["big_idle_path_g_equals_a_evals_and_map"] = bool(
                 st[s]["g_vs_a"]["same_map"] and st[s]["g_vs_a"]["same_evals"]
             )
         v[s] = ok
     v["all_ok"] = all(all(x.values()) for k, x in v.items() if k in SAMPLES)
     return v
+
+
+def isolation(iso: Dict[str, Any]) -> Dict[str, Any]:
+    """The check of draw isolation (review fix 6): voxels that differ between A and G."""
+    out: Dict[str, Any] = {}
+    for s in SAMPLES:
+        b, a = iso[s]["differ_before"], iso[s]["differ_after"]
+        out[s] = dict(
+            rescued=iso[s]["rescued"]["n"],
+            differ_before=b["n"],
+            differ_before_others=b["others"],
+            differ_before_others_in_a_rescued_grain=b["others_in_a_rescued_grain"],
+            differ_before_others_max_deg=b["others_max_deg"],
+            differ_before_is_the_rescued_set=b["equals_rescued_set"],
+            differ_after=a["n"],
+            differ_after_others=a["others"],
+        )
+    out["note"] = (
+        "With aligned draws only the rescued voxels and voxels grown from them may change. "
+        "mid: exactly the rescued voxels differ. grad, held: the other differing voxels are "
+        "mostly in a rescued voxel's grain (consistent with local growth from a changed seed; "
+        "the growth link of the rest is not traced). big has no failed seed step and is not a "
+        "test of isolation."
+    )
+    return out
 
 
 def plot(st: Dict[str, Any]) -> None:
@@ -135,6 +171,10 @@ def pareto(st: Dict[str, Any]) -> None:
 
 def main() -> None:
     st = {s: json.loads((RES / f"stats_{s}.json").read_text()) for s in SAMPLES}
+    iso = {s: json.loads((RES / f"isolation_{s}.json").read_text()) for s in SAMPLES}
+    for s in SAMPLES:  # each try is counted as 1,001 evaluations (checked, not assumed)
+        z = st[s]["rescue"]
+        assert z["rescue_evals"] == 1001 * z["tries"], (s, z)
     gate = json.loads((RES / "gate.json").read_text())["all"]
     val = validity(st)
     plot(st)
@@ -166,28 +206,32 @@ def main() -> None:
     # ---- table 2: rescues
     r = [
         (
-            "| sample | failed seed steps (A / G) | rescues tried | rescued | tries | grid"
+            "| sample | failed seed steps (A / G) | rescued / tried (Wilson 95%) | tries | grid"
             " fallbacks left | rescued hit ratio min | rescued error median / max | wrong rescued"
-            " seeds |"
+            " / rescued (Wilson 95%) |"
         ),
-        "|---|---|---|---|---|---|---|---|---|",
+        "|---|---|---|---|---|---|---|---|",
     ]
     for s in SAMPLES:
         a = st[s]["arms"]["A"]
         z = st[s]["rescue"]
         em = st[s]["rescued_err_median"]
+        hit = f"{st[s]['rescued_hit_min']:.3f}" if em is not None else "-"
+        err = f"{em:.4f} / {st[s]['rescued_err_max']:.4f}" if em is not None else "-"
         r.append(
-            f"| {s} | {a['grid_fallbacks']} / {z['rescues_attempted']} | {z['rescues_attempted']} |"
-            f" {z['rescued']} | {z['tries']} | {z['grid_fallbacks_left']} | "
-            + (f"{st[s]['rescued_hit_min']:.3f}" if em is not None else "-")
-            + " | "
-            + (f"{em:.4f} / {st[s]['rescued_err_max']:.4f}" if em is not None else "-")
-            + f" | {st[s]['wrong_rescued']} |"
+            f"| {s} | {a['grid_fallbacks']} / {z['rescues_attempted']} |"
+            f" {wil(z['rescued'], z['rescues_attempted'])} | {z['tries']} |"
+            f" {z['grid_fallbacks_left']} | {hit} | {err} |"
+            f" {wil(st[s]['wrong_rescued'], z['rescued'])} |"
         )
+    k_all = sum(st[s]["rescue"]["rescued"] for s in SAMPLES)
+    w_all = sum(st[s]["wrong_rescued"] for s in SAMPLES)
+    r.append(f"| all | - | - | - | - | - | - | {wil(w_all, k_all)} |")
     T["rescues"] = (
         "Reading line: what rule G1 did at the failed seed steps of arm G (errors in degrees"
-        " against the truth, scoring only; wrong means over 1 degree).\n\n"
-        + "\n".join(r)
+        " against the truth, scoring only; wrong means over 1 degree). A try is counted as 1,001"
+        " evaluations; the one overlap evaluation per try for the hit ratio is not counted (as in"
+        " the seed step).\n\n" + "\n".join(r)
     )
     # ---- table 3: accuracy
     r = [
@@ -219,7 +263,7 @@ def main() -> None:
     r = [
         (
             "| sample | pair | before pass fixed / broken | after pass fixed / broken | both wrong"
-            " after | taken end differs (matched steps) |"
+            " after | seed step's own end differs (pairing check) |"
         ),
         "|---|---|---|---|---|---|",
     ]
@@ -244,8 +288,47 @@ def main() -> None:
         )
     T["paired"] = (
         "Reading line: the base is the arm named after `vs`; fixed = wrong in the base and right "
-        "in the first-named arm, broken = the reverse, counted by voxel.\n\n"
-        + "\n".join(r)
+        "in the first-named arm, broken = the reverse, counted by voxel. The last column is 0 "
+        "by construction: the rescue runs after the seed step, whose own fits are unchanged; it "
+        "checks the pairing, not whether a voxel's end changed (see the table of changed "
+        "ends).\n\n" + "\n".join(r)
+    )
+    # ---- table 4b: draw isolation and changed ends (review fixes 5 and 6)
+    r = [
+        (
+            "| sample | rescued | voxels whose end changed, before pass (rescued + others) |"
+            " others in a rescued voxel's grain | others, largest change | changed after pass |"
+            " G vs A at the rescued voxels: median / largest | largest where A was right |"
+            " A wrong (over 1 degree) at a rescued voxel |"
+        ),
+        "|---|---|---|---|---|---|---|---|---|",
+    ]
+    for s in SAMPLES:
+        b, af, rz = iso[s]["differ_before"], iso[s]["differ_after"], iso[s]["rescued"]
+        if rz["n"]:
+            med = f"{f(rz['median_deg'], 4)} / {f(rz['max_deg'], 4)}"
+            mr = f(rz["max_deg_where_a_right"], 4)
+            aw = (
+                f"{len(rz['a_wrong'])} (A off "
+                + ", ".join(f"{w['err_a']:.0f}" for w in rz["a_wrong"])
+                + " degrees; G's end "
+                + ("right" if all(w["err_g"] <= 1.0 for w in rz["a_wrong"]) else "NOT right")
+                + ")"
+                if rz["a_wrong"]
+                else "0"
+            )
+        else:
+            med = mr = aw = "-"
+        r.append(
+            f"| {s} | {rz['n']} | {b['n']} ({b['rescued_in']} + {b['others']}) |"
+            f" {b['others_in_a_rescued_grain']} | {f(b['others_max_deg'], 4)} | {af['n']} |"
+            f" {med} | {mr} | {aw} |"
+        )
+    T["isolation"] = (
+        "Reading line: per sample, the voxels whose stored orientation differs between arm A and "
+        "arm G (angles in degrees). With aligned draws only the rescued voxels and voxels grown "
+        "from them may change; this is the check of draw isolation (big has no failed seed "
+        "step, so its G = A tests nothing about it).\n\n" + "\n".join(r)
     )
     # ---- rules
     r = [
@@ -270,8 +353,7 @@ def main() -> None:
         )
     T["rules"] = (
         "Reading line: the plan's five frozen rules for arm G against arm A (and the house rule "
-        "against S8), per sample; a rule that is not met says NO.\n\n"
-        + "\n".join(r)
+        "against S8), per sample; a rule that is not met says NO.\n\n" + "\n".join(r)
     )
     # ---- predictions
     h, m, gr, b = (st[s] for s in ("held", "mid", "grad", "big"))
@@ -356,6 +438,30 @@ def main() -> None:
         json.dumps(
             dict(
                 validity=val,
+                draw_isolation=isolation(iso),
+                counting=dict(
+                    evals_per_try=1001,
+                    hit_ratio_overlap_evals_not_counted=sum(
+                        st[s]["rescue"]["tries"] for s in SAMPLES
+                    ),
+                    note=(
+                        "each rescue try is 1,001 evaluations in the totals; the one overlap "
+                        "evaluation per try for the hit ratio is not counted (as in the seed step)"
+                    ),
+                ),
+                rescued_wilson={
+                    s: dict(
+                        rescued=st[s]["rescue"]["rescued"],
+                        tried=st[s]["rescue"]["rescues_attempted"],
+                        wilson_95=list(
+                            ST.wilson(
+                                st[s]["rescue"]["rescued"], st[s]["rescue"]["rescues_attempted"]
+                            )
+                        ),
+                    )
+                    for s in SAMPLES
+                    if st[s]["rescue"]["rescues_attempted"]
+                },
                 predictions=preds,
                 per_sample_passes=per,
                 step_passes=verdict,

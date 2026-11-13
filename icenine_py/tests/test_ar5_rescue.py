@@ -162,24 +162,49 @@ def test_a_step_is_rescued_once_the_next_call_is_plain() -> None:
     assert s["w"](voxel_vertices=7, phase_index=0, rng=None) == "GRID"
 
 
-def test_rescue_draws_nothing_from_the_aligned_book() -> None:
+def _aligned_setup(hits: Dict[int, float], key: int = 7) -> Dict[str, Any]:
+    """The wrapper in front of the aligned grid fallback, as ``rescue_run.RescueWrap`` stacks
+    them: ``make_wrapper(aligned_reconstruct_voxel(book, grid), ...)``."""
+    rec = _Rec()
     book = OD.DrawBook()
-    before = book.n_issued
-    s = _setup({0: 0.99}, [0.1])
-    s["w"](voxel_vertices=7, phase_index=0, rng=None)
-    assert book.n_issued == before
-    # the grid draw of arm G at a voxel is the (voxel, grid, count) draw, as in arm A
-    a = OD.make_rng(7, "grid", 0).random(3)
-    b = OD.DrawBook().rng(7, "grid").random(3)
-    assert np.array_equal(a, b)
+    seen: List[Any] = []
+
+    def grid(voxel_vertices: Any, phase_index: int, rng: Any = None) -> str:
+        seen.append(rng)
+        rec._last_global_evals, rec._last_local_evals = 300_000, 35_000
+        return "GRID"
+
+    aligned = OD.aligned_reconstruct_voxel(book, grid)
+    step = dict(key=key, voxel=42, used=False, kept=[dict(R=np.eye(3), cost=0.1, hit=0.5)])
+
+    def try_end(e: Dict[str, Any], v: Any, ph: int) -> Dict[str, Any]:
+        return dict(hit=hits.get(0, 0.5), cost=0.0, evals=1001, result="RESCUED")
+
+    w = RR.make_wrapper(aligned, lambda: step, OD.voxel_key, try_end, rec, [])
+    return dict(w=w, book=book, seen=seen)
 
 
-def test_aligned_draws_unchanged_by_this_step() -> None:
-    g = OD.make_rng(123, "grid", 2)
-    assert (
-        g.random()
-        == np.random.default_rng(np.random.SeedSequence([123, OD.kind_id("grid"), 2])).random()
+def test_a_rescue_draws_nothing_from_the_aligned_book() -> None:
+    s = _aligned_setup({0: 0.99})
+    assert s["w"](voxel_vertices=7, phase_index=0, rng="LIBRARY") == "RESCUED"
+    assert s["book"].n_issued == 0 and s["book"].counts == {} and s["seen"] == []
+
+
+def test_a_failed_rescue_takes_the_first_grid_draw_of_the_voxel_as_in_arm_a() -> None:
+    s = _aligned_setup({0: 0.5})
+    assert s["w"](voxel_vertices=7, phase_index=0, rng="LIBRARY") == "GRID"
+    assert s["book"].n_issued == 1 and s["book"].counts == {(7, "grid"): 1}
+    (g,) = s["seen"]
+    assert g != "LIBRARY"  # the aligned generator replaced the library's
+    assert np.array_equal(g.random(5), OD.make_rng(7, "grid", 0).random(5))
+    # arm A at the same voxel: the aligned grid call alone, with no wrapper in front
+    book_a = OD.DrawBook()
+    seen_a: List[Any] = []
+    OD.aligned_reconstruct_voxel(book_a, lambda **kw: seen_a.append(kw["rng"]))(
+        voxel_vertices=7, phase_index=0, rng="LIBRARY"
     )
+    assert book_a.counts == s["book"].counts
+    assert np.array_equal(seen_a[0].random(5), OD.make_rng(7, "grid", 0).random(5))
 
 
 # ---- the verdict rules (rescue_judge) ---------------------------------------------------------

@@ -21,9 +21,83 @@
    "seed_steps_ok": true,
    "stored_total_reproduces": true,
    "stored_fallback_evals_reproduce": true,
-   "g_equals_a_evals_and_map": true
+   "big_idle_path_g_equals_a_evals_and_map": true
   },
   "all_ok": true
+ },
+ "draw_isolation": {
+  "held": {
+   "rescued": 46,
+   "differ_before": 67,
+   "differ_before_others": 21,
+   "differ_before_others_in_a_rescued_grain": 20,
+   "differ_before_others_max_deg": 0.10103715932070281,
+   "differ_before_is_the_rescued_set": false,
+   "differ_after": 68,
+   "differ_after_others": 22
+  },
+  "mid": {
+   "rescued": 8,
+   "differ_before": 8,
+   "differ_before_others": 0,
+   "differ_before_others_in_a_rescued_grain": 0,
+   "differ_before_others_max_deg": 0.0,
+   "differ_before_is_the_rescued_set": true,
+   "differ_after": 8,
+   "differ_after_others": 0
+  },
+  "grad": {
+   "rescued": 6,
+   "differ_before": 32,
+   "differ_before_others": 26,
+   "differ_before_others_in_a_rescued_grain": 20,
+   "differ_before_others_max_deg": 0.27072323535782766,
+   "differ_before_is_the_rescued_set": false,
+   "differ_after": 36,
+   "differ_after_others": 30
+  },
+  "big": {
+   "rescued": 0,
+   "differ_before": 0,
+   "differ_before_others": 0,
+   "differ_before_others_in_a_rescued_grain": 0,
+   "differ_before_others_max_deg": 0.0,
+   "differ_before_is_the_rescued_set": true,
+   "differ_after": 0,
+   "differ_after_others": 0
+  },
+  "note": "With aligned draws only the rescued voxels and voxels grown from them may change. mid: exactly the rescued voxels differ. grad, held: the other differing voxels are mostly in a rescued voxel's grain (consistent with local growth from a changed seed; the growth link of the rest is not traced). big has no failed seed step and is not a test of isolation."
+ },
+ "counting": {
+  "evals_per_try": 1001,
+  "hit_ratio_overlap_evals_not_counted": 233,
+  "note": "each rescue try is 1,001 evaluations in the totals; the one overlap evaluation per try for the hit ratio is not counted (as in the seed step)"
+ },
+ "rescued_wilson": {
+  "held": {
+   "rescued": 46,
+   "tried": 65,
+   "wilson_95": [
+    0.5880373289917318,
+    0.8041673844373576
+   ]
+  },
+  "mid": {
+   "rescued": 8,
+   "tried": 12,
+   "wilson_95": [
+    0.3906175873976139,
+    0.8618821601026385
+   ]
+  },
+  "grad": {
+   "rescued": 6,
+   "tried": 11,
+   "wilson_95": [
+    0.28008775568998817,
+    0.7872904245601196
+   ]
+  }
  },
  "predictions": {
   "1": {

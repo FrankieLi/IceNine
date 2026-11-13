@@ -28,10 +28,21 @@ Reading line: evaluations by stage, run plus boundary pass, arm A (stored step 8
 | big | 3,807,747 | 3,807,747 | 0.0% | 687,902 | 687,902 | 0 | 0 | 0 | 1,984,513 | 1,135,332 / 1,135,332 |
 <!-- /table:evals -->
 
-<!-- table:paired -->
-Reading line: the base is the arm named after `vs`; fixed = wrong in the base and right in the first-named arm, broken = the reverse, counted by voxel.
+<!-- table:isolation -->
+Reading line: per sample, the voxels whose stored orientation differs between arm A and arm G (angles in degrees). With aligned draws only the rescued voxels and voxels grown from them may change; this is the check of draw isolation (big has no failed seed step, so its G = A tests nothing about it).
 
-| sample | pair | before pass fixed / broken | after pass fixed / broken | both wrong after | taken end differs (matched steps) |
+| sample | rescued | voxels whose end changed, before pass (rescued + others) | others in a rescued voxel's grain | others, largest change | changed after pass | G vs A at the rescued voxels: median / largest | largest where A was right | A wrong (over 1 degree) at a rescued voxel |
+|---|---|---|---|---|---|---|---|---|
+| held | 46 | 67 (46 + 21) | 20 | 0.1010 | 68 | 0.0097 / 57.6061 | 0.7050 | 3 (A off 47, 52, 58 degrees; G's end right) |
+| mid | 8 | 8 (8 + 0) | 0 | 0.0000 | 8 | 0.0123 / 0.0907 | 0.0907 | 0 |
+| grad | 6 | 32 (6 + 26) | 20 | 0.2707 | 36 | 0.0018 / 0.0178 | 0.0178 | 0 |
+| big | 0 | 0 (0 + 0) | 0 | 0.0000 | 0 | - | - | - |
+<!-- /table:isolation -->
+
+<!-- table:paired -->
+Reading line: the base is the arm named after `vs`; fixed = wrong in the base and right in the first-named arm, broken = the reverse, counted by voxel. The last column is 0 by construction: the rescue runs after the seed step, whose own fits are unchanged; it checks the pairing, not whether a voxel's end changed (see the table of changed ends).
+
+| sample | pair | before pass fixed / broken | after pass fixed / broken | both wrong after | seed step's own end differs (pairing check) |
 |---|---|---|---|---|---|
 | held | G vs A | 3 / 0 | 4 / 0 | 69 | 0 of 3702 |
 | held | G vs S8 | 26 / 32 | 25 / 24 | 45 | - |
@@ -60,14 +71,15 @@ Reading line: the five predictions written before any run.
 <!-- /table:predictions -->
 
 <!-- table:rescues -->
-Reading line: what rule G1 did at the failed seed steps of arm G (errors in degrees against the truth, scoring only; wrong means over 1 degree).
+Reading line: what rule G1 did at the failed seed steps of arm G (errors in degrees against the truth, scoring only; wrong means over 1 degree). A try is counted as 1,001 evaluations; the one overlap evaluation per try for the hit ratio is not counted (as in the seed step).
 
-| sample | failed seed steps (A / G) | rescues tried | rescued | tries | grid fallbacks left | rescued hit ratio min | rescued error median / max | wrong rescued seeds |
-|---|---|---|---|---|---|---|---|---|
-| held | 65 / 65 | 65 | 46 | 167 | 19 | 0.963 | 0.0016 / 0.0069 | 0 |
-| mid | 12 / 12 | 12 | 8 | 32 | 4 | 0.967 | 0.0035 / 0.0108 | 0 |
-| grad | 11 / 11 | 11 | 6 | 34 | 5 | 0.984 | 0.0027 / 0.0062 | 0 |
-| big | 0 / 0 | 0 | 0 | 0 | 0 | - | - | 0 |
+| sample | failed seed steps (A / G) | rescued / tried (Wilson 95%) | tries | grid fallbacks left | rescued hit ratio min | rescued error median / max | wrong rescued / rescued (Wilson 95%) |
+|---|---|---|---|---|---|---|---|
+| held | 65 / 65 | 46 / 65 (58.8% to 80.4%) | 167 | 19 | 0.963 | 0.0016 / 0.0069 | 0 / 46 (0.0% to 7.7%) |
+| mid | 12 / 12 | 8 / 12 (39.1% to 86.2%) | 32 | 4 | 0.967 | 0.0035 / 0.0108 | 0 / 8 (0.0% to 32.4%) |
+| grad | 11 / 11 | 6 / 11 (28.0% to 78.7%) | 34 | 5 | 0.984 | 0.0027 / 0.0062 | 0 / 6 (0.0% to 39.0%) |
+| big | 0 / 0 | - | 0 | 0 | - | - | - |
+| all | - | - | - | - | - | - | 0 / 60 (0.0% to 6.0%) |
 <!-- /table:rescues -->
 
 <!-- table:rules -->
