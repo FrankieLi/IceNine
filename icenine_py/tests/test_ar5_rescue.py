@@ -180,3 +180,60 @@ def test_aligned_draws_unchanged_by_this_step() -> None:
         g.random()
         == np.random.default_rng(np.random.SeedSequence([123, OD.kind_id("grid"), 2])).random()
     )
+
+
+# ---- the verdict rules (rescue_judge) ---------------------------------------------------------
+import rescue_judge as RJ  # noqa: E402
+
+_OK = dict(a=True, b=True, c=True, passes=True)
+_BAD = dict(a=False, b=True, c=True, passes=False)
+
+
+def _rules(sample: str = "held", **kw: Any) -> Dict[str, Any]:
+    base: Dict[str, Any] = dict(
+        sample=sample,
+        total_g=80,
+        total_a=100,
+        fallbacks_g=1,
+        fallbacks_a=5,
+        net_vs_a=0,
+        med_g=0.02,
+        med_a=0.02,
+        wrong_rescued=0,
+        identical_to_a=True,
+        house_g=_OK,
+        house_a=_OK,
+    )
+    base.update(kw)
+    return RJ.rules(**base)
+
+
+def test_pct_fewer_and_house_rule_boundaries() -> None:
+    assert RJ.pct_fewer(80, 100) == 20.0 and RJ.pct_fewer(5, 0) == 0.0
+    assert RJ.house(80, 100, 5, 0, 0.0, 0.0)["passes"]  # exactly 20% fewer, net 5
+    assert not RJ.house(81, 100, 0, 0, 0.0, 0.0)["a"]
+    assert not RJ.house(50, 100, 6, 0, 0.0, 0.0)["b"]
+    assert not RJ.house(50, 100, 0, 0, 0.0061, 0.0)["c"]
+
+
+def test_rule_1_by_sample_and_the_10_percent_edge() -> None:
+    assert _rules("held")["r1"]
+    assert not _rules("held", total_g=91)["r1"]  # 9% fewer
+    assert _rules("mid", total_g=90)["r1"]  # exactly 10%
+    assert not _rules("held", fallbacks_g=5)["r1"]  # no fewer fallbacks
+    assert _rules("grad", total_g=99, fallbacks_g=5)["r1"]
+    assert not _rules("big", identical_to_a=False)["r1"]
+
+
+def test_rules_2_3_4_and_the_a_fails_5_clause() -> None:
+    assert not _rules(net_vs_a=6)["passes"]
+    assert not _rules(med_g=0.0211)["passes"]
+    assert not _rules(wrong_rescued=2)["passes"] and _rules(wrong_rescued=1)["passes"]
+    r = _rules(house_g=_BAD)
+    assert not r["r5"] and not r["passes"]
+    assert _rules(house_g=_BAD, house_a=_BAD)["passes"]  # A fails (5): judged by (1) to (4)
+
+
+def test_step_verdict_needs_every_sample() -> None:
+    assert RJ.step_verdict(dict(held=True, mid=True, grad=True, big=True))
+    assert not RJ.step_verdict(dict(held=False, mid=True, grad=True, big=True))

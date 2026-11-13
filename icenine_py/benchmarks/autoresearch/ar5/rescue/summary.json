@@ -1,0 +1,99 @@
+{
+ "validity": {
+  "held": {
+   "runs_complete": true,
+   "seed_steps_ok": true
+  },
+  "mid": {
+   "runs_complete": true,
+   "seed_steps_ok": true,
+   "stored_total_reproduces": true,
+   "stored_fallback_evals_reproduce": true
+  },
+  "grad": {
+   "runs_complete": true,
+   "seed_steps_ok": true,
+   "stored_total_reproduces": true,
+   "stored_fallback_evals_reproduce": true
+  },
+  "big": {
+   "runs_complete": true,
+   "seed_steps_ok": true,
+   "stored_total_reproduces": true,
+   "stored_fallback_evals_reproduce": true,
+   "g_equals_a_evals_and_map": true
+  },
+  "all_ok": true
+ },
+ "predictions": {
+  "1": {
+   "met": true,
+   "text": "cost check: grid end cheaper than every kept end in 23 of 23 (needed 21)"
+  },
+  "2": {
+   "met": false,
+   "text": "replay: rescued 14 of 23 (12 to 21 met), all right (met), median error 0.0030 (met), mean tries 2.87 (at most 2.5 NOT met)"
+  },
+  "3": {
+   "met": true,
+   "text": "held: grid fallbacks 65 to 19 (70.8% fewer, predicted 40 to 85), total 33.9% fewer (predicted 20 to 45)"
+  },
+  "4": {
+   "met": true,
+   "text": "mid 16.9% fewer (12 to 21), grad 16.4% (15 to 28), big identical: True"
+  },
+  "5": {
+   "met": false,
+   "text": "broken minus fixed against A (after pass) held -4, mid 0, grad 0, big 0 (-3 to 5); median error moves held -0.00008, mid -0.00000, grad -0.00001, big +0.00000 (at most 0.001); held's -4 is outside the range, on the favourable side"
+  }
+ },
+ "per_sample_passes": {
+  "held": true,
+  "mid": true,
+  "grad": true,
+  "big": true
+ },
+ "step_passes": true,
+ "rules": {
+  "held": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "a_fails_5": false,
+   "total_cut_pct": 33.85371687006878,
+   "passes": true
+  },
+  "mid": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "a_fails_5": false,
+   "total_cut_pct": 16.880379192139426,
+   "passes": true
+  },
+  "grad": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "a_fails_5": false,
+   "total_cut_pct": 16.350463179104917,
+   "passes": true
+  },
+  "big": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "a_fails_5": false,
+   "total_cut_pct": 0.0,
+   "passes": true
+  }
+ }
+}

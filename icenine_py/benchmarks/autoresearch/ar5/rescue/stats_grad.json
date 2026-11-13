@@ -1,0 +1,294 @@
+{
+ "sample": "grad",
+ "arms": {
+  "A": {
+   "run": "A",
+   "sample": "grad",
+   "unfinished": false,
+   "seed_arm": "X200",
+   "no_mc_fallback": true,
+   "seed_steps": 1278,
+   "stopped_early": 1180,
+   "stages": {
+    "seed_step": 1527842,
+    "grid_fallback": 3726723,
+    "neighbour": 1477542,
+    "revisit": 1778394,
+    "pass_": 3679276,
+    "before_pass": 8510501,
+    "total": 12189777
+   },
+   "stages_s8": {
+    "seed_step": 3008757,
+    "grid_fallback": 5449501,
+    "neighbour": 2798001,
+    "revisit": 3060730,
+    "pass_": 3683241,
+    "before_pass": 14316989,
+    "total": 18000230
+   },
+   "grid_fallbacks": 11,
+   "grid_fallbacks_s8": 16,
+   "wrapper": {
+    "wrapper_calls": 53376,
+    "picked_fell": 48672,
+    "fallback_runs": 0,
+    "fallback_won": 0,
+    "evals_picked": 3255936,
+    "evals_fallback": 0,
+    "cma_calls_total": 55410,
+    "vmo_calls_total": 1002,
+    "vmo_calls_in_wrapper": 0,
+    "vmo_calls_outside_wrapper": 1002,
+    "cma_not_fell": 4704,
+    "mc_fallback_off": true
+   },
+   "before": {
+    "wrong": 206,
+    "wilson_lo": 0.007318428795258394,
+    "wilson_hi": 0.009603695419947744,
+    "median_err_deg": 0.021590641204770878
+   },
+   "after": {
+    "wrong": 56,
+    "wilson_lo": 0.0017557225686594684,
+    "wilson_hi": 0.002958298213504277,
+    "median_err_deg": 0.021352798405831784
+   },
+   "s8_before": {
+    "wrong": 210,
+    "wilson_lo": 0.007470309001022389,
+    "wilson_hi": 0.00977736463906488,
+    "median_err_deg": 0.02285236562148693
+   },
+   "s8_after": {
+    "wrong": 63,
+    "wilson_lo": 0.002004792724438049,
+    "wilson_hi": 0.003278939551267675,
+    "median_err_deg": 0.022638749845755476
+   },
+   "wall_s": 1392.2880778312683,
+   "wall_label": "contended (other jobs on the machine); not a timing result",
+   "wall_pass_s": 403.53544211387634,
+   "paired_before": {
+    "fixed": 63,
+    "broken": 59,
+    "both_wrong": 147
+   },
+   "paired_after": {
+    "fixed": 31,
+    "broken": 24,
+    "both_wrong": 32
+   },
+   "rule": {
+    "fewer": 0.3227988197928582,
+    "a": true,
+    "b": true,
+    "c": true,
+    "net_broken": -7,
+    "med_diff": -0.0012859514399236917,
+    "passes": true
+   }
+  },
+  "G": {
+   "run": "G",
+   "sample": "grad",
+   "unfinished": false,
+   "seed_arm": "X200",
+   "no_mc_fallback": true,
+   "seed_steps": 1280,
+   "stopped_early": 1182,
+   "stages": {
+    "seed_step": 1528284,
+    "grid_fallback": 1731732,
+    "neighbour": 1477542,
+    "revisit": 1779614,
+    "pass_": 3679520,
+    "before_pass": 6517172,
+    "total": 10196692
+   },
+   "stages_s8": {
+    "seed_step": 3008757,
+    "grid_fallback": 5449501,
+    "neighbour": 2798001,
+    "revisit": 3060730,
+    "pass_": 3683241,
+    "before_pass": 14316989,
+    "total": 18000230
+   },
+   "grid_fallbacks": 11,
+   "grid_fallbacks_s8": 16,
+   "wrapper": {
+    "wrapper_calls": 53396,
+    "picked_fell": 48692,
+    "fallback_runs": 0,
+    "fallback_won": 0,
+    "evals_picked": 3257156,
+    "evals_fallback": 0,
+    "cma_calls_total": 55466,
+    "vmo_calls_total": 996,
+    "vmo_calls_in_wrapper": 0,
+    "vmo_calls_outside_wrapper": 996,
+    "cma_not_fell": 4704,
+    "mc_fallback_off": true
+   },
+   "before": {
+    "wrong": 206,
+    "wilson_lo": 0.007318428795258394,
+    "wilson_hi": 0.009603695419947744,
+    "median_err_deg": 0.021579868596107853
+   },
+   "after": {
+    "wrong": 56,
+    "wilson_lo": 0.0017557225686594684,
+    "wilson_hi": 0.002958298213504277,
+    "median_err_deg": 0.02134489609446111
+   },
+   "s8_before": {
+    "wrong": 210,
+    "wilson_lo": 0.007470309001022389,
+    "wilson_hi": 0.00977736463906488,
+    "median_err_deg": 0.02285236562148693
+   },
+   "s8_after": {
+    "wrong": 63,
+    "wilson_lo": 0.002004792724438049,
+    "wilson_hi": 0.003278939551267675,
+    "median_err_deg": 0.022638749845755476
+   },
+   "wall_s": 1214.0288729667664,
+   "wall_label": "contended (other jobs on the machine); not a timing result",
+   "wall_pass_s": 398.1737139225006,
+   "paired_before": {
+    "fixed": 63,
+    "broken": 59,
+    "both_wrong": 147
+   },
+   "paired_after": {
+    "fixed": 31,
+    "broken": 24,
+    "both_wrong": 32
+   },
+   "rule": {
+    "fewer": 0.43352434941109086,
+    "a": true,
+    "b": true,
+    "c": true,
+    "net_broken": -7,
+    "med_diff": -0.0012938537512943646,
+    "passes": true
+   },
+   "stages_split": {
+    "seed_step": 1528284,
+    "grid_fallback": 1697698,
+    "neighbour": 1477542,
+    "revisit": 1779614,
+    "pass_": 3679520,
+    "before_pass": 6517172,
+    "total": 10196692,
+    "rescue": 34034
+   }
+  }
+ },
+ "rescue": {
+  "fallback_calls": 11,
+  "rescues_attempted": 11,
+  "rescued": 6,
+  "tries": 34,
+  "rescue_evals": 34034,
+  "grid_fallbacks_left": 5,
+  "grid_evals": 1697698
+ },
+ "rescued_ends": [
+  {
+   "voxel": 1672,
+   "n_tries": 2,
+   "hit": 0.984306887532694,
+   "err": 0.0014883208751040086
+  },
+  {
+   "voxel": 20136,
+   "n_tries": 1,
+   "hit": 0.9857278782112274,
+   "err": 0.0024517448733960725
+  },
+  {
+   "voxel": 2740,
+   "n_tries": 1,
+   "hit": 1.0,
+   "err": 0.003009793357836923
+  },
+  {
+   "voxel": 11536,
+   "n_tries": 3,
+   "hit": 1.0,
+   "err": 0.0012292662112701191
+  },
+  {
+   "voxel": 19063,
+   "n_tries": 1,
+   "hit": 1.0,
+   "err": 0.0029024266098303933
+  },
+  {
+   "voxel": 23825,
+   "n_tries": 1,
+   "hit": 1.0,
+   "err": 0.006199025466312508
+  }
+ ],
+ "rescued_hit_min": 0.984306887532694,
+ "rescued_err_median": 0.0026770857416132327,
+ "rescued_err_max": 0.006199025466312508,
+ "wrong_rescued": 0,
+ "g_vs_a": {
+  "voxels": {
+   "before": {
+    "fixed": 0,
+    "broken": 0,
+    "both_wrong": 206
+   },
+   "after": {
+    "fixed": 0,
+    "broken": 0,
+    "both_wrong": 56
+   }
+  },
+  "seed_steps": {
+   "steps_a": 1278,
+   "steps_b": 1280,
+   "matched": 1277,
+   "only_a": 1,
+   "only_b": 3,
+   "taken_differs": 0,
+   "differing_wrong_first": 0,
+   "differing_wrong_second": 0,
+   "shared_fits_compared": 3024,
+   "shared_fits_different": 0
+  },
+  "same_map": false,
+  "same_evals": false
+ },
+ "house_g": {
+  "a": true,
+  "b": true,
+  "c": true,
+  "passes": true
+ },
+ "house_a": {
+  "a": true,
+  "b": true,
+  "c": true,
+  "passes": true
+ },
+ "rules": {
+  "r1": true,
+  "r2": true,
+  "r3": true,
+  "r4": true,
+  "r5": true,
+  "a_fails_5": false,
+  "total_cut_pct": 16.350463179104917,
+  "passes": true
+ }
+}
