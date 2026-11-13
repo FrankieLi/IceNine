@@ -110,7 +110,50 @@
   ],
   "level0_run_values": [
    1000
-  ]
+  ],
+  "reach_095_wilson95": [
+   0.4488997690689164,
+   0.8118894536301776
+  ],
+  "full_search_right": 23,
+  "full_search_reach_095_wilson95": [
+   0.7320359570190598,
+   0.9758205045927666
+  ],
+  "wrong_cases_full_end": [
+   {
+    "sample": "mid",
+    "voxel": 1339,
+    "full_end_err": 0.016454073079021518,
+    "full_end_hit": 0.953921568627451
+   },
+   {
+    "sample": "grad",
+    "voxel": 20136,
+    "full_end_err": 0.003939773643338249,
+    "full_end_hit": 0.9838556505223172
+   },
+   {
+    "sample": "grad",
+    "voxel": 3494,
+    "full_end_err": 0.5501490210073712,
+    "full_end_hit": 0.7016423357664233
+   }
+  ],
+  "paired_vs_full": {
+   "right": {
+    "both": 20,
+    "fixed": 0,
+    "broken": 3,
+    "neither": 0
+   },
+   "reach_095": {
+    "both": 14,
+    "fixed": 1,
+    "broken": 7,
+    "neither": 1
+   }
+  }
  },
  "reproduction_ok": true,
  "gate_pass": false,
