@@ -1,0 +1,294 @@
+{
+ "per_sample_passes": {
+  "held2": true,
+  "held": true,
+  "mid": true,
+  "grad": true,
+  "big": true
+ },
+ "step_passes": true,
+ "verdict": "READY FOR KEY",
+ "failed_rules": [],
+ "rules": {
+  "held2": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "g_fails_5": false,
+   "total_cut_pct": 4.333623973665129,
+   "seed_cut_pct": 9.212768549251166,
+   "passes": true
+  },
+  "held": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "g_fails_5": false,
+   "total_cut_pct": 3.837310616604765,
+   "seed_cut_pct": 8.328756939235074,
+   "passes": true
+  },
+  "mid": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "g_fails_5": false,
+   "total_cut_pct": 8.10537494952692,
+   "seed_cut_pct": 19.44026830968443,
+   "passes": true
+  },
+  "grad": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "g_fails_5": false,
+   "total_cut_pct": 0.1618269925187502,
+   "seed_cut_pct": 1.0797076983073826,
+   "passes": true
+  },
+  "big": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "g_fails_5": false,
+   "total_cut_pct": 4.530001599370967,
+   "seed_cut_pct": 25.07493799988952,
+   "passes": true
+  }
+ },
+ "predictions": {
+  "p1": {
+   "mid": {
+    "met": true,
+    "changed": 8,
+    "detail": {
+     "g1": true,
+     "changed_in_range": true,
+     "changed_range": [
+      7,
+      11
+     ],
+     "all_changed_still_095": true,
+     "mis_in_0_005_to_0_15": true,
+     "none_wrong": true,
+     "failed_seed_tests_equal": true
+    }
+   },
+   "grad": {
+    "met": true,
+    "changed": 0,
+    "detail": {
+     "g1": true,
+     "changed_in_range": true,
+     "changed_range": [
+      0,
+      0
+     ],
+     "all_changed_still_095": true,
+     "mis_in_0_005_to_0_15": false,
+     "none_wrong": true,
+     "failed_seed_tests_equal": true
+    }
+   },
+   "big": {
+    "met": true,
+    "changed": 1,
+    "detail": {
+     "g1": true,
+     "changed_in_range": true,
+     "changed_range": [
+      1,
+      2
+     ],
+     "all_changed_still_095": true,
+     "mis_in_0_005_to_0_15": true,
+     "none_wrong": true,
+     "failed_seed_tests_equal": true
+    }
+   }
+  },
+  "p2": {
+   "mid": {
+    "met": true,
+    "saving": 0.07863419441503786
+   },
+   "grad": {
+    "met": true,
+    "saving": 0.001618269925187502
+   },
+   "big": {
+    "met": true,
+    "saving": 0.04530001599370967
+   }
+  },
+  "p3": {
+   "mid": {
+    "total_cut_pct": 8.10537494952692,
+    "met": true
+   },
+   "big": {
+    "total_cut_pct": 4.530001599370967,
+    "met": true
+   },
+   "grad": {
+    "total_cut_pct": 0.1618269925187502,
+    "met": true
+   },
+   "held": {
+    "total_cut_pct": 3.837310616604765,
+    "met": true
+   },
+   "held2": {
+    "total_cut_pct": 4.333623973665129,
+    "met": true,
+    "seed_cut_pct": 9.212768549251166,
+    "seed_met": true
+   }
+  },
+  "p4": {
+   "held2": {
+    "net": 0,
+    "median_shift_deg": 4.8347185235449175e-06,
+    "met": true
+   },
+   "held": {
+    "net": 0,
+    "median_shift_deg": 5.935147096784721e-06,
+    "met": true
+   },
+   "mid": {
+    "net": 0,
+    "median_shift_deg": -6.61332762625505e-07,
+    "met": true
+   },
+   "grad": {
+    "net": 0,
+    "median_shift_deg": 0.0,
+    "met": true
+   },
+   "big": {
+    "net": 0,
+    "median_shift_deg": 5.97033829673882e-06,
+    "met": true
+   }
+  },
+  "p5": {
+   "met": true,
+   "house_h": {
+    "a": true,
+    "b": true,
+    "c": true,
+    "passes": true
+   }
+  }
+ },
+ "taken_changed": {
+  "held2": 12,
+  "held": 3,
+  "mid": 7,
+  "grad": 0,
+  "big": 1
+ },
+ "unmatched": {
+  "held2": {
+   "sample": "held2",
+   "matched_steps": 3600,
+   "seed_steps_g": 3631,
+   "seed_steps_h": 3632,
+   "only_h_n": 32,
+   "only_g_n": 31,
+   "only_h_wrong": 0,
+   "only_g_wrong": 0,
+   "only_h_wrong_where_g_map_right": 0,
+   "only_g_wrong_where_h_map_right": 0,
+   "only_h_with_a_cut": 4,
+   "only_h_wrong_where_g_map_right_voxels": [],
+   "note": "unmatched = a seed step (voxel, occurrence) that only one arm has; the other arm's map is read before the pass for the counts; rule (4) adds them to the matched steps"
+  },
+  "held": {
+   "sample": "held",
+   "matched_steps": 3687,
+   "seed_steps_g": 3705,
+   "seed_steps_h": 3700,
+   "only_h_n": 13,
+   "only_g_n": 18,
+   "only_h_wrong": 1,
+   "only_g_wrong": 1,
+   "only_h_wrong_where_g_map_right": 0,
+   "only_g_wrong_where_h_map_right": 0,
+   "only_h_with_a_cut": 1,
+   "only_h_wrong_where_g_map_right_voxels": [],
+   "note": "unmatched = a seed step (voxel, occurrence) that only one arm has; the other arm's map is read before the pass for the counts; rule (4) adds them to the matched steps"
+  },
+  "mid": {
+   "sample": "mid",
+   "matched_steps": 1582,
+   "seed_steps_g": 1607,
+   "seed_steps_h": 1607,
+   "only_h_n": 25,
+   "only_g_n": 25,
+   "only_h_wrong": 0,
+   "only_g_wrong": 0,
+   "only_h_wrong_where_g_map_right": 0,
+   "only_g_wrong_where_h_map_right": 0,
+   "only_h_with_a_cut": 9,
+   "only_h_wrong_where_g_map_right_voxels": [],
+   "note": "unmatched = a seed step (voxel, occurrence) that only one arm has; the other arm's map is read before the pass for the counts; rule (4) adds them to the matched steps"
+  },
+  "grad": {
+   "sample": "grad",
+   "matched_steps": 1280,
+   "seed_steps_g": 1280,
+   "seed_steps_h": 1280,
+   "only_h_n": 0,
+   "only_g_n": 0,
+   "only_h_wrong": 0,
+   "only_g_wrong": 0,
+   "only_h_wrong_where_g_map_right": 0,
+   "only_g_wrong_where_h_map_right": 0,
+   "only_h_with_a_cut": 0,
+   "only_h_wrong_where_g_map_right_voxels": [],
+   "note": "unmatched = a seed step (voxel, occurrence) that only one arm has; the other arm's map is read before the pass for the counts; rule (4) adds them to the matched steps"
+  },
+  "big": {
+   "sample": "big",
+   "matched_steps": 317,
+   "seed_steps_g": 317,
+   "seed_steps_h": 317,
+   "only_h_n": 0,
+   "only_g_n": 0,
+   "only_h_wrong": 0,
+   "only_g_wrong": 0,
+   "only_h_wrong_where_g_map_right": 0,
+   "only_g_wrong_where_h_map_right": 0,
+   "only_h_with_a_cut": 0,
+   "only_h_wrong_where_g_map_right_voxels": [],
+   "note": "unmatched = a seed step (voxel, occurrence) that only one arm has; the other arm's map is read before the pass for the counts; rule (4) adds them to the matched steps"
+  }
+ },
+ "wrong_seeds_broad": {
+  "held2": 0,
+  "held": 0,
+  "mid": 0,
+  "grad": 0,
+  "big": 0
+ },
+ "fits_differ_other": {
+  "held2": 0,
+  "held": 0,
+  "mid": 0,
+  "grad": 0,
+  "big": 0
+ },
+ "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+}

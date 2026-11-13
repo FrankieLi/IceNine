@@ -1,0 +1,226 @@
+[
+ {
+  "sample": "held2",
+  "arm": "H",
+  "order": "interleaved + rescue G1 + stall check PH(3000)",
+  "boundary_pass": false,
+  "evals_total": 25916246,
+  "evals_per_voxel": 1054.79,
+  "wrong": 97,
+  "n": 24570,
+  "interval_pct": [
+   0.32,
+   0.48
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_held2.json",
+  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+ },
+ {
+  "sample": "held2",
+  "arm": "H",
+  "order": "interleaved + rescue G1 + stall check PH(3000)",
+  "boundary_pass": true,
+  "evals_total": 31143763,
+  "evals_per_voxel": 1267.55,
+  "wrong": 67,
+  "n": 24570,
+  "interval_pct": [
+   0.21,
+   0.35
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_held2.json",
+  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+ },
+ {
+  "sample": "held2",
+  "arm": "G",
+  "order": "interleaved + rescue G1",
+  "boundary_pass": false,
+  "evals_total": 27325513,
+  "evals_per_voxel": 1112.15,
+  "wrong": 97,
+  "n": 24570,
+  "interval_pct": [
+   0.32,
+   0.48
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_held2.json",
+  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+ },
+ {
+  "sample": "held2",
+  "arm": "S8",
+  "order": "S8 (stock seed step)",
+  "boundary_pass": false,
+  "evals_total": 56034557,
+  "evals_per_voxel": 2280.61,
+  "wrong": 108,
+  "n": 24570,
+  "interval_pct": [
+   0.36,
+   0.53
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_held2.json",
+  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+ },
+ {
+  "sample": "held2",
+  "arm": "G",
+  "order": "interleaved + rescue G1",
+  "boundary_pass": true,
+  "evals_total": 32554555,
+  "evals_per_voxel": 1324.97,
+  "wrong": 67,
+  "n": 24570,
+  "interval_pct": [
+   0.21,
+   0.35
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_held2.json",
+  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+ },
+ {
+  "sample": "held2",
+  "arm": "S8",
+  "order": "S8 (stock seed step)",
+  "boundary_pass": true,
+  "evals_total": 61238223,
+  "evals_per_voxel": 2492.4,
+  "wrong": 71,
+  "n": 24570,
+  "interval_pct": [
+   0.23,
+   0.36
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_held2.json",
+  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+ },
+ {
+  "sample": "held",
+  "arm": "H",
+  "order": "interleaved + rescue G1 + stall check PH(3000)",
+  "boundary_pass": false,
+  "evals_total": 24392617,
+  "evals_per_voxel": 992.78,
+  "wrong": 101,
+  "n": 24570,
+  "interval_pct": [
+   0.34,
+   0.5
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_held.json",
+  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+ },
+ {
+  "sample": "held",
+  "arm": "H",
+  "order": "interleaved + rescue G1 + stall check PH(3000)",
+  "boundary_pass": true,
+  "evals_total": 29588170,
+  "evals_per_voxel": 1204.24,
+  "wrong": 69,
+  "n": 24570,
+  "interval_pct": [
+   0.22,
+   0.36
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_held.json",
+  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+ },
+ {
+  "sample": "mid",
+  "arm": "H",
+  "order": "interleaved + rescue G1 + stall check PH(3000)",
+  "boundary_pass": false,
+  "evals_total": 8898140,
+  "evals_per_voxel": 362.15,
+  "wrong": 75,
+  "n": 24570,
+  "interval_pct": [
+   0.24,
+   0.38
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_mid.json",
+  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+ },
+ {
+  "sample": "mid",
+  "arm": "H",
+  "order": "interleaved + rescue G1 + stall check PH(3000)",
+  "boundary_pass": true,
+  "evals_total": 11950397,
+  "evals_per_voxel": 486.38,
+  "wrong": 35,
+  "n": 24570,
+  "interval_pct": [
+   0.1,
+   0.2
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_mid.json",
+  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+ },
+ {
+  "sample": "grad",
+  "arm": "H",
+  "order": "interleaved + rescue G1 + stall check PH(3000)",
+  "boundary_pass": false,
+  "evals_total": 6500671,
+  "evals_per_voxel": 264.58,
+  "wrong": 206,
+  "n": 24570,
+  "interval_pct": [
+   0.73,
+   0.96
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_grad.json",
+  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+ },
+ {
+  "sample": "grad",
+  "arm": "H",
+  "order": "interleaved + rescue G1 + stall check PH(3000)",
+  "boundary_pass": true,
+  "evals_total": 10180191,
+  "evals_per_voxel": 414.33,
+  "wrong": 56,
+  "n": 24570,
+  "interval_pct": [
+   0.18,
+   0.3
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_grad.json",
+  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+ },
+ {
+  "sample": "big",
+  "arm": "H",
+  "order": "interleaved + rescue G1 + stall check PH(3000)",
+  "boundary_pass": false,
+  "evals_total": 2499924,
+  "evals_per_voxel": 101.75,
+  "wrong": 74,
+  "n": 24570,
+  "interval_pct": [
+   0.24,
+   0.38
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_big.json",
+  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+ },
+ {
+  "sample": "big",
+  "arm": "H",
+  "order": "interleaved + rescue G1 + stall check PH(3000)",
+  "boundary_pass": true,
+  "evals_total": 3635256,
+  "evals_per_voxel": 147.96,
+  "wrong": 21,
+  "n": 24570,
+  "interval_pct": [
+   0.06,
+   0.13
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_big.json",
+  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+ }
+]

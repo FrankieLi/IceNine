@@ -430,3 +430,84 @@ def test_run_all_dry_run_arguments_and_job_order() -> None:
     for needle in ("--resume", "--dry-run", "stallhit_run_all.done", "exit=$code"):
         assert needle in text
     assert text.index("held2 build") < text.index("S8 held2")
+
+
+def _house(ok: bool) -> Dict[str, bool]:
+    return dict(a=ok, b=ok, c=ok, passes=ok)
+
+
+def _rules(sample: str, tot_h: int, seed_h: int = 100, **kw: Any) -> Dict[str, Any]:
+    import stallhit_judge as SJ
+
+    args: Dict[str, Any] = dict(
+        net_vs_g=0,
+        med_h=0.02,
+        med_g=0.02,
+        extra_wrong_seeds=0,
+        grid_h=3,
+        grid_g=3,
+        house_h=_house(True),
+        house_g=_house(True),
+    )
+    args.update(kw)
+    return SJ.rules(sample, tot_h, 1000, seed_h, 100, **args)
+
+
+def test_judge_rule_1_by_sample() -> None:
+    assert _rules("held2", 980, 95)["r1"] and not _rules("held2", 981, 95)["r1"]
+    assert not _rules("held2", 980, 96)["r1"]  # seed step under 5% fewer
+    assert _rules("mid", 950)["r1"] and not _rules("mid", 951)["r1"]
+    assert _rules("big", 975)["r1"] and not _rules("big", 976)["r1"]
+    assert _rules("held", 999)["r1"] and not _rules("held", 1000)["r1"]
+    assert _rules("grad", 1010)["r1"] and not _rules("grad", 1011)["r1"]
+
+
+def test_judge_rules_2_to_4() -> None:
+    assert _rules("mid", 900, net_vs_g=5)["r2"] and not _rules("mid", 900, net_vs_g=6)["r2"]
+    assert _rules("mid", 900, med_h=0.021)["r3"] and not _rules("mid", 900, med_h=0.0211)["r3"]
+    assert _rules("mid", 900, extra_wrong_seeds=1)["r4"]
+    assert not _rules("mid", 900, extra_wrong_seeds=2)["r4"]
+    assert _rules("mid", 900, grid_h=4)["r4"] and not _rules("mid", 900, grid_h=5)["r4"]
+
+
+def test_judge_rule_5_and_the_g_fails_clause() -> None:
+    assert not _rules("mid", 900, house_h=_house(False))["passes"]
+    r = _rules("mid", 900, house_h=_house(False), house_g=_house(False))
+    assert r["g_fails_5"] and r["passes"]  # judged by (1) to (4) only
+    assert not _rules("mid", 951, house_h=_house(False), house_g=_house(False))["passes"]
+
+
+def test_judge_house_numbers_and_step_verdict() -> None:
+    import stallhit_judge as SJ
+
+    assert SJ.house(800, 1000, 5, 0, 0.0300, 0.0250)["passes"]
+    assert not SJ.house(801, 1000, 0, 0, 0.02, 0.02)["a"]  # under 20% fewer
+    assert not SJ.house(800, 1000, 6, 0, 0.02, 0.02)["b"]
+    assert not SJ.house(800, 1000, 0, 0, 0.0301, 0.0250)["c"]
+    ok = {s: True for s in SJ.SAMPLES}
+    assert SJ.step_verdict(ok)
+    assert not SJ.step_verdict({**ok, "held2": False})  # a held2 failure: no key
+    assert not SJ.step_verdict({**ok, "mid": False})
+
+
+def test_summary_pareto_rows_and_predictions_from_the_stored_stats(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    import json
+
+    import stallhit_summary as SS
+
+    if not (SS.SH / "stats_held2.json").exists():
+        return
+    st = {s: json.loads((SS.SH / f"stats_{s}.json").read_text()) for s in SS.SAMPLES}
+    gate = json.loads((SS.SH / "gate.json").read_text())
+    monkeypatch.setattr(SS, "SH", tmp_path)
+    SS.pareto(st, "status text")
+    rows = json.loads((tmp_path / "pareto_rows.json").read_text())
+    arms = {(r["sample"], r["arm"]) for r in rows}
+    assert {(s, "H") for s in SS.SAMPLES} <= arms
+    assert ("held2", "G") in arms and ("held2", "S8") in arms and ("mid", "G") not in arms
+    assert all(r["status"] == "status text" and r["n"] == 24570 for r in rows)
+    assert len(rows) == 2 * (5 + 2)
+    pred = SS.predictions(st, gate)
+    assert set(pred["p4"]) == set(SS.SAMPLES) and "seed_met" in pred["p3"]["held2"]
