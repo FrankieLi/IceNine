@@ -42,8 +42,8 @@ before its fixes round (shared files conflict).
 - Items 14 + 3: `caffeinate -i bash scripts/autoresearch/item14/run_item14.sh` in `icenine_py/`
   of worktree `agent-a012b8f461d1630a1` (stopped, exit 3, 00:01, 2026-11-12); marker `item14.done`.
   Branch `ar5d` is held by worktree `agent-a8a1ac8e80f8913cf` (tip fac79f9).
-- Review page: version 46 live (22:40, 12 Nov). AR5 step 9: runs detached since
-  23:29 on 2026-11-12 (Queue row has the check).
+- Review page: version 46 live (22:40, 12 Nov). AR5 step 9: runs ended (exit 0, 01:18 on
+  13 Nov); stats phase sent to the implementer at 03:54; next: the Queue row's list from the check.
 
 ## Queue
 
