@@ -1,0 +1,256 @@
+{
+ "pessimistic": false,
+ "mid": {
+  "steps_with_mc": 770,
+  "mc_refinements": 1605,
+  "roles": {
+   "reached_095_taken": {
+    "n": 410,
+    "evals": 2285182,
+    "tail": 1889203,
+    "share": 0.17572298481974297,
+    "tail_share": 0.14527350123115482
+   },
+   "taken_no_095": {
+    "n": 102,
+    "evals": 282474,
+    "tail": 173421,
+    "share": 0.02172132215901056,
+    "tail_share": 0.013335504896513558
+   },
+   "not_taken": {
+    "n": 1093,
+    "evals": 2280156,
+    "tail": 1616143,
+    "share": 0.17533650193929665,
+    "tail_share": 0.12427608473002756
+   }
+  },
+  "rules": {
+   "P(1000)": {
+    "saved_evals": 2551232,
+    "saved_share": 0.19618135536147338,
+    "extra_evals": 369915,
+    "saved_share_without_extra": 0.22462660301771922,
+    "taken_changed": 90,
+    "stop_type_changed": 64,
+    "stops_lost": 12,
+    "refinements_cut_after_last": 946,
+    "refinements_cut_before_a_gain": 200
+   },
+   "P(2000)": {
+    "saved_evals": 1846964,
+    "saved_share": 0.1420254609631144,
+    "extra_evals": 117044,
+    "saved_share_without_extra": 0.15102575986063854,
+    "taken_changed": 39,
+    "stop_type_changed": 32,
+    "stops_lost": 3,
+    "refinements_cut_after_last": 464,
+    "refinements_cut_before_a_gain": 82
+   },
+   "P(3000)": {
+    "saved_evals": 1421461,
+    "saved_share": 0.10930567881457873,
+    "extra_evals": 62188,
+    "saved_share_without_extra": 0.1140877316138613,
+    "taken_changed": 25,
+    "stop_type_changed": 22,
+    "stops_lost": 1,
+    "refinements_cut_after_last": 272,
+    "refinements_cut_before_a_gain": 53
+   },
+   "P(5000)": {
+    "saved_evals": 871449,
+    "saved_share": 0.06701156380462484,
+    "extra_evals": 62188,
+    "saved_share_without_extra": 0.07179361660390741,
+    "taken_changed": 15,
+    "stop_type_changed": 14,
+    "stops_lost": 1,
+    "refinements_cut_after_last": 145,
+    "refinements_cut_before_a_gain": 26
+   },
+   "(iii) 500 while worse": {
+    "saved_evals": 437831,
+    "saved_share": 0.0336677648286276,
+    "extra_evals": 727809,
+    "saved_share_without_extra": 0.08963388475197388,
+    "taken_changed": 61,
+    "stop_type_changed": 35,
+    "stops_lost": 22,
+    "refinements_cut_after_last": 591,
+    "refinements_cut_before_a_gain": 175
+   }
+  }
+ },
+ "grad": {
+  "steps_with_mc": 478,
+  "mc_refinements": 991,
+  "roles": {
+   "reached_095_taken": {
+    "n": 137,
+    "evals": 253749,
+    "tail": 217622,
+    "share": 0.024885423625622898,
+    "tail_share": 0.021342411833170993
+   },
+   "taken_no_095": {
+    "n": 66,
+    "evals": 114342,
+    "tail": 74502,
+    "share": 0.011213636736306246,
+    "tail_share": 0.00730648724115625
+   },
+   "not_taken": {
+    "n": 788,
+    "evals": 725357,
+    "tail": 600643,
+    "share": 0.0711365019165039,
+    "tail_share": 0.05890567254556674
+   }
+  },
+  "rules": {
+   "P(1000)": {
+    "saved_evals": 172287,
+    "saved_share": 0.016896362075072974,
+    "extra_evals": 17374,
+    "saved_share_without_extra": 0.01860024800199908,
+    "taken_changed": 14,
+    "stop_type_changed": 7,
+    "stops_lost": 3,
+    "refinements_cut_after_last": 321,
+    "refinements_cut_before_a_gain": 19
+   },
+   "P(2000)": {
+    "saved_evals": 44881,
+    "saved_share": 0.004401525514353086,
+    "extra_evals": 0,
+    "saved_share_without_extra": 0.004401525514353086,
+    "taken_changed": 2,
+    "stop_type_changed": 0,
+    "stops_lost": 0,
+    "refinements_cut_after_last": 32,
+    "refinements_cut_before_a_gain": 3
+   },
+   "P(3000)": {
+    "saved_evals": 20390,
+    "saved_share": 0.001999668127663364,
+    "extra_evals": 0,
+    "saved_share_without_extra": 0.001999668127663364,
+    "taken_changed": 1,
+    "stop_type_changed": 0,
+    "stops_lost": 0,
+    "refinements_cut_after_last": 14,
+    "refinements_cut_before_a_gain": 1
+   },
+   "P(5000)": {
+    "saved_evals": 4583,
+    "saved_share": 0.0004494594913723,
+    "extra_evals": 0,
+    "saved_share_without_extra": 0.0004494594913723,
+    "taken_changed": 0,
+    "stop_type_changed": 0,
+    "stops_lost": 0,
+    "refinements_cut_after_last": 4,
+    "refinements_cut_before_a_gain": 0
+   },
+   "(iii) 500 while worse": {
+    "saved_evals": 201136,
+    "saved_share": 0.01972561297330546,
+    "extra_evals": 21108,
+    "saved_share_without_extra": 0.021795696094380413,
+    "taken_changed": 11,
+    "stop_type_changed": 4,
+    "stops_lost": 4,
+    "refinements_cut_after_last": 510,
+    "refinements_cut_before_a_gain": 24
+   }
+  }
+ },
+ "big": {
+  "steps_with_mc": 99,
+  "mc_refinements": 153,
+  "roles": {
+   "reached_095_taken": {
+    "n": 45,
+    "evals": 332423,
+    "tail": 261973,
+    "share": 0.08730175613033114,
+    "tail_share": 0.06880000168078394
+   },
+   "taken_no_095": {
+    "n": 3,
+    "evals": 12422,
+    "tail": 6116,
+    "share": 0.003262296575901708,
+    "tail_share": 0.0016061991513616845
+   },
+   "not_taken": {
+    "n": 105,
+    "evals": 252096,
+    "tail": 185814,
+    "share": 0.06620607934298156,
+    "tail_share": 0.04879893543347286
+   }
+  },
+  "rules": {
+   "P(1000)": {
+    "saved_evals": 236181,
+    "saved_share": 0.062026442408069656,
+    "extra_evals": 179904,
+    "saved_share_without_extra": 0.10927327892320576,
+    "taken_changed": 8,
+    "stop_type_changed": 7,
+    "stops_lost": 4,
+    "refinements_cut_after_last": 105,
+    "refinements_cut_before_a_gain": 21
+   },
+   "P(2000)": {
+    "saved_evals": 269243,
+    "saved_share": 0.07070926718608143,
+    "extra_evals": 35244,
+    "saved_share_without_extra": 0.07996513423817286,
+    "taken_changed": 6,
+    "stop_type_changed": 5,
+    "stops_lost": 1,
+    "refinements_cut_after_last": 59,
+    "refinements_cut_before_a_gain": 14
+   },
+   "P(3000)": {
+    "saved_evals": 198541,
+    "saved_share": 0.05214133186895033,
+    "extra_evals": 35244,
+    "saved_share_without_extra": 0.061397198921041764,
+    "taken_changed": 4,
+    "stop_type_changed": 4,
+    "stops_lost": 1,
+    "refinements_cut_after_last": 35,
+    "refinements_cut_before_a_gain": 8
+   },
+   "P(5000)": {
+    "saved_evals": 169642,
+    "saved_share": 0.044551804518524994,
+    "extra_evals": 0,
+    "saved_share_without_extra": 0.044551804518524994,
+    "taken_changed": 3,
+    "stop_type_changed": 3,
+    "stops_lost": 0,
+    "refinements_cut_after_last": 14,
+    "refinements_cut_before_a_gain": 6
+   },
+   "(iii) 500 while worse": {
+    "saved_evals": -14051,
+    "saved_share": -0.0036901086127833597,
+    "extra_evals": 179904,
+    "saved_share_without_extra": 0.04355672790235276,
+    "taken_changed": 8,
+    "stop_type_changed": 6,
+    "stops_lost": 4,
+    "refinements_cut_after_last": 57,
+    "refinements_cut_before_a_gain": 17
+   }
+  }
+ },
+ "counts_ok": true
+}

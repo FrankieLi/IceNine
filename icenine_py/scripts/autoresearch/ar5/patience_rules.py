@@ -64,18 +64,24 @@ def run_costs(costs: List[float], k: int) -> Dict[str, Any]:
     return dict(stopped=False, best_n=c.best_n, evals=len(costs), cost=c.best)
 
 
-def cut_point(trace: List[List[float]], n_total: int, k: int) -> Dict[str, Any]:
+def cut_point(
+    trace: List[List[float]], n_total: int, k: int, worse_than: Optional[float] = None
+) -> Dict[str, Any]:
     """Where ``P(k)`` stops a stored refinement. ``trace`` is ``[[n, best cost], ...]`` (one row
     per strict gain), ``n_total`` the evaluations of the uncut refinement (final one included).
     Returns ``kind`` ``none`` (never stopped earlier), ``after_last`` (stopped after its last
     improvement: the end is unchanged) or ``moved`` (stopped before a later improvement: the end is
     the best at the stop), ``evals`` (new count: stop point plus the final evaluation, never more
-    than ``n_total``) and ``cost`` (the kept cost; the stored end cost unless ``moved``)."""
+    than ``n_total``) and ``cost`` (the kept cost; the stored end cost unless ``moved``).
+    ``worse_than`` (what-if tables only, not the rule): stop only while the best cost is above it.
+    """
     final = float(trace[-1][1])
     if k <= 0 or not trace:
         return dict(kind="none", evals=int(n_total), cost=final)
     for i, (n, c) in enumerate(trace):
         n = int(n)
+        if worse_than is not None and not float(c) > worse_than:
+            continue
         if i + 1 < len(trace):
             if int(trace[i + 1][0]) - n > k:
                 return dict(kind="moved", evals=min(int(n_total), n + k + 1), cost=float(c))
@@ -142,12 +148,14 @@ def walk_step(
     stored_stopped = stored_stop is not None
     # a stored stop that no longer happens: the step goes on to the candidates it never ran
     extra = 0
+    extra_evals = 0
     if stored_stopped and stopped_at is None:
         lost = True
         per = float(sum(int(f["evals"]) for f in fits)) / max(1, n_pos)
         # the candidates the stored step never ran (up to ``n_avail``) have no stored fit
         extra = max(0, n_avail - n_pos)
-        evals += int(round(per * extra))
+        extra_evals = int(round(per * extra))
+        evals += extra_evals
     if stopped_at is not None:
         taken = stopped_at
     else:
@@ -159,4 +167,5 @@ def walk_step(
         stopped=stopped_at is not None,
         lost=lost,
         extra_candidates=int(extra),
+        extra_evals=int(extra_evals),
     )

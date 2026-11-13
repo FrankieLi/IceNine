@@ -98,6 +98,12 @@ def test_cut_point_never_costs_more_than_the_uncut_run() -> None:
     assert cp["evals"] == 1011 and cp["kind"] == "after_last"
 
 
+def test_cut_point_gate_stops_only_while_worse_than_the_reference() -> None:
+    trace = [[1, 0.5], [10, 0.3], [2000, 0.2]]
+    assert PR.cut_point(trace, 2100, 1000, worse_than=0.35)["kind"] == "none"
+    assert PR.cut_point(trace, 2100, 1000, worse_than=0.25)["kind"] == "moved"
+
+
 def test_cut_point_off_or_short_is_untouched() -> None:
     trace = [[1, 0.5], [10, 0.3]]
     assert PR.cut_point(trace, 500, 0)["kind"] == "none"
