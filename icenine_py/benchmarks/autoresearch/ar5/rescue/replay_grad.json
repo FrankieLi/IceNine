@@ -1,0 +1,466 @@
+{
+ "sample": "grad",
+ "rule": "Rule G1: after a failed seed test (taken end hit ratio < 0.80), try the kept ends of the seed step in order of cost (stable; at most 5): a CMA local optimization from the end (first step 0.25 degree, 1,000 evaluations, default_rng(0)); take the first end with hit ratio >= 0.95 (one overlap evaluation, not counted) and stop; if none, run the grid fallback as today (aligned draws unchanged). Arm G = arm A (interleaved order, aligned draws, run S11) with G1.",
+ "wall_s": 10.991292953491211,
+ "wall_label": "contended; not a timing result",
+ "rows": [
+  {
+   "sample": "grad",
+   "voxel": 19058,
+   "step": 255,
+   "n_kept": 5,
+   "rescued": false,
+   "n_tries": 5,
+   "evals": 5005,
+   "tries": [
+    {
+     "hit": 0.8107344632768362,
+     "cost": 0.24934985228258522,
+     "evals": 1001,
+     "err": 0.2750138258428783,
+     "k": 1
+    },
+    {
+     "hit": 0.6252371916508539,
+     "cost": 0.3964664075935236,
+     "evals": 1001,
+     "err": 38.01284622833293,
+     "k": 0
+    },
+    {
+     "hit": 0.3248638838475499,
+     "cost": 0.6740544320582316,
+     "evals": 1001,
+     "err": 26.222170757411288,
+     "k": 2
+    },
+    {
+     "hit": 0.27468230694037143,
+     "cost": 0.7308416892559203,
+     "evals": 1001,
+     "err": 59.74845807184534,
+     "k": 3
+    },
+    {
+     "hit": 0.22091974752028856,
+     "cost": 0.7850876642880248,
+     "evals": 1001,
+     "err": 38.835863542653975,
+     "k": 4
+    }
+   ],
+   "taken_hit": null,
+   "taken_err": null,
+   "taken_cost": null,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.7921348314606742,
+   "grid_end_hit": 0.9789184234647113,
+   "grid_end_err": 0.021276304052142904,
+   "grid_end_cost": 0.0779226245135336,
+   "grid_end_reached_095": true
+  },
+  {
+   "sample": "grad",
+   "voxel": 1672,
+   "step": 377,
+   "n_kept": 5,
+   "rescued": true,
+   "n_tries": 2,
+   "evals": 2002,
+   "tries": [
+    {
+     "hit": 0.7931960608773501,
+     "cost": 0.24688278362757066,
+     "evals": 1001,
+     "err": 25.877553597263507,
+     "k": 0
+    },
+    {
+     "hit": 0.984306887532694,
+     "cost": 0.07857142857142863,
+     "evals": 1001,
+     "err": 0.0014883208889077699,
+     "k": 1
+    }
+   ],
+   "taken_hit": 0.984306887532694,
+   "taken_err": 0.0014883208889077699,
+   "taken_cost": 0.07857142857142863,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.7933810375670841,
+   "grid_end_hit": 0.984306887532694,
+   "grid_end_err": 0.0008879039673261717,
+   "grid_end_cost": 0.07857142857142863,
+   "grid_end_reached_095": true
+  },
+  {
+   "sample": "grad",
+   "voxel": 18267,
+   "step": 414,
+   "n_kept": 5,
+   "rescued": false,
+   "n_tries": 5,
+   "evals": 5005,
+   "tries": [
+    {
+     "hit": 0.7740667976424361,
+     "cost": 0.2701498190601186,
+     "evals": 1001,
+     "err": 52.53808818847726,
+     "k": 1
+    },
+    {
+     "hit": 0.7391713747645952,
+     "cost": 0.3048982351367664,
+     "evals": 1001,
+     "err": 17.632657947569733,
+     "k": 0
+    },
+    {
+     "hit": 0.5930824008138352,
+     "cost": 0.4581515229976496,
+     "evals": 1001,
+     "err": 0.14509276044212946,
+     "k": 2
+    },
+    {
+     "hit": 0.23234200743494424,
+     "cost": 0.7744046809536522,
+     "evals": 1001,
+     "err": 59.54863785268096,
+     "k": 4
+    },
+    {
+     "hit": 0.22647058823529412,
+     "cost": 0.8089761907974319,
+     "evals": 1001,
+     "err": 59.87426879476558,
+     "k": 3
+    }
+   ],
+   "taken_hit": null,
+   "taken_err": null,
+   "taken_cost": null,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.7740667976424361,
+   "grid_end_hit": 1.0,
+   "grid_end_err": 0.001497011360503317,
+   "grid_end_cost": 0.07500000000000029,
+   "grid_end_reached_095": true
+  },
+  {
+   "sample": "grad",
+   "voxel": 20136,
+   "step": 675,
+   "n_kept": 5,
+   "rescued": true,
+   "n_tries": 1,
+   "evals": 1001,
+   "tries": [
+    {
+     "hit": 0.9857278782112274,
+     "cost": 0.08461538461538465,
+     "evals": 1001,
+     "err": 0.002451744879331003,
+     "k": 2
+    }
+   ],
+   "taken_hit": 0.9857278782112274,
+   "taken_err": 0.002451744879331003,
+   "taken_cost": 0.08461538461538465,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.7240038872691934,
+   "grid_end_hit": 0.9838556505223172,
+   "grid_end_err": 0.003939773643338249,
+   "grid_end_cost": 0.08627622377622368,
+   "grid_end_reached_095": true
+  },
+  {
+   "sample": "grad",
+   "voxel": 2740,
+   "step": 811,
+   "n_kept": 5,
+   "rescued": true,
+   "n_tries": 1,
+   "evals": 1001,
+   "tries": [
+    {
+     "hit": 1.0,
+     "cost": 0.08088235294117652,
+     "evals": 1001,
+     "err": 0.0030097933617645014,
+     "k": 1
+    }
+   ],
+   "taken_hit": 1.0,
+   "taken_err": 0.0030097933617645014,
+   "taken_cost": 0.08088235294117652,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.7837837837837838,
+   "grid_end_hit": 1.0,
+   "grid_end_err": 0.002534232559027136,
+   "grid_end_cost": 0.08088235294117652,
+   "grid_end_reached_095": true
+  },
+  {
+   "sample": "grad",
+   "voxel": 11536,
+   "step": 863,
+   "n_kept": 5,
+   "rescued": true,
+   "n_tries": 3,
+   "evals": 3003,
+   "tries": [
+    {
+     "hit": 0.7841011743450768,
+     "cost": 0.26427212499706143,
+     "evals": 1001,
+     "err": 0.14534740913870425,
+     "k": 1
+    },
+    {
+     "hit": 0.6951819075712881,
+     "cost": 0.3478296719673021,
+     "evals": 1001,
+     "err": 50.571918476374734,
+     "k": 0
+    },
+    {
+     "hit": 1.0,
+     "cost": 0.05147058823529416,
+     "evals": 1001,
+     "err": 0.0012292662046176513,
+     "k": 3
+    }
+   ],
+   "taken_hit": 1.0,
+   "taken_err": 0.0012292662046176513,
+   "taken_cost": 0.05147058823529416,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.7841011743450768,
+   "grid_end_hit": 1.0,
+   "grid_end_err": 0.0005397383081298203,
+   "grid_end_cost": 0.05147058823529416,
+   "grid_end_reached_095": true
+  },
+  {
+   "sample": "grad",
+   "voxel": 3494,
+   "step": 864,
+   "n_kept": 5,
+   "rescued": false,
+   "n_tries": 5,
+   "evals": 5005,
+   "tries": [
+    {
+     "hit": 0.7005494505494505,
+     "cost": 0.3316152958744244,
+     "evals": 1001,
+     "err": 0.5529469288145558,
+     "k": 3
+    },
+    {
+     "hit": 0.654639175257732,
+     "cost": 0.37810166771299314,
+     "evals": 1001,
+     "err": 50.269180152039866,
+     "k": 2
+    },
+    {
+     "hit": 0.6090985678180286,
+     "cost": 0.4266523226771912,
+     "evals": 1001,
+     "err": 36.376199393046434,
+     "k": 0
+    },
+    {
+     "hit": 0.531738730450782,
+     "cost": 0.47674972551148576,
+     "evals": 1001,
+     "err": 22.885383300837628,
+     "k": 1
+    },
+    {
+     "hit": 0.28174603174603174,
+     "cost": 0.7325588794794897,
+     "evals": 1001,
+     "err": 49.676079528749334,
+     "k": 4
+    }
+   ],
+   "taken_hit": null,
+   "taken_err": null,
+   "taken_cost": null,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.6975252062328139,
+   "grid_end_hit": 0.7016423357664233,
+   "grid_end_err": 0.5501490210073712,
+   "grid_end_cost": 0.3314948377089838,
+   "grid_end_reached_095": false
+  },
+  {
+   "sample": "grad",
+   "voxel": 19063,
+   "step": 870,
+   "n_kept": 5,
+   "rescued": true,
+   "n_tries": 1,
+   "evals": 1001,
+   "tries": [
+    {
+     "hit": 1.0,
+     "cost": 0.07246376811594213,
+     "evals": 1001,
+     "err": 0.002902426632521903,
+     "k": 2
+    }
+   ],
+   "taken_hit": 1.0,
+   "taken_err": 0.002902426632521903,
+   "taken_cost": 0.07246376811594213,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.7910313901345292,
+   "grid_end_hit": 0.9918032786885246,
+   "grid_end_err": 0.02068490316511888,
+   "grid_end_cost": 0.07918966213487688,
+   "grid_end_reached_095": true
+  },
+  {
+   "sample": "grad",
+   "voxel": 3957,
+   "step": 888,
+   "n_kept": 5,
+   "rescued": false,
+   "n_tries": 5,
+   "evals": 5005,
+   "tries": [
+    {
+     "hit": 0.7975352112676056,
+     "cost": 0.25866963691377665,
+     "evals": 1001,
+     "err": 0.42968844159638264,
+     "k": 0
+    },
+    {
+     "hit": 0.7602131438721137,
+     "cost": 0.2755481705661542,
+     "evals": 1001,
+     "err": 17.670594842065178,
+     "k": 1
+    },
+    {
+     "hit": 0.3584029712163417,
+     "cost": 0.6872031720715931,
+     "evals": 1001,
+     "err": 59.98419066738071,
+     "k": 2
+    },
+    {
+     "hit": 0.31947069943289225,
+     "cost": 0.7121598102166512,
+     "evals": 1001,
+     "err": 48.32708013489617,
+     "k": 3
+    },
+    {
+     "hit": 0.2670157068062827,
+     "cost": 0.750744177622725,
+     "evals": 1001,
+     "err": 58.157820857861005,
+     "k": 4
+    }
+   ],
+   "taken_hit": null,
+   "taken_err": null,
+   "taken_cost": null,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.7954345917471466,
+   "grid_end_hit": 0.99909338168631,
+   "grid_end_err": 0.0029238747506175303,
+   "grid_end_cost": 0.07318840579710151,
+   "grid_end_reached_095": true
+  },
+  {
+   "sample": "grad",
+   "voxel": 24194,
+   "step": 1100,
+   "n_kept": 5,
+   "rescued": false,
+   "n_tries": 5,
+   "evals": 5005,
+   "tries": [
+    {
+     "hit": 0.6560693641618497,
+     "cost": 0.3751406136728094,
+     "evals": 1001,
+     "err": 0.5783449952443193,
+     "k": 0
+    },
+    {
+     "hit": 0.3260038240917782,
+     "cost": 0.6725543639212934,
+     "evals": 1001,
+     "err": 40.23197025317621,
+     "k": 1
+    },
+    {
+     "hit": 0.3218283582089552,
+     "cost": 0.6942914010582637,
+     "evals": 1001,
+     "err": 30.940645348855305,
+     "k": 2
+    },
+    {
+     "hit": 0.277179236043095,
+     "cost": 0.7597108227919591,
+     "evals": 1001,
+     "err": 45.19255558395326,
+     "k": 3
+    },
+    {
+     "hit": 0.21566731141199227,
+     "cost": 0.8017738444905628,
+     "evals": 1001,
+     "err": 40.82429492938663,
+     "k": 4
+    }
+   ],
+   "taken_hit": null,
+   "taken_err": null,
+   "taken_cost": null,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.6560693641618497,
+   "grid_end_hit": 0.9962335216572504,
+   "grid_end_err": 0.0025202315343153107,
+   "grid_end_cost": 0.09311896400351205,
+   "grid_end_reached_095": true
+  },
+  {
+   "sample": "grad",
+   "voxel": 23825,
+   "step": 1265,
+   "n_kept": 5,
+   "rescued": true,
+   "n_tries": 1,
+   "evals": 1001,
+   "tries": [
+    {
+     "hit": 1.0,
+     "cost": 0.05147058823529416,
+     "evals": 1001,
+     "err": 0.0061990254680720945,
+     "k": 2
+    }
+   ],
+   "taken_hit": 1.0,
+   "taken_err": 0.0061990254680720945,
+   "taken_cost": 0.05147058823529416,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.7556154537286612,
+   "grid_end_hit": 1.0,
+   "grid_end_err": 0.008298827931028274,
+   "grid_end_cost": 0.05147058823529416,
+   "grid_end_reached_095": true
+  }
+ ]
+}
