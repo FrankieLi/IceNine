@@ -6,7 +6,13 @@
 #   cd icenine_py && scripts/autoresearch/ar5/order_run_all.sh             # the real thing
 #   cd icenine_py && scripts/autoresearch/ar5/order_run_all.sh --dry-run   # guards and commands only
 #   ... --cache DIR     another cache folder (tests)      ... --jobs N   at most N heavy (<= 4)
-#   ... --smoke-cap M   test mode: only the three runs on big, each capped at M minutes (the cap
+#   ... --resume        after an interruption (the script was killed): a job whose .done says
+#                       "run=0 pass=0" with its run.json and pass outputs is kept; the leftovers of
+#                       every other job are MOVED to <cache>/interrupted_<time>/ and the job is run
+#                       from scratch; order_run_all.start is kept, order_run_all.resume gets a line;
+#                       the marker covers all jobs. With --dry-run it lists kept / moved, changes nothing.
+#                       Start it detached: nohup setsid scripts/autoresearch/ar5/order_run_all.sh --resume
+#   ... --smoke-cap M  test mode: only the three runs on big, each capped at M minutes (the cap
 #                       path: they exit 3, passes are skipped); no freeze guard; held untouched
 #
 # Jobs, started in this order, at most 4 heavy processes at once (a job is a run, then its pass
@@ -34,6 +40,7 @@ cd "$(dirname "$0")/../../.." || exit 2
 here="$PWD"
 cache="${ORDER_CACHE:-$here/benchmarks/autoresearch/ar5/order/cache}"
 dry=0
+resume=0
 jobs=4
 smoke_cap=0
 while [ $# -gt 0 ]; do
@@ -42,6 +49,7 @@ while [ $# -gt 0 ]; do
     --cache) shift; cache="$1" ;;
     --jobs) shift; jobs="$1" ;;
     --smoke-cap) shift; smoke_cap="$1" ;;
+    --resume) resume=1 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
   shift
@@ -88,14 +96,29 @@ refuse() { # a refusal never writes the final marker (that would block the real 
   exit 2
 }
 
-# ---- guard 1: no output exists
+# the files of a job (paths relative to the cache)
+jfiles() { # jfiles <sample> <arm> <name>
+  echo "$3 passes_$1/D4_$2 passes_$1/before_$2.npy passes_$1/after_$2.npy logs/$3.log logs/$3.done logs/$3.run_rc logs/pass_$3.log logs/pass_$3.rc"
+}
+# a finished job (resume): .done says "run=0 pass=0" and the run and pass outputs exist
+job_finished() { # job_finished <sample> <arm> <name>
+  [ "$(cat "$logs/$3.done" 2>/dev/null)" = "run=0 pass=0" ] && [ -e "$cache/$3/run.json" ] \
+    && [ ! -e "$cache/$3/capped.json" ] && [ -e "$cache/passes_$1/after_$2.npy" ] \
+    && [ -e "$cache/passes_$1/D4_$2/pass.json" ] && [ -e "$cache/passes_$1/before_$2.npy" ]
+}
+kept=""   # names of the jobs kept by --resume
+redo=""   # names of the jobs run (again) with leftovers moved
+
+# ---- guard 1: no output exists (--resume: finished jobs are kept, leftovers are moved later)
 if [ -e "$marker" ]; then refuse "the marker $marker already exists"; fi
 for j in $joblist; do
   s="${j%%:*}"; rest="${j#*:}"; a="${rest%%:*}"; n="$(jname "$s" "$a")"
-  for p in "$cache/$n" "$cache/passes_$s/D4_$a" "$cache/passes_$s/before_$a.npy" \
-           "$cache/passes_$s/after_$a.npy" "$logs/$n.log" "$logs/$n.done" "$logs/$n.run_rc" \
-           "$logs/pass_$n.log" "$logs/pass_$n.rc"; do
-    if [ -e "$p" ]; then refuse "$p already exists"; fi
+  if [ "$resume" = "1" ]; then
+    if job_finished "$s" "$a" "$n"; then kept="$kept $n"; else redo="$redo $n"; fi
+    continue
+  fi
+  for p in $(jfiles "$s" "$a" "$n"); do
+    if [ -e "$cache/$p" ]; then refuse "$cache/$p already exists"; fi
   done
 done
 
@@ -151,8 +174,22 @@ done
 
 if [ "$dry" = "1" ]; then
   echo "dry run: guards passed (cache $cache, at most $jobs heavy processes)"
+  if [ "$resume" = "1" ]; then
+    echo "  resume: KEPT (finished, not rerun):${kept:- none}"
+    echo "  resume: RERUN from scratch (leftovers moved to $cache/interrupted_<time>/):${redo:- none}"
+    for n in $redo; do
+      for j in $joblist; do
+        s="${j%%:*}"; rest="${j#*:}"; a="${rest%%:*}"
+        [ "$(jname "$s" "$a")" = "$n" ] || continue
+        for p in $(jfiles "$s" "$a" "$n"); do
+          [ -e "$cache/$p" ] && echo "    would move $p"
+        done
+      done
+    done
+  fi
   for j in $joblist; do
     s="${j%%:*}"; rest="${j#*:}"; a="${rest%%:*}"; cap="${rest#*:}"; n="$(jname "$s" "$a")"
+    case " $kept " in *" $n "*) continue ;; esac
     al=1; [ "$a" = "Yl" ] && al=0
     echo "  RESEED_SAMPLE=$s ORDER_CACHE=$cache uv run python scripts/autoresearch/ar5/order_run.py --arm $a --cap-min $cap > $logs/$n.log 2>&1"
     echo "    then, if it finished: ... order_pass.py --name $a --aligned $al > $logs/pass_$n.log 2>&1"
@@ -162,8 +199,29 @@ if [ "$dry" = "1" ]; then
 fi
 
 mkdir -p "$logs"
-caffeinate -i -w $$ &
-date +%Y-%m-%dT%H:%M:%S%z > "$logs/order_run_all.start"
+# safe to start detached (setsid + nohup): ignore a hangup, read no terminal, and let caffeinate
+# wait on this script's pid only (it ends with it)
+trap '' HUP
+exec < /dev/null
+caffeinate -i -w $$ > /dev/null 2>&1 &
+if [ "$resume" = "1" ]; then
+  stamp="$(date +%Y%m%d-%H%M%S)"
+  for n in $redo; do
+    for j in $joblist; do
+      s="${j%%:*}"; rest="${j#*:}"; a="${rest%%:*}"
+      [ "$(jname "$s" "$a")" = "$n" ] || continue
+      for p in $(jfiles "$s" "$a" "$n"); do
+        if [ -e "$cache/$p" ]; then
+          mkdir -p "$cache/interrupted_$stamp/$(dirname "$p")"
+          mv "$cache/$p" "$cache/interrupted_$stamp/$p"
+        fi
+      done
+    done
+  done
+  echo "resume $(date +%Y-%m-%dT%H:%M:%S%z) kept:${kept:- none} rerun:${redo:- none}" >> "$logs/order_run_all.resume"
+else
+  date +%Y-%m-%dT%H:%M:%S%z > "$logs/order_run_all.start"
+fi
 
 run_job() { # run_job <sample> <arm> <cap>   (a subshell: run, then pass)
   s="$1"; a="$2"; cap="$3"; n="$(jname "$s" "$a")"
@@ -188,6 +246,7 @@ run_job() { # run_job <sample> <arm> <cap>   (a subshell: run, then pass)
 pids=""
 for j in $joblist; do
   s="${j%%:*}"; rest="${j#*:}"; a="${rest%%:*}"; cap="${rest#*:}"
+  case " $kept " in *" $(jname "$s" "$a") "*) continue ;; esac
   # wait for a free slot
   while :; do
     alive=""; cnt=0
