@@ -1652,3 +1652,22 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   (the write was refused); it merges as a study. Decided under the mandate D-20261109-N1; the
   owner's to overrule. Where: PLAN.md section AR5 step 9; scratchpad drafts plan_step9_draft.md
   and plan_step9b_draft.md.
+
+### D-20261113-N1 · Track A / AR5 step 9 · AR5 step 9 passes its frozen rules; 8 review fixes accepted; phase B (opt-in key SeedRescueCMA, default off) approved
+- 2026-11-13, owner. Recorded by Newt Agent. Supersedes: none.
+- Arm G (rule G1: a wide CMA local optimization, 0.25 degree, 1,000 evaluations, at most 5 tries,
+  from the kept seed ends after a failed seed test, before the grid fallback) passes rules (1) to
+  (5) on held, mid, grad and big. The review (Opus) reproduced every number from the stored runs.
+  Totals A to G: held 46,516,396 to 30,768,867 (33.9% fewer), mid 15,645,472 to 13,004,457
+  (16.9%), grad 12,189,777 to 10,196,692 (16.4%), big identical. Grid fallbacks 65 to 19, 12 to 4,
+  11 to 5. Rescued 46 of 65, 8 of 12, 6 of 11, no wrong rescued seed. Fixed and broken against A
+  after the pass: 4 and 0 on held, 0 and 0 elsewhere. Predictions 2 (2.87 tries a case, at most
+  2.5 predicted) and 5 (held net -4, range -3 to 5) not met. Close margins: held is 22.4% under S8
+  (limit 20%); mid is 1 voxel inside the net limit. Accepted: all 8 required fixes of the review
+  (docs, tables, tests; no number changes). Approved: phase B as the plan writes it: one opt-in
+  key, SeedRescueCMA sigma evals, default off, off path bit-identical, no golden change, key-on
+  library run on mid equal to script arm Gl. The key is not recommended as a default; that choice
+  is the owner's. Shared library files change, so a ROADMAP heads-up goes out before the merge.
+  Made by Newt Agent under D-20261109-N1; the owner can overrule. Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR5 step 9); review
+  .claude/reports/20261113-0400-review-ar5i.md; branch feature/eval-reduction-ar5i a30c57d.
