@@ -42,8 +42,8 @@ before its fixes round (shared files conflict).
 - Items 14 + 3: `caffeinate -i bash scripts/autoresearch/item14/run_item14.sh` in `icenine_py/`
   of worktree `agent-a012b8f461d1630a1` (stopped, exit 3, 00:01, 2026-11-12); marker `item14.done`.
   Branch `ar5d` is held by worktree `agent-a8a1ac8e80f8913cf` (tip fac79f9).
-- Review page: version 46 live (22:40, 12 Nov). AR5 step 9 passed (13-N1). The fixes and phase B
-  implementer runs since 04:07 on 13 Nov and notifies at its end.
+- Page v46 live. AR5 step 9: key done (tip 107db3c), review 2 done, 13-N2 (stop rule fired on the
+  in-run pass; key accepted). Fixes 2 agent `a85c3645d361d3e7c` since 05:28; then merge, close.
 
 ## Queue
 
