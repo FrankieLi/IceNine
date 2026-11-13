@@ -78,7 +78,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - AR5 step 4: `agent-a814d0121e137b01c` (caches on `held`), `agent-a8a1ac8e80f8913cf`. Step 5:
   `agent-afc3f195cb4fffb30`. Item 14: `agent-a012b8f461d1630a1`. C++: `agent-ad44bb90c441eca35`.
 - `agent-a68538c58665829a1` (AR5 step 1, detached at 29e9b56): `ar5/cache/` and links.
-- Step 10 (`ar5j`): `agent-a9920a0aeaf5d1276` (`ar5/cut/`); 11: `agent-a69be86211b6c2797` (`ar5/patience/`).
+- Step 10: `agent-a9920a0aeaf5d1276` (`ar5/cut/`); 11: `agent-a69be86211b6c2797` (`ar5/patience/`).
 - Step 10: `agent-a6c7c67b4a03d1843` (`ar3/keys/cache/`), `agent-a3145f902bf0a61fb` (two reruns).
 - AR5 step 8: `agent-abdf64302f4022c0a` (`ar5/order/cache`, MC traces; step 9 links it).
 - `agent-a9c88b610fb10e1b6` (step 9): `ar3/start/cache/`, the image stack and samples of `mid`.
