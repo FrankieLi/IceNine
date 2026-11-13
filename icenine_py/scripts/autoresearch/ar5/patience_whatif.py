@@ -1,6 +1,7 @@
 """AR5 step 11, phase A step 1: count checks and the what-if tables, from the stored arm-G files.
 
   uv run python scripts/autoresearch/ar5/patience_whatif.py [--sample big|grad|mid ...]
+  uv run python scripts/autoresearch/ar5/patience_whatif.py --md-only   # whatif.md from the json
 
 Reads (read only, nothing rerun) for ``big``, ``grad``, ``mid`` (never ``held``): arm ``G`` of
 step 9 as linked in ``ar5/patience/cache`` by ``patience_link_cache.sh``: ``run.json``,
@@ -206,20 +207,56 @@ def write_md(out: Dict[str, Any], samples: List[str]) -> None:
         row2: Dict[str, Any] = {"rule": name}
         for s in samples:
             x = out[s]["rules"][name]
-            row2[s] = f"{pct(x['saved_share'])}; {x['taken_changed']}"
+            # review fix 5: both shares, with and without the estimated extra candidates
+            row2[s] = (
+                f"{pct(x['saved_share'])}; {pct(x['saved_share_without_extra'])}; "
+                f"{x['taken_changed']}"
+            )
         rule_rows.append(row2)
+    # table names differ from tables.md's (patience_rules there is the decision-rule table)
     tabs = {
-        "patience_roles": DT.markdown_table(role_rows, ["role"] + list(samples)),
-        "patience_rules": DT.markdown_table(rule_rows, ["rule"] + list(samples)),
+        "patience_whatif_roles": DT.markdown_table(role_rows, ["role"] + list(samples)),
+        "patience_whatif_rules": DT.markdown_table(rule_rows, ["rule"] + list(samples)),
     }
     DT.write_tables(PAT / "whatif.md", tabs)
+    body = (PAT / "whatif.md").read_text()
+    head = (
+        "What-if tables of AR5 step 11 (arithmetic on the stored arm-G traces of step 9; a cost\n"
+        "estimate, not a measurement). Written by `patience_whatif.py`.\n\n"
+        "Reading line, `patience_whatif_roles`: one row per role of an MC refinement in its seed\n"
+        "step; each cell is refinements, then their evaluations as a share of G's run with the\n"
+        "pass, then (in brackets) the share spent after the refinement's last improvement.\n\n"
+        "Reading line, `patience_whatif_rules`: one row per stop rule; each cell is the saving\n"
+        "as a share of G's run with the pass, first WITH the estimated extra candidates (a step\n"
+        "that loses its 0.95 stop is assumed to run its remaining candidates, each priced at\n"
+        "that stored step's mean evaluations per candidate), then WITHOUT them (the plan's\n"
+        "basis), then the seed steps whose taken end changes. The extra-candidate price includes\n"
+        "the long "
+        "refinements the rule cuts, so it is likely to overprice them; rule (iii)'s gap to the\n"
+        "plan comes from this pricing (its share without extras matches the plan's). Neither\n"
+        "share is a measurement: the gate's live replay of the whole changed path (`gate.json`,\n"
+        "every extra evaluation counted) supersedes both. The plan's table (ii) (best of 120\n"
+        "cost-gated rules, the in-sample checkpoint rule) is not rebuilt: its definitions are not\n"
+        "given to the digit.\n\n"
+    )
+    (PAT / "whatif.md").write_text(head + body)
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--sample", nargs="*", default=list(SAMPLES))
     ap.add_argument("--pessimistic", action="store_true")
+    ap.add_argument(
+        "--md-only",
+        action="store_true",
+        help="rewrite whatif.md from the stored whatif.json (reads no cache file)",
+    )
     a = ap.parse_args()
+    if a.md_only:
+        stored = json.loads((PAT / "whatif.json").read_text())
+        write_md(stored, [s for s in SAMPLES if s in stored])
+        print("whatif.md rewritten from whatif.json")
+        return
     PAT.mkdir(parents=True, exist_ok=True)
     out: Dict[str, Any] = dict(pessimistic=a.pessimistic)
     cnt: Dict[str, Any] = {}

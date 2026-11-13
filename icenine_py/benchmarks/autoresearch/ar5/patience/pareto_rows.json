@@ -12,7 +12,8 @@
    0.34,
    0.5
   ],
-  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_held.json"
+  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_held.json",
+  "status": "study: step 11 failed rule (5) on mid (D-20261113-N6); no key; not a candidate arm"
  },
  {
   "sample": "held",
@@ -27,7 +28,8 @@
    0.22,
    0.36
   ],
-  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_held.json"
+  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_held.json",
+  "status": "study: step 11 failed rule (5) on mid (D-20261113-N6); no key; not a candidate arm"
  },
  {
   "sample": "mid",
@@ -42,7 +44,8 @@
    0.25,
    0.4
   ],
-  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_mid.json"
+  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_mid.json",
+  "status": "study: step 11 failed rule (5) on mid (D-20261113-N6); no key; not a candidate arm"
  },
  {
   "sample": "mid",
@@ -57,7 +60,8 @@
    0.11,
    0.21
   ],
-  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_mid.json"
+  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_mid.json",
+  "status": "study: step 11 failed rule (5) on mid (D-20261113-N6); no key; not a candidate arm"
  },
  {
   "sample": "grad",
@@ -72,7 +76,8 @@
    0.73,
    0.96
   ],
-  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_grad.json"
+  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_grad.json",
+  "status": "study: step 11 failed rule (5) on mid (D-20261113-N6); no key; not a candidate arm"
  },
  {
   "sample": "grad",
@@ -87,7 +92,8 @@
    0.17,
    0.29
   ],
-  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_grad.json"
+  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_grad.json",
+  "status": "study: step 11 failed rule (5) on mid (D-20261113-N6); no key; not a candidate arm"
  },
  {
   "sample": "big",
@@ -102,7 +108,8 @@
    0.24,
    0.38
   ],
-  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_big.json"
+  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_big.json",
+  "status": "study: step 11 failed rule (5) on mid (D-20261113-N6); no key; not a candidate arm"
  },
  {
   "sample": "big",
@@ -117,6 +124,7 @@
    0.06,
    0.13
   ],
-  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_big.json"
+  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_big.json",
+  "status": "study: step 11 failed rule (5) on mid (D-20261113-N6); no key; not a candidate arm"
  }
 ]

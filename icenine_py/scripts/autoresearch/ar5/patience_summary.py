@@ -2,7 +2,8 @@
 
   uv run python scripts/autoresearch/ar5/patience_summary.py
 
-Reads ``patience/stats_<sample>.json`` (``patience_stats.py``) and ``patience/gate.json``. Writes
+Reads ``patience/stats_<sample>.json`` (``patience_stats.py``), ``patience/unmatched_<sample>.json``
+(``patience_unmatched.py``, review fix 3) and ``patience/gate.json``. Writes
 ``ar5_patience_evals_wrong.png`` (made first: run evaluations against wrong voxels, S8, G and S),
 ``tables.md`` (blocks for ``sync_doc_tables.py``), ``summary.json`` (every number of the tables,
 the predictions, the rules, the verdict) and ``pareto_rows.json`` (the format of
@@ -24,6 +25,8 @@ import patience_judge as PJ  # noqa: E402
 
 SAMPLES = ("held", "mid", "grad", "big")
 N = 24570
+# review fix 6: the pareto rows are a study of a failed step, not a candidate arm
+STATUS = "study: step 11 failed rule (5) on mid (D-20261113-N6); no key; not a candidate arm"
 
 
 def f(x: float, d: int = 5) -> str:
@@ -67,6 +70,11 @@ def plot(st: Dict[str, Any]) -> None:
                     label=f"{s} {arm}" if tag == "before" else None,
                 )
         ax.set_xscale("log")
+        # review suggestion: the decade has one major label only; label the minor ticks too
+        from matplotlib.ticker import LogFormatter
+
+        ax.xaxis.set_minor_formatter(LogFormatter(labelOnlyBase=False, minor_thresholds=(2, 0.4)))
+        ax.tick_params(axis="x", which="minor", labelsize=7)
         ax.set_xlabel(
             "run evaluations (millions, log%s)" % (", with the pass" if tag == "after" else "")
         )
@@ -104,6 +112,7 @@ def pareto(st: Dict[str, Any]) -> None:
                         round(100 * side["wilson_hi"], 2),
                     ],
                     source="icenine_py/benchmarks/autoresearch/ar5/patience/stats_%s.json" % s,
+                    status=STATUS,
                 )
             )
     (PAT / "pareto_rows.json").write_text(json.dumps(rows, indent=1) + "\n")
@@ -158,7 +167,13 @@ def house_cell(s: Dict[str, Any]) -> str:
     return f"{fewer:.1f}; {net}; {shift:.5f}"
 
 
-def tables(st: Dict[str, Any], pred: Dict[str, Any]) -> Dict[str, str]:
+def broad_wrong_seeds(d: Dict[str, Any], u: Dict[str, Any]) -> int:
+    """Rule (4) read broadly: matched-step wrong seeds plus S-only steps wrong where G's map is
+    right (``patience_unmatched.py``). The frozen rule counts the matched steps only."""
+    return int(d["wrong_seeds"]["s_wrong_where_g_right"]) + int(u["only_s_wrong_where_g_map_right"])
+
+
+def tables(st: Dict[str, Any], pred: Dict[str, Any], um: Dict[str, Any]) -> Dict[str, str]:
     t: Dict[str, str] = {}
     rows = []
     for s in SAMPLES:
@@ -196,10 +211,60 @@ def tables(st: Dict[str, Any], pred: Dict[str, Any]) -> Dict[str, str]:
                 "cut end at least 0.95": n(c["cut_end_hit_at_least_095"]),
                 "taken seed ends changed": n(d["taken_changed_n"]),
                 "median angle to G (deg)": f(d["taken_changed_median_mis_deg"] or 0.0, 4),
-                "S wrong where G right": n(d["wrong_seeds"]["s_wrong_where_g_right"]),
+                # review fix 3: this count covers the matched seed steps only (n in brackets)
+                "S wrong where G right, matched steps (n)": "%s (%s)"
+                % (
+                    n(d["wrong_seeds"]["s_wrong_where_g_right"]),
+                    n(d["validity"]["matched_steps"]),
+                ),
+                "S-only steps wrong where G's map right (n)": "%s (%s)"
+                % (n(um[s]["only_s_wrong_where_g_map_right"]), n(um[s]["only_s_n"])),
             }
         )
     t["patience_cuts"] = DT.markdown_table(rows, list(rows[0].keys()))
+    rows = []
+    for s in SAMPLES:
+        u = um[s]
+        rows.append(
+            {
+                "sample": s,
+                "seed steps G / S": f"{n(u['seed_steps_g'])} / {n(u['seed_steps_s'])}",
+                "matched": n(u["matched_steps"]),
+                "only in S": n(u["only_s_n"]),
+                "only in G": n(u["only_g_n"]),
+                "S-only with a cut": n(u["only_s_with_a_cut"]),
+                "S-only wrong where G's map right": n(u["only_s_wrong_where_g_map_right"]),
+                "G-only wrong where S's map right": n(u["only_g_wrong_where_s_map_right"]),
+                "wrong seeds, matched + S-only (limit 1)": n(broad_wrong_seeds(st[s], u)),
+            }
+        )
+    t["patience_unmatched"] = DT.markdown_table(rows, list(rows[0].keys()))
+    rows = []
+    for s in SAMPLES:
+        d = st[s]
+        a = d["arms"]
+        pg = d["s_vs_g"]["voxels"]["after"]
+        for arm in ("G", "S"):
+            sd = a[arm]
+            side = sd["after"]
+            p8 = sd["paired_after"]
+            rows.append(
+                {
+                    "sample": s,
+                    "arm": arm,
+                    "evaluations with the pass": n(sd["stages"]["total"]),
+                    "seed step": n(sd["stages"]["seed_step"]),
+                    "wrong after pass": n(side["wrong"]),
+                    "Wilson 95% (%)": "%.2f to %.2f"
+                    % (100 * side["wilson_lo"], 100 * side["wilson_hi"]),
+                    "fixed / broken vs G": (
+                        "n/a" if arm == "G" else f"{pg['fixed']} / {pg['broken']}"
+                    ),
+                    "fixed / broken vs S8": f"{p8['fixed']} / {p8['broken']}",
+                    "broken minus fixed vs S8": p8["broken"] - p8["fixed"],
+                }
+            )
+    t["patience_layer"] = DT.markdown_table(rows, list(rows[0].keys()))
     rows = []
     for s in SAMPLES:
         d = st[s]
@@ -307,7 +372,8 @@ def tables(st: Dict[str, Any], pred: Dict[str, Any]) -> Dict[str, str]:
                 "aligned draws": v["aligned_draws"],
                 "seed steps G / S": f"{n(v['seed_steps_g'])} / {n(v['seed_steps_s'])}",
                 "matched steps": n(v["matched_steps"]),
-                "fits compared": n(v["fits_compared"]),
+                # review fix 3: the fit comparison covers the matched steps only
+                "fits compared (matched steps)": n(v["fits_compared"]),
                 "fits differ": n(v["fits_differ"]),
                 "of them cut MC fits": n(v["fits_differ_cut_mc"]),
                 "other": n(v["fits_differ_other"]),
@@ -360,11 +426,12 @@ def tables(st: Dict[str, Any], pred: Dict[str, Any]) -> Dict[str, str]:
 
 def main() -> None:
     st = {s: json.loads((PAT / f"stats_{s}.json").read_text()) for s in SAMPLES}
+    um = {s: json.loads((PAT / f"unmatched_{s}.json").read_text()) for s in SAMPLES}
     gate = json.loads((PAT / "gate.json").read_text())
     plot(st)  # the plot comes first
     pareto(st)
     pred = predictions(st, gate)
-    DT.write_tables(PAT / "tables.md", tables(st, pred))
+    DT.write_tables(PAT / "tables.md", tables(st, pred, um))
     per = {s: bool(st[s]["rules"]["passes"]) for s in SAMPLES}
     verdict = PJ.step_verdict(per)
     failed = [
@@ -388,6 +455,16 @@ def main() -> None:
             )
             for s in SAMPLES
         },
+        unmatched={
+            s: {k: v for k, v in um[s].items() if k not in ("only_s", "only_g", "note")}
+            for s in SAMPLES
+        },
+        wrong_seeds_matched_plus_s_only={s: broad_wrong_seeds(st[s], um[s]) for s in SAMPLES},
+        wrong_seeds_note=(
+            "the frozen rule (4) counts matched seed steps (same voxel, same occurrence); "
+            "matched_plus_s_only adds S-only steps wrong where G's map before the pass is right"
+        ),
+        status=STATUS,
     )
     (PAT / "summary.json").write_text(json.dumps(out, indent=1, default=float) + "\n")
     print(

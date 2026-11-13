@@ -363,3 +363,33 @@ def test_the_rule_draws_no_random_number() -> None:
     PR.cut_point([[1, 0.5]], 100, 4)
     assert random.getstate() == state
     assert (np.random.get_state()[1] == nstate).all()
+
+
+def test_broad_wrong_seed_count_adds_the_s_only_steps() -> None:
+    """Review fix 3: the matched-step count plus S-only steps wrong where G's map is right."""
+    import patience_summary as PS
+
+    d = {"wrong_seeds": {"s_wrong_where_g_right": 0}}
+    assert PS.broad_wrong_seeds(d, {"only_s_wrong_where_g_map_right": 1}) == 1
+    d = {"wrong_seeds": {"s_wrong_where_g_right": 2}}
+    assert PS.broad_wrong_seeds(d, {"only_s_wrong_where_g_map_right": 0}) == 2
+
+
+def test_whatif_md_has_reading_lines_and_both_shares(tmp_path: Path, monkeypatch: Any) -> None:
+    """Review fix 5: whatif.md gives the share with and without the estimated extra candidates."""
+    import patience_whatif as PW
+
+    role = dict(n=3, evals=10, tail=5, share=0.1, tail_share=0.05)
+    rule = dict(saved_share=0.109, saved_share_without_extra=0.114, taken_changed=25)
+    stored = {
+        "mid": dict(
+            roles=dict(reached_095_taken=role, taken_no_095=role, not_taken=role),
+            rules={"P(3000)": rule},
+        )
+    }
+    monkeypatch.setattr(PW, "PAT", tmp_path)
+    PW.write_md(stored, ["mid"])
+    text = (tmp_path / "whatif.md").read_text()
+    assert "Reading line, `patience_whatif_rules`" in text
+    assert "| P(3000) | 10.9%; 11.4%; 25 |" in text
+    assert "table:patience_rules" not in text  # no clash with tables.md's decision-rule table
