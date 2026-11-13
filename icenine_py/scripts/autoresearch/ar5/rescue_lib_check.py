@@ -214,8 +214,74 @@ def main() -> None:
     if (C / "LibS11_mid" / "run.done").exists():
         res["control_libS11_vs_stored_S11"] = control(C)
     (RCM.RESCUE / "lib_check.json").write_text(json.dumps(res, indent=1, default=float) + "\n")
+    if "libG_vs_Gl" in res and "control_libS11_vs_stored_S11" in res:
+        tables(res)
     print(json.dumps(res, indent=1, default=float))
     os._exit(0)
+
+
+def tables(res: Dict[str, Any]) -> None:
+    """``rescue/tables_lib.md``: the doc table of the check (``doc_tables.write_tables``)."""
+    import doc_tables as DT
+
+    def yn(x: bool) -> str:
+        return "yes" if x else "NO"
+
+    r = [
+        "| pair | map before the pass: voxels that differ | evaluations before the pass |"
+        " counters (of the script run) equal | records equal | rescues: tried, rescued, tries |"
+        " rescues equal | equal |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    g = res["libG_vs_Gl"]["before_pass"]
+    c = res["control_libS11_vs_stored_S11"]["before_pass"]
+    z = g["rescues"]
+    for name, b, resc, eq in (
+        ("LibG vs Gl", g, z, res["libG_vs_Gl"]["equal_before_pass"]),
+        (
+            "LibS11 vs S11 (control)",
+            c,
+            None,
+            res["control_libS11_vs_stored_S11"]["equal_before_pass"],
+        ),
+    ):
+        ev = b["evals_total"]
+        r.append(
+            f"| {name} | {b['map']['voxels_differ']} | {ev['library']:,} (library),"
+            f" {ev['script']:,} (script) | {yn(b['counters_equal'])} |"
+            f" {yn(b['records']['n_differ'] == 0)} | "
+            + (
+                f"{resc['library']}, {resc['rescued_library']}, {resc['tries_library']} (library);"
+                f" {resc['script']}, {resc['rescued_script']}, {resc['tries_script']} (script) |"
+                f" {yn(resc['equal'])}"
+                if resc
+                else "- | -"
+            )
+            + f" | {yn(eq)} |"
+        )
+    T = {
+        "libcheck": "Reading line: one row per pair of runs on `mid`, before the boundary pass; "
+        "the library run is compared with the script run it must equal. A counter is compared "
+        "when the script run has it; the script counts its rescue evaluations inside the grid "
+        "fallback's count, so that count is compared with the library's grid plus rescue "
+        "evaluations.\n\n" + "\n".join(r)
+    }
+    a = res["libG_vs_Gl"].get("after_pass")
+    if a:
+        T["libpass"] = (
+            "Reading line: the boundary pass of `LibG` (made inside the library run, from the "
+            "unrounded map) and of `Gl` (made after, from the stored map, with the library's "
+            "single generator).\n\n"
+            "| | library (LibG) | script (Gl) |\n|---|---|---|\n"
+            f"| pass tries | {a['pass_tries']['library']:,} | {a['pass_tries']['script']:,} |\n"
+            f"| pass evaluations | {a['pass_evals']['library']:,} |"
+            f" {a['pass_evals']['script']:,} |\n"
+            f"| total with the pass | {a['total_with_pass']['library']:,} |"
+            f" {a['total_with_pass']['script']:,} |\n"
+            f"| map after the pass: voxels that differ (largest angle, degrees) |"
+            f" {a['map']['voxels_differ']} ({a['map']['max_angle_deg']:.2e}) | - |"
+        )
+    DT.write_tables(RCM.RESCUE / "tables_lib.md", T)
 
 
 if __name__ == "__main__":
