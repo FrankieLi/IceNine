@@ -1,0 +1,124 @@
+{
+ "repro_mid": {
+  "voxel": 7167,
+  "rerun_evals": 335077,
+  "expected": 335077,
+  "stored_row_evals": 335077,
+  "reproduces": true,
+  "record_total": 4007241,
+  "record_total_expected": 4007241,
+  "record_total_ok": true,
+  "record_cases": 12
+ },
+ "repro_grad": {
+  "voxel": 19058,
+  "rerun_evals": 341304,
+  "expected": 341304,
+  "stored_row_evals": 341304,
+  "reproduces": true,
+  "record_total": 3726723,
+  "record_total_expected": 3726723,
+  "record_total_ok": true,
+  "record_cases": 11
+ },
+ "replay": {
+  "cases": 23,
+  "right": 20,
+  "right_wilson95": [
+   0.678721020269818,
+   0.954624234856553
+  ],
+  "reach_095": 15,
+  "full_search_reach_095": 21,
+  "within_0p1_of_full_end": 17,
+  "n_with_full_end": 23,
+  "evals_total": 2499899,
+  "evals_full_total": 7733964,
+  "fewer_share": 0.676763558764949,
+  "evals_per_search_min": 103749,
+  "evals_per_search_max": 112041,
+  "evals_per_search_median": 109002.0,
+  "wrong_cases": [
+   {
+    "sample": "mid",
+    "voxel": 1339,
+    "err": 34.98226436731885,
+    "hit": 0.7467071935157041
+   },
+   {
+    "sample": "grad",
+    "voxel": 20136,
+    "err": 24.36294190144811,
+    "hit": 0.7113899613899614
+   },
+   {
+    "sample": "grad",
+    "voxel": 3494,
+    "err": 50.26697982059745,
+    "hit": 0.6575576430401366
+   }
+  ],
+  "not_reaching_095": [
+   {
+    "sample": "mid",
+    "voxel": 7167,
+    "hit": 0.7702825888787602,
+    "full_end_hit": 0.9990539262062441
+   },
+   {
+    "sample": "mid",
+    "voxel": 1339,
+    "hit": 0.7467071935157041,
+    "full_end_hit": 0.953921568627451
+   },
+   {
+    "sample": "mid",
+    "voxel": 15577,
+    "hit": 0.8777885548011639,
+    "full_end_hit": 0.9749759384023099
+   },
+   {
+    "sample": "mid",
+    "voxel": 7134,
+    "hit": 0.9341991341991343,
+    "full_end_hit": 0.9593425605536332
+   },
+   {
+    "sample": "mid",
+    "voxel": 12282,
+    "hit": 0.6555446516192346,
+    "full_end_hit": 0.9763313609467456
+   },
+   {
+    "sample": "grad",
+    "voxel": 20136,
+    "hit": 0.7113899613899614,
+    "full_end_hit": 0.9838556505223172
+   },
+   {
+    "sample": "grad",
+    "voxel": 3494,
+    "hit": 0.6575576430401366,
+    "full_end_hit": 0.7016423357664233
+   },
+   {
+    "sample": "grad",
+    "voxel": 19063,
+    "hit": 0.8007213706041478,
+    "full_end_hit": 0.9918032786885246
+   }
+  ],
+  "level0_run_values": [
+   1000
+  ]
+ },
+ "reproduction_ok": true,
+ "gate_pass": false,
+ "prediction_1": {
+  "right_23": false,
+  "reach_20_or_21": false,
+  "within_0p1_at_least_18": false,
+  "evals_85k_135k_each": true
+ },
+ "verdict": "STOP"
+}
