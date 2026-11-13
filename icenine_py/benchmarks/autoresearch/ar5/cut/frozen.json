@@ -8,11 +8,11 @@
   "seed_test": 0.8,
   "rule_g1": "unchanged (rescue_rules.py)"
  },
- "frozen_at": "2026-11-13T06:18:00-0800",
- "note": "no held file was hashed or opened before this file was committed",
+ "frozen_at": "2026-11-13T06:19:05-0800",
+ "note": "no held file was hashed or opened before this file was committed; steps 8 and 9 froze the library before step 9's phase B (key SeedRescueCMA, off by default), so their frozen.json no longer agrees; this file freezes the same script list and the library as it is now",
  "files": {
   "scripts/autoresearch/ar5/cut_rules.py": "4ebf9b854f5e5330940627d57f5244a39d9089e7c940bfc346b4b00d5a55004b",
-  "scripts/autoresearch/ar5/cut_common.py": "cce6c0590b38529ce968725ea76c5a170c059a5675e876f00c8a2a5fad9fa55c",
+  "scripts/autoresearch/ar5/cut_common.py": "d41178cfc3588430baac9c717ee78ea078e7038bee0330e5b515e109fa13eda7",
   "scripts/autoresearch/ar5/cut_run.py": "254df139212ae3eb264d9c5ea5bb8025a0cf5a249c63a1c1ab9193a4881df178",
   "scripts/autoresearch/ar5/rescue_rules.py": "18e6109364db88d6df461e8d678834c6729f73f92746fa41a016e6d68112cea8",
   "scripts/autoresearch/ar5/rescue_common.py": "b951a44e5ba1b6066b85de49c7c6961adab932b99bf72b5257b327d21890ae13",
