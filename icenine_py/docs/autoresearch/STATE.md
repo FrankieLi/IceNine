@@ -32,7 +32,7 @@ before its fixes round (shared files conflict).
    commit, fix 2 (MIGRATION_HISTORY names that commit), merge, close (PR #43).
 2. AR5 step 6 (`ar5f`; N3): fixed, waits. Steps 9, 10: merged (step 10 a failed study, no key).
    Step 11 (`ar5k`; 13-N5, PLAN "AR5 step 11"): rule P(3000). Gate passed; the whole-layer runs
-   go detached since 07:24 on 13 Nov. Check and next steps: the Queue row "AR5 step 11".
+   ended 09:11 (exit 0). Stats phase asked at 09:55 (same agent). Then: the Queue row "AR5 step 11".
 3. Items 14 + 3 (task `item14`; N25): E0 arms done. The run stopped at 00:01 on 2026-11-12,
    exit 3: the preflight refused (`cpptools`, pid 18415). Once the owner frees the machine:
    rerun the command below (E0 resumes; warm-up 25 min). After exit 0: phase B by
@@ -42,7 +42,7 @@ before its fixes round (shared files conflict).
 - Items 14 + 3: `caffeinate -i bash scripts/autoresearch/item14/run_item14.sh` in `icenine_py/`
   of worktree `agent-a012b8f461d1630a1` (stopped, exit 3, 00:01, 2026-11-12); marker `item14.done`.
   Branch `ar5d` is held by worktree `agent-a8a1ac8e80f8913cf` (tip fac79f9).
-- Page v47 live; v48 to do. AR5 step 11: arm S runs detached since 07:24 on 13 Nov (Queue row).
+- Page v47 live; v48 to do. AR5 step 11: runs done 09:11; stats phase running since 09:55, 13 Nov.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
