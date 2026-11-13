@@ -205,7 +205,7 @@ class SearchParameters:
     #   local optimization (first step sigma, evals evaluations, a fresh default_rng(0) each); the
     #   first end with hit ratio >= seed_index_stop_hit is taken; if none, the grid search runs as
     #   before. Needs seed_by_indexing and seed_index_stop_hit > 0. Off by default; no setting is
-    #   recommended (docs/autoresearch/findings_ar5_rescue.md).
+    #   recommended (MIGRATION_HISTORY.md, "Autoresearch AR5 step 9").
     seed_rescue_sigma_deg: float = 0.0
     seed_rescue_evals: int = 0
     # paint_grains: opt-in (config key PaintGrains, default off; AR3 step 2). With the key on,

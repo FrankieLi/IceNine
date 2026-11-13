@@ -12181,7 +12181,8 @@ not recommend it.
 - Tests first: `tests/test_bfs_seed_rescue.py` (42: parsing, bad values, refused combinations,
   the rule on synthetic steps, the call arguments of a rescue, key off equal to key absent, the
   BFS bookkeeping with the key on, the rule equal to the script's `rescue_rules.rescue_choose`).
-  Key off: full suite 1842 passed, 44 skipped, 1 deselected; no golden change.
+  Key off: full suite 1,842 passed, 44 skipped, 1 deselected (`rescue/suite_counts.json`, written
+  by `rescue_suite_counts.py` from the run's junit file); no golden change.
 - Pilot: the library's `rescue_seed` on the 12 failed seed steps of `mid` that the phase A
   replay used gives the replay's tries exactly on all 12.
 - Key on, `mid` (`rescue/lib_check.json`, `tables_lib.md`): the library run `LibG`
@@ -12193,13 +12194,29 @@ not recommend it.
   same way (13,034,526 evaluations).
 - The boundary pass made inside the library run differs from the script's pass of `Gl`: 50,026
   against 50,027 tries, 3,051,586 against 3,051,647 evaluations (13,115,771 against 13,115,832 with
-  the pass); after the pass 1991 voxels differ, 8 by more than 1 degree. The control differs the
-  same way (49,968 against 49,970 tries). The library's pass function on the stored map of `Gl`
-  (`rescue_lib_pass.py`) gives the script's tries exactly (every field) and the same changed
-  voxels. That is consistent with the in-run pass reading the unrounded map in memory while the
-  script reads the stored, rounded map; the reading was not changed to test it. Whether this meets
-  the stop rule ("the key-on library run differs from the script arm") is left to the owner.
+  the pass). After the pass, 1,683 voxels are more than 0.001 degree apart and 8 more than 1
+  degree apart; the largest gap is 60.2 degrees. Accuracy after the pass has the same count: 37
+  wrong voxels in both, and by voxel (script pass as the base) 4 fixed, 4 broken, 33 wrong in both
+  (`lib_check.json`, table `libpass`). The control (key off) differs the same way (49,968 against
+  49,970 tries). The library's pass function on the stored map of `Gl` (`rescue_lib_pass.py`) gives
+  the script's tries exactly (every field) and the same changed voxels.
+- Try by try (table `libtries`): the in-run pass and the script's pass try the same voxels and
+  candidates in the same order for the first 11,632 tries (control: 4,872), but the ends already
+  differ from try 0, in 11,626 of those tries (control: 4,870), with no evaluation count
+  different. Same targets and the same fresh generator would give an equal try 0 if the input maps
+  were equal; a shifted generator would keep the early tries equal. So the input maps differ from
+  the start. That is consistent with the in-run pass reading the unrounded map in memory and the
+  script the stored, rounded `.mic`. This reading was tested directly in AR3 step 10 (fixes round,
+  `libkeys_fresh.py`: a fresh process on the unrounded map gave the in-run pass try for try, and on
+  the `.mic`-rounded map the script's tries). It was not tested again for this run: the library
+  run's unrounded map before the pass was not saved.
+- Stop rule: read strictly, the plan's stop rule fired on the in-run boundary pass (the key-on
+  library run differs from the script arm after the pass). The run stopped and reported. The key
+  was accepted on the before-the-pass equality by D-20261113-N2, as in AR3 step 10 and AR5 step 5.
 - macOS file names are case-insensitive: the library run folders are `LibG_mid` / `LibS11_mid`, not
   `GL_mid` (a first start with `GL` shared the folder with `Gl` and was stopped after a minute).
-- Page: `docs/autoresearch/findings_ar5_rescue.md` waits for the owner. The guard refused its
-  write; the text is in `.claude/reports/20261113-ar5i-page.md` of the fixes worktree.
+- Second review fixes (review `20261113-0520-review-ar5i-B`, D-20261113-N2): the pass difference
+  and the try-level evidence above (fixes 1, 2), no pointer to an untracked file (fixes 3, 4), the
+  suite counts in a tracked file (fix 5), and the failed-rescue BFS test now asserts that the grid
+  search gets the BFS generator object in the same state as with the key off (fix 6).
+- Page: the findings page waits for the owner (the guard refused its write).
