@@ -12220,3 +12220,126 @@ not recommend it.
   suite counts in a tracked file (fix 5), and the failed-rescue BFS test now asserts that the grid
   search gets the BFS generator object in the same state as with the key off (fix 6).
 - Page: the findings page waits for the owner (the guard refused its write).
+
+## Autoresearch AR5 step 10, phase A: the level-0 cut (gate not passed) (2026-11-13, task ar5j)
+
+**Outcome.** The step fails its replay gate. By the rule fixed before the run there is no tuning,
+no other N, no whole-layer run and no key `GridLevel0Top` (D-20261113-N4). This section is the
+record of the step; there is no findings page. Script layer only: nothing under `icenine/` changed,
+no default, no golden, no dependency.
+
+**The rule.** A grid search has four levels. Each level lists candidates sorted by the discrete
+score, runs a quick MC refinement on each one, and keeps the best quarter for the next level. At
+level 0 the list holds about 10,200 candidates. The level-0 cut runs the quick MC of level 0 only
+on the first N = 1,000 of that list. The quarter kept is counted from the cut list, so level 1
+starts from 250 candidates. Levels 1 to 3 and the final local optimization are unchanged. Each
+grid search keeps its own generator (voxel, "grid", 0). Files: `scripts/autoresearch/ar5/cut_*.py`
+(`cut_rules.py` the rule and the wrapper, `cut_replay.py` the replay, `cut_gate.py` the gate and
+the tables), `tests/test_ar5_cut.py` (8 tests), results in `benchmarks/autoresearch/ar5/cut/`
+(`frozen.json`, `gate.json`, `tables.md`, the 4 replay files). The run cache `cut/cache` is
+untracked: `cut_link_cache.sh` links it read only to the stored step 8 and 9 caches of sibling
+worktrees, so its inputs are gone if those worktrees are pruned.
+
+**Reproduction.** The 2 stored full searches were rerun without the cut. They give 335,077
+evaluations (`mid` 7167) and 341,304 (`grad` 19058), as stored, with the same end (0.0 degree
+apart). The record's totals are 4,007,241 (`mid`, 12 searches) and 3,726,723 (`grad`, 11), as
+stored.
+
+**The gate.** The cut was replayed on the 23 stored grid searches of `mid` and `grad` (disclosed
+samples). The replay's evaluation count is a cost estimate only. Reading line: one row per gate
+item; "full search" is the stored search the cut replaces, on the same 23 voxels.
+
+<!-- table:cut_gate -->
+| item | cut search | Wilson 95% | gate | full search | met |
+|---|---|---|---|---|---|
+| right (at most 1 degree) | 20 of 23 | 0.68 to 0.95 | at least 22 | 23 of 23 | no |
+| hit ratio at least 0.95 | 15 of 23 | 0.45 to 0.81 | at least 20 | 21 of 23 (0.73 to 0.98) | no |
+| evaluations, 23 searches | 2,499,899 | n/a | at least 50% fewer | 7,733,964 | yes (67.7% fewer) |
+<!-- /table:cut_gate -->
+
+Paired split against the full search, by voxel. Reading line: "fixed" means the cut meets the
+count where the full search does not; "broken" means the reverse.
+
+<!-- table:cut_paired -->
+| count | both | fixed | broken | neither |
+|---|---|---|---|---|
+| right | 20 | 0 | 3 | 0 |
+| hit ratio at least 0.95 | 14 | 1 | 7 | 1 |
+<!-- /table:cut_paired -->
+
+The three wrong cut ends are `mid` 1339, `grad` 20136 and `grad` 3494. The full search was right
+(at most 1 degree) in all three. `grad` 3494's full end was right at 0.55 degree, but its hit
+ratio of 0.70 was under 0.95. Reading line: one row per cut search that ends wrong or under hit
+ratio 0.95; angles are to the truth, except the last column.
+
+<!-- table:cut_cases -->
+| case | cut end, degrees | cut hit | full end, degrees | full hit | cut end to full end, degrees |
+|---|---|---|---|---|---|
+| mid 7167 | 0.06 | 0.77 | 0.002 | 1.00 | 0.06 |
+| mid 1339 | 34.98 | 0.75 | 0.016 | 0.95 | 34.99 |
+| mid 15577 | 0.04 | 0.88 | 0.022 | 0.97 | 0.06 |
+| mid 7134 | 0.02 | 0.93 | 0.008 | 0.96 | 0.02 |
+| mid 12282 | 0.17 | 0.66 | 0.002 | 0.98 | 0.17 |
+| grad 20136 | 24.36 | 0.71 | 0.004 | 0.98 | 24.36 |
+| grad 3494 | 50.27 | 0.66 | 0.550 | 0.70 | 50.34 |
+| grad 19063 | 0.18 | 0.80 | 0.021 | 0.99 | 0.16 |
+<!-- /table:cut_cases -->
+
+**Prediction 1** (written before the run). Reading line: one row per prediction for the replay.
+
+<!-- table:cut_pred1 -->
+| prediction | result | met |
+|---|---|---|
+| right in 23 | 20 | no |
+| hit ratio at least 0.95 in 20 or 21 | 15 | no |
+| within 0.1 degree of the full end in at least 18 | 17 | no |
+| 85,000 to 135,000 evaluations each | 103,749 to 112,041 | yes |
+<!-- /table:cut_pred1 -->
+
+Predictions 2 to 5 and the pass rules are not evaluated: no whole-layer run was made.
+
+**Deviations from the plan.**
+- Steps 8's and 9's freeze checks no longer agree, because step 9's phase B changed the library
+  (the opt-in key `SeedRescueCMA`, off). The step's own freeze (`cut_freeze.py`: the same script
+  list, the library as it is now) replaced them; `cut_common.py` switches the two older checks off
+  inside its own process only. Caveat: arm `C` would have run on the library after step 9's phase
+  B, while arm `G` is stored from before it. This is moot after the gate.
+- The freeze was committed twice (673076c, then f0eaf3c), both before any `held` run.
+- A wiring smoke of `cut_run.py` on `big` was killed after about 6 minutes, and its folder was
+  deleted. It was a wiring check, not a result.
+- The plan's step 1 said to rerun the 2 full searches "with the recorder". The reproduction checked
+  totals and end only, which is enough for the stop rule. The replay stores no per-level arrays and
+  no level-0 count kept.
+- `cut_run_all.sh` was not written: the gate failed first.
+- Review fix 3 changed `cut_run.py`'s docstring after the freeze, so `cut_freeze.py --check` no
+  longer agrees. No `held` run belongs to this step.
+
+**No `held` file was read.** The replay refuses any sample but `grad` and `mid`, and the gate reads
+only `cut/` files. The cache links to the `held` runs are names only; none was opened.
+
+**Read after the gate (post hoc, not a test).** The review read the stored per-level files of the
+full searches (no new search). Because the generator is shared, the cut's 1,000 quick-MC results
+equal the full search's first 1,000, so the stored record shows what the cut kept.
+- The plan's claim is right as stated: a candidate within 5 degrees of the end sits at place 165
+  or better of the level-0 list in 23 of 23. It measures reach at level 0 only.
+- In 7 of the 8 cut searches under 0.95, a candidate near the full end is in the first 1,000 and
+  survives the kept quarter. It is lost after level 0. In the eighth (`grad` 20136) no candidate
+  of the cut's 1,000 is within 3 degrees of the full end after the quick MC.
+- Five of the 7 end 0.02 to 0.17 degree from the full end but under 0.95: the basin is found and
+  the final local optimization falls short. Two end wrong (`mid` 1339, `grad` 3494), at an end
+  with hit ratio 0.75 and 0.66: near-degenerate solutions.
+- The cut also shrinks levels 1 to 3: they start from 250 candidates instead of about 2,540. On
+  `mid` 7167 the global stages use 47,124 evaluations instead of 77,517. The draws after level 0
+  also differ. Both are consistent with the losses; neither was tested. A single cut replay with
+  the recorder would separate them.
+
+**Lesson (D-20261113-N4).** A claim about where the right candidate sits at one level does not
+show that later levels keep it. The plan's choice (a) weighed level-0 reach alone, not the smaller
+later levels.
+
+**Review fixes** (review `20261113-0625-review-ar5j`, all 6 accepted by D-20261113-N4): this
+section (fix 1) and the README study line (fix 2); `cut_run.py`'s docstring says `cut_freeze`
+replaces the step 8 and 9 checks (fix 3); the full search was right in all three wrong cases
+(fix 4); `cut_gate.py` uses `stats.wilson`, and adds the 0.95 intervals, the paired split and
+`tables.md`, with `gate.json` gaining fields only (fix 5); the quarter test is labelled a
+statement of the library formula and the draw test a weak check (fix 6).

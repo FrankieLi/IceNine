@@ -854,6 +854,13 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   owner (the guard refused its write). MIGRATION_HISTORY, "Autoresearch AR5 step 9, phase A" and
   "phase B".
 
+- Autoresearch AR5 step 10, phase A (the level-0 cut of the grid search: quick MC on the first
+  1,000 listed candidates only; a study, no key, no library change; negative result):
+  `scripts/autoresearch/ar5/cut_*.py`, tests `tests/test_ar5_cut.py`, results
+  `benchmarks/autoresearch/ar5/cut/` (`gate.json`, `tables.md`; the cache is untracked). The step
+  fails its replay gate (right in 20 of 23, hit ratio 0.95 in 15 of 23), so no whole-layer run and
+  no key (D-20261113-N4). MIGRATION_HISTORY, "Autoresearch AR5 step 10, phase A".
+
 See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and
 current results of this work, and [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy
 Orientation NN — Theory Phase" onward) for the step-by-step record.

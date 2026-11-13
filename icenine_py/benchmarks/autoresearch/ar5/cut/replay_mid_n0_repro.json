@@ -1,0 +1,27 @@
+{
+ "sample": "mid",
+ "top_n": 0,
+ "rule": "no cut (full search)",
+ "wall_s": 24.080618381500244,
+ "wall_label": "contended; not a timing result",
+ "rows": [
+  {
+   "sample": "mid",
+   "voxel": 7167,
+   "step": 327,
+   "n": 0,
+   "evals": 335077,
+   "global_evals": 77517,
+   "local_evals": 257560,
+   "level0_listed": null,
+   "level0_run": null,
+   "hit": 0.9990539262062441,
+   "cost": 0.03974184782608703,
+   "err": 0.001893857661090732,
+   "mis_to_full_end": 0.0,
+   "full_end_hit": 0.9990539262062441,
+   "full_end_err": 0.0018768726421630397,
+   "full_end_cost": 0.03974184782608703
+  }
+ ]
+}
