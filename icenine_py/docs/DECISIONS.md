@@ -1691,3 +1691,18 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   reading of the stop rule are the owner's to overrule. Made by Newt Agent under D-20261109-N1.
   Where: review .claude/reports/20261113-0520-review-ar5i-B.md; branch feature/eval-reduction-ar5i
   107db3c.
+
+### D-20261113-N3 · Track A / AR5 step 10 · AR5 step 10 approved: a level-0 cut of the grid search (quick MC on the first 1,000 listed candidates only), with a cheap gate; tested on held
+- 2026-11-13, owner. Recorded by Newt Agent. Supersedes: none.
+- After rule G1 the grid search still takes 21.3% of the run on held (19 searches), 10.3% on mid,
+  16.6% on grad. The per-level record of 23 stored searches on mid and grad shows a candidate
+  within 5 degrees of the end at place 165 or better of about 10,200 in all 23. Step 10 runs level
+  0's quick MC only on the first 1,000 candidates of the list sorted by the discrete score (arm C
+  = arm G plus the cut). N = 1,000 is frozen, chosen on mid and grad (disclosed); held is the test
+  sample. Gate before any whole-layer run: a replay on the 23 cases must be right in at least 22,
+  reach hit ratio 0.95 in at least 20, with at least 50% fewer evaluations. Predictions, rules,
+  stop rule (library against script compared before the pass) as in the plan section. Phase B
+  (opt-in key GridLevel0Top, default off) only after a recorded decision. Not chosen now: an early
+  stop of MC refinements, a learned ranking of level-0 candidates, a stronger local optimization
+  from G1's near ends. Made by Newt Agent under D-20261109-N1; the owner can overrule. Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR5 step 10).
