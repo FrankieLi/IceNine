@@ -1,5 +1,5 @@
 <!-- table:order_accuracy -->
-| sample | arm | wb | wa | med | f8 | fewer | r5 | wall |
+| sample | arm | wrong before the pass (95% interval) | wrong after the pass (95% interval) | median error after the pass (deg) | fixed / broken against S8 (after the pass) | fewer evaluations than S8 (with the pass) | rule 5 (house rule against S8) | wall, run + pass (minutes; contended, not a timing result) |
 |---|---|---|---|---|---|---|---|---|
 | held | A | 104 (0.35 to 0.51%) | 73 (0.24 to 0.37%) | 0.02607 | 25 / 28 | 22.4% | pass | 127 |
 | held | Y | 104 (0.35 to 0.51%) | 78 (0.25 to 0.40%) | 0.02603 | 23 / 31 | 28.3% | fail | 123 |
@@ -13,7 +13,7 @@
 <!-- /table:order_accuracy -->
 
 <!-- table:order_predictions -->
-| sample | p12 | p3 | p4 | p5 |
+| sample | predictions 1-2: seed-step and total cut in range | prediction 3: grid fallbacks within 2, net within -3 to 3 | prediction 4: median moves at most 0.0005 deg | prediction 5: shared fits identical |
 |---|---|---|---|---|
 | held | met (seed 22.6%, total 7.7%; range 20-45 / 6-16) | not met (grid 65 to 64, net 5) | met (-0.00004) | met (0 of 10564 shared fits differ) |
 | mid | met (seed 38.8%, total 13.4%; range 30-45 / 11-18) | met (grid 12 to 12, net 3) | met (-0.00001) | met (0 of 2896 shared fits differ) |
@@ -22,7 +22,7 @@
 <!-- /table:order_predictions -->
 
 <!-- table:order_rules -->
-| sample | r1 | r2 | r3 | r4 | r5 | a5 | y |
+| sample | rule 1: seed step at least 10% fewer and total fewer | rule 2: broken minus fixed at most 5 (net) | rule 3: median error at most 0.001 deg higher | rule 4: at most 2 more grid fallbacks | rule 5 for Y: house rule against S8 | rule 5 for A | Y passes on the sample |
 |---|---|---|---|---|---|---|---|
 | held | pass | pass (5) | pass | pass | fail (28.3% fewer, net 8, median -0.00256) | pass (22.4% fewer, net 3) | fail |
 | mid | pass | pass (3) | pass | pass | fail (48.8% fewer, net 7, median -0.00112) | pass (40.8% fewer, net 4) | fail |
@@ -31,7 +31,7 @@
 <!-- /table:order_rules -->
 
 <!-- table:order_stages -->
-| sample | arm | steps | seed_evals | mc | mc_steps | nb | rv | grid_e | before | pas | total | grid |
+| sample | arm | seed steps | seed-step evaluations | MC refinements | seed steps with MC | neighbour fits | revisits | grid fallback evaluations | before the pass | boundary pass | total with the pass | grid fallbacks (count) |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | held | A | 3709 | 14,173,739 | 5457 | 2234 | 1,480,653 | 3,211,833 | 22,458,034 | 41,324,259 | 5,192,137 | 46,516,396 | 65 |
 | held | Y | 3680 | 10,975,888 | 4100 | 1300 | 1,480,531 | 3,190,788 | 22,112,176 | 37,759,383 | 5,190,246 | 42,949,629 | 64 |
@@ -44,13 +44,28 @@
 | big | Yl | 345 | 300,088 | 70 | 26 | 1,496,696 | 488,305 | 0 | 2,285,089 | 1,138,260 | 3,423,349 | 0 |
 <!-- /table:order_stages -->
 
+<!-- table:order_terms -->
+| term | meaning |
+|---|---|
+| A | present (interleaved) order: CMA fit, then MC if needed, candidate by candidate |
+| Y | sweep order: CMA fit on every candidate first, MC only if no CMA end reaches 0.95 |
+| Yl | sweep order with the library's own random draws (not aligned), big only |
+| S8 | the stored house reference run (other seed rule, library draws; not draw-aligned) |
+| wrong | voxel error above 1 degree from the truth (symmetry-reduced angle) |
+| fixed / broken | fixed: wrong in the first run, right in the second; broken: the reverse |
+| net | broken minus fixed |
+| matched seed step | a seed step at the same voxel and occurrence in both arms |
+| taken end | the end of the refinement the seed step kept for the voxel |
+| the pass | the boundary pass after the layer (run D4 of step 2) |
+<!-- /table:order_terms -->
+
 <!-- table:order_y_vs_a -->
-| sample | seed | sc | tc | fb | fbb | wrong | grid | med | dif |
-|---|---|---|---|---|---|---|---|---|---|
-| held | 14,173,739 to 10,975,888 | 22.6% | 7.7% | 1 / 6 | 4 / 4 | 73 to 78 | 65 to 64 | 0.02607 to 0.02603 | 232 of 3231 (0 wrong in A, 0 in Y) |
-| mid | 5,417,024 to 3,316,028 | 38.8% | 13.4% | 2 / 5 | 1 / 2 | 35 to 38 | 12 to 12 | 0.02862 to 0.02861 | 115 of 1173 (0 wrong in A, 0 in Y) |
-| grad | 1,527,842 to 1,277,801 | 16.4% | 2.1% | 0 / 0 | 0 / 1 | 56 to 56 | 11 to 11 | 0.02135 to 0.02135 | 5 of 1259 (0 wrong in A, 0 in Y) |
-| big | 687,902 to 274,195 | 60.1% | 10.6% | 3 / 0 | 2 / 0 | 21 to 18 | 0 to 0 | 0.03044 to 0.03040 | 22 of 217 (0 wrong in A, 0 in Y) |
+| sample | seed-step evaluations, A to Y | seed-step cut | total cut (with the pass) | fixed / broken, Y against A (after the pass) | fixed / broken, Y against A (before the pass) | wrong after the pass, A to Y | grid fallbacks, A to Y | median error after the pass (deg), A to Y | matched seed steps whose taken end differs (wrong ends in A, in Y) | seed steps in one arm only (A / Y) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| held | 14,173,739 to 10,975,888 | 22.6% | 7.7% | 1 / 6 | 4 / 4 | 73 to 78 | 65 to 64 | 0.02607 to 0.02603 | 232 of 3231 (0 wrong in A, 0 in Y) | 478 / 449 |
+| mid | 5,417,024 to 3,316,028 | 38.8% | 13.4% | 2 / 5 | 1 / 2 | 35 to 38 | 12 to 12 | 0.02862 to 0.02861 | 115 of 1173 (0 wrong in A, 0 in Y) | 434 / 437 |
+| grad | 1,527,842 to 1,277,801 | 16.4% | 2.1% | 0 / 0 | 0 / 1 | 56 to 56 | 11 to 11 | 0.02135 to 0.02135 | 5 of 1259 (0 wrong in A, 0 in Y) | 19 / 11 |
+| big | 687,902 to 274,195 | 60.1% | 10.6% | 3 / 0 | 2 / 0 | 21 to 18 | 0 to 0 | 0.03044 to 0.03040 | 22 of 217 (0 wrong in A, 0 in Y) | 100 / 102 |
 <!-- /table:order_y_vs_a -->
 
 <!-- table:order_yl -->

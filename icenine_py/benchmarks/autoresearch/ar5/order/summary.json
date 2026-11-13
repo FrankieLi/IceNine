@@ -142,6 +142,8 @@
    "differs_wrong_A": 0,
    "differs_wrong_Y": 0,
    "matched": 3231,
+   "only_A": 478,
+   "only_Y": 449,
    "rule5_A": {
     "fewer": 0.22373729595304334,
     "a": true,
@@ -205,6 +207,8 @@
    "differs_wrong_A": 0,
    "differs_wrong_Y": 0,
    "matched": 1173,
+   "only_A": 434,
+   "only_Y": 437,
    "rule5_A": {
     "fewer": 0.4083338419731382,
     "a": true,
@@ -268,6 +272,8 @@
    "differs_wrong_A": 0,
    "differs_wrong_Y": 0,
    "matched": 1259,
+   "only_A": 19,
+   "only_Y": 11,
    "rule5_A": {
     "fewer": 0.3227988197928582,
     "a": true,
@@ -331,6 +337,8 @@
    "differs_wrong_A": 0,
    "differs_wrong_Y": 0,
    "matched": 217,
+   "only_A": 100,
+   "only_Y": 102,
    "rule5_A": {
     "fewer": 0.5434590407111002,
     "a": true,

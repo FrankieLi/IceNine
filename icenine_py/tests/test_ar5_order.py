@@ -12,7 +12,9 @@ sys.path.insert(0, str(ROOT / "scripts" / "autoresearch" / "ar5"))
 
 import mix_rules as MR  # noqa: E402
 import order_draws as OD  # noqa: E402
+import order_logs as OL  # noqa: E402
 import order_rules as OR  # noqa: E402
+import order_summary as OS  # noqa: E402
 
 
 def _arm(hit: List[float], cost: List[float], evals: List[int], err: Any = None) -> Dict[str, Any]:
@@ -169,3 +171,73 @@ def test_wrappers_replace_only_the_generator_and_name_the_calling_function() -> 
     tf = OD.aligned_try_fit(book, try_fit)
     assert tf("h", "b", 9, None, "shared") == 9 and calls[0] != "shared"
     assert np.array_equal(calls[0].random(2), OD.make_rng(9, "pass", 0).random(2))
+
+
+# ---- the log readers and the verdict (review fix of 2026-11-12; written after the runs) --------
+def _fit(pos: int, kind: str, hit: float, cost: float, ev: int = 201) -> List[Any]:
+    return [pos, pos, kind, hit, cost, ev, [float(pos)] * 9]
+
+
+def _step(voxel: int, stop: int, fits: List[List[Any]]) -> Dict[str, Any]:
+    return dict(voxel=voxel, stop=stop, fits=fits)
+
+
+def test_kept_end_is_the_lower_cost_fit_and_a_tie_keeps_the_cma_end() -> None:
+    e = _step(1, -1, [_fit(0, "C", 0.6, 0.30), _fit(0, "M", 0.7, 0.30, 900)])
+    assert OL.kept_ends(e)[0]["kind"] == "C"  # tie: the CMA end stays
+    e = _step(1, -1, [_fit(0, "C", 0.6, 0.30), _fit(0, "M", 0.7, 0.29, 900)])
+    assert OL.kept_ends(e)[0]["kind"] == "M"
+
+
+def test_taken_end_follows_stop_else_lowest_cost_first_on_a_tie() -> None:
+    fits = [_fit(0, "C", 0.5, 0.4), _fit(1, "C", 0.96, 0.5), _fit(2, "C", 0.4, 0.2)]
+    assert OL.taken_end(_step(1, 1, fits))["pos"] == 1  # stop index, not the lowest cost
+    assert OL.taken_end(_step(1, -1, fits))["pos"] == 2
+    tie = [_fit(0, "C", 0.5, 0.2), _fit(1, "C", 0.5, 0.2)]
+    assert OL.taken_end(_step(1, -1, tie))["pos"] == 0
+
+
+def test_log_counts_flags_mc_after_a_passing_cma_end_in_y_only() -> None:
+    ok = _step(1, 1, [_fit(0, "C", 0.5, 0.4), _fit(1, "C", 0.96, 0.2)])
+    bad = _step(2, 0, [_fit(0, "C", 0.96, 0.2), _fit(0, "M", 0.97, 0.3, 500)])
+    y = OL.log_counts([ok, bad], "Y")
+    assert y["bad_mc_after_cma_pass"] == 1 and y["mc_evals"] == 500 and y["steps_with_mc"] == 1
+    a_ok = _step(
+        3, 1, [_fit(0, "C", 0.5, 0.4), _fit(0, "M", 0.6, 0.3, 500), _fit(1, "C", 0.96, 0.2)]
+    )
+    assert OL.log_counts([a_ok], "A")["bad_mc_after_cma_pass"] == 0
+
+
+def test_compare_logs_counts_matched_one_arm_and_differing_ends() -> None:
+    la = [_step(5, 0, [_fit(0, "C", 0.96, 0.1)]), _step(6, 0, [_fit(0, "C", 0.96, 0.1)])]
+    lb = [
+        _step(5, 1, [_fit(0, "C", 0.5, 0.3), _fit(1, "C", 0.96, 0.2)]),
+        _step(7, 0, [_fit(0, "C", 0.96, 0.1)]),
+    ]
+    c = OL.compare_logs(la, lb, lambda v, R: R[0] > 0.5)  # candidate 1's end is "wrong"
+    assert (c["matched"], c["only_a"], c["only_b"], c["taken_differs"]) == (1, 1, 1, 1)
+    assert (c["differing_wrong_first"], c["differing_wrong_second"]) == (0, 1)
+    assert c["shared_fits_compared"] == 1 and c["shared_fits_different"] == 1
+    assert OL.same_voxel_prefix(la, lb) == 1 and OL.first_taken_difference(la, lb) == 0
+
+
+def test_flip_origin() -> None:
+    assert OL.flip_origin(False, True, False, True) == "before the pass"
+    assert OL.flip_origin(False, False, False, True) == "in the pass"
+    assert OL.flip_origin(True, False, False, True) == "in the pass"  # reversed by the pass
+
+
+def test_verdict_clause_judges_y_without_rule_5_only_where_a_fails_it() -> None:
+    r = dict(r1=True, r2=True, r3=True, r4=True, r5=False)
+    assert not OS.y_passes(r, a_fails_5=False)  # this step: A passes (5), Y fails it
+    assert OS.y_passes(r, a_fails_5=True)
+    assert not OS.y_passes(dict(r, r2=False, r5=True), a_fails_5=True)
+    per = dict(held=True, mid=True, grad=True, big=True)
+    assert OS.step_passes(per) and not OS.step_passes(dict(per, mid=False))
+
+
+def test_table_headers_carry_no_bare_abbreviation_and_label_the_wall() -> None:
+    t = OS.labelled([dict(sample="big", wall="9")], ["sample", "wall"])
+    assert "contended, not a timing result" in t.splitlines()[0]
+    t = OS.labelled([dict(grid="0 to 0")], ["grid"], table="y_vs_a")
+    assert t.splitlines()[0] == "| grid fallbacks, A to Y |"

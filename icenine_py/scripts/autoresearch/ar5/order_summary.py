@@ -16,7 +16,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 HERE = Path(__file__).resolve().parent
 ICE = HERE.parents[2]
@@ -40,8 +40,95 @@ PRED = {
 }
 
 
+# column headers of tables.md (review fix 5: no unexplained abbreviations; the wall column is
+# labelled as contended and not a timing result)
+HEADS = dict(
+    sample="sample",
+    arm="arm",
+    steps="seed steps",
+    seed_evals="seed-step evaluations",
+    mc="MC refinements",
+    mc_steps="seed steps with MC",
+    nb="neighbour fits",
+    rv="revisits",
+    grid_e="grid fallback evaluations",
+    before="before the pass",
+    pas="boundary pass",
+    total="total with the pass",
+    grid="grid fallbacks (count)",
+    wb="wrong before the pass (95% interval)",
+    wa="wrong after the pass (95% interval)",
+    med="median error after the pass (deg)",
+    f8="fixed / broken against S8 (after the pass)",
+    fewer="fewer evaluations than S8 (with the pass)",
+    r5="rule 5 (house rule against S8)",
+    wall="wall, run + pass (minutes; contended, not a timing result)",
+    seed="seed-step evaluations, A to Y",
+    sc="seed-step cut",
+    tc="total cut (with the pass)",
+    fb="fixed / broken, Y against A (after the pass)",
+    fbb="fixed / broken, Y against A (before the pass)",
+    wrong="wrong after the pass, A to Y",
+    gridc="grid fallbacks, A to Y",
+    medc="median error after the pass (deg), A to Y",
+    dif="matched seed steps whose taken end differs (wrong ends in A, in Y)",
+    only="seed steps in one arm only (A / Y)",
+    r1="rule 1: seed step at least 10% fewer and total fewer",
+    r2="rule 2: broken minus fixed at most 5 (net)",
+    r3="rule 3: median error at most 0.001 deg higher",
+    r4="rule 4: at most 2 more grid fallbacks",
+    r5y="rule 5 for Y: house rule against S8",
+    a5="rule 5 for A",
+    y="Y passes on the sample",
+    p12="predictions 1-2: seed-step and total cut in range",
+    p3="prediction 3: grid fallbacks within 2, net within -3 to 3",
+    p4="prediction 4: median moves at most 0.0005 deg",
+    p5="prediction 5: shared fits identical",
+)
+# the same short key means different columns in two tables; map them per table
+_ALIAS = {("grid", "y_vs_a"): "gridc", ("med", "y_vs_a"): "medc", ("r5", "rules"): "r5y"}
+TERMS = [
+    ("A", "present (interleaved) order: CMA fit, then MC if needed, candidate by candidate"),
+    ("Y", "sweep order: CMA fit on every candidate first, MC only if no CMA end reaches 0.95"),
+    ("Yl", "sweep order with the library's own random draws (not aligned), big only"),
+    ("S8", "the stored house reference run (other seed rule, library draws; not draw-aligned)"),
+    ("wrong", "voxel error above 1 degree from the truth (symmetry-reduced angle)"),
+    ("fixed / broken", "fixed: wrong in the first run, right in the second; broken: the reverse"),
+    ("net", "broken minus fixed"),
+    ("matched seed step", "a seed step at the same voxel and occurrence in both arms"),
+    ("taken end", "the end of the refinement the seed step kept for the voxel"),
+    ("the pass", "the boundary pass after the layer (run D4 of step 2)"),
+]
+
+
+def labelled(
+    rows: List[Dict[str, Any]],
+    cols: List[str],
+    formats: Optional[Dict[str, str]] = None,
+    table: str = "",
+) -> str:
+    """``DT.markdown_table`` with the headers of ``HEADS`` instead of the short row keys
+    (``table`` selects the per-table header of a key used in two tables, see ``_ALIAS``)."""
+    head = {c: HEADS[_ALIAS.get((c, table), c)] for c in cols}
+    new = [{head[c]: r.get(c) for c in cols} for r in rows]
+    fm = {head[c]: f for c, f in (formats or {}).items()}
+    return DT.markdown_table(new, [head[c] for c in cols], fm)
+
+
 def pct(x: float) -> float:
     return round(100.0 * x, 1)
+
+
+def y_passes(rules: Dict[str, bool], a_fails_5: bool) -> bool:
+    """The plan's rule for one sample: (1) to (4) against A, and (5), the house rule against S8,
+    unless A itself fails (5) there; then Y is judged by (1) to (4) alone."""
+    r14 = rules["r1"] and rules["r2"] and rules["r3"] and rules["r4"]
+    return bool(r14 and (rules["r5"] or a_fails_5))
+
+
+def step_passes(per_sample: Dict[str, bool]) -> bool:
+    """The step passes if Y passes on held and on all three disclosed samples."""
+    return bool(per_sample["held"] and all(per_sample[s] for s in SAMPLES))
 
 
 def validity(st: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
@@ -131,6 +218,7 @@ def main() -> None:
         r["differs_wrong_A"] = pv["seed_steps"]["differing_wrong_first"]
         r["differs_wrong_Y"] = pv["seed_steps"]["differing_wrong_second"]
         r["matched"] = pv["seed_steps"]["matched"]
+        r["only_A"], r["only_Y"] = pv["seed_steps"]["only_a"], pv["seed_steps"]["only_b"]
         # decision rules, as written before the runs
         rA, rY = A["rule"], Y["rule"]
         r["rule5_A"], r["rule5_Y"] = rA, rY
@@ -141,7 +229,7 @@ def main() -> None:
         d5 = bool(rY["passes"])
         r["rules"] = dict(r1=bool(d1), r2=bool(d2), r3=bool(d3), r4=bool(d4), r5=d5)
         r["a_fails_5"] = not bool(rA["passes"])
-        r["y_passes"] = bool(d1 and d2 and d3 and d4 and (d5 or r["a_fails_5"]))
+        r["y_passes"] = y_passes(r["rules"], r["a_fails_5"])
         # predictions
         p = PRED[s]
         r["pred1_2"] = dict(
@@ -156,7 +244,7 @@ def main() -> None:
         r["pred4"] = bool(abs(r["med_Y"] - r["med_A"]) <= 0.0005 + EPS)
         r["pred5"] = pv["seed_steps"]["shared_fits_different"] == 0
         rows[s] = r
-    verdict = bool(rows["held"]["y_passes"] and all(rows[s]["y_passes"] for s in SAMPLES))
+    verdict = step_passes({s: rows[s]["y_passes"] for s in SAMPLES})
     big = st["big"]
     yl = dict(
         seed_Yl=big["arms"]["Yl"]["stages"]["seed_step"],
@@ -212,12 +300,11 @@ def tables(
                     grid=d["grid_fallbacks"],
                 )
             )
-    T["order_stages"] = DT.markdown_table(
+    T["order_stages"] = labelled(
         main_rows,
         ["sample", "arm", "steps", "seed_evals", "mc", "mc_steps", "nb", "rv", "grid_e", "before",
          "pas", "total", "grid"],
         {k: "," for k in ("seed_evals", "nb", "rv", "grid_e", "before", "pas", "total")},
-        labels=None,
     )  # fmt: skip
     wr: List[Dict[str, Any]] = []
     for s in SAMPLES:
@@ -237,11 +324,8 @@ def tables(
                     wall=f"{(d['wall_s']+d['wall_pass_s'])/60:.0f}",
                 )
             )
-    T["order_accuracy"] = DT.markdown_table(
-        wr,
-        ["sample", "arm", "wb", "wa", "med", "f8", "fewer", "r5", "wall"],
-        {"med": ".5f"},
-        labels=None,
+    T["order_accuracy"] = labelled(
+        wr, ["sample", "arm", "wb", "wa", "med", "f8", "fewer", "r5", "wall"], {"med": ".5f"}
     )
     yr = []
     for s in SAMPLES:
@@ -259,10 +343,13 @@ def tables(
                 med=f"{r['med_A']:.5f} to {r['med_Y']:.5f}",
                 dif=f"{r['differs']} of {r['matched']} ({r['differs_wrong_A']} wrong in A, "
                 f"{r['differs_wrong_Y']} in Y)",
+                only=f"{r['only_A']} / {r['only_Y']}",
             )
         )
-    T["order_y_vs_a"] = DT.markdown_table(
-        yr, ["sample", "seed", "sc", "tc", "fb", "fbb", "wrong", "grid", "med", "dif"]
+    T["order_y_vs_a"] = labelled(
+        yr,
+        ["sample", "seed", "sc", "tc", "fb", "fbb", "wrong", "grid", "med", "dif", "only"],
+        table="y_vs_a",
     )
     dr = []
     for s in SAMPLES:
@@ -282,7 +369,9 @@ def tables(
                 y="pass" if r["y_passes"] else "fail",
             )
         )
-    T["order_rules"] = DT.markdown_table(dr, ["sample", "r1", "r2", "r3", "r4", "r5", "a5", "y"])
+    T["order_rules"] = labelled(
+        dr, ["sample", "r1", "r2", "r3", "r4", "r5", "a5", "y"], table="rules"
+    )
     pr = []
     for s in SAMPLES:
         r = rows[s]
@@ -300,7 +389,10 @@ def tables(
                 f"({val['shared_fits'][s][1]} of {val['shared_fits'][s][0]} shared fits differ)",
             )
         )
-    T["order_predictions"] = DT.markdown_table(pr, ["sample", "p12", "p3", "p4", "p5"])
+    T["order_predictions"] = labelled(pr, ["sample", "p12", "p3", "p4", "p5"])
+    T["order_terms"] = DT.markdown_table(
+        [dict(term=k, meaning=v) for k, v in TERMS], ["term", "meaning"]
+    )
     T["order_yl"] = DT.markdown_table(
         [
             dict(
@@ -361,27 +453,45 @@ def plot(st: Dict[str, Any]) -> None:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4.2))
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4.6))
     col = dict(held="tab:red", mid="tab:blue", grad="tab:green", big="tab:orange")
+    # review suggestion: Wilson 95% bars on the wrong counts, and the stored S8 point per sample
+    # (S8 is not draw-aligned with A and Y); Yl on big shows one changed draw stream
     for ax, tag, title in zip(axes, ("before", "after"), ("before the pass", "after the pass")):
         for s in SAMPLES:
-            for a, mk in (("A", "o"), ("Y", "s")):
-                d = st[s]["arms"][a]
-                ax.scatter(
-                    d["stages"]["seed_step"] / 1e6,
-                    d[tag]["wrong"],
-                    marker=mk,
+            arms = st[s]["arms"]
+            pts = [("A", "o", arms["A"]["stages"]["seed_step"], arms["A"][tag])]
+            pts.append(("Y", "s", arms["Y"]["stages"]["seed_step"], arms["Y"][tag]))
+            if "Yl" in arms:
+                pts.append(("Yl", "D", arms["Yl"]["stages"]["seed_step"], arms["Yl"][tag]))
+            pts.append(("S8", "^", arms["A"]["stages_s8"]["seed_step"], arms["A"][f"s8_{tag}"]))
+            for a, mk, x, side in pts:
+                k = side["wrong"]
+                lo, hi = N * side["wilson_lo"], N * side["wilson_hi"]
+                ax.errorbar(
+                    x / 1e6,
+                    k,
+                    yerr=[[k - lo], [hi - k]],
+                    fmt=mk,
                     color=col[s],
+                    mfc="none" if a in ("S8", "Yl") else col[s],
+                    ms=6,
+                    capsize=2,
+                    lw=0.8,
                     label=f"{s} {a}" if tag == "before" else None,
                 )
         ax.set_xscale("log")
         ax.set_xlabel("seed-step evaluations (millions, log)")
-        ax.set_ylabel("wrong voxels (more than 1 degree)")
+        ax.set_ylabel("wrong voxels (more than 1 degree), Wilson 95%")
         ax.set_title(title)
         ax.grid(alpha=0.3)
-    axes[0].legend(fontsize=7, ncol=2)
-    fig.suptitle("Interleaved (circle) and sweep (square) order, one point per arm and sample")
-    fig.tight_layout()
+    fig.legend(loc="lower center", fontsize=7, ncol=7, frameon=False)
+    fig.suptitle(
+        "Present order A (circle), sweep order Y (square), Yl on big (diamond), stored S8 "
+        "(triangle)",
+        fontsize=10,
+    )
+    fig.tight_layout(rect=(0, 0.12, 1, 1))
     fig.savefig(ORDER / "ar5_order_evals_wrong.png", dpi=110)
 
 
