@@ -31,9 +31,9 @@ before its fixes round (shared files conflict).
    (the page; agent writes refused): the owner places it or allows it. Then: sync check,
    commit, fix 2 (MIGRATION_HISTORY names that commit), merge, close (PR #43).
 2. AR5 step 6 (`ar5f`; N3): fixed, waits. Step 9 (`ar5i`): merged (28b75fa), key off by
-   default. The next plan is being drafted. Candidates: early stop of an MC refinement (draft in
-   the session scratchpad); a learned grid search from step 9's per-level record; a combined
-   run after steps 4 and 6 merge.
+   default. Step 10 (`ar5j`; 13-N3, PLAN "AR5 step 10"): level-0 cut of the grid search, N 1,000.
+   Implementer `a9920a0aeaf5d1276` (Sonnet) does phase A to the gate, hands back "READY TO RUN".
+   THEN: check; start `scripts/autoresearch/ar5/cut_run_all.sh` detached; then as step 9 went.
 3. Items 14 + 3 (task `item14`; N25): E0 arms done. The run stopped at 00:01 on 2026-11-12,
    exit 3: the preflight refused (`cpptools`, pid 18415). Once the owner frees the machine:
    rerun the command below (E0 resumes; warm-up 25 min). After exit 0: phase B by
@@ -43,7 +43,7 @@ before its fixes round (shared files conflict).
 - Items 14 + 3: `caffeinate -i bash scripts/autoresearch/item14/run_item14.sh` in `icenine_py/`
   of worktree `agent-a012b8f461d1630a1` (stopped, exit 3, 00:01, 2026-11-12); marker `item14.done`.
   Branch `ar5d` is held by worktree `agent-a8a1ac8e80f8913cf` (tip fac79f9).
-- Page v47 live (05:55, 13 Nov). Nothing else runs.
+- Page v47 live (05:55, 13 Nov). Step 10 implementer runs since 06:04 on 13 Nov; it notifies.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
