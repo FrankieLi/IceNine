@@ -128,6 +128,25 @@ def test_wrapper_failed_rescue_runs_grid_unchanged_and_adds_the_rescue_evals() -
     assert all("result" not in t for t in row["tries"])
 
 
+def test_log_rows_are_json_serialisable_with_array_ends() -> None:
+    import json
+
+    s = _setup({1: 0.97}, [0.3, 0.1])
+    orig = s["w"]
+    assert orig is not None
+
+    # try_end that returns an ndarray end, as the real rescue does
+    def try_end(e: Dict[str, Any], v: Any, ph: int) -> Dict[str, Any]:
+        return dict(hit=0.97, cost=0.0, evals=1000, R=np.eye(3), result="R")
+
+    rec = _Rec()
+    log: List[Dict[str, Any]] = []
+    w = RR.make_wrapper(lambda **kw: "GRID", lambda: s["step"], lambda v: int(v), try_end, rec, log)
+    w(voxel_vertices=7, phase_index=0, rng=None)
+    json.dumps(log)
+    assert log[0]["tries"][0]["R"] == list(np.eye(3).ravel())
+
+
 def test_wrapper_without_a_matching_unused_step_is_the_plain_grid_call() -> None:
     for step_edit in ({"key": 8}, {"used": True}, {"kept": []}):
         s = _setup({0: 0.99}, [0.1])

@@ -101,7 +101,15 @@ def make_wrapper(
             return try_end(kept[k], voxel_vertices, phase_index)
 
         r = rescue_choose([e["cost"] for e in kept], one)
-        rows = [{a: b for a, b in t.items() if a != "result"} for t in r["tries"]]
+        # log rows: no return object; an end orientation as a flat list (the log is json)
+        rows = [
+            {
+                a: (b.ravel().tolist() if hasattr(b, "ravel") else b)
+                for a, b in t.items()
+                if a != "result"
+            }
+            for t in r["tries"]
+        ]
         if r["rescued"]:
             res = r["tries"][r["taken"]]["result"]
             rec._last_global_evals = 0
