@@ -12100,3 +12100,30 @@ bars and the `S8` and `Yl` points; a local `.gitignore` keeps the run cache out.
 file holds `A` and `Y`, before and after the pass, on all four samples (16 rows). The page
 `docs/autoresearch/findings_ar5_order.md` waits for the owner (fix 6): the guard refused the
 helper's write; its text is in `.claude/reports/20261112-ar5h-page.md` of the fixes worktree.
+
+## Autoresearch AR5 step 9, phase A: rescue of a failed seed before the grid fallback (2026-11-12, task ar5i)
+
+Script layer only; no library change, no golden change. Rule `G1` (plan, "AR5 step 9"): after a
+failed seed test, try the kept ends of the seed step in order of cost with a CMA local
+optimization (0.25 degree, 1,000 evaluations, `default_rng(0)`), at most 5; take the first end
+with hit ratio at least 0.95; else the grid fallback as today. Arm `G` is step 8's arm `A` with
+`G1`. Files: `scripts/autoresearch/ar5/rescue_*.py`, `tests/test_ar5_rescue.py` (13 tests),
+`benchmarks/autoresearch/ar5/rescue/` (cache untracked). Frozen at commit `b6f93d9` before any
+`held` file was read.
+
+- Stored totals reproduce: fallback evaluations 3,726,723 (`grad`) and 4,007,241 (`mid`); totals
+  with the pass 12,189,777, 15,645,472 and 3,807,747 (`big`).
+- Cost check (prediction 1): the grid fallback's end costs less than every kept end in 23 of 23
+  cases (predicted at least 21). The end is the voxel's orientation in the stored map, not the
+  fallback's own end (not stored).
+- Replay of `G1` on the 23 disclosed cases (gate): rescued 14 of 23 (Wilson 95% 41% to 78%), no
+  wrong rescued end (errors 0.001 to 0.011 degree, median 0.003), 66 tries (mean 2.87 a case;
+  prediction 2.5 not met), 66,066 evaluations (a cost estimate: kept ends are the log's 12-decimal
+  values). Gate (at least 12, no wrong end): passed.
+- A short script-layer run on `mid` (killed before the end) rescued six of the disclosed
+  fallback voxels in 0.1 s each and fell back to the grid at voxel 7167, as the replay predicts.
+- Per-level record of the 23 grid fallbacks (untracked): re-running them with arm `A`'s aligned
+  draws reproduces the stored fallback evaluations exactly (7,733,964 in all).
+- `rescue_run_all.sh` (held 300 min, others 240, at most 4 heavy processes, held first;
+  `--dry-run`, `--resume`, marker `rescue_run_all.done`); dry run and the cap path tested on `big`
+  in a scratch cache. The whole-layer runs and phase B are not made.
