@@ -75,16 +75,21 @@ def test_off_wrapper_is_the_inner_call() -> None:
     assert len(w(fz_orientations=full)) == 5000
 
 
-def test_quarter_is_counted_from_the_cut_list() -> None:
-    # the library: n_keep = max(1, int(len(candidates) * 0.25)) of the list it is handed
+def test_n_keep_after_cut_states_the_library_formula() -> None:
+    """A statement of the formula only: ``n_keep_after_cut`` restates the library's
+    ``n_keep = max(1, int(len(candidates) * keep_fraction))`` (``reconstructor.py``, the branch
+    without ``CandidateDedup``) applied to the cut list. It does not show that the
+    reconstructor keeps 250; that rests on reading the library (review of task ar5j, point 1)."""
     assert CR.n_keep_after_cut(10_200, 1000) == 250
     assert CR.n_keep_after_cut(10_200, 0) == 2550
     assert CR.n_keep_after_cut(600, 1000) == 150
 
 
-def test_no_random_draw_in_the_wrapper() -> None:
-    # the wrapper takes no generator and the aligned draws of the grid call are those of arm G:
-    # the same (voxel, "grid", 0) generator gives the same numbers whatever the cut did
+def test_wrapper_does_not_touch_a_seeded_generator() -> None:
+    """Weak check, true by construction: two generators made with the same (voxel, "grid", 0) seed
+    give the same numbers whether or not the wrapper ran between them. That the wrapper draws no
+    random number rests on its code (it takes no generator); this test only guards the seeding
+    helper ``order_draws.make_rng`` against hidden global state."""
     import order_draws as OD
 
     full = np.zeros((7, 3, 3))
