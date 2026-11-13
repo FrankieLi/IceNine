@@ -1754,3 +1754,19 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   report (fix 6 included) and merge the branch as a study. The 597 of 1,181 cut refinements with a
   best under 0.95 are kept as data for a later stop that reads the hit ratio. The owner can
   overrule. Where: .claude/reports/20261113-1000-review-ar5k.md; PLAN.md AR5 step 11.
+
+### D-20261113-N7 · Track A / AR5 step 12 · AR5 step 12 approved: stop a stalled seed-step MC refinement only when its best is already at hit ratio 0.95 (rule PH(3000)); new test sample held2
+- 2026-11-13, owner. Recorded by Newt Agent. Supersedes: none.
+- The plan of AR5 step 12 (PLAN.md, task ar5l) is approved. Rule PH(3000): at a stall of 3,000
+  evaluations, a seed-step MC refinement stops only if its best is at a hit ratio of 0.95 or more;
+  else it goes on. From the stored record it saves 7.5% to 8.3% on mid with 7 to 11 changed taken
+  seed ends (step 11's rule: 20), 4.5% on big, 0.16% on grad. Gate first: a replay of the whole
+  changed path. held was run and read in step 11 and this rule's cuts are a subset of step 11's,
+  so held is disclosed; the test sample is a new sample held2, built exactly as held with
+  generator seed 2. This is a new sample for a carry-over test, as held was in AR3 step 11, not a
+  repeat of a comparison with another random seed; the owner may see this differently and can
+  overrule. Cost about 181 million evaluations, about 3.5 hours wall with 4 processes. Said before
+  the run: rule 5 on mid stays a risk (G is at net 4 of limit 5), judged at about one in three;
+  the limit is not moved; a fail on mid alone means no key. Not chosen now: a stronger local
+  optimization from the rescue's near ends (9 cases, no record of what reaches 0.95). Where:
+  icenine_py/docs/autoresearch/PLAN.md, AR5 step 12.
