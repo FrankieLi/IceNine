@@ -969,3 +969,29 @@ owner.
   submodule entry is staged anywhere outside `.claude/`. The repository has no submodules.
 - The `shmem` warning about the local embedder (ollama, port 11434) is expected: the owner said
   on 2026-11-09 that the embedder is no longer run. Do not report it.
+
+### AR5 step 9 (rescue a failed seed before the grid search; task `ar5i`), merged at 28b75fa on 2026-11-13
+
+Suite after the merge: 1842 passed, 44 skipped, 1 deselected. Decisions D-20261112-N10 (plan),
+D-20261113-N1 (passes the frozen rules; 8 fixes; key approved), D-20261113-N2 (the stop rule fired
+on the in-run boundary pass; key accepted on the before-the-pass equality; 6 fixes). Review page
+v47 is live (05:55, 13 Nov) with 8 new pareto points. The findings page text
+`.claude/reports/20261113-ar5i-page.md` (main checkout) goes to
+`icenine_py/docs/autoresearch/findings_ar5_rescue.md`; it waits for the owner (five pages wait:
+AR5 steps 4, 6, 7, 8, 9).
+
+- Rule G1: after a failed seed test, a wide CMA local optimization (0.25 degree, 1,000
+  evaluations, at most 5 tries) from the kept seed ends, before the grid fallback.
+- Totals, arm A to arm G: held 46,516,396 to 30,768,867 (33.9% fewer), mid 15,645,472 to
+  13,004,457 (16.9%), grad 12,189,777 to 10,196,692 (16.4%), big identical.
+- Grid fallbacks 65 to 19, 12 to 4, 11 to 5. Rescued 46 of 65, 8 of 12, 6 of 11. 0 wrong rescued.
+  Wrong after the pass, A/G: 73/69, 35/35, 56/56, 21/21. Predictions 2 and 5 not met.
+- Key: `SeedRescueCMA sigma evals`, opt-in, default off, off path bit-identical. Not recommended
+  as a default (the owner's choice).
+- Reports (main `.claude/reports/`): `20261112-2240-ar5i.md`, `20261113-0400-review-ar5i.md`,
+  `20261113-0420-ar5i-fixes.md`, `20261113-0520-review-ar5i-B.md`, `20261113-0540-ar5i-fixes2.md`.
+- Kept worktrees (detached; untracked run caches under `ar5/rescue/cache` in
+  `icenine_py/benchmarks/autoresearch/`): `agent-a8d20b3821621fd41` (phase A runs, per-level
+  record of the 23 fallbacks) and `agent-ab6ee3e8ef1058af1` (library runs).
+- Lesson: a stop rule that compares a library run with a script arm must say "before the pass"
+  (the in-run pass starts from the unrounded map).

@@ -12,7 +12,7 @@ Read this file first after any restart or wake. It holds only what is true now a
 | finished steps, old notes (archive, use `grep`) | `docs/autoresearch/STATE_HISTORY.md` |
 | numbers of a finished step | its findings page, or `shmem query "IceNine autoresearch <step>"` |
 | review page for the owner | https://claude.ai/artifact/A63khAHf7nEx6NBZioSnGW |
-| open PR | #43 (AR3 steps 2 to 11, AR5 steps 1 to 3, 5, 7 and 8, AR4 step 1), https://github.com/FrankieLi/IceNine/pull/43 |
+| open PR | #43 (AR3 steps 2 to 11, AR5 steps 1 to 3, 5, 7 to 9, AR4 step 1), https://github.com/FrankieLi/IceNine/pull/43 |
 
 ## How to restart
 
@@ -30,25 +30,24 @@ before its fixes round (shared files conflict).
    than `S8`, 69 wrong; approved with three fixes (N23); fix 3 done (fac79f9). BLOCKED on fix 1
    (the page; agent writes refused): the owner places it or allows it. Then: sync check,
    commit, fix 2 (MIGRATION_HISTORY names that commit), merge, close (PR #43).
-2. AR5 step 6 (`ar5f`; N3): fixed, waits for the owner. Step 8 (`ar5h`; N9): merged, failed, no
-   key. Step 9 (`ar5i`; N10, 13-N1): passed; fixes, phase B run; then "THEN" in its Queue row.
+2. AR5 step 6 (`ar5f`; N3): fixed, waits. Step 9 (`ar5i`): merged (28b75fa), key off by
+   default. The next plan is being drafted. Candidates: early stop of an MC refinement (draft in
+   the session scratchpad); a learned grid search from step 9's per-level record; a combined
+   run after steps 4 and 6 merge.
 3. Items 14 + 3 (task `item14`; N25): E0 arms done. The run stopped at 00:01 on 2026-11-12,
-   exit 3: the preflight refused (`cpptools`, pid 18415, 99% CPU). Once the owner frees the
-   machine: rerun the command below (E0 resumes; warm-up 25 min). After exit 0: phase B by
+   exit 3: the preflight refused (`cpptools`, pid 18415). Once the owner frees the machine:
+   rerun the command below (E0 resumes; warm-up 25 min). After exit 0: phase B by
    `SendMessage`. While timing arms run: no merge, no test suite, no other run.
 
 ## Running jobs
-
 - Items 14 + 3: `caffeinate -i bash scripts/autoresearch/item14/run_item14.sh` in `icenine_py/`
   of worktree `agent-a012b8f461d1630a1` (stopped, exit 3, 00:01, 2026-11-12); marker `item14.done`.
   Branch `ar5d` is held by worktree `agent-a8a1ac8e80f8913cf` (tip fac79f9).
-- Page v46 live. AR5 step 9: key done (tip 107db3c), review 2 done, 13-N2 (stop rule fired on the
-  in-run pass; key accepted). Fixes 2 agent `a85c3645d361d3e7c` since 05:28; then merge, close.
+- Page v47 live (05:55, 13 Nov). Nothing else runs.
 
 ## Queue
-
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
-7, 18, 22, 23, AR0 to AR2, AR3 1 to 11, AR5 1 to 3, 5, 7, 8, AR4 1): `STATE_HISTORY.md`.
+7, 18, 22, 23, AR0 to AR2, AR3 1 to 11, AR5 1 to 3, 5, 7 to 9, AR4 1): `STATE_HISTORY.md`.
 
 | step | what | state |
 |---|---|---|
@@ -58,15 +57,16 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 | C++ time | measured C++ time on the pilot region (MPI mode, own config) | D-20261112-N1, task `cpptime`: phase A done (agent and worktree `ad44bb90c441eca35`, tip 5d6cec2, report in that worktree's `.claude/reports/20261112-0012-cpptime.md`). Run, after item 14's timing and on a quiet machine: `caffeinate -i bash scripts/autoresearch/cpptime/run_cpp_time.sh` in its `icenine_py/` (background command); marker `benchmarks/autoresearch/cpptime/cache/cpptime.done`; then phase B by `SendMessage`. R4 limit 3.5 (own load 2.0: the server rank spins). `lldb` cannot run (developer mode off): evaluations missing unless the owner enables it or accepts a print in `Src/` |
 | AR5 step 7 | opt-in key `BoundaryPassSkipHitRatio` (task `ar5g`) | MERGED at 50c3b9c (N4, N5, N6), see "Last finished step". Open: only its page, for the owner to place: text `.claude/reports/20261112-ar5g-page-v2.md` (main checkout; the merge removed the fixes worktree, the text was recovered exactly from the recorded write and a table sync) goes to `icenine_py/docs/autoresearch/findings_ar5_gate.md` on `feature/eval-reduction`, then a sync check and a commit. Keep worktree `agent-a331e7882919e74aa` (stored passes, `ar5/gate/`). Step 6's page text and reports are now also copied to the main `.claude/reports/` |
 | AR5 step 8 | sweep order of the seed step (task `ar5h`) | MERGED at 949dc61 as a study; failed rule 5 (N9), no key; see "Last finished step". Open: only its page for the owner: `.claude/reports/20261112-ar5h-page.md` (main checkout) goes to `icenine_py/docs/autoresearch/findings_ar5_order.md`. Keep worktree `agent-abdf64302f4022c0a` (detached): the step 8 cache `ar5/order/cache` that step 9 links, and the MC traces. Reports also in the main `.claude/reports/`: `20261112-1419-ar5h.md`, `-corrected.md`, `20261112-2215-ar5h-fixes.md` |
-| AR5 step 9 | rule `G1` (CMA rescue of a failed seed before the grid fallback; task `ar5i`) | N10, 13-N1: PASSED rules (1) to (5) on held, mid, grad, big; Opus review reproduced every number. Totals A to G: held 46,516,396 to 30,768,867 (33.9% fewer), mid 15,645,472 to 13,004,457 (16.9%), grad 12,189,777 to 10,196,692 (16.4%), big identical. Grid fallbacks 65 to 19, 12 to 4, 11 to 5; rescued 46 of 65, 8 of 12, 6 of 11; 0 wrong; fixed/broken vs A 4/0 on held, 0/0 elsewhere. Phase A tip a30c57d. Since 04:07 on 13 Nov a fresh Opus implementer `ab6ee3e8ef1058af1` (own worktree, branch `feature/eval-reduction-ar5i`) applies the 8 review fixes, then phase B: opt-in key `SeedRescueCMA sigma evals` (default off) in `reconstructor.index_seed`, `config_file.py`, `orientation_search.py`; off path bit-identical; key-on run on mid must equal script arm Gl. It notifies the main session. Old worktree `agent-a8d20b3821621fd41` stays detached (untracked run cache `ar5/rescue/cache`, report `.claude/reports/20261112-2240-ar5i.md`). THEN: hand-back check (`verify_handback.sh feature/eval-reduction .claude/reports/20261113-0420-ar5i-fixes.md --branch feature/eval-reduction-ar5i --fixes <review report>`, from the worktree holding the branch); short Opus review of phase B; decision N2; check the branch `parent` config; copy both worktrees' .claude/reports/ files to main; `finish_task.sh --yes --push`; close (review page v47 with pareto points from `ar5/rescue/pareto_rows.json`, PR #43, STATE_HISTORY, shmem). Findings page `findings_ar5_rescue.md` may wait for the owner |
+| AR5 step 9 | rule `G1`, key `SeedRescueCMA` (task `ar5i`) | MERGED at 28b75fa (N10, 13-N1, 13-N2), see "Last finished step". Open: its page for the owner: `.claude/reports/20261113-ar5i-page.md` (main checkout) goes to `icenine_py/docs/autoresearch/findings_ar5_rescue.md`. Keep worktrees `agent-a8d20b3821621fd41` (phase A runs, per-level record of the 23 fallbacks) and `agent-ab6ee3e8ef1058af1` (library runs); both hold `ar5/rescue/cache`. Reports in main `.claude/reports/`: `20261112-2240-ar5i.md`, `20261113-0400-review-ar5i.md`, `20261113-0420-ar5i-fixes.md`, `20261113-0520-review-ar5i-B.md`, `20261113-0540-ar5i-fixes2.md` |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
 | tooling | `audit_numbers.py`: thousands separators; false misses in wide table rows | small |
 
 ## Last finished step
 
-AR5 step 8 (sweep order of the seed step; task `ar5h`): merged at 949dc61, 2026-11-12, as a study
-with scripts only; suite 1783 passed, 44 skipped, 1 deselected. Failed rule 5 (broken minus
-fixed 8 `held`, 7 `mid`, limit 5); no key. N7 to N9. Page not placed yet. `STATE_HISTORY.md`.
+AR5 step 9 (task `ar5i`): merged at 28b75fa, 2026-11-13; suite 1842 passed. Rule G1 cuts held
+evaluations 33.9%, mid 16.9%, grad 16.4%; 0 wrong rescued. Key `SeedRescueCMA`, off by default.
+Page not placed. Lesson: a stop rule that compares a library run with a script arm says
+"before the pass".
 
 ## Untracked data that later steps need
 
@@ -93,8 +93,8 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 - Free the machine for the item 14 timing: `cpptools` (VS Code C/C++ extension, pid 18415)
   has used a whole core for 2 days; the timing preflight refuses while it does. Yours to close.
-- Place four pages, or allow me to: AR5 steps 4, 6, 7 and 8. Paths: their Queue rows.
-- Your word on PR #43 ("merge PR 43" in the session): AR3 2 to 11, AR5 1 to 3, 5, 7 and 8, AR4 1.
+- Place five pages, or allow me to: AR5 steps 4, 6, 7, 8 and 9. Paths: their Queue rows.
+- Your word on PR #43 ("merge PR 43" in the session): AR3 2 to 11, AR5 1 to 3, 5, 7 to 9, AR4 1.
 - A choice: which seed step the documentation of the keys recommends. Step 10 added the
   keys and recommends none. My recommendation: the settings of `S8` (`SeedIndexCandidates 20
   5`, `SeedIndexStopHitRatio 0.95`): cheapest on all three samples, wrong counts not worse.
@@ -107,13 +107,13 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - A choice: whether the documentation recommends the two `S11` keys (N21) and the skip key
   of step 7 (N6; `held` is not a clean test for it). All are off; none is recommended now.
 - Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N25 and
-  D-20261112-N1 to N10, D-20261113-N1. N15 adds `held` (new seed); N17, N18: run caps
+  D-20261112-N1 to N10, D-20261113-N1, N2. N15 adds `held` (new seed); N17, N18: run caps
   of 480 minutes. The gradient levels of step 7's sample are my choice. Step 5's result files
   add about 50 MB to git; say so if you want them pruned.
 
 ## Bookkeeping
 
-- Next decision ID: D-20261112-N11 (first of a day is N1).
+- Next decision ID: D-20261113-N3 (first of a day is N1).
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
