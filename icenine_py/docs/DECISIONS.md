@@ -1724,3 +1724,20 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   its record. Then merge task ar5j as a study with scripts only. Made by Newt Agent under
   D-20261109-N1; the owner can overrule. Where: review
   .claude/reports/20261113-0625-review-ar5j.md; branch feature/eval-reduction-ar5j 9b4c3ad.
+
+### D-20261113-N5 · Track A / AR5 step 11 · AR5 step 11 approved: stop the seed step's MC refinement after 3,000 evaluations with no improvement (rule P(3000)), with a whole-path gate; tested on held
+- 2026-11-13, owner. Recorded by Newt Agent. Supersedes: none.
+- The seed step is arm G's largest stage on held (46.0%) and mid (41.7%); about 76% of its MC
+  refinements' evaluations on mid come after the last improvement. Step 11 tests rule P(3000): an
+  MC refinement in the seed step stops after 3,000 evaluations with no strict gain of the best
+  cost (arm S = arm G plus the rule). On stored traces (a cost estimate only) it saves 11.4% of
+  the run on mid, 6.1% on big, 0.2% on grad, and changes 24 of 1,607 taken seed ends on mid. k =
+  3000 is frozen, chosen on mid and grad (disclosed); held is the test sample. No cost-trace
+  number predicts at a stall whether a refinement will improve again (ranking score 0.38 to 0.71,
+  chance 0.5), so no learned predictor is used. Gate before any whole-layer run: a replay of every
+  seed step with an MC refinement along its whole changed path (the lesson of step 10).
+  Predictions, rules and stop rule as in the plan section. Said now: on mid arm G is at net 4 of
+  limit 5 against S8, so the house rule there is about even odds; the limit is not moved and a
+  fail on mid alone means no key. Phase B (opt-in key SeedIndexMCPatience, default off) only after
+  a recorded decision. Made by Newt Agent under D-20261109-N1; the owner can overrule. Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR5 step 11).
