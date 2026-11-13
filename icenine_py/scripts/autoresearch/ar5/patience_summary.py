@@ -535,6 +535,10 @@ def main() -> None:
             )
             for s in SAMPLES
         },
+        cut_end_hit_under_095_all_four=dict(
+            cut=sum(int(st[s]["cuts"]["cut_refinements"]) for s in SAMPLES),
+            under=sum(int(st[s]["cuts"]["cut_end_hit_under_095"]) for s in SAMPLES),
+        ),
         unmatched={
             s: {k: v for k, v in um[s].items() if k not in ("only_s", "only_g", "note")}
             for s in SAMPLES

@@ -182,6 +182,10 @@
    "at_least": 32
   }
  },
+ "cut_end_hit_under_095_all_four": {
+  "cut": 1181,
+  "under": 597
+ },
  "unmatched": {
   "held": {
    "sample": "held",
