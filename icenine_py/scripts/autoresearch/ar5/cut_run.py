@@ -11,8 +11,10 @@ search keeps its aligned generator (voxel, "grid", 0), so the cut moves no other
 files of ``rescue_run.py`` it writes ``cut_log.json.gz`` (one row per discrete-stage call: level 0
 or not, the list length and the number of candidates run) and ``cut.json`` (its counts). On
 ``big`` no grid search runs, so the run must equal arm ``G`` there. The boundary pass is made after
-by ``order_pass.py --name C``. ``held`` is refused until ``ar5/cut/frozen.json`` is committed
-(``cut_common``), and step 9's and step 8's freeze checks agree.
+by ``order_pass.py --name C``. ``held`` is refused until ``ar5/cut/frozen.json`` is committed and
+clean and ``cut_freeze`` agrees (``cut_common``). ``cut_freeze`` replaces step 9's and step 8's
+freeze checks, which ``cut_common`` switches off in this process (step 9's phase B changed the
+library after those freezes); ``order_common.require_frozen()`` still applies.
 """
 
 import json
