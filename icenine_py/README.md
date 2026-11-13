@@ -836,6 +836,14 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   the guard refused the helper's write, and its text is in `.claude/reports/20261112-ar5h-page.md`
   of the fixes worktree. MIGRATION_HISTORY, "Autoresearch AR5 step 8".
 
+- Autoresearch AR5 step 9, phase A (rescue of a failed seed with a wide CMA local optimization
+  before the grid fallback, rule `G1`; script layer only, no library change so far):
+  `scripts/autoresearch/ar5/rescue_*.py` (`rescue_rules.py` the rule and the wrapper,
+  `rescue_run.py` arm `G`, `rescue_run_all.sh` the four runs, `rescue_freeze.py`), tests
+  `tests/test_ar5_rescue.py`, results `benchmarks/autoresearch/ar5/rescue/` (the cache is
+  untracked). The gate passed; the whole-layer runs are not made yet. MIGRATION_HISTORY,
+  "Autoresearch AR5 step 9, phase A".
+
 See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and
 current results of this work, and [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy
 Orientation NN — Theory Phase" onward) for the step-by-step record.
