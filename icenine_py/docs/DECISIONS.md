@@ -1706,3 +1706,21 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   stop of MC refinements, a learned ranking of level-0 candidates, a stronger local optimization
   from G1's near ends. Made by Newt Agent under D-20261109-N1; the owner can overrule. Where:
   icenine_py/docs/autoresearch/PLAN.md (AR5 step 10).
+
+### D-20261113-N4 · Track A / AR5 step 10 · AR5 step 10 fails its replay gate: no whole-layer run, no key; 6 review fixes accepted; merge as a study with scripts only
+- 2026-11-13, owner. Recorded by Newt Agent. Supersedes: none.
+- The level-0 cut (quick MC on the first 1,000 listed candidates) was replayed on the 23 stored
+  grid searches of mid and grad. Right in 20 of 23 (gate: at least 22); hit ratio at least 0.95 in
+  15 (gate: at least 20; the full searches reach 21); 2,499,899 evaluations against 7,733,964,
+  67.7% fewer (gate met). Three cut searches end 24 to 50 degrees off where the full search was
+  right. The review (Opus) reproduced the numbers and found no replay bug; no held file was read.
+  By the rule fixed before the run: stop, no tuning, no other N, no whole-layer run, no key. Read
+  after the gate (post hoc, not a test): the near candidate is inside the first 1,000 and survives
+  the kept quarter in 7 of the 8 searches under 0.95; it is lost after level 0. The cut also
+  shrinks levels 1 to 3 (250 starts against about 2,540), which the plan's reading of the record
+  did not cover. Lesson: a claim about where the right candidate sits at one level does not show
+  that later levels keep it. Accepted: all 6 required fixes (docs, one docstring, the shared
+  Wilson function, two tests). No findings page for this step: the MIGRATION_HISTORY section is
+  its record. Then merge task ar5j as a study with scripts only. Made by Newt Agent under
+  D-20261109-N1; the owner can overrule. Where: review
+  .claude/reports/20261113-0625-review-ar5j.md; branch feature/eval-reduction-ar5j 9b4c3ad.
