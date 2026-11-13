@@ -236,6 +236,9 @@ class ConfigFile:
     bfs_neighbor_cma_no_fallback: bool = False  # the CMA end of a neighbour fit is returned
     # AR5 step 7 (opt-in, off at 0): boundary pass skips voxels whose own hit ratio is >= this
     boundary_pass_skip_hit: float = 0.0
+    # AR5 step 9 (opt-in, off at 0 0): SeedRescueCMA sigma evals (see SearchParameters)
+    seed_rescue_sigma_deg: float = 0.0  # degrees (kept in degrees, not converted)
+    seed_rescue_evals: int = 0
     cpp_overlap_rule: bool = False  # C++ CountQualifiedPeaks rule + centroid screen (opt-in)
     cpp_edge_rules: bool = False  # C++ conventions at the low edges (opt-in, see VoxelCostFunction)
     cpp_omega_interp: bool = False  # C++ omega interpolation in the level screen (opt-in)
@@ -493,6 +496,7 @@ class ConfigFile:
             "SeedIndexCMAFirst": self._parse_off_or_min2("seed_index_cma_first"),
             "BFSNeighborCMANoFallback": self._parse_bool("bfs_neighbor_cma_no_fallback"),
             "BoundaryPassSkipHitRatio": self._parse_unit_interval("boundary_pass_skip_hit"),
+            "SeedRescueCMA": self._parse_seed_rescue_cma,
             "CppOverlapRule": self._parse_bool("cpp_overlap_rule"),
             "CppEdgeRules": self._parse_bool("cpp_edge_rules"),
             "CppOmegaInterp": self._parse_bool("cpp_omega_interp"),
@@ -645,6 +649,21 @@ class ConfigFile:
                 f"got {n_cost} {n_refine}"
             )
         self.seed_index_n_cost, self.seed_index_n_refine = n_cost, n_refine
+
+    def _parse_seed_rescue_cma(self, tokens: List[str]) -> None:
+        """SeedRescueCMA sigma evals (Python-only, opt-in, AR5 step 9): the rescue of a failed
+        indexed seed step with a CMA local optimization of first step ``sigma`` degrees and
+        ``evals`` evaluations. ``0 0`` is off; otherwise sigma > 0 and evals >= 2 (an integer).
+        Its key combinations are checked by ``reconstructor.check_bfs_keys``."""
+        from .orientation_search import check_seed_rescue
+
+        if len(tokens) != 3:
+            raise ValueError(
+                f"{tokens[0]} needs exactly two values: sigma (degrees) evals, got {tokens[1:]}"
+            )
+        sigma, evals = float(tokens[1]), int(tokens[2])
+        check_seed_rescue(sigma, evals)
+        self.seed_rescue_sigma_deg, self.seed_rescue_evals = sigma, evals
 
     def _parse_off_or_min2(self, attr_name: str) -> Callable[[List[str]], None]:
         """Parser for an integer that is 0 (off) or at least 2."""

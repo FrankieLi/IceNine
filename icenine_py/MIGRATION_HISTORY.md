@@ -12100,3 +12100,123 @@ bars and the `S8` and `Yl` points; a local `.gitignore` keeps the run cache out.
 file holds `A` and `Y`, before and after the pass, on all four samples (16 rows). The page
 `docs/autoresearch/findings_ar5_order.md` waits for the owner (fix 6): the guard refused the
 helper's write; its text is in `.claude/reports/20261112-ar5h-page.md` of the fixes worktree.
+
+## Autoresearch AR5 step 9, phase A: rescue of a failed seed before the grid fallback (2026-11-12, task ar5i)
+
+Script layer only; no library change, no golden change. Rule `G1` (plan, "AR5 step 9"): after a
+failed seed test, try the kept ends of the seed step in order of cost with a CMA local
+optimization (0.25 degree, 1,000 evaluations, `default_rng(0)`), at most 5; take the first end
+with hit ratio at least 0.95; else the grid fallback as today. Arm `G` is step 8's arm `A` with
+`G1`. Files: `scripts/autoresearch/ar5/rescue_*.py`, `tests/test_ar5_rescue.py` (17 tests),
+`benchmarks/autoresearch/ar5/rescue/` (cache untracked). Frozen at commit `b6f93d9` (2026-11-12
+23:27:17) before any `held` file was read. Deviation from the plan's order: the cost check and the
+replay ran at 22:46 to 22:48, before the freeze commit (plan: freeze at step 3). They used the
+disclosed samples only, with the plan's approved values, which were not changed after.
+
+- Stored totals reproduce: fallback evaluations 3,726,723 (`grad`) and 4,007,241 (`mid`); totals
+  with the pass 12,189,777, 15,645,472 and 3,807,747 (`big`).
+- Cost check (prediction 1): the grid fallback's end costs less than every kept end in 23 of 23
+  cases (predicted at least 21). The end is the voxel's orientation in the stored map, not the
+  fallback's own end (not stored).
+- Replay of `G1` on the 23 disclosed cases (gate): rescued 14 of 23 (Wilson 95% 41% to 78%), no
+  wrong rescued end (errors 0.001 to 0.011 degree, median 0.003), 66 tries (mean 2.87 a case;
+  prediction 2.5 not met), 66,066 evaluations (a cost estimate: kept ends are the log's 12-decimal
+  values). Gate (at least 12, no wrong end): passed.
+- A short script-layer run on `mid` (an integration check, killed before the end; contended, not a
+  timing) rescued six of the disclosed fallback voxels and fell back to the grid at voxel 7167, as
+  the replay predicts.
+- Per-level record of the 23 grid fallbacks (untracked): re-running them with arm `A`'s aligned
+  draws reproduces the stored fallback evaluations exactly (3,726,723 and 4,007,241).
+- `rescue_run_all.sh` (held 300 min, others 240, at most 4 heavy processes, held first;
+  `--dry-run`, `--resume`, marker `rescue_run_all.done`).
+
+Step 6, the whole-layer runs of arm `G` and their boundary passes (contended; wall times not
+given), from `rescue/summary.json`, `tables.md`, `stats_<sample>.json` and
+`isolation_<sample>.json`:
+
+- Total evaluations with the pass, `A` to `G`: `held` 46,516,396 to 30,768,867 (33.9% fewer),
+  `mid` 15,645,472 to 13,004,457 (16.9%), `grad` 12,189,777 to 10,196,692 (16.4%), `big`
+  3,807,747 in both. Grid fallbacks 65 to 19, 12 to 4, 11 to 5, 0 to 0.
+- Rescued of tried: `held` 46 of 65 (Wilson 95% 58.8% to 80.4%), `mid` 8 of 12 (39.1% to 86.2%),
+  `grad` 6 of 11 (28.0% to 78.7%); wrong rescued seeds 0 of 60 (0.0% to 6.0%). Every try is in the
+  totals as 1,001 evaluations (167, 32 and 34 tries); the one overlap evaluation per try for the hit
+  ratio (233 in all) is not counted, as in the seed step.
+- Accuracy, `G` against `A` by voxel, after the pass: fixed / broken 4 / 0 (`held`), 0 / 0 on the
+  other three; wrong voxels after the pass (`A`, `G`) 73, 69; 35, 35; 56, 56; 21, 21. Before the pass
+  the 3 `held` voxels fixed are rescued voxels where `A`'s map was 47 to 58 degrees off and `G`'s end
+  is right. So on `held` the grid fallback's voxel ended wrong at 3 of the 46 rescued voxels: the
+  23 of 23 right ends of the disclosed samples do not carry over.
+- Draw isolation (review fix 6): voxels whose map differs between `A` and `G` before the pass: `mid`
+  8, exactly the rescued set; `grad` 32 (6 rescued and 26 others, 20 of them in a rescued voxel's
+  grain, largest change 0.2707 degree); `held` 67 (46 and 21, 20 in a rescued grain, largest
+  0.1010). This is consistent with local growth from the changed seeds; the growth link of the rest
+  is not traced. `G` equals `A` on `big`, but no seed test fails there, so that shows only that the
+  idle wrapper adds no draws; it is not a test of isolation.
+- At the rescued voxels `G`'s end differs from `A`'s by a median of 0.0123 degree (`mid`, largest
+  0.0907) and 0.0018 (`grad`, largest 0.0178); on `held` by at most 0.7050 where `A` was right. The
+  table column "seed step's own end differs" is 0 by construction (the rescue runs after the seed
+  step, whose fits are unchanged): it checks the pairing only.
+- Rules (1) to (5) are met on all four samples; `A` also passes rule (5) on all four, so the
+  "if `A` fails (5)" clause was not used. Predictions 1, 3 and 4 met; 2 not met (mean tries 2.87);
+  5 not met only because `held`'s broken minus fixed is -4, outside -3 to 5 on the favourable side.
+  Step verdict: PASS, READY FOR KEY (phase B: D-20261113-N1).
+
+## Autoresearch AR5 step 9, phase B: the opt-in key SeedRescueCMA (2026-11-13, task ar5i)
+
+Approved in D-20261113-N1 (with the 8 review fixes of phase A, done first). One opt-in library
+key, `SeedRescueCMA sigma evals`, default `0 0` (off); no default changed, no golden file
+regenerated, no new dependency. Turning it on by default is the owner's choice; the study does
+not recommend it.
+
+- Library: `ray_indexing.seed_rescue` (rule `G1`: kept ends in order of cost, ties by position,
+  at most `SEED_RESCUE_MAX_TRIES` = 5, the first end with hit ratio at least the stop ratio is
+  taken), `AdaptiveVoxelReconstructor.rescue_seed` (one CMA local optimization per try, first step
+  `sigma`, `evals` evaluations, a fresh `default_rng(0)` each), and in `BFSReconstruction`
+  `_index_seed` / `_rescue_seed` (after the seed test fails and before the grid search; the
+  evaluations count as the seed's and in `index_rescue_*`). `config_file.py` parses the key and
+  `orientation_search.check_seed_rescue` checks it; `check_bfs_keys` needs `SeedByIndexing 1`,
+  `SeedIndexStopHitRatio` above 0 and `LocalOptimizer mc`. The plan names
+  `reconstructor.index_seed`; the seed test is applied by its caller, the BFS, so the rescue sits
+  in the BFS's seed path, with the per-voxel code next to `index_seed`.
+- Tests first: `tests/test_bfs_seed_rescue.py` (42: parsing, bad values, refused combinations,
+  the rule on synthetic steps, the call arguments of a rescue, key off equal to key absent, the
+  BFS bookkeeping with the key on, the rule equal to the script's `rescue_rules.rescue_choose`).
+  Key off: full suite 1,842 passed, 44 skipped, 1 deselected (`rescue/suite_counts.json`, written
+  by `rescue_suite_counts.py` from the run's junit file); no golden change.
+- Pilot: the library's `rescue_seed` on the 12 failed seed steps of `mid` that the phase A
+  replay used gives the replay's tries exactly on all 12.
+- Key on, `mid` (`rescue/lib_check.json`, `tables_lib.md`): the library run `LibG`
+  (`rescue_lib_run.py`, keys of `S11L` plus `SeedRescueCMA 0.25 1000`) equals the script arm `Gl`
+  (`rescue_gl.py`: arm `G` with library draws) before the boundary pass: the stored map byte for
+  byte, 10,064,185 evaluations, all 36 counters of the script run (the script's grid count holds
+  its rescue evaluations), the 24,570 records, and the rescues (13 tried, 10 rescued, 30 tries,
+  every try equal). The control `LibS11` (key off) equals the stored script run `S11` of step 3 the
+  same way (13,034,526 evaluations).
+- The boundary pass made inside the library run differs from the script's pass of `Gl`: 50,026
+  against 50,027 tries, 3,051,586 against 3,051,647 evaluations (13,115,771 against 13,115,832 with
+  the pass). After the pass, 1,683 voxels are more than 0.001 degree apart and 8 more than 1
+  degree apart; the largest gap is 60.2 degrees. Accuracy after the pass has the same count: 37
+  wrong voxels in both, and by voxel (script pass as the base) 4 fixed, 4 broken, 33 wrong in both
+  (`lib_check.json`, table `libpass`). The control (key off) differs the same way (49,968 against
+  49,970 tries). The library's pass function on the stored map of `Gl` (`rescue_lib_pass.py`) gives
+  the script's tries exactly (every field) and the same changed voxels.
+- Try by try (table `libtries`): the in-run pass and the script's pass try the same voxels and
+  candidates in the same order for the first 11,632 tries (control: 4,872), but the ends already
+  differ from try 0, in 11,626 of those tries (control: 4,870), with no evaluation count
+  different. Same targets and the same fresh generator would give an equal try 0 if the input maps
+  were equal; a shifted generator would keep the early tries equal. So the input maps differ from
+  the start. That is consistent with the in-run pass reading the unrounded map in memory and the
+  script the stored, rounded `.mic`. This reading was tested directly in AR3 step 10 (fixes round,
+  `libkeys_fresh.py`: a fresh process on the unrounded map gave the in-run pass try for try, and on
+  the `.mic`-rounded map the script's tries). It was not tested again for this run: the library
+  run's unrounded map before the pass was not saved.
+- Stop rule: read strictly, the plan's stop rule fired on the in-run boundary pass (the key-on
+  library run differs from the script arm after the pass). The run stopped and reported. The key
+  was accepted on the before-the-pass equality by D-20261113-N2, as in AR3 step 10 and AR5 step 5.
+- macOS file names are case-insensitive: the library run folders are `LibG_mid` / `LibS11_mid`, not
+  `GL_mid` (a first start with `GL` shared the folder with `Gl` and was stopped after a minute).
+- Second review fixes (review `20261113-0520-review-ar5i-B`, D-20261113-N2): the pass difference
+  and the try-level evidence above (fixes 1, 2), no pointer to an untracked file (fixes 3, 4), the
+  suite counts in a tracked file (fix 5), and the failed-rescue BFS test now asserts that the grid
+  search gets the BFS generator object in the same state as with the key off (fix 6).
+- Page: the findings page waits for the owner (the guard refused its write).

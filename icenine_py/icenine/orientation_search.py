@@ -87,6 +87,20 @@ class SearchCandidate:
 LOCAL_OPTIMIZERS: Tuple[str, ...] = ("mc", "cma")
 
 
+def check_seed_rescue(sigma_deg: float, evals: int) -> None:
+    """SeedRescueCMA sigma evals: both 0 (off), or a finite sigma > 0 degrees and evals >= 2
+    (an integer). Raises ValueError otherwise."""
+    if sigma_deg == 0 and evals == 0:
+        return
+    if isinstance(evals, bool) or int(evals) != evals:
+        raise ValueError(f"SeedRescueCMA evals must be an integer, got {evals!r}")
+    if not (math.isfinite(sigma_deg) and sigma_deg > 0) or evals < 2:
+        raise ValueError(
+            "SeedRescueCMA needs both values 0 (off), or sigma > 0 degrees and evals >= 2, "
+            f"got {sigma_deg} {evals}"
+        )
+
+
 @dataclass
 class SearchParameters:
     """
@@ -185,6 +199,15 @@ class SearchParameters:
     #   boundary pass a voxel whose own hit ratio (that of its end before the pass) is at least h
     #   gets no try. Off by default and not recommended yet. Needs boundary_pass.
     boundary_pass_skip_hit: float = 0.0
+    # seed_rescue_sigma_deg, seed_rescue_evals (SeedRescueCMA sigma evals, AR5 step 9; both 0 =
+    #   off, else sigma > 0 degrees and evals >= 2): after an indexed seed step fails the seed test,
+    #   the kept end of each refined candidate is tried in order of cost (at most 5) with one CMA
+    #   local optimization (first step sigma, evals evaluations, a fresh default_rng(0) each); the
+    #   first end with hit ratio >= seed_index_stop_hit is taken; if none, the grid search runs as
+    #   before. Needs seed_by_indexing and seed_index_stop_hit > 0. Off by default; no setting is
+    #   recommended (MIGRATION_HISTORY.md, "Autoresearch AR5 step 9").
+    seed_rescue_sigma_deg: float = 0.0
+    seed_rescue_evals: int = 0
     # paint_grains: opt-in (config key PaintGrains, default off; AR3 step 2). With the key on,
     #   ``BFSReconstruction.reconstruct_sample`` runs ``grain_paint.paint_grains`` in place of the
     #   BFS (seeds indexed, each grain flooded by single strict scores, each voxel painted with the
@@ -293,6 +316,7 @@ class SearchParameters:
             raise ValueError(
                 f"seed_index_cma_first must be 0 (off) or >= 2, got {self.seed_index_cma_first}"
             )
+        check_seed_rescue(self.seed_rescue_sigma_deg, self.seed_rescue_evals)
         from .candidate_dedup import DedupSpec
 
         DedupSpec.parse(self.candidate_dedup)  # raises ValueError on a malformed spec
@@ -338,6 +362,8 @@ class SearchParameters:
                 getattr(config, "bfs_neighbor_cma_no_fallback", False)
             ),
             boundary_pass_skip_hit=float(getattr(config, "boundary_pass_skip_hit", 0.0)),
+            seed_rescue_sigma_deg=float(getattr(config, "seed_rescue_sigma_deg", 0.0)),
+            seed_rescue_evals=int(getattr(config, "seed_rescue_evals", 0)),
             paint_grains=bool(getattr(config, "paint_grains", False)),
             cpp_overlap_rule=bool(getattr(config, "cpp_overlap_rule", False)),
             cpp_edge_rules=bool(getattr(config, "cpp_edge_rules", False)),

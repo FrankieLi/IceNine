@@ -1,0 +1,472 @@
+{
+ "sample": "mid",
+ "rule": "Rule G1: after a failed seed test (taken end hit ratio < 0.80), try the kept ends of the seed step in order of cost (stable; at most 5): a CMA local optimization from the end (first step 0.25 degree, 1,000 evaluations, default_rng(0)); take the first end with hit ratio >= 0.95 (one overlap evaluation, not counted) and stop; if none, run the grid fallback as today (aligned draws unchanged). Arm G = arm A (interleaved order, aligned draws, run S11) with G1.",
+ "wall_s": 10.876338005065918,
+ "wall_label": "contended; not a timing result",
+ "rows": [
+  {
+   "sample": "mid",
+   "voxel": 7167,
+   "step": 327,
+   "n_kept": 5,
+   "rescued": false,
+   "n_tries": 5,
+   "evals": 5005,
+   "tries": [
+    {
+     "hit": 0.7231481481481481,
+     "cost": 0.3051005168857298,
+     "evals": 1001,
+     "err": 0.07653676143715155,
+     "k": 2
+    },
+    {
+     "hit": 0.698005698005698,
+     "cost": 0.3168707605899219,
+     "evals": 1001,
+     "err": 0.5178297234742187,
+     "k": 4
+    },
+    {
+     "hit": 0.6583101207056639,
+     "cost": 0.3567695699553285,
+     "evals": 1001,
+     "err": 39.11522434639687,
+     "k": 1
+    },
+    {
+     "hit": 0.6518181818181819,
+     "cost": 0.3628165212970308,
+     "evals": 1001,
+     "err": 45.55670003484898,
+     "k": 0
+    },
+    {
+     "hit": 0.6560449859418932,
+     "cost": 0.3579689954158255,
+     "evals": 1001,
+     "err": 39.09605417170142,
+     "k": 3
+    }
+   ],
+   "taken_hit": null,
+   "taken_err": null,
+   "taken_cost": null,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.7231481481481481,
+   "grid_end_hit": 0.9990539262062441,
+   "grid_end_err": 0.0018768726421630397,
+   "grid_end_cost": 0.03974184782608703,
+   "grid_end_reached_095": true
+  },
+  {
+   "sample": "mid",
+   "voxel": 5248,
+   "step": 399,
+   "n_kept": 5,
+   "rescued": true,
+   "n_tries": 1,
+   "evals": 1001,
+   "tries": [
+    {
+     "hit": 0.9831349206349206,
+     "cost": 0.1268656716417913,
+     "evals": 1001,
+     "err": 0.0033428936364834237,
+     "k": 2
+    }
+   ],
+   "taken_hit": 0.9831349206349206,
+   "taken_err": 0.0033428936364834237,
+   "taken_cost": 0.1268656716417913,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.789272030651341,
+   "grid_end_hit": 0.9752720079129574,
+   "grid_end_err": 0.015507479732616899,
+   "grid_end_cost": 0.13285167634146422,
+   "grid_end_reached_095": true
+  },
+  {
+   "sample": "mid",
+   "voxel": 1158,
+   "step": 935,
+   "n_kept": 5,
+   "rescued": true,
+   "n_tries": 1,
+   "evals": 1001,
+   "tries": [
+    {
+     "hit": 0.9792043399638336,
+     "cost": 0.08059701492537319,
+     "evals": 1001,
+     "err": 0.004209145603251943,
+     "k": 3
+    }
+   ],
+   "taken_hit": 0.9792043399638336,
+   "taken_err": 0.004209145603251943,
+   "taken_cost": 0.08059701492537319,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.7990909090909091,
+   "grid_end_hit": 0.9792043399638336,
+   "grid_end_err": 0.0024401212210099547,
+   "grid_end_cost": 0.08059701492537319,
+   "grid_end_reached_095": true
+  },
+  {
+   "sample": "mid",
+   "voxel": 1339,
+   "step": 952,
+   "n_kept": 5,
+   "rescued": true,
+   "n_tries": 2,
+   "evals": 2002,
+   "tries": [
+    {
+     "hit": 0.7517802644964394,
+     "cost": 0.306060195666511,
+     "evals": 1001,
+     "err": 34.961232135538765,
+     "k": 1
+    },
+    {
+     "hit": 1.0,
+     "cost": 0.11940298507462677,
+     "evals": 1001,
+     "err": 0.0009687594345683685,
+     "k": 0
+    }
+   ],
+   "taken_hit": 1.0,
+   "taken_err": 0.0009687594345683685,
+   "taken_cost": 0.11940298507462677,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.7459677419354839,
+   "grid_end_hit": 0.953921568627451,
+   "grid_end_err": 0.016454073079021518,
+   "grid_end_cost": 0.15867533354363916,
+   "grid_end_reached_095": true
+  },
+  {
+   "sample": "mid",
+   "voxel": 15577,
+   "step": 1091,
+   "n_kept": 5,
+   "rescued": false,
+   "n_tries": 5,
+   "evals": 5005,
+   "tries": [
+    {
+     "hit": 0.7631578947368421,
+     "cost": 0.2541792547944217,
+     "evals": 1001,
+     "err": 36.67383756651347,
+     "k": 0
+    },
+    {
+     "hit": 0.7692307692307693,
+     "cost": 0.28292517169142883,
+     "evals": 1001,
+     "err": 0.20554540785781808,
+     "k": 2
+    },
+    {
+     "hit": 0.5699233716475096,
+     "cost": 0.4586681836681836,
+     "evals": 1001,
+     "err": 54.4151275789166,
+     "k": 1
+    },
+    {
+     "hit": 0.2321772639691715,
+     "cost": 0.7776428115105691,
+     "evals": 1001,
+     "err": 59.886889753090315,
+     "k": 3
+    },
+    {
+     "hit": 0.1908256880733945,
+     "cost": 0.8359930307844097,
+     "evals": 1001,
+     "err": 59.829968469518384,
+     "k": 4
+    }
+   ],
+   "taken_hit": null,
+   "taken_err": null,
+   "taken_cost": null,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.7631578947368421,
+   "grid_end_hit": 0.9749759384023099,
+   "grid_end_err": 0.022468406914037058,
+   "grid_end_cost": 0.09510172203670642,
+   "grid_end_reached_095": true
+  },
+  {
+   "sample": "mid",
+   "voxel": 13439,
+   "step": 1097,
+   "n_kept": 5,
+   "rescued": true,
+   "n_tries": 1,
+   "evals": 1001,
+   "tries": [
+    {
+     "hit": 1.0,
+     "cost": 0.04838709677419373,
+     "evals": 1001,
+     "err": 0.0011405876297331616,
+     "k": 3
+    }
+   ],
+   "taken_hit": 1.0,
+   "taken_err": 0.0011405876297331616,
+   "taken_cost": 0.04838709677419373,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.7713178294573644,
+   "grid_end_hit": 0.8670520231213873,
+   "grid_end_err": 0.08986157925902494,
+   "grid_end_cost": 0.17488465315602542,
+   "grid_end_reached_095": false
+  },
+  {
+   "sample": "mid",
+   "voxel": 17608,
+   "step": 1119,
+   "n_kept": 5,
+   "rescued": true,
+   "n_tries": 1,
+   "evals": 1001,
+   "tries": [
+    {
+     "hit": 1.0,
+     "cost": 0.0,
+     "evals": 1001,
+     "err": 0.010793034994143474,
+     "k": 1
+    }
+   ],
+   "taken_hit": 1.0,
+   "taken_err": 0.010793034994143474,
+   "taken_cost": 0.0,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.7865497076023392,
+   "grid_end_hit": 0.9614661654135338,
+   "grid_end_err": 0.032375982021398034,
+   "grid_end_cost": 0.034255460042572516,
+   "grid_end_reached_095": true
+  },
+  {
+   "sample": "mid",
+   "voxel": 7134,
+   "step": 1238,
+   "n_kept": 5,
+   "rescued": true,
+   "n_tries": 4,
+   "evals": 4004,
+   "tries": [
+    {
+     "hit": 0.7033398821218074,
+     "cost": 0.3156436123098024,
+     "evals": 1001,
+     "err": 37.52730664271182,
+     "k": 0
+    },
+    {
+     "hit": 0.7104477611940299,
+     "cost": 0.31872204545540483,
+     "evals": 1001,
+     "err": 37.596011101242844,
+     "k": 3
+    },
+    {
+     "hit": 0.6875536480686695,
+     "cost": 0.3082628216425175,
+     "evals": 1001,
+     "err": 0.5109036947466502,
+     "k": 1
+    },
+    {
+     "hit": 0.9670995670995671,
+     "cost": 0.045454545454545525,
+     "evals": 1001,
+     "err": 0.00992961323749629,
+     "k": 2
+    }
+   ],
+   "taken_hit": 0.9670995670995671,
+   "taken_err": 0.00992961323749629,
+   "taken_cost": 0.045454545454545525,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.7113095238095238,
+   "grid_end_hit": 0.9593425605536332,
+   "grid_end_err": 0.007823523650969557,
+   "grid_end_cost": 0.0554234391431222,
+   "grid_end_reached_095": true
+  },
+  {
+   "sample": "mid",
+   "voxel": 12282,
+   "step": 1394,
+   "n_kept": 5,
+   "rescued": true,
+   "n_tries": 1,
+   "evals": 1001,
+   "tries": [
+    {
+     "hit": 0.9782178217821782,
+     "cost": 0.13636363636363624,
+     "evals": 1001,
+     "err": 0.002548225979849478,
+     "k": 0
+    }
+   ],
+   "taken_hit": 0.9782178217821782,
+   "taken_err": 0.002548225979849478,
+   "taken_cost": 0.13636363636363624,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.7851485148514852,
+   "grid_end_hit": 0.9763313609467456,
+   "grid_end_err": 0.002101147524112952,
+   "grid_end_cost": 0.13787878787878782,
+   "grid_end_reached_095": true
+  },
+  {
+   "sample": "mid",
+   "voxel": 16979,
+   "step": 1481,
+   "n_kept": 5,
+   "rescued": false,
+   "n_tries": 5,
+   "evals": 5005,
+   "tries": [
+    {
+     "hit": 0.7189849624060151,
+     "cost": 0.3131569802798345,
+     "evals": 1001,
+     "err": 55.46596617102851,
+     "k": 0
+    },
+    {
+     "hit": 0.26055045871559634,
+     "cost": 0.7352307908809455,
+     "evals": 1001,
+     "err": 27.440614333336868,
+     "k": 1
+    },
+    {
+     "hit": 0.21977052074139453,
+     "cost": 0.7909393841549469,
+     "evals": 1001,
+     "err": 50.92001202698595,
+     "k": 2
+    },
+    {
+     "hit": 0.21226874391431352,
+     "cost": 0.7796836843711843,
+     "evals": 1001,
+     "err": 35.01568461087162,
+     "k": 3
+    },
+    {
+     "hit": 0.20456540825285338,
+     "cost": 0.8042577206321125,
+     "evals": 1001,
+     "err": 15.042978431389875,
+     "k": 4
+    }
+   ],
+   "taken_hit": null,
+   "taken_err": null,
+   "taken_cost": null,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.7188378631677601,
+   "grid_end_hit": 1.0,
+   "grid_end_err": 0.003607952011178269,
+   "grid_end_cost": 0.05303030303030276,
+   "grid_end_reached_095": true
+  },
+  {
+   "sample": "mid",
+   "voxel": 20251,
+   "step": 1541,
+   "n_kept": 5,
+   "rescued": false,
+   "n_tries": 5,
+   "evals": 5005,
+   "tries": [
+    {
+     "hit": 0.7511071744906997,
+     "cost": 0.2834454353937802,
+     "evals": 1001,
+     "err": 0.28448037791140673,
+     "k": 0
+    },
+    {
+     "hit": 0.7338065661047027,
+     "cost": 0.29157849853228024,
+     "evals": 1001,
+     "err": 45.69864187338047,
+     "k": 1
+    },
+    {
+     "hit": 0.651012891344383,
+     "cost": 0.3819225904760939,
+     "evals": 1001,
+     "err": 49.817367349710224,
+     "k": 2
+    },
+    {
+     "hit": 0.28370786516853935,
+     "cost": 0.7324239185307295,
+     "evals": 1001,
+     "err": 59.770655516845665,
+     "k": 4
+    },
+    {
+     "hit": 0.2655417406749556,
+     "cost": 0.7713279697897413,
+     "evals": 1001,
+     "err": 59.86261777952735,
+     "k": 3
+    }
+   ],
+   "taken_hit": null,
+   "taken_err": null,
+   "taken_cost": null,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.7511071744906997,
+   "grid_end_hit": 0.9955555555555555,
+   "grid_end_err": 0.013424146184998615,
+   "grid_end_cost": 0.05658549358470821,
+   "grid_end_reached_095": true
+  },
+  {
+   "sample": "mid",
+   "voxel": 20676,
+   "step": 1546,
+   "n_kept": 5,
+   "rescued": true,
+   "n_tries": 1,
+   "evals": 1001,
+   "tries": [
+    {
+     "hit": 1.0,
+     "cost": 0.08064516129032262,
+     "evals": 1001,
+     "err": 0.003660937441209066,
+     "k": 3
+    }
+   ],
+   "taken_hit": 1.0,
+   "taken_err": 0.003660937441209066,
+   "taken_cost": 0.08064516129032262,
+   "wrong_rescued": false,
+   "kept_best_hit": 0.7339544513457557,
+   "grid_end_hit": 0.9751243781094527,
+   "grid_end_err": 0.007463482538471859,
+   "grid_end_cost": 0.10393295651470891,
+   "grid_end_reached_095": true
+  }
+ ]
+}
