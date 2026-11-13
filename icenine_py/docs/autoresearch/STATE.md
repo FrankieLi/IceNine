@@ -12,7 +12,7 @@ Read this file first after any restart or wake. It holds only what is true now a
 | finished steps, old notes (archive, use `grep`) | `docs/autoresearch/STATE_HISTORY.md` |
 | numbers of a finished step | its findings page, or `shmem query "IceNine autoresearch <step>"` |
 | review page for the owner | https://claude.ai/artifact/A63khAHf7nEx6NBZioSnGW |
-| open PR | #43 (AR3 steps 2 to 11, AR5 steps 1 to 3, 5, 7 to 10, AR4 step 1), https://github.com/FrankieLi/IceNine/pull/43 |
+| open PR | #43 (AR3 steps 2 to 11, AR5 steps 1 to 3, 5, 7 to 11, AR4 step 1), https://github.com/FrankieLi/IceNine/pull/43 |
 
 ## How to restart
 
@@ -30,9 +30,9 @@ before its fixes round (shared files conflict).
    than `S8`, 69 wrong; approved with three fixes (N23); fix 3 done (fac79f9). BLOCKED on fix 1
    (the page; agent writes refused): the owner places it or allows it. Then: sync check,
    commit, fix 2 (MIGRATION_HISTORY names that commit), merge, close (PR #43).
-2. AR5 step 6 (`ar5f`; N3): fixed, waits. Steps 9, 10: merged (step 10 a failed study, no key).
-   Step 11 (`ar5k`; 13-N5, PLAN "AR5 step 11"): rule P(3000). Gate passed; the whole-layer runs
-   ended 09:11 (exit 0). Stats phase asked at 09:55 (same agent). Then: the Queue row "AR5 step 11".
+2. AR5 step 6 (`ar5f`; N3): fixed, waits. Steps 9 to 11: merged (10, 11 failed studies, no key).
+   Step 12 (`ar5l`; 13-N7, PLAN "AR5 step 12"): rule PH(3000). Implementer runs phase A (to the
+   gate, from about 10:35, 13 Nov); on "READY TO RUN" do the Queue row "AR5 step 12".
 3. Items 14 + 3 (task `item14`; N25): E0 arms done. The run stopped at 00:01 on 2026-11-12,
    exit 3: the preflight refused (`cpptools`, pid 18415). Once the owner frees the machine:
    rerun the command below (E0 resumes; warm-up 25 min). After exit 0: phase B by
@@ -42,11 +42,11 @@ before its fixes round (shared files conflict).
 - Items 14 + 3: `caffeinate -i bash scripts/autoresearch/item14/run_item14.sh` in `icenine_py/`
   of worktree `agent-a012b8f461d1630a1` (stopped, exit 3, 00:01, 2026-11-12); marker `item14.done`.
   Branch `ar5d` is held by worktree `agent-a8a1ac8e80f8913cf` (tip fac79f9).
-- Page v47 live; v48 to do. AR5 step 11: runs done 09:11; stats phase running since 09:55, 13 Nov.
+- Page v48 live (steps 10, 11); v49 to do after step 12. Step 12 implementer: see Queue.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
-7, 18, 22, 23, AR0 to AR2, AR3 1 to 11, AR5 1 to 3, 5, 7 to 10, AR4 1): `STATE_HISTORY.md`.
+7, 18, 22, 23, AR0 to AR2, AR3 1 to 11, AR5 1 to 3, 5, 7 to 11, AR4 1): `STATE_HISTORY.md`.
 
 | step | what | state |
 |---|---|---|
@@ -57,14 +57,15 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 | AR5 step 7 | opt-in key `BoundaryPassSkipHitRatio` (task `ar5g`) | MERGED at 50c3b9c (N4, N5, N6), see "Last finished step". Open: only its page, for the owner to place: text `.claude/reports/20261112-ar5g-page-v2.md` (main checkout; the merge removed the fixes worktree, the text was recovered exactly from the recorded write and a table sync) goes to `icenine_py/docs/autoresearch/findings_ar5_gate.md` on `feature/eval-reduction`, then a sync check and a commit. Keep worktree `agent-a331e7882919e74aa` (stored passes, `ar5/gate/`). Step 6's page text and reports are now also copied to the main `.claude/reports/` |
 | AR5 step 8 | sweep order of the seed step (task `ar5h`) | MERGED at 949dc61 as a study; failed rule 5 (N9), no key; see "Last finished step". Open: only its page for the owner: `.claude/reports/20261112-ar5h-page.md` (main checkout) goes to `icenine_py/docs/autoresearch/findings_ar5_order.md`. Keep worktree `agent-abdf64302f4022c0a` (detached): the step 8 cache `ar5/order/cache` that step 9 links, and the MC traces. Reports also in the main `.claude/reports/`: `20261112-1419-ar5h.md`, `-corrected.md`, `20261112-2215-ar5h-fixes.md` |
 | AR5 step 9 | rule `G1`, key `SeedRescueCMA` (task `ar5i`) | MERGED at 28b75fa. Open: its page for the owner: `.claude/reports/20261113-ar5i-page.md` goes to `icenine_py/docs/autoresearch/findings_ar5_rescue.md`. Keep worktrees `agent-a8d20b3821621fd41`, `agent-ab6ee3e8ef1058af1` (`ar5/rescue/cache`) |
-| AR5 step 11 | rule P(3000), arm S (task `ar5k`) | Gate PASSED (g1 to g4; taken ends changed 25, 1, 4 on mid, grad, big; mid saves 11.0%). Implementer `a69be86211b6c2797`, worktree `.claude/worktrees/agent-a69be86211b6c2797`, tip 1d03ab1, report `.claude/reports/20261113-0700-ar5k.md` there; branch parent set by the main session. RUNS DETACHED since 07:24 on 2026-11-13 (arm S on held, mid, grad, big; about 1.5 hours; no notification). Check: `cat <worktree>/icenine_py/benchmarks/autoresearch/ar5/patience/cache/logs/patience_run_all.done` (first line `exit=0`; absent while it runs; `pgrep -f autoresearch/ar5/`). If it died: `scripts/autoresearch/ar5/patience_run_all.sh --resume`, detached, from that `icenine_py`. AT ITS END: stats phase by `SendMessage` to the implementer (validity, stats against stored arm G and S8, predictions, rules (1) to (5), plot, pareto rows, "READY FOR KEY"); hand-back check; Opus review; decision 13-N6; fixes; phase B key `SeedIndexMCPatience` only if it passes (ROADMAP heads-up first); copy worktree reports to main; merge; close with page v48 (steps 10 and 11). |
+| AR5 step 12 | rule PH(3000): stop a stalled seed-step MC refinement only if its best is at hit ratio 0.95 or more; new test sample `held2` (task `ar5l`) | D-20261113-N7. Implementer id: TBD by main session. Phase A items 1 to 4 (freeze, gate replay) since about 10:35, 13 Nov; hands back "READY TO RUN". THEN: hand-back check; start `scripts/autoresearch/ar5/stallhit_run_all.sh` detached from the implementer's worktree `icenine_py/` (about 3.5 hours; marker `benchmarks/autoresearch/ar5/stallhit/cache/logs/stallhit_run_all.done`, first line `exit=0`). After: stats phase, hand-back check, Opus review, decision, fixes, key `SeedIndexMCStallHit` only if it passes (ROADMAP heads-up before the merge), merge, close, page v49 |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
 | tooling | `audit_numbers.py`: thousands separators; false misses in wide table rows | small |
 
 ## Last finished step
 
-AR5 step 10 (`ar5j`): merged as a study at 8ffc5d4, 2026-11-13; suite 1847 passed. Level-0 cut
-failed its gate (right 20 of 23, needed 22); no key. Lesson: a gate replays the whole path.
+AR5 step 11 (`ar5k`): merged as a study at 2939db9, 2026-11-13; suite 1880 passed. Rule P(3000)
+failed rule 5 on `mid` by one voxel (net 6, limit 5); no key. Held 5.7% fewer evaluations
+than G, mid 10.6%. Lesson: 597 of 1,181 cut refinements had a best under 0.95 (see step 12).
 
 ## Untracked data that later steps need
 
@@ -77,7 +78,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - AR5 step 4: `agent-a814d0121e137b01c` (caches on `held`), `agent-a8a1ac8e80f8913cf`. Step 5:
   `agent-afc3f195cb4fffb30`. Item 14: `agent-a012b8f461d1630a1`. C++: `agent-ad44bb90c441eca35`.
 - `agent-a68538c58665829a1` (AR5 step 1, detached at 29e9b56): `ar5/cache/` and links.
-- AR5 step 10 (`ar5j`): `agent-a9920a0aeaf5d1276` (replay cache `ar5/cut/`).
+- Step 10 (`ar5j`): `agent-a9920a0aeaf5d1276` (`ar5/cut/`); 11: `agent-a69be86211b6c2797` (`ar5/patience/`).
 - Step 10: `agent-a6c7c67b4a03d1843` (`ar3/keys/cache/`), `agent-a3145f902bf0a61fb` (two reruns).
 - AR5 step 8: `agent-abdf64302f4022c0a` (`ar5/order/cache`, MC traces; step 9 links it).
 - `agent-a9c88b610fb10e1b6` (step 9): `ar3/start/cache/`, the image stack and samples of `mid`.
@@ -93,7 +94,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - Free the machine for the item 14 timing: `cpptools` (VS Code C/C++ extension, pid 18415)
   has used a whole core for 2 days; the timing preflight refuses while it does. Yours to close.
 - Place five pages, or allow me to: AR5 steps 4, 6, 7, 8 and 9. Paths: their Queue rows.
-- Your word on PR #43 ("merge PR 43" in the session): AR3 2 to 11, AR5 1 to 3, 5, 7 to 9, AR4 1.
+- Your word on PR #43 ("merge PR 43" in the session): AR3 2 to 11, AR5 1 to 3, 5, 7 to 11, AR4 1.
 - A choice: which seed step the documentation of the keys recommends. Step 10 added the
   keys and recommends none. My recommendation: the settings of `S8` (`SeedIndexCandidates 20
   5`, `SeedIndexStopHitRatio 0.95`): cheapest on all three samples, wrong counts not worse.
@@ -106,13 +107,13 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - A choice: whether the documentation recommends the two `S11` keys (N21) and the skip key
   of step 7 (N6; `held` is not a clean test for it). All are off; none is recommended now.
 - Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N25 and
-  D-20261112-N1 to N10, D-20261113-N1 to N5. N15 adds `held` (new seed); N17, N18: run caps
+  D-20261112-N1 to N10, D-20261113-N1 to N7. N15 adds `held` (new seed); N17, N18: run caps
   of 480 minutes. The gradient levels of step 7's sample are my choice. Step 5's result files
   add about 50 MB to git; say so if you want them pruned.
 
 ## Bookkeeping
 
-- Next decision ID: D-20261113-N6 (first of a day is N1).
+- Next decision ID: D-20261113-N8 (first of a day is N1).
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);

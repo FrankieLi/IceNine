@@ -1011,3 +1011,18 @@ D-20261113-N3 (plan), N4 (result). Reports in the main `.claude/reports/`: `2026
   levels keep it; a gate replays the whole changed path.
 - Data that stays untracked: worktree `agent-a9920a0aeaf5d1276` (detached): the replay cache
   under `icenine_py/benchmarks/autoresearch/ar5/cut/`.
+
+### AR5 step 11 (patience stop of a stalled seed-step refinement; task `ar5k`), merged as a study at 2939db9 on 2026-11-13
+
+A study with scripts only: no library change, no key, no findings page (the MIGRATION_HISTORY
+section is its record). Suite after the merge: 1880 passed, 47 skipped, 1 deselected. Decisions
+D-20261113-N5 (plan), N6 (result). Reports in the main `.claude/reports/`: `20261113-0700-ar5k.md`,
+`20261113-1000-review-ar5k.md`, `20261113-1015-ar5k-fixes.md`.
+
+- The rule: P(3000), arm S, stops a stalled seed-step MC refinement after 3,000 evaluations
+  without gain. Against arm G: held 5.71% fewer evaluations, mid 10.60%, grad 0.14%, big 5.01%.
+  Wrong voxels S/G: 69/69, 37/35, 55/56, 21/21. 597 of 1,181 cut refinements had a best under 0.95.
+- Verdict: FAIL rule 5 on `mid` against `S8`: 8 fixed, 14 broken, net 6 (limit 5; G at 4).
+- Lesson: a patience stop cuts refinements that are not yet good; step 12 stops only at 0.95.
+- Data that stays untracked: worktree `agent-a69be86211b6c2797` (detached): the run cache under
+  `icenine_py/benchmarks/autoresearch/ar5/patience/cache`.
