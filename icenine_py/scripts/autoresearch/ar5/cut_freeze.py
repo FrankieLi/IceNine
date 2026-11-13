@@ -59,7 +59,12 @@ def write() -> None:
                 rule=CR.RULE,
                 constants=CONSTANTS,
                 frozen_at=time.strftime("%Y-%m-%dT%H:%M:%S%z"),
-                note="no held file was hashed or opened before this file was committed",
+                note=(
+                    "no held file was hashed or opened before this file was committed; steps 8 "
+                    "and 9 froze the library before step 9's phase B (key SeedRescueCMA, off by "
+                    "default), so their frozen.json no longer agrees; this file freezes the "
+                    "same script list and the library as it is now"
+                ),
                 **cur,
             ),
             indent=1,
