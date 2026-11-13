@@ -1611,3 +1611,22 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   and decision rules are unchanged. The sweep order together with N1 and the boundary-pass skip is
   a later combined run, after those branches merge. Where: icenine_py/docs/autoresearch/PLAN.md
   (AR5 step 8, paragraph Arms).
+
+### D-20261112-N9 · A / AR5 step 8 · AR5 step 8 fails its frozen rule: no key for the sweep order; review fixes 1 to 7 accepted; merge as a study
+- 2026-11-12, owner. Recorded by Newt Agent. Supersedes: none.
+- The review reproduced every headline number from the raw run files. The sweep order (arm Y: CMA
+  on every seed candidate before any MC refinement) passes rules 1 to 4 against the present order
+  (arm A) on all four samples and saves 22.6% (held), 38.8% (mid), 16.4% (grad) and 60.1% (big) of
+  the seed-step evaluations, 7.7%, 13.4%, 2.1% and 10.6% in total. It fails rule 5, the house rule
+  against S8, on held (broken minus fixed 8) and mid (7), limit 5; arm A passes there. By the rule
+  frozen before the runs the step fails: no key SeedIndexCMASweep, no phase B, nothing tuned. For
+  the record: the nets and the margin of rule 5 are within the draw noise seen before (step 7: 4
+  to 15 voxels; Yl against Y on big: 5 fixed, 12 broken), and the comparisons with S8 are not
+  draw-aligned; the page says so and does not claim the order loses accuracy. The planning replay
+  (0 fixed, 0 broken on seed steps) did not predict the whole-layer result, because a different
+  taken end changes which voxels are grown and seeded afterwards; later plans treat a seed-step
+  replay as a cost estimate only. Fixes 1 to 7 of the review are accepted; fix 6: the implementer
+  writes the findings page, and if its write is refused the text stays in .claude/reports and
+  waits for the owner. The step merges as a study with scripts only. Decided under the mandate
+  D-20261109-N1; the owner's to overrule. Where: review
+  .claude/reports/20261112-2200-review-ar5h.md; branch feature/eval-reduction-ar5h tip e601888.
