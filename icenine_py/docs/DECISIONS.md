@@ -1630,3 +1630,25 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   waits for the owner. The step merges as a study with scripts only. Decided under the mandate
   D-20261109-N1; the owner's to overrule. Where: review
   .claude/reports/20261112-2200-review-ar5h.md; branch feature/eval-reduction-ar5h tip e601888.
+
+### D-20261112-N10 · A / AR5 step 9 (plan) · AR5 step 9 approved: rescue a failed seed with a wide CMA local optimization before the grid fallback (rule G1), with a cheap gate; tested on held
+- 2026-11-12, owner. Recorded by Newt Agent. Supersedes: none.
+- The plan in PLAN.md (4fad072) is approved. When a seed fails the seed test, rule G1 runs a CMA
+  local optimization (initial step 0.25 degree, 1,000 evaluations) from each kept seed end in
+  order of cost and takes the first end with hit ratio at least 0.95; if none, the grid fallback
+  runs as today. The reason: in arm A of step 8, in 22 of 23 fallbacks on grad and mid a kept seed
+  end lies within 0.6 degree of the end the grid search finds, and all 23 grid ends are right; the
+  grid fallback is the largest stage on held. The what-if saving (21.2% of the run on mid, 27.7%
+  on grad) is an upper estimate that assumes the CMA escapes where the seed refinements stopped; a
+  replay on the 23 disclosed cases is the gate (at least 12 rescued, no wrong rescued end) before
+  any whole-layer run. Values frozen before any run; held is the test sample and none of its seed
+  logs or fallback ends was opened; arm A is the stored step 8 run, arm G runs with aligned draws.
+  Phase A changes no library file; the key SeedRescueCMA needs a further decision. Not chosen now:
+  an early stop of an MC refinement after 2,000 evaluations without improvement (drafted; saves
+  12.6% mid, 8.0% big, 0.4% grad) and a library key for the N1 seed-accept rule (its code waits on
+  two unmerged branches). Correction to N9: the each-way draw noise of step 7 is 2 to 15 voxels
+  per sample, not 4 to 15, and 14 voxels flip on held and mid together (6 before the pass, 8 in
+  it), not 13. The step 8 fixes are applied (tip 493f9ec); its findings page waits for the owner
+  (the write was refused); it merges as a study. Decided under the mandate D-20261109-N1; the
+  owner's to overrule. Where: PLAN.md section AR5 step 9; scratchpad drafts plan_step9_draft.md
+  and plan_step9b_draft.md.
