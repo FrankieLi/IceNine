@@ -12160,3 +12160,46 @@ given), from `rescue/summary.json`, `tables.md`, `stats_<sample>.json` and
   "if `A` fails (5)" clause was not used. Predictions 1, 3 and 4 met; 2 not met (mean tries 2.87);
   5 not met only because `held`'s broken minus fixed is -4, outside -3 to 5 on the favourable side.
   Step verdict: PASS, READY FOR KEY (phase B: D-20261113-N1).
+
+## Autoresearch AR5 step 9, phase B: the opt-in key SeedRescueCMA (2026-11-13, task ar5i)
+
+Approved in D-20261113-N1 (with the 8 review fixes of phase A, done first). One opt-in library
+key, `SeedRescueCMA sigma evals`, default `0 0` (off); no default changed, no golden file
+regenerated, no new dependency. Turning it on by default is the owner's choice; the study does
+not recommend it.
+
+- Library: `ray_indexing.seed_rescue` (rule `G1`: kept ends in order of cost, ties by position,
+  at most `SEED_RESCUE_MAX_TRIES` = 5, the first end with hit ratio at least the stop ratio is
+  taken), `AdaptiveVoxelReconstructor.rescue_seed` (one CMA local optimization per try, first step
+  `sigma`, `evals` evaluations, a fresh `default_rng(0)` each), and in `BFSReconstruction`
+  `_index_seed` / `_rescue_seed` (after the seed test fails and before the grid search; the
+  evaluations count as the seed's and in `index_rescue_*`). `config_file.py` parses the key and
+  `orientation_search.check_seed_rescue` checks it; `check_bfs_keys` needs `SeedByIndexing 1`,
+  `SeedIndexStopHitRatio` above 0 and `LocalOptimizer mc`. The plan names
+  `reconstructor.index_seed`; the seed test is applied by its caller, the BFS, so the rescue sits
+  in the BFS's seed path, with the per-voxel code next to `index_seed`.
+- Tests first: `tests/test_bfs_seed_rescue.py` (42: parsing, bad values, refused combinations,
+  the rule on synthetic steps, the call arguments of a rescue, key off equal to key absent, the
+  BFS bookkeeping with the key on, the rule equal to the script's `rescue_rules.rescue_choose`).
+  Key off: full suite 1842 passed, 44 skipped, 1 deselected; no golden change.
+- Pilot: the library's `rescue_seed` on the 12 failed seed steps of `mid` that the phase A
+  replay used gives the replay's tries exactly on all 12.
+- Key on, `mid` (`rescue/lib_check.json`, `tables_lib.md`): the library run `LibG`
+  (`rescue_lib_run.py`, keys of `S11L` plus `SeedRescueCMA 0.25 1000`) equals the script arm `Gl`
+  (`rescue_gl.py`: arm `G` with library draws) before the boundary pass: the stored map byte for
+  byte, 10,064,185 evaluations, all 36 counters of the script run (the script's grid count holds
+  its rescue evaluations), the 24,570 records, and the rescues (13 tried, 10 rescued, 30 tries,
+  every try equal). The control `LibS11` (key off) equals the stored script run `S11` of step 3 the
+  same way (13,034,526 evaluations).
+- The boundary pass made inside the library run differs from the script's pass of `Gl`: 50,026
+  against 50,027 tries, 3,051,586 against 3,051,647 evaluations (13,115,771 against 13,115,832 with
+  the pass); after the pass 1991 voxels differ, 8 by more than 1 degree. The control differs the
+  same way (49,968 against 49,970 tries). The library's pass function on the stored map of `Gl`
+  (`rescue_lib_pass.py`) gives the script's tries exactly (every field) and the same changed
+  voxels. That is consistent with the in-run pass reading the unrounded map in memory while the
+  script reads the stored, rounded map; the reading was not changed to test it. Whether this meets
+  the stop rule ("the key-on library run differs from the script arm") is left to the owner.
+- macOS file names are case-insensitive: the library run folders are `LibG_mid` / `LibS11_mid`, not
+  `GL_mid` (a first start with `GL` shared the folder with `Gl` and was stopped after a minute).
+- Page: `docs/autoresearch/findings_ar5_rescue.md` waits for the owner. The guard refused its
+  write; the text is in `.claude/reports/20261113-ar5i-page.md` of the fixes worktree.

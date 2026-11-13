@@ -844,8 +844,13 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   `tests/test_ar5_rescue.py`, results `benchmarks/autoresearch/ar5/rescue/` (the cache is
   untracked; `rescue_isolation.py` writes the A-to-G changed-voxel check). The gate passed and the
   whole-layer runs of arm `G` on all four samples are made: the step passes its frozen rules
-  (verdict PASS, READY FOR KEY; phase B approved, D-20261113-N1). MIGRATION_HISTORY,
-  "Autoresearch AR5 step 9, phase A".
+  (verdict PASS, READY FOR KEY; phase B approved, D-20261113-N1). Phase B added the opt-in key
+  `SeedRescueCMA` (default off; see the key table) with `tests/test_bfs_seed_rescue.py` and the
+  check scripts `rescue_gl.py` (script arm `Gl`), `rescue_lib_run.py`, `rescue_lib_pass.py`,
+  `rescue_lib_check.py`, `rescue_phase_b.sh`. The page `docs/autoresearch/findings_ar5_rescue.md`
+  waits for the owner: the guard refused the write, and its text is in
+  `.claude/reports/20261113-ar5i-page.md` of the fixes worktree. MIGRATION_HISTORY,
+  "Autoresearch AR5 step 9, phase A" and "phase B".
 
 See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and
 current results of this work, and [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy
