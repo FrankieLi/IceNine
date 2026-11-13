@@ -253,6 +253,48 @@ def test_freeze_lists_the_rule_scripts_and_the_library() -> None:
     assert not any("held" in k for k in list(cur["files"]) + list(cur["library"]))
 
 
+def _gate_rows(n: int, changed: int, wrong: bool = False) -> List[Dict[str, Any]]:
+    rows = []
+    for i in range(n):
+        ch = i < changed
+        rows.append(
+            dict(
+                step=i,
+                classes=["same", "moved"] if ch else ["same", "after_last"],
+                pred_mismatch=0,
+                bad=False,
+                path="seed" if ch else "same",
+                path_same=not ch,
+                g_total=1000,
+                new_total=800,
+                g_stopped=True,
+                new_hit=0.97,
+                g_hit=0.97,
+                g_failed=False,
+                new_failed=False,
+                err_g=0.02,
+                err_new=2.0 if (ch and wrong) else 0.02,
+                taken_same=not ch,
+                mis_to_g_deg=0.05 if ch else 0.0,
+            )
+        )
+    return rows
+
+
+def test_gate_passes_a_clean_replay_and_fails_a_wrong_changed_end() -> None:
+    import patience_gate as PG
+
+    ok = PG.sample_gate("big", _gate_rows(99, 4))
+    assert ok["g1_ok"] and ok["g2_ok"] and ok["g3_ok"] and ok["taken_changed"] == 4
+    assert abs(ok["saved_share_of_g_run"] - 99 * 200 / 3807747) < 1e-12
+    bad = PG.sample_gate("big", _gate_rows(99, 4, wrong=True))
+    assert not bad["g3_ok"] and len(bad["changed_wrong_where_g_right"]) == 4
+    many = PG.sample_gate("big", _gate_rows(99, 7))
+    assert not many["g2_ok"]
+    short = PG.sample_gate("big", _gate_rows(98, 4))
+    assert not short["complete"] and not short["g1_ok"]
+
+
 def test_the_rule_draws_no_random_number() -> None:
     src = inspect.getsource(PR)
     assert "random" not in src.replace("no random number", "").replace("random draw", "")
