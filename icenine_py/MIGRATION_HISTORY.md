@@ -12049,3 +12049,54 @@ not measured): it changes 820 to 1,674 kept voxels' ends and gives 4/7, 15/12, 2
 fixes (2026-11-12): a test ties `CMA_SEED_BOUND` and the one draw per try to the real
 `CMAOptimizer.optimize` (9 new test cases, 26 in `tests/test_boundary_pass_skip.py`); the plot
 title no longer clips.
+
+## Autoresearch AR5 step 8, phase A: sweep order of the mixed seed refinement, scripts and checks (2026-11-12, task ar5h)
+
+Scripts and checks only (D-20261112-N7, amended by D-20261112-N8): nothing under `icenine/` changed, no key,
+no default, no golden, no dependency. Both arms are the run `S11` (merged keys, no `N1` rule). Scripts
+`scripts/autoresearch/ar5/order_*.py` and `order_run_all.sh` (they import steps 2 and 3), tests
+`tests/test_ar5_order.py` (14 tests: the sweep rule on synthetic steps, the aligned-draw seeding), results in
+`benchmarks/autoresearch/ar5/order/`. Aligned draws live in the script layer (`order_draws.py`): every
+neighbour/revisit fit, grid fallback and pass try draws from its own generator seeded by (voxel, kind of
+call, count at that voxel). The what-if table of the plan was reproduced from the stored replay to the
+digit (329, 1,279 and 1,611 steps; sweep order 230,604, 1,301,274 and 3,268,675 seed-step evaluations).
+Checks: 20 stored seed steps of `mid`, both orders, run live: 20 of 20 identical in both orders (86 fits,
+63,306 and 21,011 evaluations, as stored); arm `A` twice on `big`: identical map, seed log, MC traces,
+totals (2,672,415 before the pass) and pass (1,135,332 evaluations); the interleaved order with the
+library draws (`Al`) reproduces step 3 `S11` on `big` exactly (2,879,705 before the pass, same map).
+The freeze (`order/frozen.json`) was committed before any `held` read. The nine whole-layer runs are
+started by `order_run_all.sh` (phase A step 5, not made in this task).
+
+**Result (phase A step 5, commit e601888; review fixes 2026-11-12).** The step FAILS its frozen
+rule, so there is no key `SeedIndexCMASweep`, no phase B and nothing tuned (D-20261112-N9). The
+sweep order `Y` passes rules 1 to 4 against the present order `A` on all four samples. It fails
+rule 5, the house rule against `S8`, on `held` (broken minus fixed 8, limit 5) and on `mid` (7).
+`A` passes rule 5 on all four samples, so the clause "if `A` itself fails (5)" does not apply.
+Saving of `Y` against `A`: 22.6%, 38.8%, 16.4% and 60.1% of the seed-step evaluations (`held`,
+`mid`, `grad`, `big`), 7.7%, 13.4%, 2.1% and 10.6% of the total with the pass (the grid
+fallback, neighbour fits, revisits and the pass do not change). `Y` against `A` after the pass,
+fixed / broken: 1 / 6, 2 / 5, 0 / 0, 3 / 0. Predictions not met: 1-2 on `big` (total cut 10.6%
+against 12% to 22%) and 3 on `held` (net 5 against -3 to 3); the others met. Validity: no step of
+`Y` ran MC after a CMA end at 0.95, and 0 shared fits differ (10,564, 2,896, 2,649, 318).
+How the runs part (`order_trace.py`, from the run files, review fixes 2 and 3): the two seed logs
+visit the same voxels for the first 116, 65, 458 and 28 seed steps; the first taken end that
+differs is at step 30, 52, 457 and 22 (counting from 1; the review's 0-based 29, 51, 456, 21);
+before the pass the maps differ at 2,749, 3,049, 125 and 1,175 voxels. The earlier sentence "none
+of the differing ends is wrong" covers only the matched seed steps (3,231 on `held`). Steps made
+in one arm only: 478 / 449, 434 / 437, 19 / 11, 100 / 102, with 1 / 2, 4 / 2, 0 / 0, 0 / 0 wrong
+ends. On `held` and `mid` 14 voxels flip (the review counted 13): 6 made before the pass and 8 in
+the pass. Two come straight from a wrong seed end at a seed step only `Y` made (`held` 9669, `mid`
+13013; no end reached 0.95 there, and both orders take the lowest cost then). The flips are
+consistent with path divergence after the first differing end; this was not traced voxel by
+voxel. Noise (review fix 4): the nets of `Y` against `A` and the margin of rule 5 (net 3 for `A`,
+8 for `Y`, limit 5 on `held`) are within the draw noise seen before (step 7, one re-draw of the
+pass tries: 4 / 10, 4 / 7, 15 / 12, 2 / 6; here `Yl` against `Y` on `big`: 5 / 12), and the
+comparisons with `S8` are not draw-aligned. The FAIL is the outcome of the pre-set rule, not a
+measured accuracy cost of the sweep order. Review fixes also: `tables.md` headers spelled out
+(the wall column says contended, not a timing result) and an `order_terms` block (fix 5); the log
+readers moved unchanged to `order_logs.py` (`stats_<sample>.json` reproduce byte for byte) and 7
+new tests of them and of the verdict (21 in `tests/test_ar5_order.py`); the plot has Wilson 95%
+bars and the `S8` and `Yl` points; a local `.gitignore` keeps the run cache out. The pareto rows
+file holds `A` and `Y`, before and after the pass, on all four samples (16 rows). The page
+`docs/autoresearch/findings_ar5_order.md` waits for the owner (fix 6): the guard refused the
+helper's write; its text is in `.claude/reports/20261112-ar5h-page.md` of the fixes worktree.

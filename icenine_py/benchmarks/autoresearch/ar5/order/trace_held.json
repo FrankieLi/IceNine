@@ -1,0 +1,282 @@
+{
+ "sample": "held",
+ "steps_A": 3709,
+ "steps_Y": 3680,
+ "matched": 3231,
+ "only_A": 478,
+ "only_Y": 449,
+ "taken_differs_matched": 232,
+ "differing_wrong": [
+  0,
+  0
+ ],
+ "wrong_ends_all": [
+  45,
+  46
+ ],
+ "wrong_ends_one_arm": [
+  1,
+  2
+ ],
+ "same_voxel_prefix": 116,
+ "first_taken_difference_index0": 29,
+ "first_taken_difference_step": 30,
+ "diff_before_voxels": 2749,
+ "diff_after_voxels": 2917,
+ "changed_regions": 138,
+ "largest_changed_region": 337,
+ "neighbour_radius": 0.009561365832821871,
+ "flips_fixed": 1,
+ "flips_broken": 6,
+ "flips_made_before": 4,
+ "flips_made_in_pass": 3,
+ "flips": [
+  {
+   "voxel": 3084,
+   "kind": "broken",
+   "made": "in the pass",
+   "source_A": "revisit",
+   "source_Y": "seed",
+   "err_before": [
+    0.045,
+    0.234
+   ],
+   "err_after": [
+    0.045,
+    33.627
+   ],
+   "region": "changed region with a matched seed step whose taken end differs",
+   "region_size": 337,
+   "seed_steps_A": [],
+   "seed_steps_Y": [
+    {
+     "occurrence": 0,
+     "one_arm_only": true,
+     "reseed": true,
+     "stop": -1,
+     "taken": {
+      "j": 1,
+      "kind": "C",
+      "hit": 0.814,
+      "err": 0.23407256485503608
+     },
+     "best_hit": {
+      "j": 0,
+      "kind": "M",
+      "hit": 0.846,
+      "err": 33.6065528736745
+     }
+    }
+   ]
+  },
+  {
+   "voxel": 7689,
+   "kind": "broken",
+   "made": "before the pass",
+   "source_A": "seed",
+   "source_Y": "revisit",
+   "err_before": [
+    0.019,
+    50.213
+   ],
+   "err_after": [
+    0.019,
+    50.213
+   ],
+   "region": "changed region with a matched seed step whose taken end differs",
+   "region_size": 3,
+   "seed_steps_A": [
+    {
+     "occurrence": 0,
+     "one_arm_only": true,
+     "reseed": true,
+     "stop": 1,
+     "taken": {
+      "j": 0,
+      "kind": "M",
+      "hit": 0.996,
+      "err": 0.019435758711740435
+     },
+     "best_hit": {
+      "j": 0,
+      "kind": "M",
+      "hit": 0.996,
+      "err": 0.019435758711740435
+     }
+    }
+   ],
+   "seed_steps_Y": []
+  },
+  {
+   "voxel": 9669,
+   "kind": "broken",
+   "made": "before the pass",
+   "source_A": "revisit",
+   "source_Y": "seed",
+   "err_before": [
+    0.008,
+    39.409
+   ],
+   "err_after": [
+    0.008,
+    39.409
+   ],
+   "region": "changed region with a matched seed step whose taken end differs",
+   "region_size": 55,
+   "seed_steps_A": [],
+   "seed_steps_Y": [
+    {
+     "occurrence": 0,
+     "one_arm_only": true,
+     "reseed": true,
+     "stop": -1,
+     "taken": {
+      "j": 1,
+      "kind": "C",
+      "hit": 0.817,
+      "err": 39.40858254531944
+     },
+     "best_hit": {
+      "j": 0,
+      "kind": "M",
+      "hit": 0.831,
+      "err": 0.07031927667549888
+     }
+    }
+   ]
+  },
+  {
+   "voxel": 13777,
+   "kind": "fixed",
+   "made": "in the pass",
+   "source_A": "revisit",
+   "source_Y": "seed",
+   "err_before": [
+    0.284,
+    0.004
+   ],
+   "err_after": [
+    31.315,
+    0.004
+   ],
+   "region": "changed region with a matched seed step whose taken end differs",
+   "region_size": 15,
+   "seed_steps_A": [],
+   "seed_steps_Y": [
+    {
+     "occurrence": 0,
+     "one_arm_only": true,
+     "reseed": true,
+     "stop": 1,
+     "taken": {
+      "j": 0,
+      "kind": "C",
+      "hit": 0.989,
+      "err": 0.004198940052781453
+     },
+     "best_hit": {
+      "j": 0,
+      "kind": "C",
+      "hit": 0.989,
+      "err": 0.004198940052781453
+     }
+    }
+   ]
+  },
+  {
+   "voxel": 21444,
+   "kind": "broken",
+   "made": "before the pass",
+   "source_A": "seed",
+   "source_Y": "revisit",
+   "err_before": [
+    0.016,
+    52.216
+   ],
+   "err_after": [
+    0.016,
+    52.216
+   ],
+   "region": "changed region with a matched seed step whose taken end differs",
+   "region_size": 68,
+   "seed_steps_A": [
+    {
+     "occurrence": 0,
+     "one_arm_only": true,
+     "reseed": true,
+     "stop": 1,
+     "taken": {
+      "j": 1,
+      "kind": "C",
+      "hit": 0.99,
+      "err": 0.016367912104385977
+     },
+     "best_hit": {
+      "j": 1,
+      "kind": "C",
+      "hit": 0.99,
+      "err": 0.016367912104385977
+     }
+    }
+   ],
+   "seed_steps_Y": []
+  },
+  {
+   "voxel": 21987,
+   "kind": "broken",
+   "made": "in the pass",
+   "source_A": "revisit",
+   "source_Y": "revisit",
+   "err_before": [
+    43.482,
+    43.482
+   ],
+   "err_after": [
+    0.03,
+    43.482
+   ],
+   "region": "identical before the pass",
+   "region_size": 0,
+   "seed_steps_A": [],
+   "seed_steps_Y": []
+  },
+  {
+   "voxel": 22475,
+   "kind": "broken",
+   "made": "before the pass",
+   "source_A": "seed",
+   "source_Y": "revisit",
+   "err_before": [
+    0.001,
+    21.109
+   ],
+   "err_after": [
+    0.001,
+    21.109
+   ],
+   "region": "changed region with one-arm seed steps only",
+   "region_size": 1,
+   "seed_steps_A": [
+    {
+     "occurrence": 0,
+     "one_arm_only": true,
+     "reseed": true,
+     "stop": 1,
+     "taken": {
+      "j": 0,
+      "kind": "C",
+      "hit": 0.991,
+      "err": 0.0014608744305440915
+     },
+     "best_hit": {
+      "j": 0,
+      "kind": "C",
+      "hit": 0.991,
+      "err": 0.0014608744305440915
+     }
+    }
+   ],
+   "seed_steps_Y": []
+  }
+ ]
+}

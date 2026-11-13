@@ -1,0 +1,285 @@
+{
+ "sample": "held",
+ "arms": {
+  "A": {
+   "run": "A",
+   "sample": "held",
+   "unfinished": false,
+   "seed_arm": "X200",
+   "no_mc_fallback": true,
+   "seed_steps": 3709,
+   "stopped_early": 3200,
+   "stages": {
+    "seed_step": 14173739,
+    "grid_fallback": 22458034,
+    "neighbour": 1480653,
+    "revisit": 3211833,
+    "pass_": 5192137,
+    "before_pass": 41324259,
+    "total": 46516396
+   },
+   "stages_s8": {
+    "seed_step": 21257244,
+    "grid_fallback": 25915118,
+    "neighbour": 3004901,
+    "revisit": 4556624,
+    "pass_": 5189636,
+    "before_pass": 54733887,
+    "total": 59923523
+   },
+   "grid_fallbacks": 65,
+   "grid_fallbacks_s8": 75,
+   "wrapper": {
+    "wrapper_calls": 76926,
+    "picked_fell": 71986,
+    "fallback_runs": 0,
+    "fallback_won": 0,
+    "evals_picked": 4692486,
+    "evals_fallback": 0,
+    "cma_calls_total": 84486,
+    "vmo_calls_total": 5522,
+    "vmo_calls_in_wrapper": 0,
+    "vmo_calls_outside_wrapper": 5522,
+    "cma_not_fell": 4940,
+    "mc_fallback_off": true
+   },
+   "before": {
+    "wrong": 104,
+    "wilson_lo": 0.0034948836557609757,
+    "wilson_hi": 0.005125730224976336,
+    "median_err_deg": 0.026307735690934135
+   },
+   "after": {
+    "wrong": 73,
+    "wilson_lo": 0.0023638749233669677,
+    "wilson_hi": 0.0037337309145415837,
+    "median_err_deg": 0.02607276617986238
+   },
+   "s8_before": {
+    "wrong": 95,
+    "wilson_lo": 0.003164240462137113,
+    "wilson_hi": 0.004723887212617655,
+    "median_err_deg": 0.028844559123757454
+   },
+   "s8_after": {
+    "wrong": 70,
+    "wilson_lo": 0.002255787723261974,
+    "wilson_hi": 0.0035976560459857285,
+    "median_err_deg": 0.028587037850269052
+   },
+   "wall_s": 7062.7504341602325,
+   "wall_label": "contended (other jobs on the machine); not a timing result",
+   "wall_pass_s": 537.3774750232697,
+   "paired_before": {
+    "fixed": 26,
+    "broken": 35,
+    "both_wrong": 69
+   },
+   "paired_after": {
+    "fixed": 25,
+    "broken": 28,
+    "both_wrong": 45
+   },
+   "rule": {
+    "fewer": 0.22373729595304334,
+    "a": true,
+    "b": true,
+    "c": true,
+    "net_broken": 3,
+    "med_diff": -0.002514271670406673,
+    "passes": true
+   },
+   "log": {
+    "seed_steps": 3709,
+    "steps_with_fits": 3709,
+    "cma_fits": 7560,
+    "mc_fits": 5457,
+    "cma_evals": 1519560,
+    "mc_evals": 12579999,
+    "steps_with_mc": 2234,
+    "bad_mc_after_cma_pass": 0,
+    "bad_cma_after_cma_pass": 0,
+    "steps_taken_cma_end": 2179,
+    "steps_taken_mc_end": 1530
+   },
+   "order_json": {
+    "arm": "A",
+    "name": "A",
+    "sample": "held",
+    "order": "A",
+    "aligned_draws": true,
+    "aligned_calls": 76991,
+    "aligned_calls_by_kind": {
+     "_local_fit": 76926,
+     "grid": 65
+    },
+    "counts": {
+     "seed_steps": 3709,
+     "cma_fits": 7560,
+     "mc_fits": 5457,
+     "steps_cma_stop": 0,
+     "steps_mc_phase": 0,
+     "steps_none": 0
+    },
+    "mc_traces": 5457,
+    "mc_traces_with_trace_eq_evals": 5457,
+    "wall_s": 7062.929533958435,
+    "wall_label": "contended (other jobs on the machine); not a timing result"
+   }
+  },
+  "Y": {
+   "run": "Y",
+   "sample": "held",
+   "unfinished": false,
+   "seed_arm": "X200",
+   "no_mc_fallback": true,
+   "seed_steps": 3680,
+   "stopped_early": 3174,
+   "stages": {
+    "seed_step": 10975888,
+    "grid_fallback": 22112176,
+    "neighbour": 1480531,
+    "revisit": 3190788,
+    "pass_": 5190246,
+    "before_pass": 37759383,
+    "total": 42949629
+   },
+   "stages_s8": {
+    "seed_step": 21257244,
+    "grid_fallback": 25915118,
+    "neighbour": 3004901,
+    "revisit": 4556624,
+    "pass_": 5189636,
+    "before_pass": 54733887,
+    "total": 59923523
+   },
+   "grid_fallbacks": 64,
+   "grid_fallbacks_s8": 75,
+   "wrapper": {
+    "wrapper_calls": 76579,
+    "picked_fell": 71639,
+    "fallback_runs": 0,
+    "fallback_won": 0,
+    "evals_picked": 4671319,
+    "evals_fallback": 0,
+    "cma_calls_total": 87057,
+    "vmo_calls_total": 4164,
+    "vmo_calls_in_wrapper": 0,
+    "vmo_calls_outside_wrapper": 4164,
+    "cma_not_fell": 4940,
+    "mc_fallback_off": true
+   },
+   "before": {
+    "wrong": 104,
+    "wilson_lo": 0.0034948836557609757,
+    "wilson_hi": 0.005125730224976336,
+    "median_err_deg": 0.02625175591623774
+   },
+   "after": {
+    "wrong": 78,
+    "wilson_lo": 0.0025446422733002966,
+    "wilson_hi": 0.003959900345709668,
+    "median_err_deg": 0.026031295956087466
+   },
+   "s8_before": {
+    "wrong": 95,
+    "wilson_lo": 0.003164240462137113,
+    "wilson_hi": 0.004723887212617655,
+    "median_err_deg": 0.028844559123757454
+   },
+   "s8_after": {
+    "wrong": 70,
+    "wilson_lo": 0.002255787723261974,
+    "wilson_hi": 0.0035976560459857285,
+    "median_err_deg": 0.028587037850269052
+   },
+   "wall_s": 6859.658911943436,
+   "wall_label": "contended (other jobs on the machine); not a timing result",
+   "wall_pass_s": 536.654513835907,
+   "paired_before": {
+    "fixed": 24,
+    "broken": 33,
+    "both_wrong": 71
+   },
+   "paired_after": {
+    "fixed": 23,
+    "broken": 31,
+    "both_wrong": 47
+   },
+   "rule": {
+    "fewer": 0.2832592803330338,
+    "a": true,
+    "b": false,
+    "c": true,
+    "net_broken": 8,
+    "med_diff": -0.0025557418941815867,
+    "passes": false
+   },
+   "log": {
+    "seed_steps": 3680,
+    "steps_with_fits": 3680,
+    "cma_fits": 10478,
+    "mc_fits": 4100,
+    "cma_evals": 2106078,
+    "mc_evals": 8796210,
+    "steps_with_mc": 1300,
+    "bad_mc_after_cma_pass": 0,
+    "bad_cma_after_cma_pass": 0,
+    "steps_taken_cma_end": 2457,
+    "steps_taken_mc_end": 1223
+   },
+   "order_json": {
+    "arm": "Y",
+    "name": "Y",
+    "sample": "held",
+    "order": "Y",
+    "aligned_draws": true,
+    "aligned_calls": 76643,
+    "aligned_calls_by_kind": {
+     "_local_fit": 76579,
+     "grid": 64
+    },
+    "counts": {
+     "seed_steps": 3680,
+     "cma_fits": 10478,
+     "mc_fits": 4100,
+     "steps_cma_stop": 2380,
+     "steps_mc_phase": 1300,
+     "steps_none": 0
+    },
+    "mc_traces": 4100,
+    "mc_traces_with_trace_eq_evals": 4100,
+    "wall_s": 6859.804728746414,
+    "wall_label": "contended (other jobs on the machine); not a timing result"
+   }
+  }
+ },
+ "pairs": {
+  "Y_vs_A": {
+   "voxels": {
+    "before": {
+     "fixed": 4,
+     "broken": 4,
+     "both_wrong": 100
+    },
+    "after": {
+     "fixed": 1,
+     "broken": 6,
+     "both_wrong": 72
+    }
+   },
+   "seed_steps": {
+    "steps_a": 3709,
+    "steps_b": 3680,
+    "matched": 3231,
+    "only_a": 478,
+    "only_b": 449,
+    "taken_differs": 232,
+    "differing_wrong_first": 0,
+    "differing_wrong_second": 0,
+    "shared_fits_compared": 10564,
+    "shared_fits_different": 0
+   }
+  }
+ }
+}

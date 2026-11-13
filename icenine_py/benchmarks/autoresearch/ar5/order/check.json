@@ -1,0 +1,944 @@
+{
+ "summary": {
+  "sample": "mid",
+  "n_steps": 20,
+  "n_orders_same": {
+   "A": 20,
+   "Y": 20
+  },
+  "n_fits_compared": 86,
+  "n_fits_not_stored": 0,
+  "n_steps_missing": 0,
+  "all_same": true,
+  "evals_live": {
+   "A": 63306,
+   "Y": 21011
+  },
+  "evals_stored": {
+   "A": 63306,
+   "Y": 21011
+  }
+ },
+ "rows": [
+  {
+   "step": 5,
+   "voxel": 12733,
+   "A": {
+    "live": {
+     "evals": 1589,
+     "taken": 1,
+     "stopped": true,
+     "mc_ran": 1,
+     "hit": 0.9962825278810409
+    },
+    "stored": {
+     "evals": 1589,
+     "taken": 1,
+     "stopped": true,
+     "mc_ran": 1,
+     "hit": 0.9962825278810409
+    },
+    "n_fits": 3,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   },
+   "Y": {
+    "live": {
+     "evals": 422,
+     "taken": 1,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9962825278810409
+    },
+    "stored": {
+     "evals": 422,
+     "taken": 1,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9962825278810409
+    },
+    "n_fits": 2,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   }
+  },
+  {
+   "step": 278,
+   "voxel": 13192,
+   "A": {
+    "live": {
+     "evals": 5909,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 1,
+     "hit": 0.9778947368421053
+    },
+    "stored": {
+     "evals": 5909,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 1,
+     "hit": 0.9778947368421053
+    },
+    "n_fits": 2,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   },
+   "Y": {
+    "live": {
+     "evals": 6713,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 1,
+     "hit": 0.9778947368421053
+    },
+    "stored": {
+     "evals": 6713,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 1,
+     "hit": 0.9778947368421053
+    },
+    "n_fits": 6,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   }
+  },
+  {
+   "step": 447,
+   "voxel": 3694,
+   "A": {
+    "live": {
+     "evals": 1511,
+     "taken": 1,
+     "stopped": true,
+     "mc_ran": 1,
+     "hit": 0.9845454545454545
+    },
+    "stored": {
+     "evals": 1511,
+     "taken": 1,
+     "stopped": true,
+     "mc_ran": 1,
+     "hit": 0.9845454545454545
+    },
+    "n_fits": 3,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   },
+   "Y": {
+    "live": {
+     "evals": 422,
+     "taken": 1,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9845454545454545
+    },
+    "stored": {
+     "evals": 422,
+     "taken": 1,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9845454545454545
+    },
+    "n_fits": 2,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   }
+  },
+  {
+   "step": 638,
+   "voxel": 7656,
+   "A": {
+    "live": {
+     "evals": 16645,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 1,
+     "hit": 1.0
+    },
+    "stored": {
+     "evals": 16645,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 1,
+     "hit": 1.0
+    },
+    "n_fits": 2,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   },
+   "Y": {
+    "live": {
+     "evals": 422,
+     "taken": 1,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 1.0
+    },
+    "stored": {
+     "evals": 422,
+     "taken": 1,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 1.0
+    },
+    "n_fits": 2,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   }
+  },
+  {
+   "step": 792,
+   "voxel": 10751,
+   "A": {
+    "live": {
+     "evals": 5498,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 1,
+     "hit": 0.9963503649635036
+    },
+    "stored": {
+     "evals": 5498,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 1,
+     "hit": 0.9963503649635036
+    },
+    "n_fits": 2,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   },
+   "Y": {
+    "live": {
+     "evals": 824,
+     "taken": 3,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9945105215004575
+    },
+    "stored": {
+     "evals": 824,
+     "taken": 3,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9945105215004575
+    },
+    "n_fits": 4,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   }
+  },
+  {
+   "step": 973,
+   "voxel": 7955,
+   "A": {
+    "live": {
+     "evals": 2095,
+     "taken": 1,
+     "stopped": true,
+     "mc_ran": 1,
+     "hit": 0.9633558341369335
+    },
+    "stored": {
+     "evals": 2095,
+     "taken": 1,
+     "stopped": true,
+     "mc_ran": 1,
+     "hit": 0.9633558341369335
+    },
+    "n_fits": 3,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   },
+   "Y": {
+    "live": {
+     "evals": 422,
+     "taken": 1,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9633558341369335
+    },
+    "stored": {
+     "evals": 422,
+     "taken": 1,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9633558341369335
+    },
+    "n_fits": 2,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   }
+  },
+  {
+   "step": 1129,
+   "voxel": 7097,
+   "A": {
+    "live": {
+     "evals": 6903,
+     "taken": 1,
+     "stopped": true,
+     "mc_ran": 2,
+     "hit": 0.998046875
+    },
+    "stored": {
+     "evals": 6903,
+     "taken": 1,
+     "stopped": true,
+     "mc_ran": 2,
+     "hit": 0.998046875
+    },
+    "n_fits": 4,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   },
+   "Y": {
+    "live": {
+     "evals": 7506,
+     "taken": 1,
+     "stopped": true,
+     "mc_ran": 2,
+     "hit": 0.998046875
+    },
+    "stored": {
+     "evals": 7506,
+     "taken": 1,
+     "stopped": true,
+     "mc_ran": 2,
+     "hit": 0.998046875
+    },
+    "n_fits": 7,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   }
+  },
+  {
+   "step": 1299,
+   "voxel": 8754,
+   "A": {
+    "live": {
+     "evals": 3591,
+     "taken": 2,
+     "stopped": true,
+     "mc_ran": 2,
+     "hit": 0.9592760180995475
+    },
+    "stored": {
+     "evals": 3591,
+     "taken": 2,
+     "stopped": true,
+     "mc_ran": 2,
+     "hit": 0.9592760180995475
+    },
+    "n_fits": 5,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   },
+   "Y": {
+    "live": {
+     "evals": 623,
+     "taken": 2,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9592760180995475
+    },
+    "stored": {
+     "evals": 623,
+     "taken": 2,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9592760180995475
+    },
+    "n_fits": 3,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   }
+  },
+  {
+   "step": 1443,
+   "voxel": 15044,
+   "A": {
+    "live": {
+     "evals": 5561,
+     "taken": 2,
+     "stopped": true,
+     "mc_ran": 2,
+     "hit": 0.9754170324846356
+    },
+    "stored": {
+     "evals": 5561,
+     "taken": 2,
+     "stopped": true,
+     "mc_ran": 2,
+     "hit": 0.9754170324846356
+    },
+    "n_fits": 5,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   },
+   "Y": {
+    "live": {
+     "evals": 623,
+     "taken": 2,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9754170324846356
+    },
+    "stored": {
+     "evals": 623,
+     "taken": 2,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9754170324846356
+    },
+    "n_fits": 3,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   }
+  },
+  {
+   "step": 1607,
+   "voxel": 24443,
+   "A": {
+    "live": {
+     "evals": 11794,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 1,
+     "hit": 0.982695810564663
+    },
+    "stored": {
+     "evals": 11794,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 1,
+     "hit": 0.982695810564663
+    },
+    "n_fits": 2,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   },
+   "Y": {
+    "live": {
+     "evals": 824,
+     "taken": 3,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9770431588613406
+    },
+    "stored": {
+     "evals": 824,
+     "taken": 3,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9770431588613406
+    },
+    "n_fits": 4,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   }
+  },
+  {
+   "step": 0,
+   "voxel": 20615,
+   "A": {
+    "live": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9950298210735586
+    },
+    "stored": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9950298210735586
+    },
+    "n_fits": 1,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   },
+   "Y": {
+    "live": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9950298210735586
+    },
+    "stored": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9950298210735586
+    },
+    "n_fits": 1,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   }
+  },
+  {
+   "step": 126,
+   "voxel": 7359,
+   "A": {
+    "live": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9908172635445363
+    },
+    "stored": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9908172635445363
+    },
+    "n_fits": 1,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   },
+   "Y": {
+    "live": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9908172635445363
+    },
+    "stored": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9908172635445363
+    },
+    "n_fits": 1,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   }
+  },
+  {
+   "step": 295,
+   "voxel": 3570,
+   "A": {
+    "live": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 1.0
+    },
+    "stored": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 1.0
+    },
+    "n_fits": 1,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   },
+   "Y": {
+    "live": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 1.0
+    },
+    "stored": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 1.0
+    },
+    "n_fits": 1,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   }
+  },
+  {
+   "step": 477,
+   "voxel": 18344,
+   "A": {
+    "live": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9870848708487084
+    },
+    "stored": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9870848708487084
+    },
+    "n_fits": 1,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   },
+   "Y": {
+    "live": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9870848708487084
+    },
+    "stored": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9870848708487084
+    },
+    "n_fits": 1,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   }
+  },
+  {
+   "step": 647,
+   "voxel": 11289,
+   "A": {
+    "live": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9991235758106923
+    },
+    "stored": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9991235758106923
+    },
+    "n_fits": 1,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   },
+   "Y": {
+    "live": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9991235758106923
+    },
+    "stored": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9991235758106923
+    },
+    "n_fits": 1,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   }
+  },
+  {
+   "step": 857,
+   "voxel": 758,
+   "A": {
+    "live": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9809523809523809
+    },
+    "stored": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9809523809523809
+    },
+    "n_fits": 1,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   },
+   "Y": {
+    "live": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9809523809523809
+    },
+    "stored": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9809523809523809
+    },
+    "n_fits": 1,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   }
+  },
+  {
+   "step": 1025,
+   "voxel": 9753,
+   "A": {
+    "live": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9855630413859481
+    },
+    "stored": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9855630413859481
+    },
+    "n_fits": 1,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   },
+   "Y": {
+    "live": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9855630413859481
+    },
+    "stored": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9855630413859481
+    },
+    "n_fits": 1,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   }
+  },
+  {
+   "step": 1224,
+   "voxel": 6116,
+   "A": {
+    "live": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9692307692307692
+    },
+    "stored": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9692307692307692
+    },
+    "n_fits": 1,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   },
+   "Y": {
+    "live": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9692307692307692
+    },
+    "stored": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9692307692307692
+    },
+    "n_fits": 1,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   }
+  },
+  {
+   "step": 1415,
+   "voxel": 13611,
+   "A": {
+    "live": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 1.0
+    },
+    "stored": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 1.0
+    },
+    "n_fits": 1,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   },
+   "Y": {
+    "live": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 1.0
+    },
+    "stored": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 1.0
+    },
+    "n_fits": 1,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   }
+  },
+  {
+   "step": 1610,
+   "voxel": 24522,
+   "A": {
+    "live": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9916589434661723
+    },
+    "stored": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9916589434661723
+    },
+    "n_fits": 1,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   },
+   "Y": {
+    "live": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9916589434661723
+    },
+    "stored": {
+     "evals": 221,
+     "taken": 0,
+     "stopped": true,
+     "mc_ran": 0,
+     "hit": 0.9916589434661723
+    },
+    "n_fits": 1,
+    "not_stored": 0,
+    "missing_in_replay": false,
+    "bad": [],
+    "same": true
+   }
+  }
+ ]
+}

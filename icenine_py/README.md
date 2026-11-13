@@ -828,6 +828,14 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   2026-10-09): cost sensitivity, the two C++ port fixes and what they changed, CMA-ES, the
   full-sample data, the BFS seeding gap, and which earlier claims are superseded.
 
+- Autoresearch AR5 step 8 (sweep order of the seed refinement; a study, no key, no library
+  change): `scripts/autoresearch/ar5/order_*.py` (`order_logs.py` holds the pure log readers,
+  `order_trace.py` where the two orders part), tests `tests/test_ar5_order.py`, results
+  `benchmarks/autoresearch/ar5/order/` (the run cache is untracked). The step fails its frozen
+  rule (D-20261112-N9). The page `docs/autoresearch/findings_ar5_order.md` waits for the owner:
+  the guard refused the helper's write, and its text is in `.claude/reports/20261112-ar5h-page.md`
+  of the fixes worktree. MIGRATION_HISTORY, "Autoresearch AR5 step 8".
+
 See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and
 current results of this work, and [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy
 Orientation NN — Theory Phase" onward) for the step-by-step record.
