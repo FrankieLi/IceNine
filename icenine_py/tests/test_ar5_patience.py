@@ -181,6 +181,78 @@ def test_walk_without_a_tau_end_takes_the_lowest_cost() -> None:
     assert not w["stopped"] and w["taken"] == 1
 
 
+class _Out:
+    def __init__(self, cost: float) -> None:
+        self.cost = cost
+
+
+class _FakeCost:
+    """A cost function whose cost is the first coordinate of the orientation."""
+
+    def evaluate(self, orientation: Any, *args: Any, **kw: Any) -> _Out:
+        return _Out(float(np.asarray(orientation).ravel()[0]))
+
+
+def _drive(costs: List[float], k: int) -> Dict[str, Any]:
+    meter = PR.Meter()
+    patched = PR.patch_evaluate(_FakeCost.evaluate, meter)
+    fake = _FakeCost()
+    meter.begin(k)
+    stopped = False
+    try:
+        for c in costs:
+            patched(fake, np.full((3, 3), c))
+    except PR.PatienceStop:
+        stopped = True
+    return dict(stopped=stopped, meter=meter)
+
+
+def test_wrapped_evaluate_stops_and_keeps_the_first_lowest_orientation() -> None:
+    costs = [0.9, 0.5, 0.5, 0.7, 0.7, 0.7, 0.7, 0.7, 0.4]
+    r = _drive(costs, 4)
+    m = r["meter"]
+    assert r["stopped"] and not m.on
+    assert m.n == 6 and m.best == 0.5 and m.trace == [[1, 0.9], [2, 0.5]]
+    assert float(m.best_R[0, 0]) == 0.5  # the copy of the first lowest, not the later tie
+
+
+def test_wrapped_evaluate_off_only_records() -> None:
+    costs = [0.9, 0.5, 0.7, 0.7, 0.4]
+    r = _drive(costs, 0)
+    m = r["meter"]
+    assert not r["stopped"] and m.on and m.n == 5 and m.trace == [[1, 0.9], [2, 0.5], [5, 0.4]]
+
+
+def test_wrapped_evaluate_ignores_calls_while_off() -> None:
+    meter = PR.Meter()
+    patched = PR.patch_evaluate(_FakeCost.evaluate, meter)
+    for c in (0.5, 0.6, 0.7):
+        out = patched(_FakeCost(), np.full((3, 3), c))
+        assert out.cost == c  # the value is unchanged
+    assert meter.n == 0 and meter.trace == []
+
+
+def test_wrapped_evaluate_copies_the_orientation() -> None:
+    meter = PR.Meter()
+    patched = PR.patch_evaluate(_FakeCost.evaluate, meter)
+    meter.begin(5)
+    R = np.full((3, 3), 0.3)
+    patched(_FakeCost(), R)
+    R[:] = 9.0
+    assert float(meter.best_R[0, 0]) == 0.3
+
+
+def test_freeze_lists_the_rule_scripts_and_the_library() -> None:
+    import patience_freeze as PF
+
+    assert PF.SCRIPTS[:3] == ["patience_rules.py", "patience_common.py", "patience_run.py"]
+    assert PF.CONSTANTS["k"] == 3000
+    cur = PF.current()
+    assert "scripts/autoresearch/ar5/patience_run.py" in cur["files"]
+    assert "icenine/reconstructor.py" in cur["library"] and "uv.lock" in cur["library"]
+    assert not any("held" in k for k in list(cur["files"]) + list(cur["library"]))
+
+
 def test_the_rule_draws_no_random_number() -> None:
     src = inspect.getsource(PR)
     assert "random" not in src.replace("no random number", "").replace("random draw", "")

@@ -14,7 +14,9 @@ gain, ``n`` counting evaluations from 1, as ``order_run.Tracer`` records it) and
 whole seed step with the cut (``walk_step``, arithmetic only). No study imports.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
+
+import numpy as np
 
 K = 3000  # frozen: stop after this many evaluations with no strict gain
 TAU = 0.95  # the hit ratio that ends a seed step (unchanged)
@@ -24,9 +26,8 @@ RULE = (
     "Rule P(3000): in the seed step, the MC refinement of a candidate (MC then variance stage) "
     "stops after 3,000 strict-cost evaluations with no strict gain of its best cost, keeps the "
     "first lowest-cost orientation, and makes one final evaluation of it. CMA fits, the 0.95 stop, "
-    "the "
-    "five candidates, the seed test 0.80, rule G1 and the grid search are unchanged. Arm S = arm G "
-    "(step 9) with P(3000)."
+    "the five candidates, the seed test 0.80, rule G1 and the grid search are unchanged. Arm S = "
+    "arm G (step 9) with P(3000)."
 )
 
 
@@ -50,6 +51,57 @@ class PatienceCounter:
         else:
             self.since += 1
         return self.k > 0 and self.since >= self.k
+
+
+class PatienceStop(Exception):
+    """Raised by the wrapped cost function when the counter fires."""
+
+
+class Meter:
+    """The state of the wrapped cost function (``patch_evaluate``) over one refinement: ``on``,
+    evaluations ``n``, the running best cost with its trace (``[n, cost]`` at each strict gain, as
+    ``order_run.Tracer``) and ``best_R``, the first lowest-cost orientation. ``begin(k)`` starts a
+    refinement (``k`` 0: only records)."""
+
+    def __init__(self) -> None:
+        self.on = False
+        self.n = 0
+        self.best = float("inf")
+        self.trace: List[List[float]] = []
+        self.k = 0
+        self.counter = PatienceCounter(0)
+        self.best_R: Any = None
+
+    def begin(self, k: int) -> None:
+        self.on, self.n, self.best, self.trace = True, 0, float("inf"), []
+        self.k = int(k)
+        self.counter = PatienceCounter(self.k)
+        self.best_R = None
+
+
+def patch_evaluate(orig: Callable[..., Any], meter: Meter) -> Callable[..., Any]:
+    """``orig`` (a cost function's ``evaluate(self, orientation, ...)``) wrapped: while
+    ``meter.on`` every call is counted and, when the counter fires, the meter switches itself off
+    and ``PatienceStop`` is raised after the evaluation. Changes no value, draws no random number;
+    the orientation of the first lowest cost is copied."""
+
+    def patched(self_: Any, orientation: Any, *args: Any, **kw: Any) -> Any:
+        out = orig(self_, orientation, *args, **kw)
+        if meter.on:
+            c = float(out.cost)
+            gain = c < meter.counter.best
+            fire = meter.counter.feed(c)
+            meter.n = meter.counter.n
+            if gain:
+                meter.best = c
+                meter.trace.append([meter.n, c])
+                meter.best_R = np.array(orientation, dtype=np.float64, copy=True)
+            if fire:
+                meter.on = False
+                raise PatienceStop()
+        return out
+
+    return patched
 
 
 def run_costs(costs: List[float], k: int) -> Dict[str, Any]:
