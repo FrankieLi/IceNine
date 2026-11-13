@@ -65,6 +65,44 @@
     "max_angle_deg": 60.19662454414634,
     "voxels_over_0_001_deg": 1683,
     "voxels_over_1_deg": 8
+   },
+   "tries": {
+    "tries": {
+     "library": 50026,
+     "script": 50027
+    },
+    "same_order_tries": 11632,
+    "ends_differ": 11626,
+    "costs_differ": 3030,
+    "evals_differ": 0,
+    "first_end_differ": 0,
+    "try0": {
+     "voxel": 0,
+     "cand": 10,
+     "same_cost": true,
+     "angle_deg": 0.009572926578368349
+    },
+    "end_angle_deg": {
+     "median": 0.005741631282418327,
+     "max": 1.2949561280073567
+    },
+    "voxels_with_other_try_count": 1
+   },
+   "accuracy": {
+    "wrong_threshold_deg": 1.0,
+    "wrong": {
+     "library": 37,
+     "script": 37
+    },
+    "fixed": 4,
+    "broken": 4,
+    "both_wrong": 33,
+    "median_error_deg": {
+     "library": 0.02912762712911237,
+     "script": 0.02912762712911237
+    },
+    "n_voxels": 24570,
+    "base": "script pass (Gl, from the stored map)"
    }
   },
   "library_pass_on_stored_map": {
@@ -136,6 +174,28 @@
    "pass_evals": {
     "library": 3048048,
     "script": 3048170
+   },
+   "tries": {
+    "tries": {
+     "library": 49968,
+     "script": 49970
+    },
+    "same_order_tries": 4872,
+    "ends_differ": 4870,
+    "costs_differ": 1307,
+    "evals_differ": 0,
+    "first_end_differ": 0,
+    "try0": {
+     "voxel": 0,
+     "cand": 10,
+     "same_cost": true,
+     "angle_deg": 0.009572926578368349
+    },
+    "end_angle_deg": {
+     "median": 0.005670677529783934,
+     "max": 0.7415284983503513
+    },
+    "voxels_with_other_try_count": 4
    }
   },
   "equal_before_pass": true

@@ -11,12 +11,17 @@ Compares, on ``mid``:
   library apart in ``index_rescue_evals``, so the script's value is compared with the sum), the
   per-voxel records, and the rescues (voxel, tries: kept end, hit ratio, cost, evaluations).
   After the pass: the library's in-run pass against ``order_pass.py --name Gl --aligned 0``
-  (evaluations, tries, map). The in-run pass starts from the unrounded map, the script pass from
-  the stored ``.mic``; earlier steps saw ends differ there in the 7th decimal.
+  (evaluations, tries, map). The in-run pass starts from the unrounded map in memory, the script
+  pass from the stored ``.mic`` (rounded angles). Try by try: how long the two passes keep the same
+  (voxel, candidate) order, and over those tries how many ends (compared as float32, the script's
+  stored type), costs and evaluation counts differ, the first try whose end differs, and the angle
+  between the ends (no symmetry: the same candidate's two ends). The accuracy after the pass reads
+  the truth of ``mid`` (a disclosed sample): wrong voxels of each pass and the split by voxel.
 * the control ``LibS11`` (library, key off) with the stored script run ``S11`` of AR5 step 3 (read
-  only, in its kept worktree), before the pass, the same way.
+  only, in its kept worktree), before the pass, the same way, and its passes try by try.
 
-Writes ``rescue/lib_check.json`` and ``rescue/tables_lib.md``. No truth is read.
+Writes ``rescue/lib_check.json`` and ``rescue/tables_lib.md``. Only the accuracy after the pass
+reads the truth (of ``mid``).
 """
 
 import gzip
@@ -144,6 +149,83 @@ def compare_records(pa: Path, pb: Path) -> Dict[str, Any]:
     return dict(n_a=len(ra), n_b=len(rb), n_differ=len(bad), first=bad[:5])
 
 
+def try_level(lib_npz: Path, scr_npz: Path) -> Dict[str, Any]:
+    """The library's in-run pass tries against the script's, try by try. ``same_order_tries``:
+    how many tries from the start have the same (voxel, candidate) in both. Over those tries:
+    ends that differ (the library's float64 end cast to the script's stored float32), costs and
+    evaluation counts that differ, the first try whose end differs, and the angle between the two
+    ends of each try (degrees, no symmetry). Same targets and the same fresh generator would give
+    an equal first try if the input maps were equal; a shifted generator would keep the early
+    tries equal."""
+    lt, st = np.load(lib_npz), np.load(scr_npz)
+    nl, ns = len(lt["voxel"]), len(st["voxel"])
+    n = min(nl, ns)
+    same = (lt["voxel"][:n] == st["voxel"][:n]) & (lt["cand"][:n] == st["cand"][:n])
+    m = n if same.all() else int(np.argmin(same))
+    le = lt["end"][:m].astype(np.float32).reshape(m, -1)
+    se = st["end"][:m].astype(np.float32).reshape(m, -1)
+    end_diff = ~np.all(le == se, axis=1)
+    Rl = lt["end"][:m].astype(np.float64).reshape(m, 3, 3)
+    Rs = st["end"][:m].astype(np.float64).reshape(m, 3, 3)
+    tr = np.einsum("nij,nij->n", Rl, Rs)  # trace(Rl Rs^T)
+    ang = np.degrees(np.arccos(np.clip((tr - 1.0) / 2.0, -1.0, 1.0)))
+    cl = np.bincount(lt["voxel"], minlength=N)
+    cs = np.bincount(st["voxel"], minlength=N)
+    return dict(
+        tries=dict(library=int(nl), script=int(ns)),
+        same_order_tries=int(m),
+        ends_differ=int(end_diff.sum()),
+        costs_differ=int((lt["cost"][:m] != st["cost"][:m]).sum()),
+        evals_differ=int((lt["evals"][:m] != st["evals"][:m]).sum()),
+        first_end_differ=int(np.argmax(end_diff)) if end_diff.any() else None,
+        try0=dict(
+            voxel=int(lt["voxel"][0]),
+            cand=int(lt["cand"][0]),
+            same_cost=bool(lt["cost"][0] == st["cost"][0]),
+            angle_deg=float(ang[0]) if m else None,
+        ),
+        end_angle_deg=dict(
+            median=float(np.median(ang)) if m else None, max=float(ang.max()) if m else None
+        ),
+        voxels_with_other_try_count=int((cl != cs).sum()),
+    )
+
+
+def accuracy_after(lib_mic: Path, scr_after: Path) -> Dict[str, Any]:
+    """Accuracy of the map after each pass, against the truth of ``mid``: wrong voxels (more
+    than ``G.WRONG`` degrees from the truth), the split by voxel with the script's pass as the
+    base (fixed: wrong after the script's pass, right after the in-run pass; broken: the
+    reverse), and the median error over all voxels."""
+    sys_path_common()
+    import stats as ST
+
+    T = G.Truth()
+    Rl, _ = G.read_map(lib_mic, N)
+    Rs = np.load(scr_after).reshape(N, 3, 3)
+    el, es = T.err(Rl), T.err(Rs)
+    wl, ws = el > G.WRONG, es > G.WRONG
+    broken, fixed = ST.paired_discordant(wl, ws)  # (wrong in-run only, wrong script only)
+    return dict(
+        wrong_threshold_deg=float(G.WRONG),
+        wrong=dict(library=int(wl.sum()), script=int(ws.sum())),
+        fixed=int(fixed),
+        broken=int(broken),
+        both_wrong=int((wl & ws).sum()),
+        median_error_deg=dict(library=float(np.median(el)), script=float(np.median(es))),
+        n_voxels=N,
+        base="script pass (Gl, from the stored map)",
+    )
+
+
+def sys_path_common() -> None:
+    """``scripts/common`` (``stats.py``) on the import path."""
+    import sys
+
+    common = str(Path(__file__).resolve().parents[2] / "common")
+    if common not in sys.path:
+        sys.path.insert(0, common)
+
+
 def lib_vs_gl(C: Path) -> Dict[str, Any]:
     gl, lib = C / "Gl_mid", C / "LibG_mid"
     st_gl = json.loads((gl / "run.json").read_text())["stats"]
@@ -191,6 +273,8 @@ def lib_vs_gl(C: Path) -> Dict[str, Any]:
                 library=int(run_lib["evals_total_with_pass"]),
             ),
             map=compare_maps(lib / "recon.mic.gz", np.load(pdir / "after_Gl.npy")),
+            tries=try_level(lib / "pass_tries.npz", pdir / "D4_Gl" / "tries.npz"),
+            accuracy=accuracy_after(lib / "recon.mic.gz", pdir / "after_Gl.npy"),
         )
         lp = RCM.RESCUE / "lib_pass.json"
         if lp.exists():  # the library pass on the stored map (rescue_lib_pass.py)
@@ -224,6 +308,7 @@ def control(C: Path) -> Dict[str, Any]:
     after = dict(  # the in-run pass (unrounded map) against the stored script pass (stored map)
         pass_tries=dict(library=int(len(lt["evals"])), script=int(pj["n_tries"])),
         pass_evals=dict(library=int(lt["evals"].sum()), script=int(pj["evals"])),
+        tries=try_level(lib / "pass_tries.npz", MIX / "passes_mid" / "D4_S11" / "tries.npz"),
     )
     return dict(
         before_pass=b,
@@ -317,10 +402,25 @@ def tables(res: Dict[str, Any]) -> None:
             f" {a['pass_evals']['script']:,} | {lp['evals']['library']:,} |",
             f"| total with the pass | {a['total_with_pass']['library']:,} |"
             f" {a['total_with_pass']['script']:,} | - |",
-            "| map after the pass against the script's: voxels that differ / by more than 0.001"
-            f" degree / by more than 1 degree | {m['voxels_differ']} /"
-            f" {m['voxels_over_0_001_deg']} / {m['voxels_over_1_deg']} | - | {same} |",
+            "| map after the pass against the script's: voxels more than 0.001 degree apart /"
+            " more than 1 degree apart / largest angle |"
+            f" {m['voxels_over_0_001_deg']:,} / {m['voxels_over_1_deg']:,} /"
+            f" {m['max_angle_deg']:.1f} degrees | - | {same} |",
+            "| map after the pass against the script's: voxels that differ in any bit (also"
+            f" storage differences below 0.001 degree) | {m['voxels_differ']:,} | - | - |",
         ]
+        acc = a.get("accuracy")
+        if acc:
+            rows += [
+                f"| wrong voxels after the pass (more than {acc['wrong_threshold_deg']:g} degree"
+                f" from the truth) | {acc['wrong']['library']:,} | {acc['wrong']['script']:,} |"
+                " - |",
+                "| by voxel, script pass as the base: fixed / broken / wrong in both |"
+                f" {acc['fixed']} / {acc['broken']} / {acc['both_wrong']} | - | - |",
+                f"| median error after the pass, all {acc['n_voxels']:,} voxels (degrees) |"
+                f" {acc['median_error_deg']['library']:.5f} |"
+                f" {acc['median_error_deg']['script']:.5f} | - |",
+            ]
         ca = res["control_libS11_vs_stored_S11"]["after_pass"]
         rows.append(
             f"| control, key off: LibS11 / stored S11, pass tries |"
@@ -337,6 +437,36 @@ def tables(res: Dict[str, Any]) -> None:
             "library's single generator. The last column is the library's pass function run on "
             "that same stored map.\n\n" + "\n".join(rows)
         )
+        t_rows = [
+            "| pair | tries in the same (voxel, candidate) order from the start | of these:"
+            " ends differ | costs differ | evaluation counts differ | first try whose end"
+            " differs | angle between the two ends: median / largest (degrees) | voxels with"
+            " another number of tries |",
+            "|---|---|---|---|---|---|---|---|",
+        ]
+        for name, t in (
+            ("LibG vs Gl", a.get("tries")),
+            ("LibS11 vs S11 (control)", ca.get("tries")),
+        ):
+            if not t:
+                continue
+            e = t["end_angle_deg"]
+            t_rows.append(
+                f"| {name} | {t['same_order_tries']:,} | {t['ends_differ']:,} |"
+                f" {t['costs_differ']:,} | {t['evals_differ']:,} | {t['first_end_differ']} |"
+                f" {e['median']:.4f} / {e['max']:.2f} | {t['voxels_with_other_try_count']:,} |"
+            )
+        if len(t_rows) > 2:
+            T["libtries"] = (
+                "Reading line: the in-run pass of the library against the script's pass, try by "
+                "try, one row per pair. Both passes try the same voxels and candidates in the same "
+                "order at first. Columns 3 to 7 count, over those tries, where the two differ "
+                "(ends compared as float32, the script's stored type; the angle between the two "
+                "ends of a try, without symmetry). The last column counts, over the whole pass, "
+                "the voxels that got a different number of tries. Same input maps would give an "
+                "equal first try (try 0); a shifted generator would instead keep the early tries "
+                "equal.\n\n" + "\n".join(t_rows)
+            )
     DT.write_tables(RCM.RESCUE / "tables_lib.md", T)
 
 
