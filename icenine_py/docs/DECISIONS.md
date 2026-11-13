@@ -1741,3 +1741,16 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   fail on mid alone means no key. Phase B (opt-in key SeedIndexMCPatience, default off) only after
   a recorded decision. Made by Newt Agent under D-20261109-N1; the owner can overrule. Where:
   icenine_py/docs/autoresearch/PLAN.md (AR5 step 11).
+
+### D-20261113-N6 · Track A / AR5 step 11 · AR5 step 11 fails rule 5 on mid by one voxel: no key; 6 fixes; merge as a study
+- 2026-11-13, owner. Recorded by Newt Agent. Supersedes: none.
+- Arm S (arm G with rule P(3000)) passes rules 1 to 5 on held, grad and big and rules 1 to 4 on
+  mid, and fails rule 5 on mid: against S8 it has 8 fixed and 14 broken (net 6, limit 5); G has
+  net 4, so the clause for a failing G does not apply. The plan said before the run that a fail on
+  mid alone means no key. So: no SeedIndexMCPatience key, no findings page, no tuning, no other k,
+  no rerun. Evaluations against G: held 5.71% fewer (seed step 14.92%), mid 10.60%, grad 0.14%,
+  big 5.01%; wrong voxels S/G 69/69, 37/35, 55/56, 21/21. The review reproduced the numbers and
+  the freeze (rule committed 07:08:21, before any held run). Apply the 6 fixes of the review
+  report (fix 6 included) and merge the branch as a study. The 597 of 1,181 cut refinements with a
+  best under 0.95 are kept as data for a later stop that reads the hit ratio. The owner can
+  overrule. Where: .claude/reports/20261113-1000-review-ar5k.md; PLAN.md AR5 step 11.
