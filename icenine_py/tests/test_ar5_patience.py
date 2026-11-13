@@ -295,6 +295,63 @@ def test_gate_passes_a_clean_replay_and_fails_a_wrong_changed_end() -> None:
     assert not short["complete"] and not short["g1_ok"]
 
 
+def _house(ok: bool) -> Dict[str, bool]:
+    return dict(a=ok, b=ok, c=ok, passes=ok)
+
+
+def _rules(sample: str, **kw: Any) -> Dict[str, Any]:
+    import patience_judge as PJ
+
+    base: Dict[str, Any] = dict(
+        total_s=94, total_g=100, seed_s=85, seed_g=100, net_vs_g=0, med_s=0.0300, med_g=0.0300,
+        extra_wrong_seeds=0, grid_s=4, grid_g=4, house_s=_house(True), house_g=_house(True),
+    )  # fmt: skip
+    base.update(kw)
+    return PJ.rules(sample, **base)
+
+
+def test_judge_rule_1_by_sample() -> None:
+    assert _rules("held")["r1"]  # 6% total, 15% seed
+    assert not _rules("held", seed_s=95)["r1"]  # seed only 5% fewer
+    assert not _rules("held", total_s=97)["r1"]  # total only 3% fewer
+    assert _rules("mid", total_s=93)["r1"] and not _rules("mid", total_s=93.1)["r1"]
+    assert _rules("big", total_s=97)["r1"] and not _rules("big", total_s=98)["r1"]
+    assert _rules("grad", total_s=101)["r1"] and not _rules("grad", total_s=102)["r1"]
+
+
+def test_judge_rules_2_to_4() -> None:
+    assert _rules("held", net_vs_g=5)["r2"] and not _rules("held", net_vs_g=6)["r2"]
+    assert _rules("held", med_s=0.0310)["r3"] and not _rules("held", med_s=0.03101)["r3"]
+    assert (
+        _rules("held", extra_wrong_seeds=1)["r4"] and not _rules("held", extra_wrong_seeds=2)["r4"]
+    )
+    assert _rules("held", grid_s=5)["r4"] and not _rules("held", grid_s=6)["r4"]
+
+
+def test_judge_rule_5_and_the_g_fails_clause() -> None:
+    r = _rules("mid", total_s=93, house_s=_house(False))
+    assert not r["r5"] and not r["g_fails_5"] and not r["passes"]
+    r = _rules("mid", total_s=93, house_s=_house(False), house_g=_house(False))
+    assert r["g_fails_5"] and r["passes"]  # judged by (1) to (4)
+
+
+def test_judge_step_needs_every_sample() -> None:
+    import patience_judge as PJ
+
+    ok = dict(held=True, mid=True, grad=True, big=True)
+    assert PJ.step_verdict(ok)
+    assert not PJ.step_verdict(dict(ok, mid=False))
+
+
+def test_judge_house_rule_numbers() -> None:
+    import patience_judge as PJ
+
+    assert PJ.house(80, 100, 5, 0, 0.03, 0.03)["passes"]
+    assert not PJ.house(81, 100, 5, 0, 0.03, 0.03)["a"]
+    assert not PJ.house(80, 100, 6, 0, 0.03, 0.03)["b"]
+    assert not PJ.house(80, 100, 0, 0, 0.0351, 0.03)["c"]
+
+
 def test_the_rule_draws_no_random_number() -> None:
     src = inspect.getsource(PR)
     assert "random" not in src.replace("no random number", "").replace("random draw", "")
