@@ -861,6 +861,16 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   fails its replay gate (right in 20 of 23, hit ratio 0.95 in 15 of 23), so no whole-layer run and
   no key (D-20261113-N4). MIGRATION_HISTORY, "Autoresearch AR5 step 10, phase A".
 
+- Autoresearch AR5 step 11, phase A (patience `P(3000)`: the seed step's MC refinement stops after
+  3,000 evaluations with no gain of its best cost; a study, no key, no library change):
+  `scripts/autoresearch/ar5/patience_*.py` (`patience_unmatched.py` counts the seed steps only one
+  arm has), tests `tests/test_ar5_patience.py`, results `benchmarks/autoresearch/ar5/patience/`
+  (`gate.json`, `stats_<sample>.json`, `unmatched_<sample>.json`, `tables.md`, `whatif.md`; the
+  cache is untracked). The gate passed, and arm `S` uses 5.71% fewer evaluations than arm `G` on
+  `held` (10.60% on `mid`). It passes all five rules on `held`, `grad` and `big`, and fails rule (5)
+  on `mid` by one voxel net (6, limit 5), so no key (D-20261113-N6). MIGRATION_HISTORY,
+  "Autoresearch AR5 step 11, phase A".
+
 See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and
 current results of this work, and [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy
 Orientation NN — Theory Phase" onward) for the step-by-step record.

@@ -1,0 +1,302 @@
+{
+ "sample": "grad",
+ "arms": {
+  "G": {
+   "run": "G",
+   "sample": "grad",
+   "unfinished": false,
+   "seed_arm": "X200",
+   "no_mc_fallback": true,
+   "seed_steps": 1280,
+   "stopped_early": 1182,
+   "stages": {
+    "seed_step": 1528284,
+    "grid_fallback": 1731732,
+    "neighbour": 1477542,
+    "revisit": 1779614,
+    "pass_": 3679520,
+    "before_pass": 6517172,
+    "total": 10196692
+   },
+   "stages_s8": {
+    "seed_step": 3008757,
+    "grid_fallback": 5449501,
+    "neighbour": 2798001,
+    "revisit": 3060730,
+    "pass_": 3683241,
+    "before_pass": 14316989,
+    "total": 18000230
+   },
+   "grid_fallbacks": 11,
+   "grid_fallbacks_s8": 16,
+   "wrapper": {
+    "wrapper_calls": 53396,
+    "picked_fell": 48692,
+    "fallback_runs": 0,
+    "fallback_won": 0,
+    "evals_picked": 3257156,
+    "evals_fallback": 0,
+    "cma_calls_total": 55466,
+    "vmo_calls_total": 996,
+    "vmo_calls_in_wrapper": 0,
+    "vmo_calls_outside_wrapper": 996,
+    "cma_not_fell": 4704,
+    "mc_fallback_off": true
+   },
+   "before": {
+    "wrong": 206,
+    "wilson_lo": 0.007318428795258394,
+    "wilson_hi": 0.009603695419947744,
+    "median_err_deg": 0.021579868596107853
+   },
+   "after": {
+    "wrong": 56,
+    "wilson_lo": 0.0017557225686594684,
+    "wilson_hi": 0.002958298213504277,
+    "median_err_deg": 0.02134489609446111
+   },
+   "s8_before": {
+    "wrong": 210,
+    "wilson_lo": 0.007470309001022389,
+    "wilson_hi": 0.00977736463906488,
+    "median_err_deg": 0.02285236562148693
+   },
+   "s8_after": {
+    "wrong": 63,
+    "wilson_lo": 0.002004792724438049,
+    "wilson_hi": 0.003278939551267675,
+    "median_err_deg": 0.022638749845755476
+   },
+   "wall_s": 1214.0288729667664,
+   "wall_label": "contended (other jobs on the machine); not a timing result",
+   "wall_pass_s": 398.1737139225006,
+   "paired_before": {
+    "fixed": 63,
+    "broken": 59,
+    "both_wrong": 147
+   },
+   "paired_after": {
+    "fixed": 31,
+    "broken": 24,
+    "both_wrong": 32
+   },
+   "rule": {
+    "fewer": 0.43352434941109086,
+    "a": true,
+    "b": true,
+    "c": true,
+    "net_broken": -7,
+    "med_diff": -0.0012938537512943646,
+    "passes": true
+   },
+   "stages_split": {
+    "seed_step": 1528284,
+    "grid_fallback": 1697698,
+    "neighbour": 1477542,
+    "revisit": 1779614,
+    "pass_": 3679520,
+    "before_pass": 6517172,
+    "total": 10196692,
+    "rescue": 34034
+   }
+  },
+  "S": {
+   "run": "S",
+   "sample": "grad",
+   "unfinished": false,
+   "seed_arm": "X200",
+   "no_mc_fallback": true,
+   "seed_steps": 1284,
+   "stopped_early": 1186,
+   "stages": {
+    "seed_step": 1512978,
+    "grid_fallback": 1731732,
+    "neighbour": 1477542,
+    "revisit": 1779675,
+    "pass_": 3680008,
+    "before_pass": 6501927,
+    "total": 10181935
+   },
+   "stages_s8": {
+    "seed_step": 3008757,
+    "grid_fallback": 5449501,
+    "neighbour": 2798001,
+    "revisit": 3060730,
+    "pass_": 3683241,
+    "before_pass": 14316989,
+    "total": 18000230
+   },
+   "grid_fallbacks": 11,
+   "grid_fallbacks_s8": 16,
+   "wrapper": {
+    "wrapper_calls": 53397,
+    "picked_fell": 48692,
+    "fallback_runs": 0,
+    "fallback_won": 0,
+    "evals_picked": 3257217,
+    "evals_fallback": 0,
+    "cma_calls_total": 55473,
+    "vmo_calls_total": 999,
+    "vmo_calls_in_wrapper": 0,
+    "vmo_calls_outside_wrapper": 999,
+    "cma_not_fell": 4705,
+    "mc_fallback_off": true
+   },
+   "before": {
+    "wrong": 206,
+    "wilson_lo": 0.007318428795258394,
+    "wilson_hi": 0.009603695419947744,
+    "median_err_deg": 0.021572686711431043
+   },
+   "after": {
+    "wrong": 55,
+    "wilson_lo": 0.0017203182314653447,
+    "wilson_hi": 0.0029123151944781198,
+    "median_err_deg": 0.02134024822193951
+   },
+   "s8_before": {
+    "wrong": 210,
+    "wilson_lo": 0.007470309001022389,
+    "wilson_hi": 0.00977736463906488,
+    "median_err_deg": 0.02285236562148693
+   },
+   "s8_after": {
+    "wrong": 63,
+    "wilson_lo": 0.002004792724438049,
+    "wilson_hi": 0.003278939551267675,
+    "median_err_deg": 0.022638749845755476
+   },
+   "wall_s": 1226.6636350154877,
+   "wall_label": "contended (other jobs on the machine); not a timing result",
+   "wall_pass_s": 397.8679196834564,
+   "paired_before": {
+    "fixed": 63,
+    "broken": 59,
+    "both_wrong": 147
+   },
+   "paired_after": {
+    "fixed": 32,
+    "broken": 24,
+    "both_wrong": 31
+   },
+   "rule": {
+    "fewer": 0.4343441722689099,
+    "a": true,
+    "b": true,
+    "c": true,
+    "net_broken": -8,
+    "med_diff": -0.0012985016238159647,
+    "passes": true
+   },
+   "stages_split": {
+    "seed_step": 1512978,
+    "grid_fallback": 1697698,
+    "neighbour": 1477542,
+    "revisit": 1779675,
+    "pass_": 3680008,
+    "before_pass": 6501927,
+    "total": 10181935,
+    "rescue": 34034
+   }
+  }
+ },
+ "rescue": {
+  "G": {
+   "fallback_calls": 11,
+   "rescues_attempted": 11,
+   "rescued": 6,
+   "tries": 34,
+   "rescue_evals": 34034,
+   "grid_fallbacks_left": 5,
+   "grid_evals": 1697698
+  },
+  "S": {
+   "fallback_calls": 11,
+   "rescues_attempted": 11,
+   "rescued": 6,
+   "tries": 34,
+   "rescue_evals": 34034,
+   "grid_fallbacks_left": 5,
+   "grid_evals": 1697698
+  }
+ },
+ "cuts": {
+  "k": 3000,
+  "mc_refinements": 994,
+  "cut": 15,
+  "evals_in_cut": 48986,
+  "refinements_in_traces": 994,
+  "cut_refinements": 15,
+  "cut_end_hit_under_095": 3,
+  "cut_end_hit_at_least_095": 12
+ },
+ "taken_changed": [
+  {
+   "voxel": 22459,
+   "stopped_g": false,
+   "hit_g": 0.9305402425578831,
+   "hit_s": 0.9174917491749175,
+   "cost_g": 0.11150227147389191,
+   "cost_s": 0.11613773677112149,
+   "err_g": 0.04312446348899755,
+   "err_s": 0.10909196378850676,
+   "mis_to_g_deg": 0.12228410329424379
+  }
+ ],
+ "taken_changed_n": 1,
+ "taken_changed_median_mis_deg": 0.12228410329424379,
+ "wrong_seeds": {
+  "g": 19,
+  "s": 19,
+  "s_wrong_where_g_right": 0
+ },
+ "s_vs_g": {
+  "voxels": {
+   "before": {
+    "fixed": 0,
+    "broken": 0,
+    "both_wrong": 206
+   },
+   "after": {
+    "fixed": 1,
+    "broken": 0,
+    "both_wrong": 55
+   }
+  }
+ },
+ "validity": {
+  "s_finished": true,
+  "n_processed": 24570,
+  "aligned_draws": true,
+  "seed_steps_g": 1280,
+  "seed_steps_s": 1284,
+  "matched_steps": 1280,
+  "fits_compared": 3027,
+  "fits_differ": 15,
+  "fits_differ_cut_mc": 15,
+  "fits_differ_other": 0
+ },
+ "house_s": {
+  "a": true,
+  "b": true,
+  "c": true,
+  "passes": true
+ },
+ "house_g": {
+  "a": true,
+  "b": true,
+  "c": true,
+  "passes": true
+ },
+ "rules": {
+  "r1": true,
+  "r2": true,
+  "r3": true,
+  "r4": true,
+  "r5": true,
+  "g_fails_5": false,
+  "total_cut_pct": 0.1447234063753225,
+  "seed_cut_pct": 1.0015154251434943,
+  "passes": true
+ }
+}

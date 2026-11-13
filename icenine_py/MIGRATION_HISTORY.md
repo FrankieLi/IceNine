@@ -12343,3 +12343,222 @@ replaces the step 8 and 9 checks (fix 3); the full search was right in all three
 (fix 4); `cut_gate.py` uses `stats.wilson`, and adds the 0.95 intervals, the paired split and
 `tables.md`, with `gate.json` gaining fields only (fix 5); the quarter test is labelled a
 statement of the library formula and the draw test a weak check (fix 6).
+
+## Autoresearch AR5 step 11, phase A: patience P(3000) (rule 5 failed on mid) (2026-11-13, task ar5k)
+
+**Outcome.** The step fails its frozen rules on one sample. Arm `S` passes all five rules on
+`held`, `grad` and `big`. On `mid` it passes rules (1) to (4) and misses rule (5) by one voxel net
+(6, limit 5; arm `G` is at 4). The plan said before the run that a fail on `mid` alone means no key.
+So there is no key `SeedIndexMCPatience`, no findings page, no tuning, no other k and no rerun
+(D-20261113-N6). This section is the record of the step. Script layer only: nothing under
+`icenine/` changed, no default, no golden, no dependency.
+
+**Terms.** A **seed step** starts a new grain region: it fits up to 5 candidate orientations of one
+voxel and takes one end. An **MC refinement** is the seed step's stock MC local optimization from
+one candidate. **Rule `P(k)`** stops an MC refinement after k cost evaluations with no strict gain
+of its best cost; it keeps the first lowest-cost orientation and spends one final evaluation. Arm
+**`G`** is step 9's stored arm (interleaved seed step with rescue `G1`). Arm **`S`** is `G` with
+`P(3000)`, in seed-step MC refinements only. **`S8`** is the stored baseline of the house rule.
+**Right** / **wrong**: at most / over 1 degree from the truth. **Aligned draws**: as in step 8, so
+`S` and `G` differ only where the rule acts. **Matched steps**: seed steps both arms have (same
+voxel, same occurrence at that voxel).
+
+**Files.** `scripts/autoresearch/ar5/patience_*.py` (`patience_rules.py` the rule and the counter,
+`patience_run.py` arm `S`, `patience_replay.py` and `patience_gate.py` the gate, `patience_stats.py`
+and `patience_summary.py` the numbers, `patience_unmatched.py` the unmatched steps,
+`patience_judge.py` the decision rules, `patience_whatif.py` the what-if tables),
+`patience_link_cache.sh`, `patience_run_all.sh`, `tests/test_ar5_patience.py` (33 tests), results
+in `benchmarks/autoresearch/ar5/patience/` (`frozen.json`, `gate.json`, `stats_<sample>.json`,
+`unmatched_<sample>.json`, `summary.json`, `tables.md`, `whatif.md`, `pareto_rows.json`, the plot).
+
+**Freeze and reproduction.** The stored counts of the stop rule reproduce: totals with the pass
+13,004,457 (`mid`), 10,196,692 (`grad`), 3,807,747 (`big`); seed steps 5,417,024, 1,528,284,
+687,902; traces 1,605, 991, 153. `frozen.json` (rule, k and file hashes) was committed in
+`32440b5`, before the gate and before the first `held` run. `patience_freeze.py --check` passes.
+No `held` trace, log, record or map was opened before that commit.
+
+**The gate.** Before any whole-layer run, every seed step with an MC refinement on the disclosed
+samples was replayed with the rule, along its whole changed path (later candidates, seed test,
+rescue, grid search). Reading line: one row per gate item; a cell gives the replay's count and,
+where the plan set one, the limit in brackets.
+
+<!-- table:patience_gate -->
+| gate item | mid | grad | big |
+|---|---|---|---|
+| seed steps replayed (all with an MC refinement) | 770 | 478 | 99 |
+| (g1) equal to G where uncut or cut after the last gain | yes | yes | yes |
+| (g2) taken ends changed (limit) | 25 (30) | 1 (3) | 4 (6) |
+| (g3) changed end wrong where G right | 0 | 0 | 0 |
+| (g3) failed seed tests G / replay | 12 / 12 | 11 / 11 | 0 / 0 |
+| (g4) evaluations saved, share of G's run (mid at least 8%) | 1,431,626 (11.01%) | 20,390 (0.20%) | 230,137 (6.04%) |
+| new rescues / new grid searches | 0 / 0 | 0 / 0 | 0 / 0 |
+<!-- /table:patience_gate -->
+
+The gate passed. The replay ran each seed step on its own, not inside a whole run (a disclosed
+deviation). This is sound because each refinement has its own generator. The review checked it on
+the whole runs below: every paired refinement of `S` is cut exactly where the rule predicts from
+`G`'s stored trace, with no mismatch on any sample.
+
+**The plot.** Run evaluations against wrong voxels, for `S8`, `G` and `S` on the four samples,
+before and after the boundary pass. `S` (square) sits left of `G` (circle) on `held`, `mid` and
+`big` at about the same height; on `grad` the two overlap.
+
+![Run evaluations against wrong voxels, S8, G and S](benchmarks/autoresearch/ar5/patience/ar5_patience_evals_wrong.png)
+
+**Whole layers.** Reading line: one row per sample and arm, after the boundary pass. Evaluations
+include the pass. "Fixed / broken vs G" counts voxels by voxel: fixed means wrong in `G` and right
+in `S`, broken the reverse. The `S8` columns compare each arm with `S8` the same way.
+
+<!-- table:patience_layer -->
+| sample | arm | evaluations with the pass | seed step | wrong after pass | Wilson 95% (%) | fixed / broken vs G | fixed / broken vs S8 | broken minus fixed vs S8 |
+|---|---|---|---|---|---|---|---|---|
+| held | G | 30,768,867 | 14,150,515 | 69 | 0.22 to 0.36 | n/a | 25 / 24 | -1 |
+| held | S | 29,010,916 | 12,039,131 | 69 | 0.22 to 0.36 | 0 / 0 | 25 / 24 | -1 |
+| mid | G | 13,004,457 | 5,417,024 | 35 | 0.10 to 0.20 | n/a | 9 / 13 | 4 |
+| mid | S | 11,626,275 | 4,044,515 | 37 | 0.11 to 0.21 | 0 / 2 | 8 / 14 | 6 |
+| grad | G | 10,196,692 | 1,528,284 | 56 | 0.18 to 0.30 | n/a | 31 / 24 | -7 |
+| grad | S | 10,181,935 | 1,512,978 | 55 | 0.17 to 0.29 | 1 / 0 | 32 / 24 | -8 |
+| big | G | 3,807,747 | 687,902 | 21 | 0.06 to 0.13 | n/a | 8 / 5 | -3 |
+| big | S | 3,616,809 | 493,914 | 21 | 0.06 to 0.13 | 0 / 0 | 8 / 5 | -3 |
+<!-- /table:patience_layer -->
+
+So `S` uses 5.71% fewer evaluations than `G` on `held` (seed step 14.92% fewer), 10.60% on `mid`,
+0.14% on `grad` and 5.01% on `big`. The decision rules, as frozen. Reading line: one row per
+sample; each rule gives its number, then pass or fail; rule (5) is against `S8` (percent fewer;
+broken minus fixed; median error shift in degrees).
+
+<!-- table:patience_rules -->
+| sample | (1) total fewer vs G (%) | (1) | (2) broken - fixed vs G | (2) | (3) median shift (deg) | (3) | (4) extra wrong seeds; grid S/G | (4) | (5) vs S8: fewer %; broken - fixed; median shift | (5) | G passes (5) | S passes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| held | 5.71; seed 14.92 | pass | 0 | pass | 0.00002 | pass | 0; 20/19 | pass | 51.6; -1; -0.00258 | pass | yes | pass |
+| mid | 10.60 | pass | 2 | pass | -0.00003 | pass | 0; 4/4 | pass | 56.0; 6; -0.00114 | fail | yes | FAIL |
+| grad | 0.14 | pass | -1 | pass | -0.00000 | pass | 0; 5/5 | pass | 43.4; -8; -0.00130 | pass | yes | pass |
+| big | 5.01 | pass | 0 | pass | -0.00000 | pass | 0; 0/0 | pass | 56.6; -3; -0.00116 | pass | yes | pass |
+<!-- /table:patience_rules -->
+
+**The two `mid` voxels.** `mid` misses rule (5) by one voxel net (6, limit 5; `G` is at 4).
+Against `G`, with aligned draws, `S` breaks 2 voxels and fixes none, both through changed growth
+paths, not through a changed seed end. One run cannot separate the rule's effect from path-to-path
+variation. `S8` is not draw-aligned.
+- Voxel 5714: a seed voxel in `G` (its seed end 0.0089 degree from the truth), grown from a
+  neighbour in `S`, where it ends 60.0 degrees off. `S8` is right there. This adds one "broken"
+  against `S8`.
+- Voxel 13013: a new seed step in `S` (a reseed), with no cut in that step. It took an end 44.7
+  degrees off, at hit ratio 0.906, which passed the 0.80 seed test: a near-degenerate solution.
+  `G`'s map is right there (0.057 degree). `S8` is wrong there, at the same 44.7 degrees. This
+  removes one of `G`'s "fixed" against `S8`.
+
+Both are consistent with changed growth paths after the 20 changed seed ends. Whether that is an
+effect of the rule or ordinary variation from one path to another is not tested: there is one run
+per arm, the plan forbids reruns, and no extra seeds are proposed. The plan's "within draw noise"
+is an untested hypothesis.
+
+**Matched and unmatched seed steps.** The fit-by-fit check and the "S wrong where G right" count
+(rule (4)) cover matched steps only. Reading line: one row per sample; "S-only wrong where G's map
+right" counts seed steps that only `S` has whose taken end is wrong while `G`'s map is right at that
+voxel (before the pass); the last column adds it to the matched count.
+
+<!-- table:patience_unmatched -->
+| sample | seed steps G / S | matched | only in S | only in G | S-only with a cut | S-only wrong where G's map right | G-only wrong where S's map right | wrong seeds, matched + S-only (limit 1) |
+|---|---|---|---|---|---|---|---|---|
+| held | 3,705 / 3,699 | 3,640 | 59 | 65 | 16 | 0 | 0 | 0 |
+| mid | 1,607 / 1,612 | 1,478 | 134 | 129 | 52 | 1 | 0 | 1 |
+| grad | 1,280 / 1,284 | 1,280 | 4 | 0 | 0 | 0 | 0 | 0 |
+| big | 317 / 316 | 281 | 35 | 36 | 15 | 0 | 0 | 0 |
+<!-- /table:patience_unmatched -->
+
+On matched steps every fit that differs is a cut MC fit (`held` 733 of 12,817 compared, `mid` 280
+of 3,920, `grad` 15 of 3,027, `big` 35 of 512; none other). The one S-only wrong seed is voxel 13013
+on `mid`. Under this broad reading of rule (4), `mid` has 1 extra wrong seed; the limit is 1, so the
+verdict does not change.
+
+**Small shares.** Reading line: one row per sample; each cell is a count of a total, with its
+Wilson 95% interval.
+
+<!-- table:patience_shares -->
+| sample | taken seed ends changed, of matched steps (Wilson 95%) | cut refinements whose end is under hit ratio 0.95 (Wilson 95%) |
+|---|---|---|
+| held | 41 of 3,640 (0.8% to 1.5%) | 420 of 763 (51.5% to 58.5%) |
+| mid | 20 of 1,478 (0.9% to 2.1%) | 151 of 348 (38.3% to 48.6%) |
+| grad | 1 of 1,280 (0.0% to 0.4%) | 3 of 15 (7.0% to 45.2%) |
+| big | 4 of 281 (0.6% to 3.6%) | 23 of 55 (29.7% to 55.0%) |
+| all four | n/a | 597 of 1,181 (47.7% to 53.4%) |
+<!-- /table:patience_shares -->
+
+About half of the cut refinements (597 of 1,181) stopped with a best end under hit ratio 0.95.
+They are kept as data for a later stop that reads the hit ratio (D-20261113-N6).
+
+**`held`, seed tests and fallbacks.** On `held`, `S` has 2 more failed seed tests than `G` (67
+against 65), 1 more rescue (47 against 46) and 1 more grid search (20 against 19). No rule is
+broken: rule (4) allows grid searches within 1 of `G`'s. Prediction 1's "within 1" was about the
+replay, which did not include `held`. Reading line: one row per sample and arm; counts of the whole
+run, wrong voxels after the pass.
+
+<!-- table:patience_wrong -->
+| sample | arm | failed seed tests | rescued | grid searches | wrong after pass | Wilson 95% (%) | median error (deg) |
+|---|---|---|---|---|---|---|---|
+| held | G | 65 | 46 | 19 | 69 | 0.22 to 0.36 | 0.02599 |
+| held | S | 67 | 47 | 20 | 69 | 0.22 to 0.36 | 0.02601 |
+| mid | G | 12 | 8 | 4 | 35 | 0.10 to 0.20 | 0.02861 |
+| mid | S | 12 | 8 | 4 | 37 | 0.11 to 0.21 | 0.02859 |
+| grad | G | 11 | 6 | 5 | 56 | 0.18 to 0.30 | 0.02134 |
+| grad | S | 11 | 6 | 5 | 55 | 0.17 to 0.29 | 0.02134 |
+| big | G | 0 | 0 | 0 | 21 | 0.06 to 0.13 | 0.03044 |
+| big | S | 0 | 0 | 0 | 21 | 0.06 to 0.13 | 0.03044 |
+<!-- /table:patience_wrong -->
+
+**Predictions** (written before any run). Reading line: one row per prediction; "True" means met,
+with the number in brackets.
+
+<!-- table:patience_predictions -->
+| prediction | held | mid | grad | big |
+|---|---|---|---|---|
+| 1 replay (gate) | n/a | True | False | True |
+| 2 replay saving | n/a | True | True | True |
+| 3 held seed 10-30% / total 4-12% fewer | True (14.9%; 5.7%) | n/a | n/a | n/a |
+| 4 total fewer (mid 8-12, big 4-7, grad -1..1) | n/a | True (10.6%) | True (0.14%) | True (5.0%) |
+| 5 broken - fixed vs G in -4..4, median shift <= 0.0005 | True (0) | True (2) | True (-1) | True (0) |
+<!-- /table:patience_predictions -->
+
+Prediction 1 fails on `grad` on one clause only: its single changed end is 0.122 degree from `G`'s
+(the clause asked for a median under 0.1).
+
+**The what-if cost models.** Before the runs, `patience_whatif.py` walked each rule through the
+stored seed steps (arithmetic, a cost estimate). `whatif.md` gives each saving with and without
+estimated extra candidates: a step that loses its 0.95 stop is assumed to run its remaining
+candidates, each priced at that step's mean evaluations per candidate. Without the extras, rule
+(iii) saves 8.96% on `mid`, which matches the plan's 9.0%. Its gap to 3.4% comes from the
+extra-candidate pricing, not from a different reading of the rule. That price includes the long
+refinements the rule cuts, so it is likely to overprice them. The implementer's report quoted a
+pessimistic saving of 1.6% for `P(3000)`; it is not stored in any file and is dropped here. Neither
+model is a measurement: the measured gate replay (11.01% on `mid`) and the whole run (10.60%)
+supersede both.
+
+**Deviations from the plan.**
+- The plan's table (ii) (best of 120 cost-gated rules, the in-sample checkpoint rule) was not
+  rebuilt: its definitions are not given to the digit.
+- The what-if counts 25 changed taken ends for `P(3000)` on `mid`, against the plan's 24; the role
+  table has 102 and 1,093 against the plan's 103 and 1,092 (one refinement differs; the plan's tie
+  rule is not known).
+- The gate replayed each seed step on its own (see "The gate").
+- `frozen.json` hashes the run scripts and the library, not `patience_replay.py`,
+  `patience_gate.py`, `patience_run_all.sh` or the imported helpers `reseed_common.py` and
+  `ar3/gradient_common.py`. The gate ran on disclosed samples, and `patience_judge.py` (written
+  after the runs) matches the plan's frozen rule text clause by clause, so nothing leaked; hashing
+  them would make that checkable.
+- A wiring smoke run on `big` (untracked `S_big_smoke`) used another seed set; it is not a result.
+- Wall times are contended and are not a timing result. No timing is claimed.
+
+**The run cache.** `patience/cache` is untracked. `patience_link_cache.sh` links it read only to
+stored runs in sibling worktrees (`agent-a8d20b38...` arm `G`, `agent-abdf6430...` arm `A`,
+`agent-af896187...` the `held` `S8`, `agent-a635b2f9...` and `agent-a9c88b61...` the other stored
+`S8` runs and starts); `order_link_inputs.sh` links the truth maps the same way. The arm `S` runs
+and their passes live in the implementer's worktree (`agent-a69be862...`). If those worktrees are
+pruned, the inputs go with them.
+
+**Review fixes** (review `20261113-1000-review-ar5k`, all 6 applied by D-20261113-N6): this section
+(fix 1) and the README study line (fix 2); the validity and wrong-seed columns are labelled as
+matched steps and the unmatched steps are counted (`patience_unmatched.py`, fix 3); the cost-model
+paragraph above (fix 4); `whatif.md` has reading lines and both shares (fix 5); `pareto_rows.json`
+and `summary.json` carry a status field marking a failed-step study (fix 6). The plot's log axis
+gained minor tick labels (a review suggestion).
