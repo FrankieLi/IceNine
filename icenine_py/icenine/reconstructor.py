@@ -156,6 +156,20 @@ def check_bfs_keys(params: Any) -> None:
             )
     if no_fb and not cma_first:
         raise ValueError("BFSNeighborCMANoFallback 1 needs BFSNeighborCMAFirst 1")
+    if float(getattr(params, "seed_rescue_sigma_deg", 0.0)) > 0:  # AR5 step 9, SeedRescueCMA
+        if not getattr(params, "seed_by_indexing", False):
+            raise ValueError(
+                "SeedRescueCMA needs SeedByIndexing 1 (it rescues a failed indexed seed step)"
+            )
+        if stop <= 0:
+            raise ValueError(
+                "SeedRescueCMA needs SeedIndexStopHitRatio > 0 (the ratio that accepts a "
+                "rescued end)"
+            )
+        if getattr(params, "local_optimizer", "mc") != "mc":
+            raise ValueError("SeedRescueCMA needs LocalOptimizer mc")
+        if getattr(params, "use_hybrid_optimizer", False):
+            raise ValueError("SeedRescueCMA cannot be combined with use_hybrid_optimizer")
     if cma_first:
         if getattr(params, "local_optimizer", "mc") != "mc":
             raise ValueError("BFSNeighborCMAFirst 1 needs LocalOptimizer mc")
@@ -1631,6 +1645,48 @@ class AdaptiveVoxelReconstructor:
             stop_hit=stop_hit, hit_fn=hit_fn, refine_fn=refine_fn,
         )  # fmt: skip
 
+    def rescue_seed(
+        self,
+        voxel_vertices: torch.Tensor,
+        phase_index: int,
+        kept_R: List[np.ndarray],
+        kept_costs: List[float],
+        stop_hit: float,
+        sigma0_deg: float,
+        max_evals: int,
+    ) -> Dict[str, Any]:
+        """SeedRescueCMA (opt-in): the rescue of a seed step that failed the seed test
+        (``ray_indexing.seed_rescue``). From each kept end of the step (``kept_R``, final costs
+        ``kept_costs``; the ``finisher_R`` / ``finisher_costs`` of ``index_seed``'s result), in
+        order of cost and at most ``ray_indexing.SEED_RESCUE_MAX_TRIES``, one CMA local
+        optimization (first step ``sigma0_deg`` degrees, ``max_evals`` evaluations, a fresh
+        ``default_rng(0)`` each, so no other draw moves); the first end whose hit ratio (one overlap
+        evaluation, not counted) reaches ``stop_hit`` is taken. The caller runs the grid search
+        when nothing is taken."""
+        from . import ray_indexing as RI
+
+        def cma_fn(R: np.ndarray) -> Tuple[np.ndarray, float, int]:
+            r = self.local_optimization(
+                voxel_vertices=voxel_vertices,
+                phase_index=phase_index,
+                initial_orientation=np.asarray(R, np.float64),
+                rng=np.random.default_rng(0),
+                cma_sigma0_deg=sigma0_deg,
+                cma_max_evals=max_evals,
+                optimizer="cma",
+            )
+            return (
+                np.asarray(r.orientation, np.float64),
+                float(r.cost),
+                int(self.last_local_optimization_evals),
+            )
+
+        def hit_fn(R: np.ndarray) -> Tuple[float, Any]:
+            info = self.evaluate_overlap(np.asarray(R, np.float64), voxel_vertices, phase_index)
+            return float(BFSReconstruction._ratios(info)[0]), info
+
+        return RI.seed_rescue(kept_R, kept_costs, cma_fn, hit_fn, stop_hit)
+
 
 # ---------------------------------------------------------------------------
 # BFSReconstruction — breadth-first spatial propagation
@@ -2470,6 +2526,10 @@ class BFSReconstruction:
             self._count("index_fallback_seed_test")
             self._count("index_evals_wasted", res.evals)
             entry["fallback"] = "seed_test"
+            if float(getattr(sp, "seed_rescue_sigma_deg", 0.0)) > 0:
+                rescued = self._rescue_seed(res, voxel, vertices, rec, entry, stop_hit)
+                if rescued is not None:
+                    return rescued[0], rescued[1], time.time() - t0
             print(
                 f"    Seed voxel {rec.voxel_idx}: index result hit_ratio={hit:.3f} below the "
                 "seed test: grid search",
@@ -2480,6 +2540,56 @@ class BFSReconstruction:
         self._count("index_used")
         self._count("index_evals_used", res.evals)
         return result, info, dt
+
+    def _rescue_seed(
+        self,
+        res: Any,
+        voxel: Any,
+        vertices: torch.Tensor,
+        rec: BFSVoxelRecord,
+        entry: Dict[str, Any],
+        stop_hit: float,
+    ) -> Optional[Tuple[SearchCandidate, OverlapInfo]]:
+        """SeedRescueCMA (opt-in) after a failed seed test: the rescue of the step's kept ends
+        (``AdaptiveVoxelReconstructor.rescue_seed``, accept at ``SeedIndexStopHitRatio``). Its
+        evaluations and time count as the seed's (``n_evals_seed`` / ``wall_seed_s``) and in
+        ``index_rescue_*``; ``entry["rescue"]`` logs the tries. Returns (result, overlap) of the
+        taken end, or None (the caller runs the grid search with the BFS generator unchanged)."""
+        sp = self.setup.search_params
+        t0 = time.time()
+        out = self.reconstructor.rescue_seed(
+            vertices,
+            voxel.phase,
+            list(res.finisher_R),
+            [float(c) for c in res.finisher_costs],
+            stop_hit,
+            float(sp.seed_rescue_sigma_deg),
+            int(sp.seed_rescue_evals),
+        )
+        dt = time.time() - t0
+        ev = int(out["evals"])
+        rec.n_evals += ev
+        rec.wall_s += dt
+        self.stats["n_evals_seed"] += ev
+        self.stats["wall_seed_s"] += dt
+        self._count("index_rescue_runs")
+        self._count("index_rescue_tries", len(out["tries"]))
+        self._count("index_rescue_evals", ev)
+        entry["rescue"] = dict(
+            rescued=bool(out["rescued"]),
+            evals=ev,
+            tries=[{k: t[k] for k in ("k", "hit", "cost", "evals")} for t in out["tries"]],
+        )
+        if not out["rescued"]:
+            return None
+        self._count("index_rescued")
+        t = out["tries"][out["taken"]]
+        print(
+            f"    Seed voxel {rec.voxel_idx}: rescued from kept end {t['k']} "
+            f"(hit_ratio={t['hit']:.3f}, {len(out['tries'])} tries)",
+            flush=True,
+        )
+        return SearchCandidate(orientation=t["R"], cost=float(t["cost"])), t["info"]
 
     def _outward_reseed(
         self,

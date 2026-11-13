@@ -539,6 +539,42 @@ def mixed_refinement(
     return rc, cc, int(ec) + int(em), info
 
 
+SEED_RESCUE_MAX_TRIES = 5  # SeedRescueCMA: at most this many kept ends are tried
+
+
+def seed_rescue(
+    kept_R: List[np.ndarray],
+    kept_costs: List[float],
+    cma_fn: Any,
+    hit_fn: Any,
+    stop_hit: float,
+    max_tries: int = SEED_RESCUE_MAX_TRIES,
+) -> Dict[str, Any]:
+    """The rescue of a failed seed step (``SeedRescueCMA``, opt-in; rule ``G1`` of AR5 step 9).
+
+    The kept ends (one per refined candidate of the step, with their final costs) are tried in
+    order of cost, ties by position, at most ``max_tries``: ``cma_fn(R) -> (end, end cost,
+    evaluations)`` from each, then ``hit_fn(end) -> (hit ratio, overlap info)``. The first end whose
+    hit ratio is at least ``stop_hit`` is taken and no later end is tried. Returns ``rescued``,
+    ``taken`` (position in ``tries``, -1 if none), ``tries`` (per try: ``k`` the kept end, ``hit``,
+    ``cost``, ``evals``, ``R`` the end, ``info`` its overlap) and ``evals`` (all tries)."""
+    order = sorted(range(len(kept_costs)), key=lambda i: (float(kept_costs[i]), i))[:max_tries]
+    tries: List[Dict[str, Any]] = []
+    taken = -1
+    for k in order:
+        R, cost, ev = cma_fn(np.asarray(kept_R[k], np.float64))
+        hit, info = hit_fn(R)
+        tries.append(
+            dict(k=int(k), hit=float(hit), cost=float(cost), evals=int(ev), R=R, info=info)
+        )
+        if float(hit) >= stop_hit:
+            taken = len(tries) - 1
+            break
+    return dict(
+        rescued=taken >= 0, taken=taken, tries=tries, evals=int(sum(t["evals"] for t in tries))
+    )
+
+
 def seed_by_indexing(
     rec: Any,
     sc: Any,
