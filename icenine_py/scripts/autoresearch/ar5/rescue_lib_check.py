@@ -1,0 +1,222 @@
+"""AR5 step 9, phase B: is the key-on library run equal to the script arm ``Gl``? (stop rule)
+
+  RESEED_SAMPLE=mid uv run python scripts/autoresearch/ar5/rescue_lib_check.py
+
+Compares, on ``mid``:
+
+* ``LibG`` (library, ``SeedRescueCMA 0.25 1000``) with ``Gl`` (script arm ``G`` with library
+  draws), before the boundary pass: the map (decompressed ``.mic`` bytes; else the voxels that
+  differ and the largest angle), the evaluation total and every counter of the run (time counters
+  left out; the script counts its rescue evaluations inside ``index_fallback_grid_evals``, the
+  library apart in ``index_rescue_evals``, so the script's value is compared with the sum), the
+  per-voxel records, and the rescues (voxel, tries: kept end, hit ratio, cost, evaluations).
+  After the pass: the library's in-run pass against ``order_pass.py --name Gl --aligned 0``
+  (evaluations, tries, map). The in-run pass starts from the unrounded map, the script pass from
+  the stored ``.mic``; earlier steps saw ends differ there in the 7th decimal.
+* the control ``LibS11`` (library, key off) with the stored script run ``S11`` of AR5 step 3 (read
+  only, in its kept worktree), before the pass, the same way.
+
+Writes ``rescue/lib_check.json``. No truth is read.
+"""
+
+import gzip
+import json
+import os
+from pathlib import Path
+from typing import Any, Dict, List, Tuple
+
+import rescue_common as RCM  # noqa: E402  (first)
+
+import numpy as np  # noqa: E402
+
+import gradient_common as G  # noqa: E402
+import reseed_common as RC  # noqa: E402
+
+N = 24570
+MIX = RC.WORKTREES / "agent-a5a3601b746680640/icenine_py/benchmarks/autoresearch/ar5/mix/cache"
+
+
+def read_gz(p: Path) -> Any:
+    with gzip.open(p, "rt") as f:
+        return json.load(f)
+
+
+def gz_bytes(p: Path) -> bytes:
+    with gzip.open(p, "rb") as f:
+        return f.read()
+
+
+def is_time_key(k: str) -> bool:
+    return "wall" in k or k.endswith("_s")
+
+
+def counters(st: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        k: v
+        for k, v in st.items()
+        if isinstance(v, (int, float)) and not isinstance(v, bool) and not is_time_key(k)
+    }
+
+
+def evals_total(st: Dict[str, Any]) -> int:
+    return int(
+        sum(st[k] for k in ("n_evals_seed", "n_evals_neighbor", "n_evals_revisit"))
+        + st.get("n_evals_reseed", 0)
+        + st.get("n_evals_restart", 0)
+    )
+
+
+def angle_deg(Ra: np.ndarray, Rb: np.ndarray) -> np.ndarray:
+    """Plain rotation angle between matching orientations (no symmetry: same-run comparison)."""
+    tr = np.einsum("nij,nij->n", Ra, Rb)
+    return np.degrees(np.arccos(np.clip((tr - 1.0) / 2.0, -1.0, 1.0)))
+
+
+def compare_maps(pa: Path, pb_or_R: Any) -> Dict[str, Any]:
+    Ra, _ = G.read_map(pa, N)
+    if isinstance(pb_or_R, Path):
+        Rb, _ = G.read_map(pb_or_R, N)
+        same_bytes = gz_bytes(pa) == gz_bytes(pb_or_R)
+    else:
+        Rb, same_bytes = np.asarray(pb_or_R, np.float64).reshape(N, 3, 3), None
+    diff = ~np.all(Ra.reshape(N, -1) == Rb.reshape(N, -1), axis=1)
+    ang = angle_deg(Ra, Rb)
+    return dict(
+        same_bytes=same_bytes,
+        voxels_differ=int(diff.sum()),
+        max_angle_deg=float(ang.max()),
+        voxels_over_1e_6_deg=int((ang > 1e-6).sum()),
+    )
+
+
+def compare_counters(
+    a: Dict[str, Any], b: Dict[str, Any], rescue_split: bool
+) -> Tuple[bool, Dict[str, Any]]:
+    """``a`` script, ``b`` library; every counter of the script run is compared (as in
+    ``keys_check.py``); counters only the library keeps (its own bookkeeping of keys the script
+    layer emulated) are listed. With ``rescue_split`` the script's grid evaluations hold the
+    rescue evaluations (library: ``index_rescue_evals``)."""
+    ca, cb = counters(a), counters(b)
+    if rescue_split:
+        cb = dict(cb)
+        cb["index_fallback_grid_evals"] = cb.get("index_fallback_grid_evals", 0) + cb.get(
+            "index_rescue_evals", 0
+        )
+    differ = {k: (ca[k], cb.get(k)) for k in sorted(ca) if ca[k] != cb.get(k)}
+    out = dict(
+        n_script_counters=len(ca),
+        differ=differ,
+        only_in_library={k: cb[k] for k in sorted(set(cb) - set(ca))},
+    )
+    return not differ, out
+
+
+def compare_records(pa: Path, pb: Path) -> Dict[str, Any]:
+    ra, rb = read_gz(pa), read_gz(pb)
+
+    def strip(r: Dict[str, Any]) -> Dict[str, Any]:
+        return {k: v for k, v in r.items() if k != "wall_s"}
+
+    keys = sorted(set(ra) | set(rb), key=int)
+    bad = [k for k in keys if strip(ra.get(k, {})) != strip(rb.get(k, {}))]
+    return dict(n_a=len(ra), n_b=len(rb), n_differ=len(bad), first=bad[:5])
+
+
+def lib_vs_gl(C: Path) -> Dict[str, Any]:
+    gl, lib = C / "Gl_mid", C / "LibG_mid"
+    st_gl = json.loads((gl / "run.json").read_text())["stats"]
+    run_lib = json.loads((lib / "run.json").read_text())
+    st_lib = run_lib["stats_before_pass"]
+    ok_c, bad_c = compare_counters(st_gl, st_lib, rescue_split=True)
+    # rescues: script log rows vs library index_log entries with a rescue
+    slog = [r for r in read_gz(gl / "rescue_log.json.gz") if r["attempted"]]
+    llog = [e for e in read_gz(lib / "index_log.json.gz") if "rescue" in e]
+
+    def tries(ts: List[Dict[str, Any]]) -> List[Any]:
+        return [(t["k"], t["hit"], t["cost"], t["evals"]) for t in ts]
+
+    srows = [(int(r["voxel"]), bool(r["rescued"]), tries(r["tries"])) for r in slog]
+    lrows = [
+        (int(e["voxel"]), bool(e["rescue"]["rescued"]), tries(e["rescue"]["tries"])) for e in llog
+    ]
+    before = dict(
+        map=compare_maps(gl / "recon.mic.gz", lib / "recon_before_pass.mic.gz"),
+        evals_total=dict(script=evals_total(st_gl), library=run_lib["evals_total_before_pass"]),
+        counters_equal=ok_c,
+        counters_differ=bad_c,
+        records=compare_records(gl / "records.json.gz", lib / "records.json.gz"),
+        rescues=dict(
+            script=len(srows),
+            library=len(lrows),
+            rescued_script=sum(1 for r in srows if r[1]),
+            rescued_library=sum(1 for r in lrows if r[1]),
+            tries_script=sum(len(r[2]) for r in srows),
+            tries_library=sum(len(r[2]) for r in lrows),
+            rescue_evals_library=int(st_lib.get("index_rescue_evals", 0)),
+            equal=srows == lrows,
+        ),
+    )
+    out: Dict[str, Any] = dict(before_pass=before)
+    pdir = C / "passes_mid"
+    if (pdir / "D4_Gl" / "pass.json").exists():
+        pj = json.loads((pdir / "D4_Gl" / "pass.json").read_text())
+        lt = np.load(lib / "pass_tries.npz")
+        out["after_pass"] = dict(
+            pass_evals=dict(script=int(pj["evals"]), library=int(lt["evals"].sum())),
+            pass_tries=dict(script=int(pj["n_tries"]), library=int(len(lt["evals"]))),
+            total_with_pass=dict(
+                script=evals_total(st_gl) + int(pj["evals"]),
+                library=int(run_lib["evals_total_with_pass"]),
+            ),
+            map=compare_maps(lib / "recon.mic.gz", np.load(pdir / "after_Gl.npy")),
+        )
+    b = before
+    out["equal_before_pass"] = bool(
+        b["map"]["voxels_differ"] == 0
+        and b["evals_total"]["script"] == b["evals_total"]["library"]
+        and b["counters_equal"]
+        and b["records"]["n_differ"] == 0
+        and b["rescues"]["equal"]
+    )
+    return out
+
+
+def control(C: Path) -> Dict[str, Any]:
+    lib, s11 = C / "LibS11_mid", MIX / "S11_mid"
+    st_s = json.loads((s11 / "run.json").read_text())["stats"]
+    run_lib = json.loads((lib / "run.json").read_text())
+    st_lib = run_lib["stats_before_pass"]
+    ok_c, bad_c = compare_counters(st_s, st_lib, rescue_split=False)
+    b = dict(
+        map=compare_maps(s11 / "recon.mic.gz", lib / "recon_before_pass.mic.gz"),
+        evals_total=dict(script=evals_total(st_s), library=run_lib["evals_total_before_pass"]),
+        counters_equal=ok_c,
+        counters_differ=bad_c,
+        records=compare_records(s11 / "records.json.gz", lib / "records.json.gz"),
+    )
+    return dict(
+        before_pass=b,
+        equal_before_pass=bool(
+            b["map"]["voxels_differ"] == 0
+            and b["evals_total"]["script"] == b["evals_total"]["library"]
+            and b["counters_equal"]
+            and b["records"]["n_differ"] == 0
+        ),
+    )
+
+
+def main() -> None:
+    assert RC.SAMPLE == "mid"
+    C = RCM.RCACHE
+    res: Dict[str, Any] = dict(sample="mid")
+    if (C / "LibG_mid" / "run.done").exists() and (C / "Gl_mid" / "Gl.done").exists():
+        res["libG_vs_Gl"] = lib_vs_gl(C)
+    if (C / "LibS11_mid" / "run.done").exists():
+        res["control_libS11_vs_stored_S11"] = control(C)
+    (RCM.RESCUE / "lib_check.json").write_text(json.dumps(res, indent=1, default=float) + "\n")
+    print(json.dumps(res, indent=1, default=float))
+    os._exit(0)
+
+
+if __name__ == "__main__":
+    main()
