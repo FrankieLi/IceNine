@@ -16,7 +16,7 @@ Compares, on ``mid``:
 * the control ``LibS11`` (library, key off) with the stored script run ``S11`` of AR5 step 3 (read
   only, in its kept worktree), before the pass, the same way.
 
-Writes ``rescue/lib_check.json``. No truth is read.
+Writes ``rescue/lib_check.json`` and ``rescue/tables_lib.md``. No truth is read.
 """
 
 import gzip
@@ -66,27 +66,49 @@ def evals_total(st: Dict[str, Any]) -> int:
     )
 
 
-def angle_deg(Ra: np.ndarray, Rb: np.ndarray) -> np.ndarray:
-    """Plain rotation angle between matching orientations (no symmetry: same-run comparison)."""
-    tr = np.einsum("nij,nij->n", Ra, Rb)
-    return np.degrees(np.arccos(np.clip((tr - 1.0) / 2.0, -1.0, 1.0)))
+def mis_deg(Ra: np.ndarray, Rb: np.ndarray) -> np.ndarray:
+    """Symmetry-reduced angle (cubic) between matching orientations, degrees."""
+    from icenine.ray_indexing import misorientation_deg, proper_rotations
+    from icenine.symmetry import create_cubic_symmetry
+
+    if len(Ra) == 0:
+        return np.zeros(0)
+    sym = proper_rotations(create_cubic_symmetry(3.6))
+    return np.asarray(misorientation_deg(Ra, Rb, sym), dtype=float)
 
 
 def compare_maps(pa: Path, pb_or_R: Any) -> Dict[str, Any]:
+    """Voxels whose stored orientation differs (any bit), and among them the symmetry-reduced
+    angle: the largest and how many differ by more than 0.001 degree (a .mic stores rounded
+    angles, so an unrounded map differs from its stored form by less than that)."""
     Ra, _ = G.read_map(pa, N)
     if isinstance(pb_or_R, Path):
         Rb, _ = G.read_map(pb_or_R, N)
         same_bytes = gz_bytes(pa) == gz_bytes(pb_or_R)
     else:
         Rb, same_bytes = np.asarray(pb_or_R, np.float64).reshape(N, 3, 3), None
-    diff = ~np.all(Ra.reshape(N, -1) == Rb.reshape(N, -1), axis=1)
-    ang = angle_deg(Ra, Rb)
+    diff = np.where(~np.all(Ra.reshape(N, -1) == Rb.reshape(N, -1), axis=1))[0]
+    ang = mis_deg(Ra[diff], Rb[diff])
     return dict(
         same_bytes=same_bytes,
-        voxels_differ=int(diff.sum()),
-        max_angle_deg=float(ang.max()),
-        voxels_over_1e_6_deg=int((ang > 1e-6).sum()),
+        voxels_differ=int(len(diff)),
+        max_angle_deg=float(ang.max()) if len(ang) else 0.0,
+        voxels_over_0_001_deg=int((ang > 1e-3).sum()),
+        voxels_over_1_deg=int((ang > 1.0).sum()),
     )
+
+
+# counters the library sets at the end of the run, after the boundary pass (reconstructor.py,
+# ``reconstruct_sample``): they are read from the run's final stats, not from the capture made
+# when the pass starts
+END_KEYS = ("n_unresolved", "n_voxels")
+
+
+def lib_stats(run_lib: Dict[str, Any]) -> Dict[str, Any]:
+    st = dict(run_lib["stats_before_pass"])
+    for k in END_KEYS:
+        st[k] = run_lib["stats"][k]
+    return st
 
 
 def compare_counters(
@@ -126,7 +148,7 @@ def lib_vs_gl(C: Path) -> Dict[str, Any]:
     gl, lib = C / "Gl_mid", C / "LibG_mid"
     st_gl = json.loads((gl / "run.json").read_text())["stats"]
     run_lib = json.loads((lib / "run.json").read_text())
-    st_lib = run_lib["stats_before_pass"]
+    st_lib = lib_stats(run_lib)
     ok_c, bad_c = compare_counters(st_gl, st_lib, rescue_split=True)
     # rescues: script log rows vs library index_log entries with a rescue
     slog = [r for r in read_gz(gl / "rescue_log.json.gz") if r["attempted"]]
@@ -170,6 +192,9 @@ def lib_vs_gl(C: Path) -> Dict[str, Any]:
             ),
             map=compare_maps(lib / "recon.mic.gz", np.load(pdir / "after_Gl.npy")),
         )
+        lp = RCM.RESCUE / "lib_pass.json"
+        if lp.exists():  # the library pass on the stored map (rescue_lib_pass.py)
+            out["library_pass_on_stored_map"] = json.loads(lp.read_text())
     b = before
     out["equal_before_pass"] = bool(
         b["map"]["voxels_differ"] == 0
@@ -185,7 +210,7 @@ def control(C: Path) -> Dict[str, Any]:
     lib, s11 = C / "LibS11_mid", MIX / "S11_mid"
     st_s = json.loads((s11 / "run.json").read_text())["stats"]
     run_lib = json.loads((lib / "run.json").read_text())
-    st_lib = run_lib["stats_before_pass"]
+    st_lib = lib_stats(run_lib)
     ok_c, bad_c = compare_counters(st_s, st_lib, rescue_split=False)
     b = dict(
         map=compare_maps(s11 / "recon.mic.gz", lib / "recon_before_pass.mic.gz"),
@@ -194,8 +219,15 @@ def control(C: Path) -> Dict[str, Any]:
         counters_differ=bad_c,
         records=compare_records(s11 / "records.json.gz", lib / "records.json.gz"),
     )
+    pj = json.loads((MIX / "passes_mid" / "D4_S11" / "pass.json").read_text())
+    lt = np.load(lib / "pass_tries.npz")
+    after = dict(  # the in-run pass (unrounded map) against the stored script pass (stored map)
+        pass_tries=dict(library=int(len(lt["evals"])), script=int(pj["n_tries"])),
+        pass_evals=dict(library=int(lt["evals"].sum()), script=int(pj["evals"])),
+    )
     return dict(
         before_pass=b,
+        after_pass=after,
         equal_before_pass=bool(
             b["map"]["voxels_differ"] == 0
             and b["evals_total"]["script"] == b["evals_total"]["library"]
@@ -216,7 +248,7 @@ def main() -> None:
     (RCM.RESCUE / "lib_check.json").write_text(json.dumps(res, indent=1, default=float) + "\n")
     if "libG_vs_Gl" in res and "control_libS11_vs_stored_S11" in res:
         tables(res)
-    print(json.dumps(res, indent=1, default=float))
+    print(json.dumps(res, indent=1, default=float), flush=True)
     os._exit(0)
 
 
@@ -267,19 +299,43 @@ def tables(res: Dict[str, Any]) -> None:
         "evaluations.\n\n" + "\n".join(r)
     }
     a = res["libG_vs_Gl"].get("after_pass")
-    if a:
-        T["libpass"] = (
-            "Reading line: the boundary pass of `LibG` (made inside the library run, from the "
-            "unrounded map) and of `Gl` (made after, from the stored map, with the library's "
-            "single generator).\n\n"
-            "| | library (LibG) | script (Gl) |\n|---|---|---|\n"
-            f"| pass tries | {a['pass_tries']['library']:,} | {a['pass_tries']['script']:,} |\n"
+    lp = res["libG_vs_Gl"].get("library_pass_on_stored_map")
+    if a and lp:
+        m = a["map"]
+        same = (
+            "same tries (every field) and the same changed voxels"
+            if lp["exact"] and lp.get("differ_end", 1) == 0
+            else "NOT the same (lib_pass.json)"
+        )
+        rows = [
+            "| | library run (LibG): pass in the run | script (Gl): pass after the run |"
+            " library pass function on the stored map of Gl |",
+            "|---|---|---|---|",
+            f"| pass tries | {a['pass_tries']['library']:,} | {a['pass_tries']['script']:,} |"
+            f" {lp['n_tries']['library']:,} |",
             f"| pass evaluations | {a['pass_evals']['library']:,} |"
-            f" {a['pass_evals']['script']:,} |\n"
+            f" {a['pass_evals']['script']:,} | {lp['evals']['library']:,} |",
             f"| total with the pass | {a['total_with_pass']['library']:,} |"
-            f" {a['total_with_pass']['script']:,} |\n"
-            f"| map after the pass: voxels that differ (largest angle, degrees) |"
-            f" {a['map']['voxels_differ']} ({a['map']['max_angle_deg']:.2e}) | - |"
+            f" {a['total_with_pass']['script']:,} | - |",
+            "| map after the pass against the script's: voxels that differ / by more than 0.001"
+            f" degree / by more than 1 degree | {m['voxels_differ']} /"
+            f" {m['voxels_over_0_001_deg']} / {m['voxels_over_1_deg']} | - | {same} |",
+        ]
+        ca = res["control_libS11_vs_stored_S11"]["after_pass"]
+        rows.append(
+            f"| control, key off: LibS11 / stored S11, pass tries |"
+            f" {ca['pass_tries']['library']:,} | {ca['pass_tries']['script']:,} | - |"
+        )
+        rows.append(
+            f"| control, key off: LibS11 / stored S11, pass evaluations |"
+            f" {ca['pass_evals']['library']:,} | {ca['pass_evals']['script']:,} | - |"
+        )
+        T["libpass"] = (
+            "Reading line: the boundary pass, by where it was made. The library run makes it "
+            "inside the run, from the map in memory (unrounded angles). The script makes it "
+            "after the run, from the stored map (a .mic file stores rounded angles), with the "
+            "library's single generator. The last column is the library's pass function run on "
+            "that same stored map.\n\n" + "\n".join(rows)
         )
     DT.write_tables(RCM.RESCUE / "tables_lib.md", T)
 
