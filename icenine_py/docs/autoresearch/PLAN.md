@@ -2748,6 +2748,155 @@ timing. A second run of any arm with another random seed.
   (another generator seed): `held` saw no count of this rule. A new sample would also need `S8`.
 - Both arms rerun with aligned draws (step 7's lesson), not `Y` against the stored `S11n`.
 
+### AR5 step 9: rescue a failed seed with a wide local optimization before the grid search
+
+Task `ar5i`. Approved: D-20261112-N10. Starts from `feature/eval-reduction` after `ar5h` merges
+as a study (D-20261112-N9); it reuses `order_run.py`, `order_pass.py`, `order_draws.py`. Phase A
+ends at "READY FOR KEY" or at its gate; phase B starts only after a recorded decision.
+
+**Why.** When a seed fails the seed test (hit ratio 0.80), the run does a grid fallback: a global
+search on the adaptive grid, about 335,000 evaluations each. On `held` it is the largest stage
+(`S8`: 75 fallbacks, 43% of its evaluations; `S11`: about 63 to 65, about 21 of an estimated 37.5
+million). The owner asks for a cheap approximation of that search, with a final local optimization
+after it. The stored ends say the grid search mostly lands next to an end the seed step already had.
+
+**What was read** (stored files only, nothing rerun). Arm `A` of step 8 (run `S11`, aligned
+draws), `ar5/order/cache/A_mid`, `A_grad`: `e1_log.json.gz`, `records.json.gz`, `recon.mic.gz`,
+`stats/part2_A_<sample>_err.npz`; `ar5/order/stats_<sample>.json` for big, grad, mid; the truth
+(`gradient_truth.mic`, `sample.json`) of `mid` and `grad`; step 1's page `findings_ar5_stop.md`
+(Part 2: the 31 `S8` fallbacks) and AR0's `findings_ar0_stopping.md` (the split by level). The
+stored `S11` runs of step 3 were not read (arm `A` is the same run with aligned draws). No `held`
+file was opened or listed. `big` has no fallback in arm `A`.
+
+**What a fallback's log holds.** `records.json.gz`: one line per voxel (evaluations, hit ratio of
+the end). `e1_log.json.gz`: the failed seed step's 10 fits (CMA and MC on 5 candidates: hit ratio,
+cost, evaluations, end orientation). The map gives the fallback's end, the truth its error. Not
+stored: anything per level (candidates, costs, evaluations), the 20 indexed candidates, the cost
+of the fallback's end. AR0 measured the split by level on six full-sample voxels: level 0 screen
+23.7%, level 0 quick MC 37.1%, level 1 26.3%, level 2 8.8%, level 3 2.8%, final local
+optimization 1.3%. A per-level record of the 23 disclosed fallbacks costs about 7.9 million
+evaluations (about 25 process-minutes); phase A step 5 makes it, as data for a later learned step.
+
+Reading line: one column per sample; each row counts arm `A`'s fallbacks (failed seed steps).
+
+| arm `A` fallbacks | grad | mid |
+|---|---|---|
+| fallbacks; evaluations (share of the run with the pass) | 11; 3,726,723 (30.6%) | 12; 4,007,241 (25.6%) |
+| a kept seed end within 0.6 degree of the fallback's end | 11 | 11 |
+| the first such end's place by cost: 1st / 2nd / 3rd | 9 / 1 / 1 | 8 / 2 / 1 |
+| nearest kept end to the fallback's end, degrees | 0.01 to 0.58 | 0.08 to 0.56 |
+| lowest-cost kept end is wrong (26 to 55 degrees off) | 2 | 4 |
+| fallback's end right (at most 1 degree); hit ratio at least 0.95 | 11; 10 | 12; 11 |
+| lowest-cost kept end: hit ratio; cost | 0.66 to 0.80; 0.25 to 0.38 | 0.71 to 0.80; 0.21 to 0.32 |
+
+The one case with no near end is `mid` voxel 16979 (nearest 15.0 degrees). So in 22 of 23 cases
+(Wilson 95% 79% to 99%) the grid search ends within 0.6 degree of a kept seed end, and its end is
+right in 23 of 23 (86% to 100%), with errors 0.001 to 0.09 degree (one 0.55).
+Ends with hit ratio at least 0.95 cost 0.072 (median, `mid`), the failed ends 0.21 to 0.38. That
+is consistent with the seed refinements being trapped 0.07 to 0.58 degree from a much better
+orientation, not with a missing candidate (step 1 found the same on `S8`: the right candidate was
+1st to 3rd in all 31). All 12 `mid` fallbacks are in grains with gradients of 2 or 4 degrees (34%
+of its voxels); all 11 on `grad` at its top level, 1 degree (23%). `held` has gradients 0 to 4.
+
+**Cases.** (a) Near an end the seed step had: 22 of 23. (b) Already best after level 0: not
+stored; AR0 found the level-0 best within 1 degree for only 71 of 159 right voxels, and a stop
+after level 0 saves at most 39.2% of a search. (c) No good answer: 2 of 23 fallback ends stay under
+0.95 (0.70, 0.87), both right; none is off the sample.
+
+**What-ifs** (arithmetic; a replay is a cost estimate only, step 8's lesson). Reading line: per
+idea, the evaluations it would save as a share of arm `A`'s run, and what blocks it.
+
+| idea | grad | mid | what blocks it |
+|---|---|---|---|
+| `G1`: wide CMA from the kept ends, take a 0.95 end, else grid | 27.7% | 21.2% | untested whether CMA escapes the trap |
+| stop the grid after level 0, finish the best 5 with CMA | at most 12% | at most 10% | level-0 best often over 1 degree off |
+| a wider indexed list before the grid (step 1's `R1`) | 0 | 0 | passed the seed test in 0 of 31 |
+| skip the fallback, leave the voxel to growth and the pass | up to 30.6% | up to 25.6% | ends were right in 23 of 23; no data on growth |
+
+`G1`'s numbers assume it reaches 0.95 exactly where a kept end is within 0.6 degree of a grid end
+that reached 0.95 (10 of 11 on `grad`, 10 of 12 on `mid`), at 1,000 evaluations a try (24 and 18
+tries). They are an upper estimate until the replay in phase A.
+
+**Terms.** **Kept end**: per candidate, the lower-cost end of its CMA fit and its MC refinement.
+**Rescue**: the CMA local optimization (the library's `CMAOptimizer`) from one kept end, initial
+step 0.25 degree, 1,000 evaluations, its own generator (`default_rng(0)`). **Rule `G1`**: after a
+failed seed test, rescue the kept ends in order of cost and take the first end with hit ratio at
+least 0.95; if none, run the grid fallback as today. **Arm `G`**: arm `A` with `G1`. **Wrong**:
+over 1 degree from the truth (the library's symmetry-reduced angle). **Aligned draws**: as step 8.
+
+**Samples, and what has touched them.** `grad`, `mid`: this draft read their fallback cases and
+chose the values on them; disclosed. `big`: no fallback, so `G` must equal `A` there exactly.
+`held` (250 grains, gradients 0 to 4 degrees): totals and fallback counts read in steps 4 and 8;
+none of its seed logs or fallback ends opened. `held` is the test sample. Clean images, Q-max 8.
+
+**Frozen now.** `G1` with 0.25 degree, 1,000 evaluations, at most 5 tries, accept at 0.95 (the
+library's `SeedIndexStopHitRatio`). Chosen from the table: the farthest near end is 0.58 degree,
+about 2.3 initial steps; 1,000 is five times the seed step's CMA budget. Not tuned after any run.
+
+**What is measured**, per sample: evaluations by stage; failed seed steps, rescues tried, rescued,
+grid fallbacks left; error and hit ratio of each rescued end and of the grid end it replaced (in
+the replay); wrong rescued seeds; seed steps whose taken end differs; wrong voxels (Wilson 95%);
+fixed and broken against `A` and `S8`; median error.
+
+**Predictions, written before any run.**
+1. Cost check: in at least 21 of 23 cases the grid's end costs less than every kept end.
+2. Replay (23 disclosed cases): `G1` reaches 0.95 in 12 to 21; every rescued end is right; its
+   median error is at most 0.05 degree; at most 2.5 tries a case on average.
+3. `held`: grid fallbacks 40% to 85% fewer than `A`'s; total 20% to 45% fewer.
+4. `mid` 12% to 21% fewer in total; `grad` 15% to 28%; `big` identical to `A`.
+5. Broken minus fixed against `A` between -3 and 5 voxels; median error moves at most 0.001 degree.
+
+**Decision rules, fixed now.** Gate before any whole-layer run: the replay must reach 0.95 in at
+least 12 of 23 cases with no wrong rescued end; else stop, report, no tuning. Then `G` passes on a
+sample if, against `A`: (1) on `held` and `mid` fewer grid fallbacks and the total at least 10%
+fewer, on `grad` the total fewer, on `big` identical; (2) broken minus fixed at most 5; (3) median
+error at most 0.001 degree higher; (4) at most 1 wrong rescued seed; (5) the house rule against
+`S8` with the pass: at least 20% fewer evaluations, broken minus fixed at most 5, median error at
+most 0.005 degree higher. If `A` fails (5) on a sample, `G` is judged there by (1) to (4). The step
+passes if `G` passes on `held` and on all disclosed samples. If it fails on `held`: no key.
+
+**Machine.** Cost check: 46 evaluations. Replay: at most 115,000. Per-level record: about 7.9
+million. Arm `G` whole-layer: about 18 to 30 (`held`), 12.3 (`mid`), 8.8 (`grad`), 3.8 (`big`)
+million. About 51 to 63 million, about 3 process-hours: about 1.5 to 2 hours wall with 4
+processes side by side. Caps: 300 minutes `held`, 240 the rest; at most 4 heavy processes.
+Arm `A` is the stored step 8 run (`G` on `big` doubles as its parity check).
+
+**Stop rule:** stop and report if a stored total does not reproduce (4,007,241 and 3,726,723
+fallback evaluations; 15,645,472, 12,189,777, 3,807,747 totals), if the gate fails, if `G` on
+`big` differs from `A_big`, if a rescue on a disclosed sample ends wrong, or if the key-on library
+run differs from the script arm with library draws.
+
+**Phase A (script layer).** 1. Link step 8's `A` runs; check totals; the cost check. 2. Tests
+first: `tests/test_ar5_rescue.py` (rule on synthetic steps; aligned draws unchanged). 3. Commit
+`ar5/rescue/frozen.json` (rule, values, hashes). 4. Replay `G1` on the 23 disclosed cases; gate.
+5. Per-level record of the 23 fallbacks (beside step 6). 6. `G` on `held` first, then `mid`,
+`grad`, `big`; passes; validity, stats, the plot (run evaluations against wrong voxels) before
+the tables; predictions. "READY FOR KEY".
+**Phase B (key).** The key; unit tests; key-off suite with no golden change; key on, a library
+run on `mid` equal to a script arm `Gl` (library draws). Page `findings_ar5_rescue.md`, history.
+**Files:** `scripts/autoresearch/ar5/rescue_*.py`, `tests/test_ar5_rescue.py`,
+`benchmarks/autoresearch/ar5/rescue/` (under 3 MB tracked; records untracked), the page.
+
+**Library changes:** phase A none. Phase B, only if the step passes: one opt-in key,
+`SeedRescueCMA sigma evals` (default off), used by `reconstructor.index_seed` after a failed seed
+test and before the grid fallback; `config_file.py`, `orientation_search.py` parse and check it.
+Off path bit-identical; no default changes, no golden regeneration.
+
+**Not in this step.** A learned approximation of the grid search (the per-level record is its
+data). Skipping fallbacks. Other values of 0.80, 0.95. Realistic images. Another crystal system.
+A timing. A second run of any arm with another random seed.
+
+**Choices made.**
+- `G1`, not a stop after level 0 (at most 39.2% of a search, and its best is often off).
+- All kept ends in order of cost, not only the lowest: in 6 of 23 the lowest is wrong.
+- Accept at 0.95, not 0.80: failed ends right and wrong overlap in hit ratio (step 1).
+- This step, not an early stop of an MC refinement after 2,000 evaluations with no improvement
+  (drafted too: it saves 12.6% on `mid`, 8.0% on `big`, 0.4% on `grad`, and arm `A` is 1 voxel
+  inside the `S8` limit on `mid`). This one aims at `held`'s largest stage and has a cheap gate
+  (under 0.2 million evaluations) before any whole-layer run.
+- Not a library key for the seed-accept rule of `N1` now: its code is on two branches that wait
+  for the owner.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
