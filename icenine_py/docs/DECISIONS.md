@@ -1671,3 +1671,23 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   Made by Newt Agent under D-20261109-N1; the owner can overrule. Where:
   icenine_py/docs/autoresearch/PLAN.md (AR5 step 9); review
   .claude/reports/20261113-0400-review-ar5i.md; branch feature/eval-reduction-ar5i a30c57d.
+
+### D-20261113-N2 · Track A / AR5 step 9 · AR5 step 9 phase B: the stop rule fired on the in-run boundary pass and was reported; the key SeedRescueCMA is accepted on the before-the-pass equality; 6 review fixes accepted
+- 2026-11-13, owner. Recorded by Newt Agent. Supersedes: none.
+- The key-on library run on mid equals script arm Gl before the boundary pass in every compared
+  item (map byte for byte, 10,064,185 evaluations, 13 rescues tried, 10 rescued). The pass made
+  inside the library run differs from the script's pass (3,051,586 against 3,051,647 evaluations;
+  8 voxels over 1 degree apart; 37 wrong voxels in both, 4 fixed and 4 broken). Read strictly, the
+  plan's stop rule (the key-on library run differs from the script arm) fires. The run stopped and
+  reported. The second review (Opus) found: the gap does not depend on the key (a key-off control
+  shows it; boundary_pass.py is untouched; the same gap is on record in AR3 step 10 and AR5 step
+  5); the in-run pass starts from the unrounded map in memory and the script from the rounded
+  stored map; the library's pass on the stored map matches the script exactly; the in-run pass is
+  the faithful one and this is not a library bug. Decision: accept the key on the same ground as
+  in AR3 step 10 and AR5 step 5, and say openly in the docs and the page that the stop rule fired.
+  Later stop rules say 'before the pass'. Accepted: all 6 required fixes of the second review.
+  Then merge task ar5i into feature/eval-reduction (key default off, off path bit-identical, suite
+  1842 passed with no golden change). The key is not recommended as a default; that and this
+  reading of the stop rule are the owner's to overrule. Made by Newt Agent under D-20261109-N1.
+  Where: review .claude/reports/20261113-0520-review-ar5i-B.md; branch feature/eval-reduction-ar5i
+  107db3c.
