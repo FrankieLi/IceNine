@@ -12107,9 +12107,11 @@ Script layer only; no library change, no golden change. Rule `G1` (plan, "AR5 st
 failed seed test, try the kept ends of the seed step in order of cost with a CMA local
 optimization (0.25 degree, 1,000 evaluations, `default_rng(0)`), at most 5; take the first end
 with hit ratio at least 0.95; else the grid fallback as today. Arm `G` is step 8's arm `A` with
-`G1`. Files: `scripts/autoresearch/ar5/rescue_*.py`, `tests/test_ar5_rescue.py` (13 tests),
-`benchmarks/autoresearch/ar5/rescue/` (cache untracked). Frozen at commit `b6f93d9` before any
-`held` file was read.
+`G1`. Files: `scripts/autoresearch/ar5/rescue_*.py`, `tests/test_ar5_rescue.py` (17 tests),
+`benchmarks/autoresearch/ar5/rescue/` (cache untracked). Frozen at commit `b6f93d9` (2026-11-12
+23:27:17) before any `held` file was read. Deviation from the plan's order: the cost check and the
+replay ran at 22:46 to 22:48, before the freeze commit (plan: freeze at step 3). They used the
+disclosed samples only, with the plan's approved values, which were not changed after.
 
 - Stored totals reproduce: fallback evaluations 3,726,723 (`grad`) and 4,007,241 (`mid`); totals
   with the pass 12,189,777, 15,645,472 and 3,807,747 (`big`).
@@ -12120,10 +12122,41 @@ with hit ratio at least 0.95; else the grid fallback as today. Arm `G` is step 8
   wrong rescued end (errors 0.001 to 0.011 degree, median 0.003), 66 tries (mean 2.87 a case;
   prediction 2.5 not met), 66,066 evaluations (a cost estimate: kept ends are the log's 12-decimal
   values). Gate (at least 12, no wrong end): passed.
-- A short script-layer run on `mid` (killed before the end) rescued six of the disclosed
-  fallback voxels in 0.1 s each and fell back to the grid at voxel 7167, as the replay predicts.
+- A short script-layer run on `mid` (an integration check, killed before the end; contended, not a
+  timing) rescued six of the disclosed fallback voxels and fell back to the grid at voxel 7167, as
+  the replay predicts.
 - Per-level record of the 23 grid fallbacks (untracked): re-running them with arm `A`'s aligned
-  draws reproduces the stored fallback evaluations exactly (7,733,964 in all).
+  draws reproduces the stored fallback evaluations exactly (3,726,723 and 4,007,241).
 - `rescue_run_all.sh` (held 300 min, others 240, at most 4 heavy processes, held first;
-  `--dry-run`, `--resume`, marker `rescue_run_all.done`); dry run and the cap path tested on `big`
-  in a scratch cache. The whole-layer runs and phase B are not made.
+  `--dry-run`, `--resume`, marker `rescue_run_all.done`).
+
+Step 6, the whole-layer runs of arm `G` and their boundary passes (contended; wall times not
+given), from `rescue/summary.json`, `tables.md`, `stats_<sample>.json` and
+`isolation_<sample>.json`:
+
+- Total evaluations with the pass, `A` to `G`: `held` 46,516,396 to 30,768,867 (33.9% fewer),
+  `mid` 15,645,472 to 13,004,457 (16.9%), `grad` 12,189,777 to 10,196,692 (16.4%), `big`
+  3,807,747 in both. Grid fallbacks 65 to 19, 12 to 4, 11 to 5, 0 to 0.
+- Rescued of tried: `held` 46 of 65 (Wilson 95% 58.8% to 80.4%), `mid` 8 of 12 (39.1% to 86.2%),
+  `grad` 6 of 11 (28.0% to 78.7%); wrong rescued seeds 0 of 60 (0.0% to 6.0%). Every try is in the
+  totals as 1,001 evaluations (167, 32 and 34 tries); the one overlap evaluation per try for the hit
+  ratio (233 in all) is not counted, as in the seed step.
+- Accuracy, `G` against `A` by voxel, after the pass: fixed / broken 4 / 0 (`held`), 0 / 0 on the
+  other three; wrong voxels after the pass (`A`, `G`) 73, 69; 35, 35; 56, 56; 21, 21. Before the pass
+  the 3 `held` voxels fixed are rescued voxels where `A`'s map was 47 to 58 degrees off and `G`'s end
+  is right. So on `held` the grid fallback's voxel ended wrong at 3 of the 46 rescued voxels: the
+  23 of 23 right ends of the disclosed samples do not carry over.
+- Draw isolation (review fix 6): voxels whose map differs between `A` and `G` before the pass: `mid`
+  8, exactly the rescued set; `grad` 32 (6 rescued and 26 others, 20 of them in a rescued voxel's
+  grain, largest change 0.2707 degree); `held` 67 (46 and 21, 20 in a rescued grain, largest
+  0.1010). This is consistent with local growth from the changed seeds; the growth link of the rest
+  is not traced. `G` equals `A` on `big`, but no seed test fails there, so that shows only that the
+  idle wrapper adds no draws; it is not a test of isolation.
+- At the rescued voxels `G`'s end differs from `A`'s by a median of 0.0123 degree (`mid`, largest
+  0.0907) and 0.0018 (`grad`, largest 0.0178); on `held` by at most 0.7050 where `A` was right. The
+  table column "seed step's own end differs" is 0 by construction (the rescue runs after the seed
+  step, whose fits are unchanged): it checks the pairing only.
+- Rules (1) to (5) are met on all four samples; `A` also passes rule (5) on all four, so the
+  "if `A` fails (5)" clause was not used. Predictions 1, 3 and 4 met; 2 not met (mean tries 2.87);
+  5 not met only because `held`'s broken minus fixed is -4, outside -3 to 5 on the favourable side.
+  Step verdict: PASS, READY FOR KEY (phase B: D-20261113-N1).

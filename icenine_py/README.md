@@ -841,7 +841,9 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   `scripts/autoresearch/ar5/rescue_*.py` (`rescue_rules.py` the rule and the wrapper,
   `rescue_run.py` arm `G`, `rescue_run_all.sh` the four runs, `rescue_freeze.py`), tests
   `tests/test_ar5_rescue.py`, results `benchmarks/autoresearch/ar5/rescue/` (the cache is
-  untracked). The gate passed; the whole-layer runs are not made yet. MIGRATION_HISTORY,
+  untracked; `rescue_isolation.py` writes the A-to-G changed-voxel check). The gate passed and the
+  whole-layer runs of arm `G` on all four samples are made: the step passes its frozen rules
+  (verdict PASS, READY FOR KEY; phase B approved, D-20261113-N1). MIGRATION_HISTORY,
   "Autoresearch AR5 step 9, phase A".
 
 See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and
