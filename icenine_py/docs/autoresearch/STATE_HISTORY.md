@@ -995,3 +995,19 @@ AR5 steps 4, 6, 7, 8, 9).
   record of the 23 fallbacks) and `agent-ab6ee3e8ef1058af1` (library runs).
 - Lesson: a stop rule that compares a library run with a script arm must say "before the pass"
   (the in-run pass starts from the unrounded map).
+
+### AR5 step 10 (level-0 cut of the grid search; task `ar5j`), merged as a study at 8ffc5d4 on 2026-11-13
+
+A study with scripts only: no library change, no key, no findings page (the MIGRATION_HISTORY
+section is its record). Suite after the merge: 1847 passed, 47 skipped, 1 deselected. Decisions
+D-20261113-N3 (plan), N4 (result). Reports in the main `.claude/reports/`: `20261113-0630-ar5j.md`,
+`20261113-0625-review-ar5j.md`, `20261113-0640-ar5j-fixes.md`.
+
+- The cut: quick MC on the first 1,000 listed candidates of level 0. Replay on the 23 stored grid
+  searches of `mid` and `grad`: right in 20 of 23 (needed 22), hit ratio at least 0.95 in 15
+  (needed 20), 67.7% fewer evaluations (2,499,899 against 7,733,964; met).
+- Verdict: FAIL the replay gate. No whole-layer run, no key, no held read.
+- Lesson: a claim about where the right candidate sits at one level does not show that later
+  levels keep it; a gate replays the whole changed path.
+- Data that stays untracked: worktree `agent-a9920a0aeaf5d1276` (detached): the replay cache
+  under `icenine_py/benchmarks/autoresearch/ar5/cut/`.
