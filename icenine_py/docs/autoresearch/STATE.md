@@ -31,8 +31,8 @@ before its fixes round (shared files conflict).
    (the page; agent writes refused): the owner places it or allows it. Then: sync check,
    commit, fix 2 (MIGRATION_HISTORY names that commit), merge, close (PR #43).
 2. AR5 step 6 (`ar5f`; N3): fixed, waits. Steps 9, 10: merged (step 10 a failed study, no key).
-   Step 11 (`ar5k`; 13-N5, PLAN "AR5 step 11"): rule P(3000). The step 11 implementer (id in the
-   session) runs phase A to the gate; on "READY TO RUN" do the Queue row "AR5 step 11".
+   Step 11 (`ar5k`; 13-N5, PLAN "AR5 step 11"): rule P(3000). Gate passed; the whole-layer runs
+   go detached since 07:24 on 13 Nov. Check and next steps: the Queue row "AR5 step 11".
 3. Items 14 + 3 (task `item14`; N25): E0 arms done. The run stopped at 00:01 on 2026-11-12,
    exit 3: the preflight refused (`cpptools`, pid 18415). Once the owner frees the machine:
    rerun the command below (E0 resumes; warm-up 25 min). After exit 0: phase B by
@@ -42,8 +42,7 @@ before its fixes round (shared files conflict).
 - Items 14 + 3: `caffeinate -i bash scripts/autoresearch/item14/run_item14.sh` in `icenine_py/`
   of worktree `agent-a012b8f461d1630a1` (stopped, exit 3, 00:01, 2026-11-12); marker `item14.done`.
   Branch `ar5d` is held by worktree `agent-a8a1ac8e80f8913cf` (tip fac79f9).
-- Page v47 live; v48 (step 10 result) to do. Step 11 implementer runs since 06:51 on 13 Nov;
-  it notifies.
+- Page v47 live; v48 to do. AR5 step 11: arm S runs detached since 07:24 on 13 Nov (Queue row).
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
@@ -58,7 +57,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 | AR5 step 7 | opt-in key `BoundaryPassSkipHitRatio` (task `ar5g`) | MERGED at 50c3b9c (N4, N5, N6), see "Last finished step". Open: only its page, for the owner to place: text `.claude/reports/20261112-ar5g-page-v2.md` (main checkout; the merge removed the fixes worktree, the text was recovered exactly from the recorded write and a table sync) goes to `icenine_py/docs/autoresearch/findings_ar5_gate.md` on `feature/eval-reduction`, then a sync check and a commit. Keep worktree `agent-a331e7882919e74aa` (stored passes, `ar5/gate/`). Step 6's page text and reports are now also copied to the main `.claude/reports/` |
 | AR5 step 8 | sweep order of the seed step (task `ar5h`) | MERGED at 949dc61 as a study; failed rule 5 (N9), no key; see "Last finished step". Open: only its page for the owner: `.claude/reports/20261112-ar5h-page.md` (main checkout) goes to `icenine_py/docs/autoresearch/findings_ar5_order.md`. Keep worktree `agent-abdf64302f4022c0a` (detached): the step 8 cache `ar5/order/cache` that step 9 links, and the MC traces. Reports also in the main `.claude/reports/`: `20261112-1419-ar5h.md`, `-corrected.md`, `20261112-2215-ar5h-fixes.md` |
 | AR5 step 9 | rule `G1`, key `SeedRescueCMA` (task `ar5i`) | MERGED at 28b75fa. Open: its page for the owner: `.claude/reports/20261113-ar5i-page.md` goes to `icenine_py/docs/autoresearch/findings_ar5_rescue.md`. Keep worktrees `agent-a8d20b3821621fd41`, `agent-ab6ee3e8ef1058af1` (`ar5/rescue/cache`) |
-| AR5 step 11 | rule P(3000), arm S (task `ar5k`) | implementer hands back "READY TO RUN". THEN: hand-back check; start `scripts/autoresearch/ar5/patience_run_all.sh` detached from its worktree's `icenine_py` (`nohup perl -MPOSIX -e 'POSIX::setsid(); exec @ARGV' ...`); marker `benchmarks/autoresearch/ar5/patience/cache/logs/patience_run_all.done`, first line `exit=0`; no notification, the cron wake-up checks it. At its end: stats phase by `SendMessage`, check, Opus review, decision, fixes, merge, close as step 9 went |
+| AR5 step 11 | rule P(3000), arm S (task `ar5k`) | Gate PASSED (g1 to g4; taken ends changed 25, 1, 4 on mid, grad, big; mid saves 11.0%). Implementer `a69be86211b6c2797`, worktree `.claude/worktrees/agent-a69be86211b6c2797`, tip 1d03ab1, report `.claude/reports/20261113-0700-ar5k.md` there; branch parent set by the main session. RUNS DETACHED since 07:24 on 2026-11-13 (arm S on held, mid, grad, big; about 1.5 hours; no notification). Check: `cat <worktree>/icenine_py/benchmarks/autoresearch/ar5/patience/cache/logs/patience_run_all.done` (first line `exit=0`; absent while it runs; `pgrep -f autoresearch/ar5/`). If it died: `scripts/autoresearch/ar5/patience_run_all.sh --resume`, detached, from that `icenine_py`. AT ITS END: stats phase by `SendMessage` to the implementer (validity, stats against stored arm G and S8, predictions, rules (1) to (5), plot, pareto rows, "READY FOR KEY"); hand-back check; Opus review; decision 13-N6; fixes; phase B key `SeedIndexMCPatience` only if it passes (ROADMAP heads-up first); copy worktree reports to main; merge; close with page v48 (steps 10 and 11). |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
 | tooling | `audit_numbers.py`: thousands separators; false misses in wide table rows | small |
 
