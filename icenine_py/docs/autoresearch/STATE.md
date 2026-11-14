@@ -38,14 +38,16 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
    goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. Eight pages wait now.
    All timing work is done. AR5 step 14 (`ar5n`; D-20261114-N4; PLAN): rule G2, a second local
-   optimization before the grid search. Implementer started 11:10, 14 Nov (phase A to gate 2;
-   brief `SP/brief_ar5n.md`). On its report: hand-back check; if both gates pass, start the
-   whole-layer runs detached with its command (max 4 processes); else decision, study merge.
-   Never open `passes_held2/` (step 13 test). AR5 step 13 stays blocked for the owner (Queue).
+   optimization before the grid search. Gates passed (form G2b: 20 of 28, then 12 of 21 on
+   held2, none wrong; freeze 84a51a4). Whole-layer runs of arm J started detached 11:24, 14 Nov,
+   worktree `agent-a1bd2e7a7dbfe1efd`: marker `polish_runs.done` (Running jobs). After exit 0:
+   `SendMessage` a1bd2e7a7dbfe1efd for stats (never open step 13 `passes_held2/`), then review.
 
 ## Running jobs
-- Nothing runs. Branch `ar5d`: worktree `agent-a8a1ac8e80f8913cf` (tip fac79f9) is kept.
-- Page v50 live (10:40, 14 Nov); v51 after the next finished step. Step 13: blocked (Queue).
+- AR5 step 14 runs (11:24, 14 Nov), worktree `agent-a1bd2e7a7dbfe1efd`, in `icenine_py/`: marker
+  `benchmarks/autoresearch/ar5/polish/cache/logs/polish_runs.done`; if dead, rerun detached:
+  `scripts/autoresearch/ar5/polish_run_all.sh --resume`. `ar5d` worktree a8a1ac8... is kept.
+- Page v50 live (10:40, 14 Nov); v51 after the next finished step. Step 13: blocked.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
@@ -111,7 +113,6 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   Step 5's result files add about 50 MB to git; say so if you want them pruned.
 
 ## Bookkeeping
-
 - Next decision ID: D-20261114-N5 (first of a day is N1).
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
