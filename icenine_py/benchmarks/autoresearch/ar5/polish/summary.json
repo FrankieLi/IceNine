@@ -1,0 +1,145 @@
+{
+ "per_sample_passes_available": {
+  "held": true,
+  "mid": true,
+  "grad": true,
+  "big": true
+ },
+ "held2": "waits for step 13's held2 result (plan step 7): after-the-pass numbers and rules not computed",
+ "failed_rules": [],
+ "verdict": "NOT READY FOR KEY: the four other samples pass; held2's after-the-pass judgement waits for step 13's held2 result",
+ "rules": {
+  "held": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "h_fails_5": false,
+   "total_cut_pct": 17.33935218028016,
+   "passes": true
+  },
+  "mid": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "h_fails_5": false,
+   "total_cut_pct": 5.482989393574122,
+   "passes": true
+  },
+  "grad": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "h_fails_5": false,
+   "total_cut_pct": 9.865473054483948,
+   "passes": true
+  },
+  "big": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "h_fails_5": false,
+   "total_cut_pct": 0.0,
+   "passes": true
+  }
+ },
+ "predictions": {
+  "p1": true,
+  "p2": {
+   "accepted": 20,
+   "accepted_in_12_to_20": true,
+   "g2b_at_least_g2a": true,
+   "none_wrong": true,
+   "angle_range_deg": [
+    0.0006539503012396281,
+    0.7220421870204269
+   ],
+   "angle_in_0p002_to_0p2": false,
+   "net_saving_pct": 70.8224728721651,
+   "net_in_40_to_70": false
+  },
+  "p3": {
+   "accepted": 12,
+   "accepted_in_7_to_15": true,
+   "none_wrong": true,
+   "net_saving_pct": 56.30246434627237,
+   "net_in_30_to_70": true
+  },
+  "p4": {
+   "held": {
+    "cut_pct": 17.33935218028016,
+    "right": false
+   },
+   "mid": {
+    "cut_pct": 5.482989393574122,
+    "right": true
+   },
+   "grad": {
+    "cut_pct": 9.865473054483948,
+    "right": true
+   },
+   "big": {
+    "cut_pct": 0.0,
+    "right": true
+   },
+   "held2": {
+    "cut_pct_before_pass": 15.751451811346442,
+    "right": "waits (needs the pass)"
+   },
+   "grid_searches_left": {
+    "held2": {
+     "h": 21,
+     "j": 9,
+     "right": true
+    },
+    "held": {
+     "h": 19,
+     "j": 4,
+     "right": false
+    }
+   }
+  },
+  "p5": {
+   "held": {
+    "broken_minus_fixed": -1,
+    "in_minus2_to_3": true,
+    "median_move_deg": 2.441712153646025e-05,
+    "within_0p0005": true
+   },
+   "mid": {
+    "broken_minus_fixed": 0,
+    "in_minus2_to_3": true,
+    "median_move_deg": 0.0,
+    "within_0p0005": true
+   },
+   "grad": {
+    "broken_minus_fixed": 0,
+    "in_minus2_to_3": true,
+    "median_move_deg": 3.15248335436627e-06,
+    "within_0p0005": true
+   },
+   "big": {
+    "broken_minus_fixed": 0,
+    "in_minus2_to_3": true,
+    "median_move_deg": 0.0,
+    "within_0p0005": true
+   },
+   "held2": "waits (needs the pass)"
+  }
+ },
+ "wrong_seeds_broad": {
+  "held2": 0,
+  "held": 0,
+  "mid": 0,
+  "grad": 0,
+  "big": 0
+ },
+ "status": "study result of step 14 (rule G2b: a second local optimization from a failed rescue's ends before the grid search); phase A only, held2 after the pass waits for step 13; library key not written; not a default arm"
+}

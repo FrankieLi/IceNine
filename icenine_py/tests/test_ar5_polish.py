@@ -373,6 +373,46 @@ def test_gate2_rules() -> None:
     assert not PGT.gate2(low)["t3"]
 
 
+# ---- the verdict rules (polish_judge) ----
+import polish_judge as PJ  # noqa: E402
+
+_OK = dict(a=True, b=True, c=True, passes=True)
+_BAD = dict(a=False, b=True, c=True, passes=False)
+
+
+def _r(sample: str, tj: int, th: int, **kw: Any) -> Dict[str, Any]:
+    base: Dict[str, Any] = dict(
+        net_vs_h=0, med_j=0.02, med_h=0.02, extra_wrong_seeds=0, house_j=_OK, house_h=_OK
+    )
+    base.update(kw)
+    return PJ.rules(sample, tj, th, **base)
+
+
+def test_rule_1_by_sample_and_its_edges() -> None:
+    assert _r("held2", 94, 100)["r1"] and not _r("held2", 94_001, 100_000)["r1"]
+    assert _r("held", 95, 100)["r1"] and not _r("held", 951, 1000)["r1"]
+    assert _r("mid", 1005, 1000)["r1"] and not _r("mid", 1006, 1000)["r1"]
+    assert _r("grad", 1005, 1000)["r1"] and not _r("grad", 1006, 1000)["r1"]
+    assert _r("big", 100, 100)["r1"] and not _r("big", 99, 100)["r1"]
+
+
+def test_rules_2_3_4_5_and_the_h_fails_5_clause() -> None:
+    assert _r("mid", 100, 100, net_vs_h=5)["r2"] and not _r("mid", 100, 100, net_vs_h=6)["r2"]
+    assert _r("mid", 100, 100, med_j=0.021)["r3"] and not _r("mid", 100, 100, med_j=0.0211)["r3"]
+    assert _r("mid", 100, 100, extra_wrong_seeds=1)["r4"]
+    assert not _r("mid", 100, 100, extra_wrong_seeds=2)["r4"]
+    assert not _r("mid", 100, 100, house_j=_BAD)["passes"]  # H passes (5), J fails it
+    assert _r("mid", 100, 100, house_j=_BAD, house_h=_BAD)["passes"]  # H fails it too
+    assert PJ.house(80, 100, 5, 0, 0.0, 0.0)["passes"]
+    assert not PJ.house(81, 100, 0, 0, 0.0, 0.0)["a"]  # less than 20% fewer
+    assert PJ.pct_fewer(75, 100) == 25.0 and PJ.pct_fewer(1, 0) == 0.0
+
+
+def test_step_verdict_needs_every_sample() -> None:
+    assert PJ.step_verdict({s: True for s in PJ.SAMPLES})
+    assert not PJ.step_verdict({**{s: True for s in PJ.SAMPLES}, "held2": False})
+
+
 # ---- step 14's freeze check replaces step 12's for held and held2 ----
 import polish_replace_freeze as PRF  # noqa: E402
 

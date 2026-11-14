@@ -1,0 +1,146 @@
+[
+ {
+  "sample": "held2",
+  "arm": "J",
+  "order": "interleaved + rescue G1 + stall check PH(3000) + second local optimization G2b",
+  "boundary_pass": false,
+  "evals_total": 21834061,
+  "evals_per_voxel": 888.65,
+  "wrong": 95,
+  "n": 24570,
+  "interval_pct": [
+   0.32,
+   0.47
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/polish/stats_held2.json",
+  "status": "study result of step 14 (rule G2b: a second local optimization from a failed rescue's ends before the grid search); phase A only, held2 after the pass waits for step 13; library key not written; not a default arm"
+ },
+ {
+  "sample": "held",
+  "arm": "J",
+  "order": "interleaved + rescue G1 + stall check PH(3000) + second local optimization G2b",
+  "boundary_pass": false,
+  "evals_total": 19259536,
+  "evals_per_voxel": 783.86,
+  "wrong": 101,
+  "n": 24570,
+  "interval_pct": [
+   0.34,
+   0.5
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/polish/stats_held.json",
+  "status": "study result of step 14 (rule G2b: a second local optimization from a failed rescue's ends before the grid search); phase A only, held2 after the pass waits for step 13; library key not written; not a default arm"
+ },
+ {
+  "sample": "held",
+  "arm": "J",
+  "order": "interleaved + rescue G1 + stall check PH(3000) + second local optimization G2b",
+  "boundary_pass": true,
+  "evals_total": 24457773,
+  "evals_per_voxel": 995.43,
+  "wrong": 68,
+  "n": 24570,
+  "interval_pct": [
+   0.22,
+   0.35
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/polish/stats_held.json",
+  "status": "study result of step 14 (rule G2b: a second local optimization from a failed rescue's ends before the grid search); phase A only, held2 after the pass waits for step 13; library key not written; not a default arm"
+ },
+ {
+  "sample": "mid",
+  "arm": "J",
+  "order": "interleaved + rescue G1 + stall check PH(3000) + second local optimization G2b",
+  "boundary_pass": false,
+  "evals_total": 8242901,
+  "evals_per_voxel": 335.49,
+  "wrong": 75,
+  "n": 24570,
+  "interval_pct": [
+   0.24,
+   0.38
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/polish/stats_mid.json",
+  "status": "study result of step 14 (rule G2b: a second local optimization from a failed rescue's ends before the grid search); phase A only, held2 after the pass waits for step 13; library key not written; not a default arm"
+ },
+ {
+  "sample": "mid",
+  "arm": "J",
+  "order": "interleaved + rescue G1 + stall check PH(3000) + second local optimization G2b",
+  "boundary_pass": true,
+  "evals_total": 11295158,
+  "evals_per_voxel": 459.71,
+  "wrong": 35,
+  "n": 24570,
+  "interval_pct": [
+   0.1,
+   0.2
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/polish/stats_mid.json",
+  "status": "study result of step 14 (rule G2b: a second local optimization from a failed rescue's ends before the grid search); phase A only, held2 after the pass waits for step 13; library key not written; not a default arm"
+ },
+ {
+  "sample": "grad",
+  "arm": "J",
+  "order": "interleaved + rescue G1 + stall check PH(3000) + second local optimization G2b",
+  "boundary_pass": false,
+  "evals_total": 5495005,
+  "evals_per_voxel": 223.65,
+  "wrong": 206,
+  "n": 24570,
+  "interval_pct": [
+   0.73,
+   0.96
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/polish/stats_grad.json",
+  "status": "study result of step 14 (rule G2b: a second local optimization from a failed rescue's ends before the grid search); phase A only, held2 after the pass waits for step 13; library key not written; not a default arm"
+ },
+ {
+  "sample": "grad",
+  "arm": "J",
+  "order": "interleaved + rescue G1 + stall check PH(3000) + second local optimization G2b",
+  "boundary_pass": true,
+  "evals_total": 9175867,
+  "evals_per_voxel": 373.46,
+  "wrong": 56,
+  "n": 24570,
+  "interval_pct": [
+   0.18,
+   0.3
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/polish/stats_grad.json",
+  "status": "study result of step 14 (rule G2b: a second local optimization from a failed rescue's ends before the grid search); phase A only, held2 after the pass waits for step 13; library key not written; not a default arm"
+ },
+ {
+  "sample": "big",
+  "arm": "J",
+  "order": "interleaved + rescue G1 + stall check PH(3000) + second local optimization G2b",
+  "boundary_pass": false,
+  "evals_total": 2499924,
+  "evals_per_voxel": 101.75,
+  "wrong": 74,
+  "n": 24570,
+  "interval_pct": [
+   0.24,
+   0.38
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/polish/stats_big.json",
+  "status": "study result of step 14 (rule G2b: a second local optimization from a failed rescue's ends before the grid search); phase A only, held2 after the pass waits for step 13; library key not written; not a default arm"
+ },
+ {
+  "sample": "big",
+  "arm": "J",
+  "order": "interleaved + rescue G1 + stall check PH(3000) + second local optimization G2b",
+  "boundary_pass": true,
+  "evals_total": 3635256,
+  "evals_per_voxel": 147.96,
+  "wrong": 21,
+  "n": 24570,
+  "interval_pct": [
+   0.06,
+   0.13
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/polish/stats_big.json",
+  "status": "study result of step 14 (rule G2b: a second local optimization from a failed rescue's ends before the grid search); phase A only, held2 after the pass waits for step 13; library key not written; not a default arm"
+ }
+]

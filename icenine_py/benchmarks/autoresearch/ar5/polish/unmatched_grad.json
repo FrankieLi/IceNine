@@ -1,0 +1,27 @@
+{
+ "only_j_n": 1,
+ "only_h_n": 0,
+ "only_j_wrong": 0,
+ "only_h_wrong": 0,
+ "only_j_wrong_where_h_map_right": 0,
+ "only_h_wrong_where_j_map_right": 0,
+ "only_j_wrong_where_h_map_right_voxels": [],
+ "only_j": [
+  {
+   "voxel": 8146,
+   "occurrence": 0,
+   "reseed": true,
+   "has_fits": true,
+   "hit": 0.9866548042704626,
+   "cost": 0.09172648150169171,
+   "passes_seed_test": true,
+   "err_deg": 0.007347613860397199,
+   "wrong": false,
+   "other_map_err_before_deg": 0.025262463837862015,
+   "other_map_wrong_before": false,
+   "other_map_err_after_deg": 0.025262463837862015,
+   "other_map_wrong_after": false
+  }
+ ],
+ "only_h": []
+}
