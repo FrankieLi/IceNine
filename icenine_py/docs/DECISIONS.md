@@ -1770,3 +1770,18 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   the limit is not moved; a fail on mid alone means no key. Not chosen now: a stronger local
   optimization from the rescue's near ends (9 cases, no record of what reaches 0.95). Where:
   icenine_py/docs/autoresearch/PLAN.md, AR5 step 12.
+
+### D-20261113-N8 · Track A / AR5 step 12 · AR5 step 12 passes its frozen rules on all five samples: 6 fixes; opt-in key SeedIndexMCStallHit approved (phase B)
+- 2026-11-13, owner. Recorded by Newt Agent. Supersedes: none.
+- Arm H (arm G with rule PH(3000)) passes rules 1 to 5 on held2 (the new test sample), held, mid,
+  grad and big. Against G with the pass it needs 4.33%, 3.84%, 8.11%, 0.16% and 4.53% fewer
+  evaluations (seed step on held2 9.21% fewer); wrong voxels are G's on every sample (67, 69, 35,
+  56, 21; 0 fixed, 0 broken); against S8 broken minus fixed is -4, -1, +4, -7, -3 (limit 5; S8 is
+  not draw-aligned). The review (APPROVE) recomputed the numbers from the raw maps and logs,
+  confirmed the freeze (9e315e2, before held2 existed) and that held2 is built as held except
+  generator seed 2. Apply the 6 fixes of the review. Phase B is approved: one opt-in key
+  SeedIndexMCStallHit k (default 0, off) in the seed step's MC refinement; off path bit-identical;
+  no default or golden change; key-on library run on mid equal to a script arm with the library's
+  draws before the pass, evaluation counts included. The key is not recommended as a default; that
+  is the owner's choice. The owner can overrule. Where:
+  .claude/reports/20261113-1600-review-ar5l.md; PLAN.md AR5 step 12.
