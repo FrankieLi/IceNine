@@ -40,7 +40,7 @@ before its fixes round (shared files conflict).
 
 ## Running jobs
 - Items 14 + 3: `caffeinate -i bash scripts/autoresearch/item14/run_item14.sh` in `icenine_py/`
-  of worktree `agent-a012b8f461d1630a1` (run 2 started detached 21:53, 13 Nov); marker `item14.done`.
+  of worktree `agent-a012b8f461d1630a1` (run 2, detached 21:53, 13 Nov); marker `item14.done`.
   Branch `ar5d` is held by worktree `agent-a8a1ac8e80f8913cf` (tip fac79f9).
 - Page v49 live (17:38, 13 Nov; v50 after the next finished step). Step 13: blocked (Queue).
 
