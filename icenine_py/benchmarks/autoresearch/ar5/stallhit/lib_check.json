@@ -140,6 +140,10 @@
     "base": "script pass (Gl, from the stored map)"
    }
   },
+  "compute": {
+   "evals_before_passes": 17426914,
+   "evals_with_passes": 23522888
+  },
   "equal_before_pass": true
  }
 }

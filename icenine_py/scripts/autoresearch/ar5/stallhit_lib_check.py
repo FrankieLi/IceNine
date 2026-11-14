@@ -140,6 +140,13 @@ def lib_vs_hl(C: Path) -> Dict[str, Any]:
             tries=RLC.try_level(lib / "pass_tries.npz", pdir / "D4_Hl" / "tries.npz"),
             accuracy=RLC.accuracy_after(lib / "recon.mic.gz", pdir / "after_Hl.npy"),
         )
+        out["compute"] = dict(  # the phase B budget: the two mid runs together
+            evals_before_passes=int(RLC.evals_total(st_hl) + run_lib["evals_total_before_pass"]),
+            evals_with_passes=int(
+                out["after_pass"]["total_with_pass"]["script"]
+                + out["after_pass"]["total_with_pass"]["library"]
+            ),
+        )
     b = before
     out["equal_before_pass"] = bool(
         b["map"]["voxels_differ"] == 0
