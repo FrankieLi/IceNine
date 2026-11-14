@@ -11986,3 +11986,22 @@ changed voxels 986 against 983 and 688 against 681 (`keys_pass_contents.py`,
 shown for `S8L` in AR3 step 10 and not tested for `S10L` and `S11L`. Full suite after the fixes
 round 1,724 passed, 47 skipped, 1 deselected (`suite_counts.json`). Not tested: timing, `mid`,
 `held`, realistic images; no recommended setting. Page: `docs/autoresearch/findings_ar5_keys.md`.
+
+## Autoresearch: C++ time on the pilot, one client (done 2026-11-14, task cpptime)
+
+Stored C++ binary, mode `p`, `mpirun -n 2` (one server that fits nothing, one fitting client), on
+the 2,000-voxel pilot, clean images, Q-max 8. No change under `Src/` or `icenine/`. Scripts in
+`scripts/autoresearch/cpptime/`, results in `benchmarks/autoresearch/cpptime/` (`summary.json`,
+`tables.md`, `cpp_time.png`). Whole process: C0 (untimed) 1,247.03 s, C1 1,236.87 s (strictly
+quiet), C2 1,231.87 s (strict check failed: 3 of 43 load samples over the limit 3.5, no process
+over 20% CPU caught, sampled every 300 s; reported under R4b), pair 0.41% apart. User plus system
+time is 2.00 times the whole process (two busy ranks; the server spins), so it is not a
+single-worker timing. Work: 85 global searches, 1,921 local optimizations, 416 of 2,000 wrong
+(Wilson 19.1% to 22.6%); Python arm A of item 14 (single-worker label, whole process 1,621.02 s):
+69 global searches, 24 wrong; the rules differ. Wrong in both 12, only C++ 404, only Python 12.
+Evaluations not measured: `lldb` cannot launch the binary (developer mode off). The identity check
+of the repeats compares the header and the first 12 columns of `.mic.LBFS` (column 13, the fitting
+time, is never assigned in the C++ source); C0, C1, C2 were also equal byte for byte. Predictions:
+start-up, local optimizations and the pair were right; wrong voxels, global searches, BFS time and
+the Python-over-C++ ratio (1.33, not 2.5 to 15) were wrong. Page text:
+`.claude/reports/20261114-cpptime-findings_cpp_time.md` (the write to `docs/` was refused).
