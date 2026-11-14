@@ -1026,3 +1026,22 @@ D-20261113-N5 (plan), N6 (result). Reports in the main `.claude/reports/`: `2026
 - Lesson: a patience stop cuts refinements that are not yet good; step 12 stops only at 0.95.
 - Data that stays untracked: worktree `agent-a69be86211b6c2797` (detached): the run cache under
   `icenine_py/benchmarks/autoresearch/ar5/patience/cache`.
+
+### AR5 step 12 (PH(3000): stop a stalled seed-step refinement only at hit ratio 0.95 or more; task `ar5l`), merged at fe3d277 on 2026-11-13
+
+Adds one opt-in key, `SeedIndexMCStallHit k` (default 0, off; not recommended as a default). Suite
+after the merge: 1976 passed, 47 skipped, 1 deselected. Decisions D-20261113-N7 (plan), N8 (efe12c6:
+passes rules 1 to 5 on held2, held, mid, grad, big; key approved), N10 (3c58d8f: key accepted, 4 fixes).
+Reports in the main `.claude/reports/`: `20261113-1100-ar5l.md`, `20261113-1600-review-ar5l.md`,
+`20261113-1630-ar5l-B.md`, `20261113-1730-review-ar5l-B.md`, `20261113-1800-ar5l-fixes2.md`.
+
+- The rule: arm H, with the in-run pass. Against arm G: held2 (the new test sample) 4.33% fewer
+  evaluations, held 3.84%, mid 8.11%, grad 0.16%, big 4.53%. Wrong voxels equal to G's; 0 fixed, 0 broken.
+- Library run on mid equals the script arm before the pass (8,713,457 evaluations); the in-run
+  pass differs (reported apart, as step 9).
+- The findings page is not in the tree: text `.claude/reports/20261113-ar5l-page-v2.md` (main) goes to
+  `icenine_py/docs/autoresearch/findings_ar5_stallhit.md` (the owner places it; six pages wait).
+- Step 13 (task `ar5m`) is blocked for the owner (freeze run refused; gate g2 needs an amendment);
+  its phase B precondition (step 12 merged) is now met. `cpptools` is gone: item 14 timing starts.
+- Data that stays untracked: worktrees `agent-a0ffe667a1a6ee068` (held2 sample, runs; `passes_held2/
+  D4_H/tries.npz` stays unopened until step 13's freeze) and `agent-ab6f021fc3d6bed02` (mid runs).
