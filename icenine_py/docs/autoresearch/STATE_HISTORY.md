@@ -1045,3 +1045,26 @@ Reports in the main `.claude/reports/`: `20261113-1100-ar5l.md`, `20261113-1600-
   its phase B precondition (step 12 merged) is now met. `cpptools` is gone: item 14 timing starts.
 - Data that stays untracked: worktrees `agent-a0ffe667a1a6ee068` (held2 sample, runs; `passes_held2/
   D4_H/tries.npz` stays unopened until step 13's freeze) and `agent-ab6f021fc3d6bed02` (mid runs).
+
+### Worktrees kept, steps 3 to 7 (moved from STATE.md on 2026-11-14)
+
+- Step 7: `agent-a38ba6f5a25aa033e` (`ar3/big/`). Step 6: `agent-a6db3cabf8ab230e9`,
+  `agent-a27b4a932b0dd99b6`. Step 5: `agent-a4fd6282107a76186`, `agent-ad88d4ade1ca5a039`.
+  Steps 3 and 4: `agent-ae68d32fb972a8ad4`, `agent-ac609f1c28c619ed0`. More: `grep -n "worktrees/agent-"` here.
+
+### Items 14 + 3 (task `item14`; speed keys F and S on E0 and the pilot, with timing), merged at 8f8ca20 on 2026-11-14
+
+A study: scripts, tests and results only; no key and no default changed. Suite after the merge:
+2004 passed, 41 skipped, 1 deselected. Decisions: N25 of 11 Nov (plan), D-20261114-N1 (quiet rule
+R4b), D-20261114-N2 (review: 14 fixes, no rerun, merge as a study).
+
+- Pilot wrong of 2,000: off 37, F 24, S 34, FS 26; FS against F 6 fixed, 8 broken. Rule R3 not met:
+  the smooth key is not recommended. E0 (200 voxels): off 41, F 41, S 7, FS 7.
+- Evaluations: F 25,602,383; FS 25,845,740 plus 1,042,020 smooth.
+- Times, single worker, R4b labels: A 1,621.02 s and 1,627.40 s; B 4,484.94 s and 4,481.69 s; B/A 2.76.
+  The split run was strictly quiet (FS smooth share 54.0% and 52.4%).
+- Two timing runs (13 Nov 17:40 and 21:53) stopped with exit 5 at arm B1: one load sample over 2.5
+  while a macOS indexing daemon used one core (agents may not stop it). The two unreported B1 times
+  agreed to 0.3%, so rule R4b was written (N1) and the runs were repeated.
+- The findings page waits for the owner: `.claude/reports/20261114-item14-findings_page_draft-v2.md`
+  goes to `icenine_py/docs/autoresearch/findings_item14.md`. Worktree `agent-a012b8f461d1630a1` kept.
