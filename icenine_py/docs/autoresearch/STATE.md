@@ -44,9 +44,9 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    `SendMessage` a1bd2e7a7dbfe1efd for stats (never open step 13 `passes_held2/`), then review.
 
 ## Running jobs
-- AR5 step 14: big, grad, mid done. held, held2 restarted 12:57, 14 Nov after fix 1d34368 (step
-  14's freeze check replaces step 12's stale one). Worktree `agent-a1bd2e7a7dbfe1efd`, marker
-  `…/polish/cache/logs/polish_runs.done`; if dead: move marker aside, then `--resume`.
+- AR5 step 14: all five arm J runs and passes finished (exit 0, 14:55, 14 Nov). Implementer
+  a1bd2e7a (worktree `agent-a1bd2e7a7dbfe1efd`) computes stats since 15:54; on its hand-back:
+  hand-back check, Opus review (must check guard swap 1d34368), decision N5, then phase B.
 - Page v50 live (10:40, 14 Nov); v51 after the next finished step. Step 13: blocked.
 
 ## Queue
