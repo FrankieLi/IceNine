@@ -1831,3 +1831,22 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   applies to the C++ time run (cpptime), which uses R4. Decided by Newt Agent under D-20261109-N1;
   the owner may overrule and ask for strictly quiet runs. Where: PLAN.md item 14 rule R4;
   scripts/autoresearch/item14/quiet.py, run_item14.sh on branch item14.
+
+### D-20261114-N2 · Track A / items 14 + 3 · Item 14 reviewed: smooth key fails rule R3 on the pilot; times accepted under R4b with exact wording; 14 fixes; then merge as a study, no default change
+- 2026-11-14, owner. Recorded by Newt Agent. Supersedes: none.
+- Opus review 20261114-0700-review-item14.md: results sound, request changes (14 fixes, no rerun).
+  Accepted: (1) the pilot result stands: F 24 wrong, FS 26, FS against F 6 fixed and 8 broken, so
+  R3 is not met and the smooth key (FS) is not recommended; B/A time 2.76. (2) The A and B times
+  are reported under R4b. For B1 and A2 the wording must be: load samples above 2.5 (4 of 151 and
+  3 of 56) and no process caught by the sampler (processes sampled every 300 s, load every 30 s);
+  condition (ii) of N1 held only because nothing was caught. (3) Correction to N1: its sentence
+  'the disturbance does not move a single-worker time' is reworded to 'no detectable effect: the
+  four B times, two of them from the stopped runs, lie within 0.3%'. N1 and this entry were
+  decided by Newt Agent under D-20261109-N1, not by the owner in person; the header word 'owner'
+  is the script's fixed form. (4) All 14 required fixes are applied by the item 14 implementer (it
+  holds the cache), except that the findings page is not placed by an agent. (5) The C++ time run
+  had already started (07:02) before the review's advice to sample processes more often; its
+  result is judged in its own review with that limit stated. After a hand-back check: merge item14
+  as a study; no key or default changes. Decided by Newt Agent under D-20261109-N1; the owner may
+  overrule. Where: branch feature/eval-reduction-item14;
+  .claude/reports/20261114-0700-review-item14.md.
