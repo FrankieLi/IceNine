@@ -33,14 +33,14 @@ before its fixes round (shared files conflict).
 2. AR5 step 6 (`ar5f`; N3): fixed, waits. Steps 9 to 12: merged (10, 11 failed studies, no key).
    Step 12 (`ar5l`; key `SeedIndexMCStallHit`, off): merged at fe3d277, 13 Nov; page waits.
    Step 13 (`ar5m`): BLOCKED FOR THE OWNER (Queue). Nothing else is ready for an agent.
-3. Items 14 + 3 (task `item14`; N25): E0 arms done. READY: `cpptools` is gone. The main session
-   started the run detached about 17:45 on 13 Nov: check its log and marker `item14.done` (exit
-   0). If dead: rerun the command below (E0 resumes; warm-up 25 min). After exit 0: phase B by
-   `SendMessage`, then C++ time (`cpptime`). While timing arms run: no merge, no tests, no run.
+3. Items 14 + 3 (task `item14`; N25): E0 arms done. Run 1 (17:40, 13 Nov) stopped with exit 5:
+   B1 not quiet (OS daemon, load 3.07, limit 2.5). Run 2 started detached 21:53: check marker
+   `item14.done` (exit 0). If dead or exit 5: rerun the command below when the load is under 1.5.
+   After exit 0: phase B by `SendMessage`, then `cpptime`. While it runs: no merge, tests, run.
 
 ## Running jobs
 - Items 14 + 3: `caffeinate -i bash scripts/autoresearch/item14/run_item14.sh` in `icenine_py/`
-  of worktree `agent-a012b8f461d1630a1` (started detached ~17:45, 13 Nov); marker `item14.done`.
+  of worktree `agent-a012b8f461d1630a1` (run 2 started detached 21:53, 13 Nov); marker `item14.done`.
   Branch `ar5d` is held by worktree `agent-a8a1ac8e80f8913cf` (tip fac79f9).
 - Page v49 live (17:38, 13 Nov; v50 after the next finished step). Step 13: blocked (Queue).
 
