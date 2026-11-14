@@ -1785,3 +1785,17 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   draws before the pass, evaluation counts included. The key is not recommended as a default; that
   is the owner's choice. The owner can overrule. Where:
   .claude/reports/20261113-1600-review-ar5l.md; PLAN.md AR5 step 12.
+
+### D-20261113-N9 · Track A / AR5 step 13 · AR5 step 13 approved: arm H with the boundary-pass skip key (arm HK) as the best current recipe, and the skip's clean test on held2
+- 2026-11-13, owner. Recorded by Newt Agent. Supersedes: none.
+- The plan of AR5 step 13 (PLAN.md, task ar5m) is approved. Arm HK is arm H (rescue rule G1 plus
+  rule PH(3000)) with the step 7 key BoundaryPassSkipHitRatio 0.95. An exact replay on H's stored
+  passes gives 17.5% (mid), 29.9% (grad), 23.9% (big) and 12.8% (held) fewer evaluations than H
+  with 0 fixed and 0 broken voxels, and 57% to 67% fewer than S8. held2's pass tries were never
+  opened and 0.95 was fixed in step 7 before held2 existed, so held2 is an untouched test of the
+  skip; step 7's test on held was not clean. Gate first: the live pass on mid must equal the
+  replay try by try. No library change; about 15 million evaluations. Phase A may start before
+  step 12's merge (it needs only step 12's cache); phase B (one recipe run on mid with all three
+  keys) waits for that merge. Not chosen now: a local optimization from the rescue's ends to avoid
+  grid searches (needs a probe replay first; a candidate for the step after). Where:
+  icenine_py/docs/autoresearch/PLAN.md, AR5 step 13.
