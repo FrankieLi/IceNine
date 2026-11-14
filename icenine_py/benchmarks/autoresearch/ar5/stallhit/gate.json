@@ -1,0 +1,340 @@
+{
+ "gate_passed": true,
+ "verdict": "READY TO RUN",
+ "items": {
+  "g1": {
+   "mid": true,
+   "grad": true,
+   "big": true
+  },
+  "g2": {
+   "mid": true,
+   "grad": true,
+   "big": true
+  },
+  "g3": {
+   "mid": true,
+   "grad": true,
+   "big": true
+  },
+  "g4_mid": true
+ },
+ "per_sample": {
+  "mid": {
+   "sample": "mid",
+   "steps_replayed": 770,
+   "steps_expected": 770,
+   "complete": true,
+   "fits": {
+    "same": 3244,
+    "after_last": 188,
+    "moved": 8
+   },
+   "g1_ok": true,
+   "g1_bad_structure_steps": [],
+   "g1_moved_where_not_predicted": [],
+   "prediction_mismatch_steps": [],
+   "taken_changed": 8,
+   "taken_changed_wilson95_of_replayed_steps": [
+    0.00527372152803638,
+    0.020366667926342914
+   ],
+   "taken_changed_limit": 12,
+   "g2_ok": true,
+   "changed_wrong_where_g_right": [],
+   "changed_with_g_error_unknown": [],
+   "failed_seed_tests": {
+    "g": 12,
+    "h": 12,
+    "extra": 0
+   },
+   "g3_ok": true,
+   "g_total_of_replayed_steps": 6598151,
+   "new_total_of_replayed_steps": 5575556,
+   "saved_evals": 1022595,
+   "saved_share_of_g_run": 0.07863419441503786,
+   "steps_costing_more_than_g": [
+    36,
+    113,
+    216,
+    219,
+    231,
+    263,
+    296,
+    298,
+    306,
+    310,
+    325,
+    391,
+    394,
+    396,
+    399,
+    420,
+    446,
+    448,
+    484,
+    486,
+    578,
+    731,
+    736,
+    752,
+    765,
+    799,
+    823,
+    830,
+    847,
+    881,
+    900,
+    944,
+    963,
+    978,
+    992,
+    1002,
+    1089,
+    1141,
+    1268,
+    1285,
+    1488,
+    134,
+    153,
+    198,
+    215,
+    225,
+    229,
+    232,
+    352,
+    390,
+    417,
+    429,
+    453,
+    489,
+    583,
+    623,
+    629,
+    722,
+    726,
+    730,
+    764,
+    791,
+    796,
+    800,
+    859,
+    864,
+    868,
+    875,
+    932,
+    950,
+    958,
+    966,
+    977,
+    993,
+    998,
+    1038,
+    1051,
+    1067,
+    1075,
+    1088,
+    1107,
+    1136,
+    1180,
+    1197,
+    1205,
+    1436,
+    1440,
+    1455,
+    1493,
+    1553
+   ],
+   "changed_paths": {
+    "seed": 8,
+    "rescued": 0,
+    "grid": 0
+   },
+   "grid_searches_new": 0,
+   "g4_ok": true,
+   "changed_still_095": 8,
+   "changed_mis_to_g_deg": {
+    "min": 0.01093599933252691,
+    "median": 0.0433993286461265,
+    "max": 0.07783861443945374
+   },
+   "changed_err_new_max": 0.13029586687225342,
+   "prediction1": {
+    "g1": true,
+    "changed_in_range": true,
+    "changed_range": [
+     7,
+     11
+    ],
+    "all_changed_still_095": true,
+    "mis_in_0_005_to_0_15": true,
+    "none_wrong": true,
+    "failed_seed_tests_equal": true
+   },
+   "prediction2": {
+    "saving_in_range": true,
+    "range": [
+     0.07,
+     0.083
+    ],
+    "saving": 0.07863419441503786
+   }
+  },
+  "grad": {
+   "sample": "grad",
+   "steps_replayed": 478,
+   "steps_expected": 478,
+   "complete": true,
+   "fits": {
+    "same": 2213,
+    "after_last": 12,
+    "moved": 0
+   },
+   "g1_ok": true,
+   "g1_bad_structure_steps": [],
+   "g1_moved_where_not_predicted": [],
+   "prediction_mismatch_steps": [],
+   "taken_changed": 0,
+   "taken_changed_wilson95_of_replayed_steps": [
+    0.0,
+    0.007972744569999766
+   ],
+   "taken_changed_limit": 1,
+   "g2_ok": true,
+   "changed_wrong_where_g_right": [],
+   "changed_with_g_error_unknown": [],
+   "failed_seed_tests": {
+    "g": 11,
+    "h": 11,
+    "extra": 0
+   },
+   "g3_ok": true,
+   "g_total_of_replayed_steps": 3082774,
+   "new_total_of_replayed_steps": 3066273,
+   "saved_evals": 16501,
+   "saved_share_of_g_run": 0.001618269925187502,
+   "steps_costing_more_than_g": [
+    123,
+    580,
+    589
+   ],
+   "changed_paths": {
+    "seed": 0,
+    "rescued": 0,
+    "grid": 0
+   },
+   "grid_searches_new": 0,
+   "g4_ok": null,
+   "changed_still_095": 0,
+   "changed_mis_to_g_deg": {
+    "min": null,
+    "median": null,
+    "max": null
+   },
+   "changed_err_new_max": null,
+   "prediction1": {
+    "g1": true,
+    "changed_in_range": true,
+    "changed_range": [
+     0,
+     0
+    ],
+    "all_changed_still_095": true,
+    "mis_in_0_005_to_0_15": false,
+    "none_wrong": true,
+    "failed_seed_tests_equal": true
+   },
+   "prediction2": {
+    "saving_in_range": true,
+    "range": [
+     0.001,
+     0.002
+    ],
+    "saving": 0.001618269925187502
+   }
+  },
+  "big": {
+   "sample": "big",
+   "steps_replayed": 99,
+   "steps_expected": 99,
+   "complete": true,
+   "fits": {
+    "same": 329,
+    "after_last": 26,
+    "moved": 1
+   },
+   "g1_ok": true,
+   "g1_bad_structure_steps": [],
+   "g1_moved_where_not_predicted": [],
+   "prediction_mismatch_steps": [],
+   "taken_changed": 1,
+   "taken_changed_wilson95_of_replayed_steps": [
+    0.0017852613200520298,
+    0.05501665541403223
+   ],
+   "taken_changed_limit": 3,
+   "g2_ok": true,
+   "changed_wrong_where_g_right": [],
+   "changed_with_g_error_unknown": [],
+   "failed_seed_tests": {
+    "g": 0,
+    "h": 0,
+    "extra": 0
+   },
+   "g3_ok": true,
+   "g_total_of_replayed_steps": 639724,
+   "new_total_of_replayed_steps": 467233,
+   "saved_evals": 172491,
+   "saved_share_of_g_run": 0.04530001599370967,
+   "steps_costing_more_than_g": [
+    58,
+    88,
+    149,
+    164,
+    170,
+    178,
+    180,
+    189,
+    192,
+    225,
+    247,
+    314,
+    315
+   ],
+   "changed_paths": {
+    "seed": 1,
+    "rescued": 0,
+    "grid": 0
+   },
+   "grid_searches_new": 0,
+   "g4_ok": null,
+   "changed_still_095": 1,
+   "changed_mis_to_g_deg": {
+    "min": 0.031679558859452235,
+    "median": 0.031679558859452235,
+    "max": 0.031679558859452235
+   },
+   "changed_err_new_max": 0.04490856283596746,
+   "prediction1": {
+    "g1": true,
+    "changed_in_range": true,
+    "changed_range": [
+     1,
+     2
+    ],
+    "all_changed_still_095": true,
+    "mis_in_0_005_to_0_15": true,
+    "none_wrong": true,
+    "failed_seed_tests_equal": true
+   },
+   "prediction2": {
+    "saving_in_range": true,
+    "range": [
+     0.04,
+     0.048
+    ],
+    "saving": 0.04530001599370967
+   }
+  }
+ }
+}

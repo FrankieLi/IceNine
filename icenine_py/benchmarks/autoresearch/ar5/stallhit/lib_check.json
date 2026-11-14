@@ -1,0 +1,149 @@
+{
+ "sample": "mid",
+ "libH_vs_Hl": {
+  "before_pass": {
+   "map": {
+    "same_bytes": true,
+    "voxels_differ": 0,
+    "max_angle_deg": 0.0,
+    "voxels_over_0_001_deg": 0,
+    "voxels_over_1_deg": 0
+   },
+   "evals_total": {
+    "script": 8713457,
+    "library": 8713457
+   },
+   "counters_equal": true,
+   "counters_differ": {
+    "n_script_counters": 36,
+    "differ": {},
+    "only_in_library": {
+     "cma_not_fell": 4708,
+     "index_mixed_cands": 2717,
+     "index_mixed_cma_reached": 1120,
+     "index_mixed_mc_ran": 1597,
+     "index_rescue_evals": 29029,
+     "index_rescue_runs": 12,
+     "index_rescue_tries": 29,
+     "index_rescued": 9,
+     "index_stallhit_checks": 361,
+     "index_stallhit_evals_in_stopped": 748128,
+     "index_stallhit_refinements": 1597,
+     "index_stallhit_stops": 197,
+     "index_stallhit_went_on": 164,
+     "index_stopped_early": 1517
+    }
+   },
+   "records": {
+    "n_a": 24570,
+    "n_b": 24570,
+    "n_differ": 0,
+    "first": []
+   },
+   "rescues": {
+    "script": 12,
+    "library": 12,
+    "rescued_script": 9,
+    "rescued_library": 9,
+    "tries_script": 29,
+    "tries_library": 29,
+    "equal": true
+   },
+   "stall": {
+    "refinements": {
+     "script": 1597,
+     "library": 1597
+    },
+    "first_differ": null,
+    "equal": true,
+    "counts_script_library": {
+     "mc_refinements": [
+      1597,
+      1597
+     ],
+     "checks": [
+      361,
+      361
+     ],
+     "stops": [
+      197,
+      197
+     ],
+     "went_on": [
+      164,
+      164
+     ],
+     "evals_in_stopped": [
+      748128,
+      748128
+     ]
+    },
+    "counts_equal": true
+   }
+  },
+  "after_pass": {
+   "pass_evals": {
+    "script": 3048231,
+    "library": 3047743
+   },
+   "pass_tries": {
+    "script": 49971,
+    "library": 49963
+   },
+   "total_with_pass": {
+    "script": 11761688,
+    "library": 11761200
+   },
+   "map": {
+    "same_bytes": null,
+    "voxels_differ": 2109,
+    "max_angle_deg": 58.18210116840944,
+    "voxels_over_0_001_deg": 2068,
+    "voxels_over_1_deg": 10
+   },
+   "tries": {
+    "tries": {
+     "library": 49963,
+     "script": 49971
+    },
+    "same_order_tries": 1364,
+    "ends_differ": 1363,
+    "costs_differ": 349,
+    "evals_differ": 0,
+    "first_end_differ": 0,
+    "try0": {
+     "voxel": 0,
+     "cand": 10,
+     "same_cost": true,
+     "angle_deg": 0.009572926578368349
+    },
+    "end_angle_deg": {
+     "median": 0.005730109381824236,
+     "max": 0.6901274053204555
+    },
+    "voxels_with_other_try_count": 8
+   },
+   "accuracy": {
+    "wrong_threshold_deg": 1.0,
+    "wrong": {
+     "library": 36,
+     "script": 38
+    },
+    "fixed": 6,
+    "broken": 4,
+    "both_wrong": 32,
+    "median_error_deg": {
+     "library": 0.02912762712911237,
+     "script": 0.02912762712911237
+    },
+    "n_voxels": 24570,
+    "base": "script pass (Gl, from the stored map)"
+   }
+  },
+  "compute": {
+   "evals_before_passes": 17426914,
+   "evals_with_passes": 23522888
+  },
+  "equal_before_pass": true
+ }
+}

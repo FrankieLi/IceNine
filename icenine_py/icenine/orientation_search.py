@@ -101,6 +101,12 @@ def check_seed_rescue(sigma_deg: float, evals: int) -> None:
         )
 
 
+def check_seed_index_mc_stall_hit(k: Any) -> None:
+    """SeedIndexMCStallHit k: an integer >= 0 (0 = off). Raises ValueError otherwise."""
+    if isinstance(k, bool) or not isinstance(k, (int, np.integer)) or int(k) < 0:
+        raise ValueError(f"SeedIndexMCStallHit must be an integer >= 0 (0 = off), got {k!r}")
+
+
 @dataclass
 class SearchParameters:
     """
@@ -208,6 +214,16 @@ class SearchParameters:
     #   recommended (MIGRATION_HISTORY.md, "Autoresearch AR5 step 9").
     seed_rescue_sigma_deg: float = 0.0
     seed_rescue_evals: int = 0
+    # seed_index_mc_stall_hit (SeedIndexMCStallHit k, AR5 step 12; 0 = off, else an integer
+    #   k >= 1): in the indexed seed step's MC refinement of a candidate (MC stage, variance stage
+    #   and final evaluation, one counter), after k strict-cost evaluations with no strict gain of
+    #   the best cost the hit ratio of the kept best (the first lowest-cost orientation) is
+    #   evaluated once (counted as one evaluation); at seed_index_stop_hit or more the refinement
+    #   ends there with that orientation and cost, else it goes on and checks again k evaluations
+    #   after the next strict gain. Rule PH(k) of scripts/autoresearch/ar5/stallhit_rules.py.
+    #   Needs seed_by_indexing and seed_index_stop_hit > 0. Off by default and not recommended as
+    #   a default (MIGRATION_HISTORY.md, "Autoresearch AR5 step 12").
+    seed_index_mc_stall_hit: int = 0
     # paint_grains: opt-in (config key PaintGrains, default off; AR3 step 2). With the key on,
     #   ``BFSReconstruction.reconstruct_sample`` runs ``grain_paint.paint_grains`` in place of the
     #   BFS (seeds indexed, each grain flooded by single strict scores, each voxel painted with the
@@ -317,6 +333,7 @@ class SearchParameters:
                 f"seed_index_cma_first must be 0 (off) or >= 2, got {self.seed_index_cma_first}"
             )
         check_seed_rescue(self.seed_rescue_sigma_deg, self.seed_rescue_evals)
+        check_seed_index_mc_stall_hit(self.seed_index_mc_stall_hit)
         from .candidate_dedup import DedupSpec
 
         DedupSpec.parse(self.candidate_dedup)  # raises ValueError on a malformed spec
@@ -364,6 +381,7 @@ class SearchParameters:
             boundary_pass_skip_hit=float(getattr(config, "boundary_pass_skip_hit", 0.0)),
             seed_rescue_sigma_deg=float(getattr(config, "seed_rescue_sigma_deg", 0.0)),
             seed_rescue_evals=int(getattr(config, "seed_rescue_evals", 0)),
+            seed_index_mc_stall_hit=int(getattr(config, "seed_index_mc_stall_hit", 0)),
             paint_grains=bool(getattr(config, "paint_grains", False)),
             cpp_overlap_rule=bool(getattr(config, "cpp_overlap_rule", False)),
             cpp_edge_rules=bool(getattr(config, "cpp_edge_rules", False)),

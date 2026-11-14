@@ -1,0 +1,255 @@
+{
+ "mid": {
+  "steps_with_mc": 770,
+  "mc_refinements": 1605,
+  "step11_measured": {
+   "total_cut_pct": 10.597766596483037,
+   "taken_changed_n": 20
+  },
+  "high_go": {
+   "saved_evals": 1007835,
+   "saved_share": 0.07749919892849044,
+   "saved_share_without_extra": 0.07749919892849044,
+   "extra_evals": 0,
+   "taken_changed": 7,
+   "stops_lost": 0,
+   "refinements_cut": 196
+  },
+  "high_stop": {
+   "saved_evals": 1072336,
+   "saved_share": 0.08245911382536003,
+   "saved_share_without_extra": 0.08245911382536003,
+   "extra_evals": 0,
+   "taken_changed": 11,
+   "stops_lost": 0,
+   "refinements_cut": 196
+  },
+  "low": {
+   "saved_evals": -136889,
+   "saved_share": -0.010526314170595512,
+   "saved_share_without_extra": 0.035668924892442645,
+   "extra_evals": 600744,
+   "taken_changed": 14,
+   "stops_lost": 11,
+   "refinements_cut": 136
+  },
+  "cases": {
+   "A": {
+    "n": 178,
+    "saved": 893957,
+    "taken": 177,
+    "share": 0.06874235502489646
+   },
+   "B": {
+    "n": 7,
+    "saved": 52879,
+    "taken": 7,
+    "share": 0.004066221296283266
+   },
+   "C": {
+    "n": 7,
+    "saved": 32874,
+    "taken": 7,
+    "share": 0.002527902549102973
+   },
+   "D": {
+    "n": 4,
+    "saved": 92765,
+    "taken": 4,
+    "share": 0.007133323598209444
+   },
+   "E": {
+    "n": 4,
+    "saved": 0,
+    "taken": 4,
+    "share": 0.0
+   }
+  },
+  "k_table": {
+   "2000": {
+    "exact_saved": 1092774,
+    "exact_share": 0.08403072884934758,
+    "bound_changed": 32
+   },
+   "3000": {
+    "exact_saved": 893957,
+    "exact_share": 0.06874235502489646,
+    "bound_changed": 22
+   },
+   "5000": {
+    "exact_saved": 622149,
+    "exact_share": 0.047841213208671456,
+    "bound_changed": 14
+   }
+  }
+ },
+ "grad": {
+  "steps_with_mc": 478,
+  "mc_refinements": 991,
+  "step11_measured": {
+   "total_cut_pct": 0.1447234063753225,
+   "taken_changed_n": 1
+  },
+  "high_go": {
+   "saved_evals": 16501,
+   "saved_share": 0.001618269925187502,
+   "saved_share_without_extra": 0.001618269925187502,
+   "extra_evals": 0,
+   "taken_changed": 0,
+   "stops_lost": 0,
+   "refinements_cut": 12
+  },
+  "high_stop": {
+   "saved_evals": 16501,
+   "saved_share": 0.001618269925187502,
+   "saved_share_without_extra": 0.001618269925187502,
+   "extra_evals": 0,
+   "taken_changed": 0,
+   "stops_lost": 0,
+   "refinements_cut": 12
+  },
+  "low": {
+   "saved_evals": 3874,
+   "saved_share": 0.00037992713715389264,
+   "saved_share_without_extra": 0.00037992713715389264,
+   "extra_evals": 0,
+   "taken_changed": 1,
+   "stops_lost": 0,
+   "refinements_cut": 3
+  },
+  "cases": {
+   "A": {
+    "n": 12,
+    "saved": 16504,
+    "taken": 12,
+    "share": 0.001618564138251896
+   },
+   "B": {
+    "n": 0,
+    "saved": 0,
+    "taken": 0,
+    "share": 0.0
+   },
+   "C": {
+    "n": 0,
+    "saved": 0,
+    "taken": 0,
+    "share": 0.0
+   },
+   "D": {
+    "n": 0,
+    "saved": 0,
+    "taken": 0,
+    "share": 0.0
+   },
+   "E": {
+    "n": 0,
+    "saved": 0,
+    "taken": 0,
+    "share": 0.0
+   }
+  },
+  "k_table": {
+   "2000": {
+    "exact_saved": 33788,
+    "exact_share": 0.003313623673246186,
+    "bound_changed": 0
+   },
+   "3000": {
+    "exact_saved": 16504,
+    "exact_share": 0.001618564138251896,
+    "bound_changed": 0
+   },
+   "5000": {
+    "exact_saved": 4162,
+    "exact_share": 0.00040817159133569984,
+    "bound_changed": 0
+   }
+  }
+ },
+ "big": {
+  "steps_with_mc": 99,
+  "mc_refinements": 153,
+  "step11_measured": {
+   "total_cut_pct": 5.014461307434554,
+   "taken_changed_n": 4
+  },
+  "high_go": {
+   "saved_evals": 172491,
+   "saved_share": 0.04530001599370967,
+   "saved_share_without_extra": 0.04530001599370967,
+   "extra_evals": 0,
+   "taken_changed": 1,
+   "stops_lost": 0,
+   "refinements_cut": 27
+  },
+  "high_stop": {
+   "saved_evals": 172491,
+   "saved_share": 0.04530001599370967,
+   "saved_share_without_extra": 0.04530001599370967,
+   "extra_evals": 0,
+   "taken_changed": 1,
+   "stops_lost": 0,
+   "refinements_cut": 27
+  },
+  "low": {
+   "saved_evals": -115449,
+   "saved_share": -0.03031950389561071,
+   "saved_share_without_extra": 0.01874152878329364,
+   "extra_evals": 186812,
+   "taken_changed": 3,
+   "stops_lost": 3,
+   "refinements_cut": 18
+  },
+  "cases": {
+   "A": {
+    "n": 24,
+    "saved": 145105,
+    "taken": 24,
+    "share": 0.03810783647127816
+   },
+   "B": {
+    "n": 2,
+    "saved": 10110,
+    "taken": 2,
+    "share": 0.0026551133780684483
+   },
+   "C": {
+    "n": 1,
+    "saved": 17292,
+    "taken": 1,
+    "share": 0.004541268104209655
+   },
+   "D": {
+    "n": 0,
+    "saved": 0,
+    "taken": 0,
+    "share": 0.0
+   },
+   "E": {
+    "n": 1,
+    "saved": 0,
+    "taken": 1,
+    "share": 0.0
+   }
+  },
+  "k_table": {
+   "2000": {
+    "exact_saved": 151346,
+    "exact_share": 0.03974686343394138,
+    "bound_changed": 5
+   },
+   "3000": {
+    "exact_saved": 145105,
+    "exact_share": 0.03810783647127816,
+    "bound_changed": 4
+   },
+   "5000": {
+    "exact_saved": 113865,
+    "exact_share": 0.029903509870797613,
+    "bound_changed": 3
+   }
+  }
+ },
+ "counts_ok": true
+}

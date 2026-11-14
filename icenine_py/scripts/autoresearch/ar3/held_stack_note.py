@@ -25,9 +25,10 @@ import ar3_common as C
 import gradient_common as G
 import numpy as np
 
-assert C.SAMPLE_KIND == "held", "run with AR3_SAMPLE=held"
+assert C.SAMPLE_KIND in ("held", "held2"), "run with AR3_SAMPLE=held or held2"
+K = C.SAMPLE_KIND  # AR5 step 12: the same note for held2
 STACK = C.EX / "ScatteringData_PhaseD" / "stacks" / G.STACK
-FRAMES = C.EX / "ScatteringData_PhaseD" / "held" / "clean"
+FRAMES = C.EX / "ScatteringData_PhaseD" / K / "clean"
 RES = C.ICE / "scripts" / "phase_d" / "results"
 
 
@@ -55,23 +56,23 @@ def main() -> None:
     nz = 0
     for i in range(st.shape[0]):
         nz += int(np.count_nonzero(st[i]))
-    rec = json.loads((RES / "render_held_nodrop.json").read_text())
+    rec = json.loads((RES / f"render_{K}_nodrop.json").read_text())
     info = json.loads((G.SAMPLE / "sample.json").read_text())
     truth_sha = sha256(G.TRUTH_MIC)
     assert truth_sha == info["truth_sha256"]
     out: Dict[str, Any] = dict(
         render_command=(
-            "uv run python scripts/phase_d/render_full.py --tag held --workers 1 --variants clean"
-            " --mic <absolute path of benchmarks/autoresearch/ar3/held/gradient/sample/"
+            f"uv run python scripts/phase_d/render_full.py --tag {K} --workers 1 --variants clean"
+            f" --mic <absolute path of benchmarks/autoresearch/ar3/{K}/gradient/sample/"
             "gradient_truth.mic>"
         ),
-        render_record="scripts/phase_d/results/render_held_nodrop.json",
-        mic="benchmarks/autoresearch/ar3/held/gradient/sample/gradient_truth.mic",
+        render_record=f"scripts/phase_d/results/render_{K}_nodrop.json",
+        mic=f"benchmarks/autoresearch/ar3/{K}/gradient/sample/gradient_truth.mic",
         mic_sha256=truth_sha,
         stack="Examples/Example2.ManyGrains/ScatteringData_PhaseD/stacks/" + G.STACK,
         stack_build=(
-            "write_binary_stack(ScatteringData_PhaseD/held/clean, '500Grains.sim', 'd', 5, 180, 2,"
-            " 2048, 2048, stacks/held_clean.npy)"
+            f"write_binary_stack(ScatteringData_PhaseD/{K}/clean, '500Grains.sim', 'd', 5, 180, 2,"
+            f" 2048, 2048, stacks/{K}_clean.npy)"
         ),
         stack_built_now=built,
         stack_shape=list(st.shape),
@@ -82,7 +83,7 @@ def main() -> None:
         render_timing_label=rec["timing_label"],
         stack_matches_render=bool(nz == int(rec["lit_clean_total"])),
     )
-    (G.GRAD / "held_stack.json").write_text(json.dumps(out, indent=1) + "\n")
+    (G.GRAD / f"{K}_stack.json").write_text(json.dumps(out, indent=1) + "\n")
     print(json.dumps(out, indent=1))
     assert out["stack_matches_render"]
 
