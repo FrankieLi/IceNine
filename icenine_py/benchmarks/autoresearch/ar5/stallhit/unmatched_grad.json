@@ -1,0 +1,17 @@
+{
+ "sample": "grad",
+ "matched_steps": 1280,
+ "seed_steps_g": 1280,
+ "seed_steps_h": 1280,
+ "only_h_n": 0,
+ "only_g_n": 0,
+ "only_h_wrong": 0,
+ "only_g_wrong": 0,
+ "only_h_wrong_where_g_map_right": 0,
+ "only_g_wrong_where_h_map_right": 0,
+ "only_h_with_a_cut": 0,
+ "only_h_wrong_where_g_map_right_voxels": [],
+ "note": "unmatched = a seed step (voxel, occurrence) that only one arm has; the other arm's map is read before the pass for the counts; rule (4) adds them to the matched steps",
+ "only_h": [],
+ "only_g": []
+}

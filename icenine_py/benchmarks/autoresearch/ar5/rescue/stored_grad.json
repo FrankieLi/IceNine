@@ -1,0 +1,19 @@
+{
+ "sample": "grad",
+ "expected": {
+  "fallback_evals": 3726723,
+  "total": 12189777,
+  "fallbacks": 11
+ },
+ "got": {
+  "fallback_evals": 3726723,
+  "total": 12189777,
+  "fallbacks": 11,
+  "failed_steps_in_log": 11,
+  "no_candidate_steps": 0
+ },
+ "reproduces": true,
+ "cases": 11,
+ "grid_end_cheaper_than_every_kept_end": 11,
+ "strict_evaluations": 11
+}

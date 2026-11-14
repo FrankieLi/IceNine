@@ -17,8 +17,14 @@ refinement (local optimization); attaching rays and indexing are not cost evalua
 import os
 
 SAMPLE = os.environ.get("RESEED_SAMPLE", "grad")
-assert SAMPLE in ("big", "grad", "mid", "held"), SAMPLE  # step 9: mid; step 11: held
-os.environ["AR3_SAMPLE"] = {"big": "big", "mid": "mid", "held": "held", "grad": "gradient"}[SAMPLE]
+assert SAMPLE in ("big", "grad", "mid", "held", "held2"), SAMPLE  # step 9: mid; 11: held; 12: held2
+os.environ["AR3_SAMPLE"] = {
+    "big": "big",
+    "mid": "mid",
+    "held": "held",
+    "held2": "held2",
+    "grad": "gradient",
+}[SAMPLE]
 
 import gzip  # noqa: E402
 import json  # noqa: E402

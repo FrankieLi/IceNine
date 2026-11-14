@@ -1,0 +1,91 @@
+{
+ "all": {
+  "cases": 23,
+  "rescued": 14,
+  "wilson95": [
+   0.4078517960374599,
+   0.7784262201761787
+  ],
+  "wrong_rescued": 0,
+  "tries_mean": 2.869565217391304,
+  "tries_total": 66,
+  "tries_min_max": [
+   1,
+   5
+  ],
+  "evals_total": 66066,
+  "evals_per_case_mean": 2872.4347826086955,
+  "rescued_err_median": 0.0029561099971432024,
+  "rescued_err_max": 0.010793034994143474,
+  "rescued_hit_min": 0.9670995670995671,
+  "grid_end_reached_095": 21,
+  "rescued_where_grid_end_below_095": 1,
+  "prediction2": {
+   "rescued_12_to_21": true,
+   "every_rescued_right": true,
+   "median_err_le_0_05": true,
+   "tries_mean_le_2_5": false
+  },
+  "gate_passed": true
+ },
+ "per_sample": {
+  "grad": {
+   "cases": 11,
+   "rescued": 6,
+   "wilson95": [
+    0.28008775568998817,
+    0.7872904245601196
+   ],
+   "wrong_rescued": 0,
+   "tries_mean": 3.090909090909091,
+   "tries_total": 34,
+   "tries_min_max": [
+    1,
+    5
+   ],
+   "evals_total": 34034,
+   "evals_per_case_mean": 3094.0,
+   "rescued_err_median": 0.002677085755926453,
+   "rescued_err_max": 0.0061990254680720945,
+   "rescued_hit_min": 0.984306887532694,
+   "grid_end_reached_095": 10,
+   "rescued_where_grid_end_below_095": 0,
+   "prediction2": {
+    "rescued_12_to_21": false,
+    "every_rescued_right": true,
+    "median_err_le_0_05": true,
+    "tries_mean_le_2_5": false
+   },
+   "gate_passed": false
+  },
+  "mid": {
+   "cases": 12,
+   "rescued": 8,
+   "wilson95": [
+    0.3906175873976139,
+    0.8618821601026385
+   ],
+   "wrong_rescued": 0,
+   "tries_mean": 2.6666666666666665,
+   "tries_total": 32,
+   "tries_min_max": [
+    1,
+    5
+   ],
+   "evals_total": 32032,
+   "evals_per_case_mean": 2669.3333333333335,
+   "rescued_err_median": 0.003501915538846245,
+   "rescued_err_max": 0.010793034994143474,
+   "rescued_hit_min": 0.9670995670995671,
+   "grid_end_reached_095": 11,
+   "rescued_where_grid_end_below_095": 1,
+   "prediction2": {
+    "rescued_12_to_21": false,
+    "every_rescued_right": true,
+    "median_err_le_0_05": true,
+    "tries_mean_le_2_5": false
+   },
+   "gate_passed": false
+  }
+ }
+}

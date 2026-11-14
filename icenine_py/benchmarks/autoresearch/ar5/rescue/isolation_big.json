@@ -1,0 +1,29 @@
+{
+ "sample": "big",
+ "n_voxels": 24570,
+ "rescued_voxels": [],
+ "differ_before": {
+  "n": 0,
+  "rescued_in": 0,
+  "rescued_not_in": 0,
+  "others": 0,
+  "others_in_a_rescued_grain": 0,
+  "others_max_deg": 0.0,
+  "equals_rescued_set": true,
+  "n_over_1e6_deg": 0
+ },
+ "differ_after": {
+  "n": 0,
+  "rescued_in": 0,
+  "rescued_not_in": 0,
+  "others": 0,
+  "others_in_a_rescued_grain": 0,
+  "others_max_deg": 0.0,
+  "equals_rescued_set": true,
+  "n_over_1e6_deg": 0
+ },
+ "rescued": {
+  "n": 0
+ },
+ "note": "voxels whose stored orientation differs between arm A and arm G; with aligned draws only the rescued voxels and voxels grown from them may change"
+}

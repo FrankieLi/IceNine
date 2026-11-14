@@ -38,6 +38,7 @@ BOUNDARY_THRESHOLD_DEG = 0.5  # boundary test and candidate merge distance
 PASS_SIGMA0_DEG = 0.05  # first step of a try (degrees)
 PASS_MAX_EVALS = 60  # evaluation budget of a try, the start's own evaluation included
 PASS_SEED = 0  # the pass's own generator
+CMA_SEED_BOUND = 2**31 - 2  # the bound of the one seed a CMA try draws (orientation_search.py)
 
 
 @dataclass
@@ -50,6 +51,7 @@ class BoundaryPassResult:
     tries: List[Dict[str, Any]] = field(default_factory=list)
     old_score: Dict[int, Tuple[float, float, float]] = field(default_factory=dict)
     changed: List[int] = field(default_factory=list)
+    skipped: List[int] = field(default_factory=list)  # boundary voxels left without a try
     n_evals_tries: int = 0
     n_evals_score: int = 0
     wall_s: float = 0.0
@@ -103,7 +105,7 @@ def keep_hit(old: Tuple[float, float], tries: Sequence[Tuple[float, float]]) -> 
     return int(np.lexsort((np.arange(len(cost)), cost, -hit))[0])
 
 
-def run_boundary_pass(bfs: Any, mic: Any) -> BoundaryPassResult:
+def run_boundary_pass(bfs: Any, mic: Any, skip_hit: float = 0.0) -> BoundaryPassResult:
     """Run the pass once on ``mic`` (the BFS's map, in place) with rule ``hit``.
 
     Every voxel that has a fitted orientation is a target and a source. The strict score of a
@@ -112,7 +114,18 @@ def run_boundary_pass(bfs: Any, mic: Any) -> BoundaryPassResult:
     orientation, cost, confidence and hit ratio. Writes ``bfs.stats`` (boundary_voxels,
     boundary_tries, boundary_changed, n_evals_boundary_pass, n_evals_boundary_score,
     wall_boundary_pass_s) and ``bfs.boundary_log`` (one entry per changed voxel with its old and
-    new orientation, cost, confidence and hit ratio, so the map before the pass can be rebuilt)."""
+    new orientation, cost, confidence and hit ratio, so the map before the pass can be rebuilt).
+
+    ``skip_hit`` (config key ``BoundaryPassSkipHitRatio``, AR5 step 7; 0 = off, the pass is then
+    exactly the one above): a boundary voxel whose own hit ratio (the hit ratio of its old end,
+    from the score the pass already makes) is at least ``skip_hit`` gets no try and keeps its end.
+    Its score is still made, recorded in ``old_score`` and counted in ``n_evals_boundary_score``
+    (one evaluation per boundary voxel, skipped or not, key on or off). The skipped voxels are
+    listed in ``res.skipped`` and counted in ``bfs.stats['boundary_skipped']`` (written only with
+    the key on, so the stats of a key-off run keep today's entries). ``boundary_voxels`` still
+    counts all boundary voxels. The pass has one generator; a skipped voxel's tries draw their CMA
+    seeds from it and discard them (no evaluation), so every kept try gets the same draw as in the
+    full pass."""
     t0 = time.time()
     rec = bfs.reconstructor
     voxels = mic.voxels
@@ -141,6 +154,15 @@ def run_boundary_pass(bfs: Any, mic: Any) -> BoundaryPassResult:
         old = (float(info.cost), float(hit0), float(conf0))
         res.old_score[v] = old
         res.n_evals_score += 1
+        if skip_hit > 0.0 and old[1] >= skip_hit:
+            res.skipped.append(v)
+            # Aligned draws (variant 2, D-20261112-N5): each skipped try would have drawn one CMA
+            # seed from the pass's generator (``CMAOptimizer.optimize``: one ``integers`` call, no
+            # other draw per try or per voxel), so draw it here and discard it with no cost
+            # evaluation. The kept tries then get the draws they get in the full pass.
+            for _ in cands[v]:
+                rng.integers(0, CMA_SEED_BOUND)
+            continue
         rows: List[Dict[str, Any]] = []
         for c in cands[v]:
             r = rec.local_optimization(
@@ -193,13 +215,17 @@ def run_boundary_pass(bfs: Any, mic: Any) -> BoundaryPassResult:
     st["boundary_voxels"] = len(res.boundary_voxels)
     st["boundary_tries"] = len(res.tries)
     st["boundary_changed"] = len(res.changed)
+    if skip_hit > 0.0:
+        st["boundary_skipped"] = len(res.skipped)
     st["n_evals_boundary_pass"] = res.n_evals_tries
     st["n_evals_boundary_score"] = res.n_evals_score
     st["wall_boundary_pass_s"] = res.wall_s
     bfs.boundary_log = log
+    skipped = f", {len(res.skipped)} skipped" if skip_hit > 0.0 else ""
     print(
-        f"Boundary pass: {len(res.boundary_voxels)} boundary voxels, {len(res.tries)} tries, "
-        f"{len(res.changed)} changed, {res.n_evals_tries} evaluations in {res.wall_s:.1f}s",
+        f"Boundary pass: {len(res.boundary_voxels)} boundary voxels{skipped}, "
+        f"{len(res.tries)} tries, {len(res.changed)} changed, {res.n_evals_tries} evaluations "
+        f"in {res.wall_s:.1f}s",
         flush=True,
     )
     return res
