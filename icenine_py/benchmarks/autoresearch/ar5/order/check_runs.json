@@ -1,0 +1,58 @@
+{
+ "twice": {
+  "map_identical": true,
+  "totals_a": {
+   "evals_total": 2672415,
+   "n_evals_seed": 49617,
+   "n_evals_neighbor": 1496513,
+   "n_evals_revisit": 488000,
+   "n_evals_reseed": 638285
+  },
+  "totals_b": {
+   "evals_total": 2672415,
+   "n_evals_seed": 49617,
+   "n_evals_neighbor": 1496513,
+   "n_evals_revisit": 488000,
+   "n_evals_reseed": 638285
+  },
+  "totals_identical": true,
+  "seed_log_identical": true,
+  "n_seed_steps": [
+   317,
+   317
+  ],
+  "traces_identical": true,
+  "pass_map_identical": true,
+  "pass_evals": [
+   1135332,
+   1135332
+  ],
+  "pass_tries": [
+   18612,
+   18612
+  ]
+ },
+ "al_vs_stored_S11": {
+  "map_identical": true,
+  "totals_a": {
+   "evals_total": 2879705,
+   "n_evals_seed": 44129,
+   "n_evals_neighbor": 1496635,
+   "n_evals_revisit": 494710,
+   "n_evals_reseed": 844231
+  },
+  "totals_b": {
+   "evals_total": 2879705,
+   "n_evals_seed": 44129,
+   "n_evals_neighbor": 1496635,
+   "n_evals_revisit": 494710,
+   "n_evals_reseed": 844231
+  },
+  "totals_identical": true,
+  "seed_log_identical": true,
+  "n_seed_steps": [
+   330,
+   330
+  ]
+ }
+}

@@ -234,6 +234,13 @@ class ConfigFile:
     # AR5 step 5 (opt-in, off at these defaults; see SearchParameters)
     seed_index_cma_first: int = 0  # mixed seed refinement: CMA evaluations per candidate (0 = off)
     bfs_neighbor_cma_no_fallback: bool = False  # the CMA end of a neighbour fit is returned
+    # AR5 step 7 (opt-in, off at 0): boundary pass skips voxels whose own hit ratio is >= this
+    boundary_pass_skip_hit: float = 0.0
+    # AR5 step 9 (opt-in, off at 0 0): SeedRescueCMA sigma evals (see SearchParameters)
+    seed_rescue_sigma_deg: float = 0.0  # degrees (kept in degrees, not converted)
+    seed_rescue_evals: int = 0
+    # AR5 step 12 (opt-in, off at 0): SeedIndexMCStallHit k (see SearchParameters)
+    seed_index_mc_stall_hit: int = 0
     cpp_overlap_rule: bool = False  # C++ CountQualifiedPeaks rule + centroid screen (opt-in)
     cpp_edge_rules: bool = False  # C++ conventions at the low edges (opt-in, see VoxelCostFunction)
     cpp_omega_interp: bool = False  # C++ omega interpolation in the level screen (opt-in)
@@ -490,6 +497,9 @@ class ConfigFile:
             "BoundaryPass": self._parse_bool("boundary_pass"),
             "SeedIndexCMAFirst": self._parse_off_or_min2("seed_index_cma_first"),
             "BFSNeighborCMANoFallback": self._parse_bool("bfs_neighbor_cma_no_fallback"),
+            "BoundaryPassSkipHitRatio": self._parse_unit_interval("boundary_pass_skip_hit"),
+            "SeedRescueCMA": self._parse_seed_rescue_cma,
+            "SeedIndexMCStallHit": self._parse_seed_index_mc_stall_hit,
             "CppOverlapRule": self._parse_bool("cpp_overlap_rule"),
             "CppEdgeRules": self._parse_bool("cpp_edge_rules"),
             "CppOmegaInterp": self._parse_bool("cpp_omega_interp"),
@@ -642,6 +652,37 @@ class ConfigFile:
                 f"got {n_cost} {n_refine}"
             )
         self.seed_index_n_cost, self.seed_index_n_refine = n_cost, n_refine
+
+    def _parse_seed_rescue_cma(self, tokens: List[str]) -> None:
+        """SeedRescueCMA sigma evals (Python-only, opt-in, AR5 step 9): the rescue of a failed
+        indexed seed step with a CMA local optimization of first step ``sigma`` degrees and
+        ``evals`` evaluations. ``0 0`` is off; otherwise sigma > 0 and evals >= 2 (an integer).
+        Its key combinations are checked by ``reconstructor.check_bfs_keys``."""
+        from .orientation_search import check_seed_rescue
+
+        if len(tokens) != 3:
+            raise ValueError(
+                f"{tokens[0]} needs exactly two values: sigma (degrees) evals, got {tokens[1:]}"
+            )
+        sigma, evals = float(tokens[1]), int(tokens[2])
+        check_seed_rescue(sigma, evals)
+        self.seed_rescue_sigma_deg, self.seed_rescue_evals = sigma, evals
+
+    def _parse_seed_index_mc_stall_hit(self, tokens: List[str]) -> None:
+        """SeedIndexMCStallHit k (Python-only, opt-in, AR5 step 12): the stall check in the
+        indexed seed step's MC refinement after ``k`` evaluations with no strict gain. ``0`` is
+        off; otherwise an integer ``k >= 1``. Its key combinations are checked by
+        ``reconstructor.check_bfs_keys``."""
+        from .orientation_search import check_seed_index_mc_stall_hit
+
+        if len(tokens) != 2:
+            raise ValueError(f"{tokens[0]} needs exactly one integer k, got {tokens[1:]}")
+        try:
+            k = int(tokens[1])
+        except ValueError:
+            raise ValueError(f"{tokens[0]} needs an integer >= 0, got {tokens[1]!r}") from None
+        check_seed_index_mc_stall_hit(k)
+        self.seed_index_mc_stall_hit = k
 
     def _parse_off_or_min2(self, attr_name: str) -> Callable[[List[str]], None]:
         """Parser for an integer that is 0 (off) or at least 2."""

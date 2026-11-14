@@ -26,8 +26,9 @@ import gradient_common as G
 import held_sample_lib as H
 import numpy as np
 
-assert C.SAMPLE_KIND == "held", "run with AR3_SAMPLE=held"
-SEED = 1
+assert C.SAMPLE_KIND in ("held", "held2"), "run with AR3_SAMPLE=held or held2"
+# AR5 step 12: ``held2`` is this builder with generator seed 2 (``held``: seed 1); no other change
+SEED = {"held": 1, "held2": 2}[C.SAMPLE_KIND]
 N_CELLS = 250
 MIN_SEP_DEG = 5.0
 

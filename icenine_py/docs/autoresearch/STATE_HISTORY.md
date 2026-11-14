@@ -860,6 +860,56 @@ tests, no rerun, no library change). Page: `docs/autoresearch/findings_ar5_keys.
 - Data that stays untracked: worktree `agent-afc3f195cb4fffb30` (`ar5/keys/cache/`: the library
   runs `S8L_big`, `S10L_big`, `S11L_big`, `S11L_grad` and the pass checks).
 
+### AR5 step 7 (opt-in key `BoundaryPassSkipHitRatio`; task `ar5g`), merged at 50c3b9c on 2026-11-12
+
+Library change (four files: `boundary_pass.py`, `config_file.py`, `orientation_search.py`,
+`reconstructor.py`), tests, scripts, results. Suite after the merge: 1759 passed, 47 skipped,
+1 deselected. Decisions D-20261112-N4 (plan), N5 (phase D: aligned draws, decided after the
+first live result), N6 (review: request changes, twelve fixes, 1 to 11 applied; fix 12, placing
+the page, waits for the owner). Reports: `20261112-1302-ar5g.md` (worktree
+`agent-a331e7882919e74aa`), `20261112-1345-review-ar5g.md` (main checkout),
+`20261112-1355-ar5g-fixes.md` and the page text `20261112-ar5g-page-v2.md` (main checkout;
+the merge removed the fixes worktree, both files were recovered exactly from the recorded
+writes). The page `findings_ar5_gate.md` is not in the tree yet.
+
+- The key, off by default: with `BoundaryPass 1`, a boundary voxel whose own hit ratio before
+  the pass is at least `h` gets no try. A skipped try still consumes its random draw (aligned
+  draws), so the kept tries are the same as in the full pass.
+- Replay at 0.95 on stored passes: 0 fixed, 0 broken on `held` and on five disclosed passes;
+  the pass is cut by 69% to 84% (`held` 72.3%, pass 1,436,977 evaluations).
+- Variant 1 (the plan's pre-set live test, skipped tries do not draw): same evaluations, but
+  fixed / broken against the full pass 4/7 `mid`, 15/12 `grad`, 2/6 `big`, 4/10 `held` (75
+  wrong against 69). It fails the plan's rule on `held`. Runs only at commit 7b4fd0f.
+- Variant 2 (aligned draws): every kept try identical to the stored full pass (15,592 `mid`,
+  10,074 `grad`, 4,491 `big`, 23,557 `held`), 0 fixed, 0 broken, wrong 35, 59, 18, 69. `held`
+  run total 33,753,877: 10.0% below the full pass, 43.7% below `S8`. The rule passes on all
+  four samples, but `held` is not a clean test: the variant was decided after `held` was read.
+- Lesson: one shifted draw stream alone moved 4 to 15 voxels each way per sample (one re-draw
+  per sample). A live test of a change that only removes work uses aligned draws.
+
+### AR5 step 8 (sweep order of the seed step; task `ar5h`), merged at 949dc61 on 2026-11-12
+
+A study with scripts only: no library change, no key. Suite after the merge: 1783 passed, 44
+skipped, 1 deselected. Decisions D-20261112-N7 (plan), N8 (both arms are `S11` with merged
+keys), N9 (review: fails, no key, merge as a study). Reports: `20261112-1419-ar5h.md`,
+`20261112-1419-ar5h-corrected.md`, `20261112-2200-review-ar5h.md`, `20261112-2215-ar5h-fixes.md`
+(all in the main `.claude/reports/`). The page text `20261112-ar5h-page.md` (main checkout; the
+write was refused) goes to `icenine_py/docs/autoresearch/findings_ar5_order.md`; it waits for the
+owner.
+
+- The run: CMA on every seed candidate before any MC refinement (`Y`), against the order of
+  `S11` (`A`). Seed-step evaluations cut: 22.6% `held`, 38.8% `mid`, 16.4% `grad`, 60.1% `big`.
+  Whole run: 7.7%, 13.4%, 2.1%, 10.6%.
+- Verdict: FAIL by rule 5 (house rule against `S8`): broken minus fixed 8 on `held` and 7 on
+  `mid`, limit 5. `Y` against `A`, fixed / broken: 1/6, 2/5, 0/0, 3/0. Wrong after the pass,
+  `A` / `Y`: 73/78, 35/38, 56/56, 21/18. No key.
+- Lesson 1: a seed-step replay is a cost estimate only; it does not show the result.
+- Lesson 2: a background command of the main session dies with the session. Start long runs
+  detached (`nohup perl -MPOSIX -e 'POSIX::setsid(); exec @ARGV' <script>`); the cron wake-up
+  checks the marker file.
+- Data that stays untracked: worktree `agent-abdf64302f4022c0a` (detached): the run cache
+  `ar5/order/cache` (step 9 links the `A` runs) and the MC traces.
+
 ## For the owner
 
 - Still yours: item 12 (apply and commit, below), Ilium's plan approvals, and the note on what
@@ -919,3 +969,79 @@ tests, no rerun, no library change). Page: `docs/autoresearch/findings_ar5_keys.
   submodule entry is staged anywhere outside `.claude/`. The repository has no submodules.
 - The `shmem` warning about the local embedder (ollama, port 11434) is expected: the owner said
   on 2026-11-09 that the embedder is no longer run. Do not report it.
+
+### AR5 step 9 (rescue a failed seed before the grid search; task `ar5i`), merged at 28b75fa on 2026-11-13
+
+Suite after the merge: 1842 passed, 44 skipped, 1 deselected. Decisions D-20261112-N10 (plan),
+D-20261113-N1 (passes the frozen rules; 8 fixes; key approved), D-20261113-N2 (the stop rule fired
+on the in-run boundary pass; key accepted on the before-the-pass equality; 6 fixes). Review page
+v47 is live (05:55, 13 Nov) with 8 new pareto points. The findings page text
+`.claude/reports/20261113-ar5i-page.md` (main checkout) goes to
+`icenine_py/docs/autoresearch/findings_ar5_rescue.md`; it waits for the owner (five pages wait:
+AR5 steps 4, 6, 7, 8, 9).
+
+- Rule G1: after a failed seed test, a wide CMA local optimization (0.25 degree, 1,000
+  evaluations, at most 5 tries) from the kept seed ends, before the grid fallback.
+- Totals, arm A to arm G: held 46,516,396 to 30,768,867 (33.9% fewer), mid 15,645,472 to
+  13,004,457 (16.9%), grad 12,189,777 to 10,196,692 (16.4%), big identical.
+- Grid fallbacks 65 to 19, 12 to 4, 11 to 5. Rescued 46 of 65, 8 of 12, 6 of 11. 0 wrong rescued.
+  Wrong after the pass, A/G: 73/69, 35/35, 56/56, 21/21. Predictions 2 and 5 not met.
+- Key: `SeedRescueCMA sigma evals`, opt-in, default off, off path bit-identical. Not recommended
+  as a default (the owner's choice).
+- Reports (main `.claude/reports/`): `20261112-2240-ar5i.md`, `20261113-0400-review-ar5i.md`,
+  `20261113-0420-ar5i-fixes.md`, `20261113-0520-review-ar5i-B.md`, `20261113-0540-ar5i-fixes2.md`.
+- Kept worktrees (detached; untracked run caches under `ar5/rescue/cache` in
+  `icenine_py/benchmarks/autoresearch/`): `agent-a8d20b3821621fd41` (phase A runs, per-level
+  record of the 23 fallbacks) and `agent-ab6ee3e8ef1058af1` (library runs).
+- Lesson: a stop rule that compares a library run with a script arm must say "before the pass"
+  (the in-run pass starts from the unrounded map).
+
+### AR5 step 10 (level-0 cut of the grid search; task `ar5j`), merged as a study at 8ffc5d4 on 2026-11-13
+
+A study with scripts only: no library change, no key, no findings page (the MIGRATION_HISTORY
+section is its record). Suite after the merge: 1847 passed, 47 skipped, 1 deselected. Decisions
+D-20261113-N3 (plan), N4 (result). Reports in the main `.claude/reports/`: `20261113-0630-ar5j.md`,
+`20261113-0625-review-ar5j.md`, `20261113-0640-ar5j-fixes.md`.
+
+- The cut: quick MC on the first 1,000 listed candidates of level 0. Replay on the 23 stored grid
+  searches of `mid` and `grad`: right in 20 of 23 (needed 22), hit ratio at least 0.95 in 15
+  (needed 20), 67.7% fewer evaluations (2,499,899 against 7,733,964; met).
+- Verdict: FAIL the replay gate. No whole-layer run, no key, no held read.
+- Lesson: a claim about where the right candidate sits at one level does not show that later
+  levels keep it; a gate replays the whole changed path.
+- Data that stays untracked: worktree `agent-a9920a0aeaf5d1276` (detached): the replay cache
+  under `icenine_py/benchmarks/autoresearch/ar5/cut/`.
+
+### AR5 step 11 (patience stop of a stalled seed-step refinement; task `ar5k`), merged as a study at 2939db9 on 2026-11-13
+
+A study with scripts only: no library change, no key, no findings page (the MIGRATION_HISTORY
+section is its record). Suite after the merge: 1880 passed, 47 skipped, 1 deselected. Decisions
+D-20261113-N5 (plan), N6 (result). Reports in the main `.claude/reports/`: `20261113-0700-ar5k.md`,
+`20261113-1000-review-ar5k.md`, `20261113-1015-ar5k-fixes.md`.
+
+- The rule: P(3000), arm S, stops a stalled seed-step MC refinement after 3,000 evaluations
+  without gain. Against arm G: held 5.71% fewer evaluations, mid 10.60%, grad 0.14%, big 5.01%.
+  Wrong voxels S/G: 69/69, 37/35, 55/56, 21/21. 597 of 1,181 cut refinements had a best under 0.95.
+- Verdict: FAIL rule 5 on `mid` against `S8`: 8 fixed, 14 broken, net 6 (limit 5; G at 4).
+- Lesson: a patience stop cuts refinements that are not yet good; step 12 stops only at 0.95.
+- Data that stays untracked: worktree `agent-a69be86211b6c2797` (detached): the run cache under
+  `icenine_py/benchmarks/autoresearch/ar5/patience/cache`.
+
+### AR5 step 12 (PH(3000): stop a stalled seed-step refinement only at hit ratio 0.95 or more; task `ar5l`), merged at fe3d277 on 2026-11-13
+
+Adds one opt-in key, `SeedIndexMCStallHit k` (default 0, off; not recommended as a default). Suite
+after the merge: 1976 passed, 47 skipped, 1 deselected. Decisions D-20261113-N7 (plan), N8 (efe12c6:
+passes rules 1 to 5 on held2, held, mid, grad, big; key approved), N10 (3c58d8f: key accepted, 4 fixes).
+Reports in the main `.claude/reports/`: `20261113-1100-ar5l.md`, `20261113-1600-review-ar5l.md`,
+`20261113-1630-ar5l-B.md`, `20261113-1730-review-ar5l-B.md`, `20261113-1800-ar5l-fixes2.md`.
+
+- The rule: arm H, with the in-run pass. Against arm G: held2 (the new test sample) 4.33% fewer
+  evaluations, held 3.84%, mid 8.11%, grad 0.16%, big 4.53%. Wrong voxels equal to G's; 0 fixed, 0 broken.
+- Library run on mid equals the script arm before the pass (8,713,457 evaluations); the in-run
+  pass differs (reported apart, as step 9).
+- The findings page is not in the tree: text `.claude/reports/20261113-ar5l-page-v2.md` (main) goes to
+  `icenine_py/docs/autoresearch/findings_ar5_stallhit.md` (the owner places it; six pages wait).
+- Step 13 (task `ar5m`) is blocked for the owner (freeze run refused; gate g2 needs an amendment);
+  its phase B precondition (step 12 merged) is now met. `cpptools` is gone: item 14 timing starts.
+- Data that stays untracked: worktrees `agent-a0ffe667a1a6ee068` (held2 sample, runs; `passes_held2/
+  D4_H/tries.npz` stays unopened until step 13's freeze) and `agent-ab6f021fc3d6bed02` (mid runs).

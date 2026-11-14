@@ -86,7 +86,9 @@ shmem may help". The rules:
    and check it with a key-by-key script).
 8. **Merge the task:** in the worktree that holds the task branch,
    `scripts/dev/finish_task.sh --yes --push`, in the background (the suite takes about 12
-   minutes). The main checkout must be clean and committed while it runs.
+   minutes). The main checkout must be clean and committed while it runs. The script
+   removes that worktree: first copy its `.claude/reports/` files (not tracked) to the
+   main checkout's `.claude/reports/`, and link or move any cache a later step needs.
 9. **Close the step** (one agent can do a to c from a short brief):
    a. `gh pr edit <n> --title ... --body-file ...`; the body ends with the Claude Code line.
    b. The review page (below).

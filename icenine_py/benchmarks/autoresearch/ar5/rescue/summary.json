@@ -1,0 +1,173 @@
+{
+ "validity": {
+  "held": {
+   "runs_complete": true,
+   "seed_steps_ok": true
+  },
+  "mid": {
+   "runs_complete": true,
+   "seed_steps_ok": true,
+   "stored_total_reproduces": true,
+   "stored_fallback_evals_reproduce": true
+  },
+  "grad": {
+   "runs_complete": true,
+   "seed_steps_ok": true,
+   "stored_total_reproduces": true,
+   "stored_fallback_evals_reproduce": true
+  },
+  "big": {
+   "runs_complete": true,
+   "seed_steps_ok": true,
+   "stored_total_reproduces": true,
+   "stored_fallback_evals_reproduce": true,
+   "big_idle_path_g_equals_a_evals_and_map": true
+  },
+  "all_ok": true
+ },
+ "draw_isolation": {
+  "held": {
+   "rescued": 46,
+   "differ_before": 67,
+   "differ_before_others": 21,
+   "differ_before_others_in_a_rescued_grain": 20,
+   "differ_before_others_max_deg": 0.10103715932070281,
+   "differ_before_is_the_rescued_set": false,
+   "differ_after": 68,
+   "differ_after_others": 22
+  },
+  "mid": {
+   "rescued": 8,
+   "differ_before": 8,
+   "differ_before_others": 0,
+   "differ_before_others_in_a_rescued_grain": 0,
+   "differ_before_others_max_deg": 0.0,
+   "differ_before_is_the_rescued_set": true,
+   "differ_after": 8,
+   "differ_after_others": 0
+  },
+  "grad": {
+   "rescued": 6,
+   "differ_before": 32,
+   "differ_before_others": 26,
+   "differ_before_others_in_a_rescued_grain": 20,
+   "differ_before_others_max_deg": 0.27072323535782766,
+   "differ_before_is_the_rescued_set": false,
+   "differ_after": 36,
+   "differ_after_others": 30
+  },
+  "big": {
+   "rescued": 0,
+   "differ_before": 0,
+   "differ_before_others": 0,
+   "differ_before_others_in_a_rescued_grain": 0,
+   "differ_before_others_max_deg": 0.0,
+   "differ_before_is_the_rescued_set": true,
+   "differ_after": 0,
+   "differ_after_others": 0
+  },
+  "note": "With aligned draws only the rescued voxels and voxels grown from them may change. mid: exactly the rescued voxels differ. grad, held: the other differing voxels are mostly in a rescued voxel's grain (consistent with local growth from a changed seed; the growth link of the rest is not traced). big has no failed seed step and is not a test of isolation."
+ },
+ "counting": {
+  "evals_per_try": 1001,
+  "hit_ratio_overlap_evals_not_counted": 233,
+  "note": "each rescue try is 1,001 evaluations in the totals; the one overlap evaluation per try for the hit ratio is not counted (as in the seed step)"
+ },
+ "rescued_wilson": {
+  "held": {
+   "rescued": 46,
+   "tried": 65,
+   "wilson_95": [
+    0.5880373289917318,
+    0.8041673844373576
+   ]
+  },
+  "mid": {
+   "rescued": 8,
+   "tried": 12,
+   "wilson_95": [
+    0.3906175873976139,
+    0.8618821601026385
+   ]
+  },
+  "grad": {
+   "rescued": 6,
+   "tried": 11,
+   "wilson_95": [
+    0.28008775568998817,
+    0.7872904245601196
+   ]
+  }
+ },
+ "predictions": {
+  "1": {
+   "met": true,
+   "text": "cost check: grid end cheaper than every kept end in 23 of 23 (needed 21)"
+  },
+  "2": {
+   "met": false,
+   "text": "replay: rescued 14 of 23 (12 to 21 met), all right (met), median error 0.0030 (met), mean tries 2.87 (at most 2.5 NOT met)"
+  },
+  "3": {
+   "met": true,
+   "text": "held: grid fallbacks 65 to 19 (70.8% fewer, predicted 40 to 85), total 33.9% fewer (predicted 20 to 45)"
+  },
+  "4": {
+   "met": true,
+   "text": "mid 16.9% fewer (12 to 21), grad 16.4% (15 to 28), big identical: True"
+  },
+  "5": {
+   "met": false,
+   "text": "broken minus fixed against A (after pass) held -4, mid 0, grad 0, big 0 (-3 to 5); median error moves held -0.00008, mid -0.00000, grad -0.00001, big +0.00000 (at most 0.001); held's -4 is outside the range, on the favourable side"
+  }
+ },
+ "per_sample_passes": {
+  "held": true,
+  "mid": true,
+  "grad": true,
+  "big": true
+ },
+ "step_passes": true,
+ "rules": {
+  "held": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "a_fails_5": false,
+   "total_cut_pct": 33.85371687006878,
+   "passes": true
+  },
+  "mid": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "a_fails_5": false,
+   "total_cut_pct": 16.880379192139426,
+   "passes": true
+  },
+  "grad": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "a_fails_5": false,
+   "total_cut_pct": 16.350463179104917,
+   "passes": true
+  },
+  "big": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "a_fails_5": false,
+   "total_cut_pct": 0.0,
+   "passes": true
+  }
+ }
+}
