@@ -404,6 +404,48 @@ def tables(st: Dict[str, Any], pred: Dict[str, Any]) -> Dict[str, str]:
         )
         tot_ch += d["taken_changed_n"]
     t["stallhit_shares"] = DT.markdown_table(rows, list(rows[0].keys()))
+    # the gate replay (gate.json), for the docs
+    gate = st["_gate"]
+    yes = {True: "yes", False: "no"}
+    gcols = ("mid", "grad", "big")
+    gps = {s: gate["per_sample"][s] for s in gcols}
+
+    def mis_cell(d: Dict[str, Any]) -> str:
+        m = d["changed_mis_to_g_deg"]
+        if m["min"] is None:
+            return "none"
+        return f"{f(m['min'], 3)} to {f(m['max'], 3)}"
+
+    grows = [
+        ("seed steps replayed (all with an MC refinement)", lambda d: n(d["steps_replayed"])),
+        (
+            "MC fits: unchanged / cut after the last gain / cut before a later gain",
+            lambda d: f"{n(d['fits']['same'])} / {n(d['fits']['after_last'])} / "
+            f"{n(d['fits']['moved'])}",
+        ),
+        ("(g1) equal to G where uncut or cut after the last gain", lambda d: yes[d["g1_ok"]]),
+        (
+            "(g2) taken ends changed (limit)",
+            lambda d: f"{d['taken_changed']} ({d['taken_changed_limit']})",
+        ),
+        (
+            "(g3) changed end wrong where G right; failed seed tests G / H",
+            lambda d: f"{len(d['changed_wrong_where_g_right'])}; "
+            f"{d['failed_seed_tests']['g']} / {d['failed_seed_tests']['h']}",
+        ),
+        (
+            "(g4) evaluations saved, share of G's run (mid at least 6%)",
+            lambda d: f"{n(d['saved_evals'])} ({100 * d['saved_share_of_g_run']:.2f}%)",
+        ),
+        ("changed ends still at 0.95 or more", lambda d: n(d["changed_still_095"])),
+        ("angle of a changed end to G's (deg)", mis_cell),
+        (
+            "new rescues / new grid searches",
+            lambda d: f"{d['changed_paths']['rescued']} / {d['grid_searches_new']}",
+        ),
+    ]
+    rows = [{"gate item": name, **{s: fn(gps[s]) for s in gcols}} for name, fn in grows]
+    t["stallhit_gate"] = DT.markdown_table(rows, ["gate item", *gcols])
     # review fix 2: the H and G maps (stallhit_extra.py)
     rows = []
     for s in SAMPLES:
@@ -490,6 +532,7 @@ def main() -> None:
         st[s]["unmatched"].pop("only_g", None)
         st[s]["extra"] = json.loads((SH / f"extra_{s}.json").read_text())
     gate = json.loads((SH / "gate.json").read_text())
+    st["_gate"] = gate
     plot(st)  # the plot comes first
     per = {s: bool(st[s]["rules"]["passes"]) for s in SAMPLES}
     verdict = SJ.step_verdict(per)

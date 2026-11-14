@@ -33,6 +33,20 @@
 | big | H | 0 | 0 | 0 |
 <!-- /table:stallhit_fallbacks -->
 
+<!-- table:stallhit_gate -->
+| gate item | mid | grad | big |
+|---|---|---|---|
+| seed steps replayed (all with an MC refinement) | 770 | 478 | 99 |
+| MC fits: unchanged / cut after the last gain / cut before a later gain | 3,244 / 188 / 8 | 2,213 / 12 / 0 | 329 / 26 / 1 |
+| (g1) equal to G where uncut or cut after the last gain | yes | yes | yes |
+| (g2) taken ends changed (limit) | 8 (12) | 0 (1) | 1 (3) |
+| (g3) changed end wrong where G right; failed seed tests G / H | 0; 12 / 12 | 0; 11 / 11 | 0; 0 / 0 |
+| (g4) evaluations saved, share of G's run (mid at least 6%) | 1,022,595 (7.86%) | 16,501 (0.16%) | 172,491 (4.53%) |
+| changed ends still at 0.95 or more | 8 | 0 | 1 |
+| angle of a changed end to G's (deg) | 0.011 to 0.078 | none | 0.032 to 0.032 |
+| new rescues / new grid searches | 0 / 0 | 0 / 0 | 0 / 0 |
+<!-- /table:stallhit_gate -->
+
 <!-- table:stallhit_layer -->
 | sample | arm | evaluations with the pass | seed step | wrong after pass | Wilson 95% (%) | median error (deg) | fixed / broken vs G | fixed / broken vs S8 |
 |---|---|---|---|---|---|---|---|---|

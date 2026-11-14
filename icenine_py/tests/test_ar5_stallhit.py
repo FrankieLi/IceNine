@@ -500,6 +500,8 @@ def test_summary_pareto_rows_and_predictions_from_the_stored_stats(
     if not (SS.SH / "stats_held2.json").exists():
         return
     st = {s: json.loads((SS.SH / f"stats_{s}.json").read_text()) for s in SS.SAMPLES}
+    for s in SS.SAMPLES:  # review fixes 2 and 6 (stallhit_extra.py)
+        st[s]["extra"] = json.loads((SS.SH / f"extra_{s}.json").read_text())
     gate = json.loads((SS.SH / "gate.json").read_text())
     monkeypatch.setattr(SS, "SH", tmp_path)
     SS.pareto(st, "status text")
@@ -511,3 +513,4 @@ def test_summary_pareto_rows_and_predictions_from_the_stored_stats(
     assert len(rows) == 2 * (5 + 2)
     pred = SS.predictions(st, gate)
     assert set(pred["p4"]) == set(SS.SAMPLES) and "seed_met" in pred["p3"]["held2"]
+    assert pred["p1_same"] == {s: True for s in SS.SAMPLES}
