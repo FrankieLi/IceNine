@@ -1872,3 +1872,22 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   the owner's eye, since C++ is the reference); a C++ evaluation count by a print and a rebuild.
   Decided by Newt Agent under D-20261109-N1; the owner may overrule. Where: branch
   feature/eval-reduction-cpptime; .claude/reports/20261114-1000-review-cpptime.md.
+
+### D-20261114-N4 · Track A / AR5 step 14 · AR5 step 14 approved: rule G2, a second local optimization from a failed rescue's ends before the grid search; probe gates first; held2 as the test
+- 2026-11-14, owner. Recorded by Newt Agent. Supersedes: none.
+- Plan drafted by an Opus agent from stored records, read in full by Newt Agent. The grid search
+  is 23.3% of arm H on held2 and 22.2% on held; on the 28 disclosed failed rescues (mid, grad,
+  held) the grid end reaches hit ratio 0.95 in 21, holding 74.8% of the grid evaluations (the
+  ceiling). Rule G2: after a failed rescue, a second local optimization from every rescue end;
+  first end at 0.95 or more is taken, else the grid search runs unchanged. Two forms frozen: G2a
+  (CMA, first step 0.5 degree, 3,000 evaluations), G2b (64-point local grid, then CMA from the
+  best 2). Gate 1 on the 28 disclosed cases (at least 13 accepted, none wrong where the grid end
+  is right, net saving at least 40%); gate 2 on held2's 21 cases after the freeze commit (at least
+  7 accepted, net saving at least 25%); then whole layers of arm J (H plus G2) under the plan's
+  rules, house rule against S8 included. held2 is the test: its rescue logs are unread; disclosed
+  limit: step 12's review opened held2's seed logs, map and rescue counts. No new sample, no new
+  random seed. Nothing under passes_held2 is opened until step 13's held2 result is on record; if
+  step 13 is still blocked when the runs end, the after-pass judgement on held2 waits and the
+  before-pass and other-sample results are reported. Phase B (key SeedRescuePolish) only after a
+  further decision. Cost about 90 million evaluations, 4.6 process-hours. Decided by Newt Agent
+  under D-20261109-N1; the owner may overrule. Where: PLAN.md section AR5 step 14; task ar5n.
