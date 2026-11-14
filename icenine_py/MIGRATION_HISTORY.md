@@ -12845,6 +12845,8 @@ Equal before the pass: yes.
   (`D4_Hl`, `before_Hl.npy`, `after_Hl.npy`) through a symlinked `passes_mid` folder into the
   phase A implementer's worktree cache, which was to be read only. Nothing there was overwritten;
   the three new entries were moved into this worktree's own cache right after the pass.
+- Page: the findings page `docs/autoresearch/findings_ar5_stallhit.md` waits for the owner (the
+  guard refused its write; the implementer left its text outside the repository for the owner).
 
 **Wall times.** All wall times of these runs are contended: several runs shared the machine. None
 is a timing. The `run.json` files of the four runs started together at 11:07 (`S8`, `G`, `H` on

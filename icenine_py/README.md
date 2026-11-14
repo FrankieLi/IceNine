@@ -883,7 +883,8 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   `SeedIndexMCStallHit` (default off, not recommended as a default; see the key table) with
   `tests/test_seed_index_stall_hit.py` and the check scripts `stallhit_hl.py` (script arm `Hl`),
   `stallhit_lib_run.py`, `stallhit_lib_check.py`, `stallhit_phase_b.sh`. MIGRATION_HISTORY,
-  "Autoresearch AR5 step 12"; page `docs/autoresearch/findings_ar5_stallhit.md`.
+  "Autoresearch AR5 step 12". The findings page `docs/autoresearch/findings_ar5_stallhit.md` waits
+  for the owner (the guard refused its write).
 
 See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and
 current results of this work, and [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy
