@@ -1799,3 +1799,18 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   keys) waits for that merge. Not chosen now: a local optimization from the rescue's ends to avoid
   grid searches (needs a probe replay first; a candidate for the step after). Where:
   icenine_py/docs/autoresearch/PLAN.md, AR5 step 13.
+
+### D-20261113-N10 · Track A / AR5 step 12 · AR5 step 12 key SeedIndexMCStallHit accepted: library run equals the script arm before the pass; 4 fixes; merge
+- 2026-11-13, owner. Recorded by Newt Agent. Supersedes: none.
+- The second review (APPROVE) rebuilt the key-on check on mid from the cache: the library run with
+  SeedIndexMCStallHit 3000 equals the script arm Hl before the boundary pass (map byte-identical,
+  8,713,457 evaluations, counters, 24,570 records, all 1,597 stall-check refinements). The pass
+  made inside the library run differs from the script's pass (49,963 against 49,971 tries; 36
+  against 38 wrong), reported apart as in step 9 and accepted on the same reading as
+  D-20261113-N2. The key is accepted, off by default, not recommended as a default (the owner's
+  choice). Apply the 4 fixes of the second review; for fix 1 the tracked part (run scripts refuse
+  to write when the output folder's real path is outside their own cache) is required, and no
+  agent modifies another worktree's cache. Then merge. The findings page text waits for the owner
+  to place it. During phase B the implementer's script pass wrote three new files into the stored
+  step 12 cache through a linked folder and moved them out again; the review confirmed the stored
+  cache is intact. The owner can overrule. Where: .claude/reports/20261113-1730-review-ar5l-B.md.
