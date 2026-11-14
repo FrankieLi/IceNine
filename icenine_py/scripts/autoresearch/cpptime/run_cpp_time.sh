@@ -18,7 +18,10 @@
 #   exit 0 all done; 2 a step failed (stop rule of a run: guard code 124 passed 1 hour, 125 a log did
 #   not grow for 10 minutes, 126 RUNTIME_ASSERT / [ConfigFile] Error; the .mic.LBFS or a timer line is
 #   missing; scoring failed); 3 a preflight refused; 4 passed 2 hours; 5 a timed run was not quiet
-#   (R4); 6 a repeat differs from its reference (reported, no timing claim).
+#   (R4: neither strict nor relaxed-ok); 6 a repeat differs from its reference (identity, stops at
+#   once) or, at the very end, a labelled run's C1/C2 differ by more than 2% in real time (R4b).
+#   Verdict code 3 (strict check failed, relaxed ok: a macOS daemon, median load <= 2.5) does not
+#   stop: the label is logged and kept in quiet/<run>.json and pair_C.json. C0 is untimed (no pair).
 # In every non-zero case the script stops and no wall time is to be reported for the step.
 set -u
 cd "$(dirname "$0")/../../.." || exit 99   # icenine_py/
@@ -148,6 +151,11 @@ run_cpp() { # name timed(0|1)  (one C++ run; a stop-rule trip or a failed check 
       --out "$C/quiet/$n.json" >> "$MAIN" 2>&1
     q=$?
     echo "quiet_$n rc=$q" >> "$CODES"
+    cp "$R/time.txt" "$C/logs/$n.time"   # quiet.py pair reads <cache>/logs/<run>.time
+    if [ $q -eq 3 ]; then  # R4b (D-20261114-N1): strict check failed, relaxed check passed: go on, label it
+      say "LABEL $n: $(grep -o '"label": "[^"]*"' "$C/quiet/$n.json" | cut -d'"' -f4)"
+      q=0
+    fi
     if [ $q -ne 0 ] && [ "$DRY" = 1 ]; then
       say "DRY: run $n was not quiet; a real run would stop here (exit 5)"; q=0
     fi
@@ -163,6 +171,16 @@ same() { # name dirA dirB   (identity check; a difference stops the script)
   echo "same_$1 rc=$rc" >> "$CODES"
   say "END same_$1 rc=$rc: $(tail -n 1 "$C/logs/same_$1.log")"
   [ $rc -ne 0 ] && finish 6 "repeat differs (same_$1): $(tail -n 1 "$C/logs/same_$1.log"); reported, no timing claim"
+  return 0
+}
+
+PAIR_FAIL=""
+pair() { # arm run1 run2   (R4b: a labelled run needs its repeat within 2% in real time)
+  uv run python $CT/quiet.py pair --arm "$1" --runs "$2" "$3" --cache "$C" > "$C/logs/pair_$1.log" 2>&1
+  local rc=$?
+  echo "pair_$1 rc=$rc" >> "$CODES"
+  say "PAIR $1: $(tail -n 1 "$C/logs/pair_$1.log")"
+  [ $rc -ne 0 ] && PAIR_FAIL="$PAIR_FAIL $1"
   return 0
 }
 
@@ -185,9 +203,13 @@ run_cpp C1 1
 same C1_C0 "$C/runs/C1" "$C/runs/C0"
 run_cpp C2 1
 same C2_C1 "$C/runs/C2" "$C/runs/C1"
+pair C C1 C2
 
 # --- closing preflight (report only)
 uv run python ../scripts/dev/timing_preflight.py --json "$C/preflight_final.json" \
   > "$C/logs/preflight_final.log" 2>&1
 say "closing preflight written"
+if [ -n "$PAIR_FAIL" ]; then
+  finish 6 "no time reported for C1/C2 (a labelled run, repeat differs by more than 2%; see $C/pair_C.json)"
+fi
 finish 0 "all steps done"

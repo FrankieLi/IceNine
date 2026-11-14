@@ -247,6 +247,16 @@ def test_same_cpp_run_flags_mic_and_log(tmp_path: Path) -> None:
     assert "log" in str(SC.diff_runs(a, c))
 
 
+def test_same_cpp_run_ignores_uninitialised_tail_columns(tmp_path: Path) -> None:
+    head = "0.6\n"
+    row = "0.1 0.2 0 1 6 1 10 20 30 1 0.125 1 {}\n"
+    a = _cpp_run(tmp_path / "a", (head + row.format("0 1 1")).encode(), CLIENT)
+    b = _cpp_run(tmp_path / "b", (head + row.format("1.4e-45 1 0")).encode(), CLIENT)
+    assert SC.diff_runs(a, b) is None
+    c = _cpp_run(tmp_path / "c", (head + row.format("0").replace(" 30 ", " 31 ")).encode(), CLIENT)
+    assert "LBFS" in str(SC.diff_runs(a, c))
+
+
 def test_cli_same_cpp_run_exit_code(tmp_path: Path) -> None:
     a = _cpp_run(tmp_path / "a", b"m", CLIENT)
     b = _cpp_run(tmp_path / "b", b"m", CLIENT)
@@ -265,6 +275,52 @@ def test_quiet_verdict_load_and_busy() -> None:
     busy = [dict(t=0, procs=[dict(pid=9, cpu=35.0, command="/x/cpptools")])]
     v = Q.verdict(ok, busy, limit=2.5)
     assert v["quiet"] is False and v["busy"][0]["pid"] == 9
+
+
+def _proc(path: str, cpu: float = 99.0) -> dict:
+    return dict(pid=7, cpu=cpu, command=path)
+
+
+def test_r4b_verdict_strict_has_empty_label() -> None:
+    import quiet as Q
+
+    v = Q.verdict([dict(t=0, load=1.0)], [], limit=2.5)
+    assert v["quiet"] is True and v["relaxed_ok"] is True and v["label"] == ""
+    assert Q.exit_code(v) == 0
+
+
+def test_r4b_verdict_relaxed_daemon_and_load_spike() -> None:
+    import quiet as Q
+
+    loads = [dict(t=0, load=1.2), dict(t=30, load=3.1), dict(t=60, load=1.3)]
+    procs = [dict(t=0, procs=[_proc("/usr/libexec/spotlightknowledged")])]
+    v = Q.verdict(loads, procs, limit=2.5)
+    assert v["quiet"] is False and v["relaxed_ok"] is True
+    assert v["label"] == "strict quiet check failed (spotlightknowledged)"
+    assert Q.exit_code(v) == 3
+
+
+def test_r4b_verdict_neither() -> None:
+    import quiet as Q
+
+    v = Q.verdict([dict(t=0, load=1.0)], [dict(procs=[_proc("/opt/app/cpptools")])], limit=2.5)
+    assert v["relaxed_ok"] is False and Q.exit_code(v) == 1
+
+
+def test_r4b_pair_check() -> None:
+    import quiet as Q
+
+    assert Q.pair_report("C", 1000.0, 1010.0, "", "")["reported"] is True
+    p = Q.pair_report("C", 1000.0, 1030.0, "", "strict quiet check failed (d)")
+    assert p["reported"] is False and p["note"] == "no time reported for arm C"
+    assert Q.pair_report("C", 1000.0, 1030.0, "", "")["reported"] is True
+
+
+def test_run_script_parses_and_has_r4b() -> None:
+    r = subprocess.run(["bash", "-n", str(SCRIPTS / "run_cpp_time.sh")], capture_output=True)
+    assert r.returncode == 0
+    text = (SCRIPTS / "run_cpp_time.sh").read_text()
+    assert "quiet.py pair" in text and "LABEL" in text and "pair C C1 C2" in text
 
 
 def test_quiet_limit_rule() -> None:

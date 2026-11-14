@@ -3,7 +3,13 @@
 quiet.py sample --out FILE.jsonl --watch-pid PID [--period 30]
     logs the 1-minute load every 30 s and the top CPU processes every 300 s, until PID is gone
 quiet.py verdict --samples FILE.jsonl --limit 2.5 --out FILE.json
-    exit 0 if quiet, 1 if not: no load sample above the limit and no other process above 20% CPU
+    strict quiet: no load sample above the limit and no other process above 20% CPU.
+    Exit 0 strictly quiet; 3 not strict but relaxed_ok (R4b, D-20261114-N1: median load within
+    the limit and every busy process a macOS daemon under /usr/libexec/, /System/ or /sbin/);
+    1 neither. The JSON also holds relaxed_ok and label.
+quiet.py pair --arm A --runs A1 A2 --cache DIR
+    R4b pair check: if a run of the pair carried a label, the real times must agree within 2%;
+    writes DIR/pair_<arm>.json; exit 0 reported, 6 no time reported for the arm.
 """
 
 import argparse
@@ -39,14 +45,58 @@ def verdict(
     for s in proc_samples:
         busy += [p for p in s.get("procs", []) if float(p["cpu"]) > BUSY_PCT]
     max_load = max(loads) if loads else float("nan")
+    median = sorted(loads)[len(loads) // 2] if loads else float("nan")
+    quiet = bool(loads) and max_load <= limit and not busy
+    # R4b (D-20261114-N1): median load within the limit and every busy process a macOS daemon
+    relaxed_ok = bool(loads) and median <= limit and all(_is_daemon(p) for p in busy)
+    names = sorted({os.path.basename(p["command"]) for p in busy})
+    label = "" if quiet else f"strict quiet check failed ({', '.join(names)})"
     return dict(
-        quiet=bool(loads) and max_load <= limit and not busy,
+        quiet=quiet,
         limit=limit,
         max_load=max_load,
-        median_load=sorted(loads)[len(loads) // 2] if loads else float("nan"),
+        median_load=median,
         n_load=len(loads),
         busy=busy,
+        relaxed_ok=relaxed_ok,
+        label=label,
     )
+
+
+DAEMON_PREFIXES = ("/usr/libexec/", "/System/", "/sbin/")
+PAIR_TOLERANCE = 0.02
+
+
+def _is_daemon(p: Dict[str, Any]) -> bool:
+    return str(p["command"]).startswith(DAEMON_PREFIXES)
+
+
+def exit_code(v: Dict[str, Any]) -> int:
+    """0 strictly quiet, 3 not strict but relaxed_ok (R4b), 1 neither."""
+    return 0 if v["quiet"] else 3 if v["relaxed_ok"] else 1
+
+
+def pair_report(arm: str, t1: float, t2: float, label1: str, label2: str) -> Dict[str, Any]:
+    """R4b (iii): if either run of a repeat pair carried a label, the real times must agree
+    within 2% (difference over the smaller time), else no time is reported for the arm."""
+    labels = [x for x in (label1, label2) if x]
+    rel = abs(t1 - t2) / min(t1, t2)
+    ok = not labels or rel <= PAIR_TOLERANCE
+    return dict(
+        arm=arm,
+        real_s=[t1, t2],
+        rel_diff=rel,
+        labels=labels,
+        reported=ok,
+        note="" if ok else f"no time reported for arm {arm}",
+    )
+
+
+def _real_s(path: Path) -> float:
+    for line in path.read_text().splitlines():
+        if line.startswith("real"):
+            return float(line.split()[1])
+    raise ValueError(f"no real time in {path}")
 
 
 def _descendants(pid: int) -> Set[int]:
@@ -98,13 +148,27 @@ def sample(out: Path, watch_pid: int, period: float) -> None:
 
 def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("cmd", choices=["sample", "verdict"])
-    ap.add_argument("--out", type=Path, required=True)
+    ap.add_argument("cmd", choices=["sample", "verdict", "pair"])
+    ap.add_argument("--out", type=Path, default=None)
+    ap.add_argument("--arm", default="")
+    ap.add_argument("--runs", nargs=2, default=None, help="pair: the two run names (A1 A2)")
+    ap.add_argument("--cache", type=Path, default=None, help="pair: the item14 cache folder")
     ap.add_argument("--watch-pid", type=int, default=0)
     ap.add_argument("--period", type=float, default=LOAD_PERIOD_S)
     ap.add_argument("--samples", type=Path, default=None)
     ap.add_argument("--limit", type=float, default=PRESET_LIMIT)
     a = ap.parse_args(argv)
+    if a.cmd == "pair":
+        assert a.cache is not None and a.runs is not None
+        n1, n2 = a.runs
+        lab = [json.loads((a.cache / "quiet" / f"{n}.json").read_text())["label"] for n in a.runs]
+        t = [_real_s(a.cache / "logs" / f"{n}.time") for n in a.runs]
+        p = pair_report(a.arm, t[0], t[1], lab[0], lab[1])
+        p["runs"] = [n1, n2]
+        (a.cache / f"pair_{a.arm}.json").write_text(json.dumps(p, indent=1) + "\n")
+        print(json.dumps(p))
+        return 0 if p["reported"] else 6
+    assert a.out is not None
     if a.cmd == "sample":
         sample(a.out, a.watch_pid, a.period)
         return 0
@@ -115,7 +179,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     )
     a.out.write_text(json.dumps(v, indent=1) + "\n")
     print(json.dumps(v))
-    return 0 if v["quiet"] else 1
+    return exit_code(v)
 
 
 if __name__ == "__main__":

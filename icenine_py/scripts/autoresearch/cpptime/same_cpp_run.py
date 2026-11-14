@@ -2,7 +2,9 @@
 
   uv run python scripts/autoresearch/cpptime/same_cpp_run.py RUN_A RUN_B
 
-Equal means: ``cpp_pilot.mic.LBFS`` byte for byte, and the client log
+Equal means: ``cpp_pilot.mic.LBFS`` equal in its first 12 columns per row
+(columns 12 and up are uninitialised memory in the C++ writer: two dry runs differed there only),
+and the client log
 (``ParallelReconLog_1.log``) equal once its time fields are dropped. Exit 0 if equal, 1 with the
 first difference named.
 """
@@ -35,11 +37,20 @@ def strip_time(text: str) -> List[str]:
     return text.splitlines()
 
 
+STABLE_COLS = 12  # columns 12+ of the C++ .mic.LBFS are uninitialised memory (differ run to run)
+
+
+def mic_stable(text: str) -> List[List[str]]:
+    """The header and, per voxel row, the first STABLE_COLS tokens (position, direction,
+    generation, phase, Euler angles, confidence, cost, overlap)."""
+    return [ln.split()[:STABLE_COLS] for ln in text.splitlines()]
+
+
 def diff_runs(a: Path, b: Path) -> Optional[str]:
     """First difference between two run folders, or None if they are identical."""
-    ma, mb = (a / MIC).read_bytes(), (b / MIC).read_bytes()
+    ma, mb = mic_stable((a / MIC).read_text()), mic_stable((b / MIC).read_text())
     if ma != mb:
-        return f"{MIC} differs ({len(ma)} vs {len(mb)} bytes)"
+        return f"{MIC} differs in its first {STABLE_COLS} columns ({len(ma)} vs {len(mb)} lines)"
     la, lb = strip_time((a / CLIENT_LOG).read_text()), strip_time((b / CLIENT_LOG).read_text())
     if len(la) != len(lb):
         return f"client log length {len(la)} vs {len(lb)} lines"
