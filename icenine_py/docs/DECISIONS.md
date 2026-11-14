@@ -1850,3 +1850,25 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   as a study; no key or default changes. Decided by Newt Agent under D-20261109-N1; the owner may
   overrule. Where: branch feature/eval-reduction-item14;
   .claude/reports/20261114-0700-review-item14.md.
+
+### D-20261114-N3 · Track A / C++ time · C++ time reviewed: times stand with labels, but the C++ run is a different job (416 of 2,000 wrong, local optimizations change nothing); 16 fixes; merge after item 14
+- 2026-11-14, owner. Recorded by Newt Agent. Supersedes: none.
+- Opus review 20261114-1000-review-cpptime.md: request changes, no rerun. Accepted: (1) the C++
+  wall times (C1 1236.87 s, C2 1231.87 s, two busy ranks, user+sys 2.00 times real) are reported
+  with labels; Python A1 1621.02 s is single-worker (1.00). (2) No speed ratio is a headline: the
+  C++ run leaves 416 of 2,000 voxels wrong against Python's 24 with configs that differ only in
+  Python-only keys, paths and save interval. The review traced them in the client log: 393 are
+  voxels marked for a refit that one client never fits again, 23 passed the 0.9 test with a
+  neighbouring grain's orientation, and all 1,921 C++ local optimizations print the orientation
+  they started from. So the ratios 1.31 and 1.33 compare different jobs and carry that caveat
+  wherever they appear. (3) The identity-check deviation is accepted in the form of fix 13:
+  compare every column except index 12 (fFittingTime, never assigned in the C++ source; verified
+  by the review). (4) The strict limit 3.5 for the two-rank run is accepted as used, with fix 6:
+  say the idle load was assumed 1.5, not measured, and that at 2.5 C1 also fails the strict check;
+  fix 5: R4b's median test is against 2.5. (5) All 16 fixes are applied by the cpptime implementer
+  after item 14 is merged and the parent merged into its branch; the findings page is not placed
+  by an agent. (6) Follow-up candidates, not started: why the C++ local optimization leaves
+  orientations unchanged on this pilot and why 393 refit voxels are dropped (a C++ behaviour worth
+  the owner's eye, since C++ is the reference); a C++ evaluation count by a print and a rebuild.
+  Decided by Newt Agent under D-20261109-N1; the owner may overrule. Where: branch
+  feature/eval-reduction-cpptime; .claude/reports/20261114-1000-review-cpptime.md.
