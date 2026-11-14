@@ -117,6 +117,13 @@
     }
    }
   },
+  "p1_same": {
+   "held2": true,
+   "held": true,
+   "mid": true,
+   "grad": true,
+   "big": true
+  },
   "p2": {
    "mid": {
     "met": true,
@@ -290,5 +297,164 @@
   "grad": 0,
   "big": 0
  },
- "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+ "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm",
+ "maps_h_vs_g": {
+  "held2": {
+   "before": {
+    "voxels_differ": 213,
+    "max_mis_deg": 0.3050309519502886,
+    "median_mis_deg": 0.05193795033545179,
+    "max_err_not_both_wrong_deg": 0.2869690537455743,
+    "both_wrong": 0,
+    "one_wrong": 0,
+    "both_wrong_err_deg": []
+   },
+   "after": {
+    "voxels_differ": 240,
+    "max_mis_deg": 0.3092205261418713,
+    "median_mis_deg": 0.05289830446106198,
+    "max_err_not_both_wrong_deg": 0.2967736813741385,
+    "both_wrong": 0,
+    "one_wrong": 0,
+    "both_wrong_err_deg": []
+   }
+  },
+  "held": {
+   "before": {
+    "voxels_differ": 54,
+    "max_mis_deg": 0.24264270997073648,
+    "median_mis_deg": 0.06220478156408459,
+    "max_err_not_both_wrong_deg": 0.24612680851828406,
+    "both_wrong": 3,
+    "one_wrong": 0,
+    "both_wrong_err_deg": [
+     34.93718596317669,
+     34.93415231977703,
+     34.905430467879405
+    ]
+   },
+   "after": {
+    "voxels_differ": 65,
+    "max_mis_deg": 0.3639488609810126,
+    "median_mis_deg": 0.06881208520085508,
+    "max_err_not_both_wrong_deg": 0.2677684386830131,
+    "both_wrong": 3,
+    "one_wrong": 0,
+    "both_wrong_err_deg": [
+     34.93718596317669,
+     34.93415231977703,
+     34.905430467879405
+    ]
+   }
+  },
+  "mid": {
+   "before": {
+    "voxels_differ": 127,
+    "max_mis_deg": 0.41880209752423997,
+    "median_mis_deg": 0.08354562167597415,
+    "max_err_not_both_wrong_deg": 0.3979109297834374,
+    "both_wrong": 0,
+    "one_wrong": 0,
+    "both_wrong_err_deg": []
+   },
+   "after": {
+    "voxels_differ": 173,
+    "max_mis_deg": 0.4586913937654346,
+    "median_mis_deg": 0.08227472304536343,
+    "max_err_not_both_wrong_deg": 0.25300373365807355,
+    "both_wrong": 0,
+    "one_wrong": 0,
+    "both_wrong_err_deg": []
+   }
+  },
+  "grad": {
+   "before": {
+    "voxels_differ": 0,
+    "max_mis_deg": 0.0,
+    "max_err_not_both_wrong_deg": null,
+    "both_wrong": 0,
+    "one_wrong": 0
+   },
+   "after": {
+    "voxels_differ": 0,
+    "max_mis_deg": 0.0,
+    "max_err_not_both_wrong_deg": null,
+    "both_wrong": 0,
+    "one_wrong": 0
+   }
+  },
+  "big": {
+   "before": {
+    "voxels_differ": 1,
+    "max_mis_deg": 0.03165997692393028,
+    "median_mis_deg": 0.03165997692393028,
+    "max_err_not_both_wrong_deg": 0.04485995958213087,
+    "both_wrong": 0,
+    "one_wrong": 0,
+    "both_wrong_err_deg": []
+   },
+   "after": {
+    "voxels_differ": 1,
+    "max_mis_deg": 0.03165997692393028,
+    "median_mis_deg": 0.03165997692393028,
+    "max_err_not_both_wrong_deg": 0.04485995958213087,
+    "both_wrong": 0,
+    "one_wrong": 0,
+    "both_wrong_err_deg": []
+   }
+  }
+ },
+ "same_candidate": {
+  "held2": {
+   "matched_steps_with_fits": 3600,
+   "same_stop": 3600,
+   "same_taken_position": 3600,
+   "same_fits": 3600,
+   "all_same": true
+  },
+  "held": {
+   "matched_steps_with_fits": 3687,
+   "same_stop": 3687,
+   "same_taken_position": 3687,
+   "same_fits": 3687,
+   "all_same": true
+  },
+  "mid": {
+   "matched_steps_with_fits": 1582,
+   "same_stop": 1582,
+   "same_taken_position": 1582,
+   "same_fits": 1582,
+   "all_same": true
+  },
+  "grad": {
+   "matched_steps_with_fits": 1280,
+   "same_stop": 1280,
+   "same_taken_position": 1280,
+   "same_fits": 1280,
+   "all_same": true
+  },
+  "big": {
+   "matched_steps_with_fits": 317,
+   "same_stop": 317,
+   "same_taken_position": 317,
+   "same_fits": 317,
+   "all_same": true
+  }
+ },
+ "went_on_hit_max": {
+  "held2": 0.9493554327808471,
+  "held": 0.9498031496062992,
+  "mid": 0.9485018726591761,
+  "grad": 0.9259606373008434,
+  "big": 0.9495412844036697
+ },
+ "stop_hit_min": {
+  "held2": 0.9500462534690102,
+  "held": 0.9502712477396021,
+  "mid": 0.9501915708812261,
+  "grad": 0.9514134275618374,
+  "big": 0.9617437722419929
+ },
+ "s8_note": "Note: G and H share their random draws (aligned draws). S8 does not: the counts against S8 pair the same voxels only.",
+ "timing_note": "All wall times of these runs are contended (several runs on the machine at once); none is a timing. The run.json files of the four runs started together at 11:07 (S8, G, H on held2 and H on held) read 'single-worker': each preflight ran before the others started. Not cited."
 }

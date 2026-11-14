@@ -11,11 +11,11 @@
 <!-- table:stallhit_cuts -->
 | sample | MC refinements | stall checks | stopped (cuts) | went on | hit ratio of the checks that went on (min / median / max) | lowest hit ratio at a stop | evaluations in cut ones |
 |---|---|---|---|---|---|---|---|
-| held2 | 5,652 | 833 | 357 | 476 | 0.446 / 0.902 / 0.949 | 0.9500 | 1,324,060 |
-| held | 5,443 | 789 | 343 | 446 | 0.491 / 0.903 / 0.950 | 0.9503 | 1,266,396 |
-| mid | 1,606 | 346 | 197 | 149 | 0.672 / 0.911 / 0.949 | 0.9502 | 781,191 |
-| grad | 991 | 15 | 12 | 3 | 0.884 / 0.917 / 0.926 | 0.9514 | 37,253 |
-| big | 153 | 45 | 27 | 18 | 0.525 / 0.895 / 0.950 | 0.9617 | 117,288 |
+| held2 | 5,652 | 833 | 357 | 476 | 0.4458 / 0.9020 / 0.9494 | 0.9500 | 1,324,060 |
+| held | 5,443 | 789 | 343 | 446 | 0.4912 / 0.9026 / 0.9498 | 0.9503 | 1,266,396 |
+| mid | 1,606 | 346 | 197 | 149 | 0.6718 / 0.9114 / 0.9485 | 0.9502 | 781,191 |
+| grad | 991 | 15 | 12 | 3 | 0.8835 / 0.9175 / 0.9260 | 0.9514 | 37,253 |
+| big | 153 | 45 | 27 | 18 | 0.5246 / 0.8954 / 0.9495 | 0.9617 | 117,288 |
 <!-- /table:stallhit_cuts -->
 
 <!-- table:stallhit_fallbacks -->
@@ -46,7 +46,19 @@
 | grad | H | 10,180,191 | 1,511,783 | 56 | 0.18 to 0.30 | 0.02134 | 0 / 0 | 31 / 24 |
 | big | G | 3,807,747 | 687,902 | 21 | 0.06 to 0.13 | 0.03044 | n/a | 8 / 5 |
 | big | H | 3,635,256 | 515,411 | 21 | 0.06 to 0.13 | 0.03045 | 0 / 0 | 8 / 5 |
+
+Note: G and H share their random draws (aligned draws). S8 does not: the counts against S8 pair the same voxels only.
 <!-- /table:stallhit_layer -->
+
+<!-- table:stallhit_mapdiff -->
+| sample | voxels that differ, before / after the pass | largest angle H to G, before / after (deg) | largest error of a differing voxel, after (deg) | differing voxels wrong in both, after | wrong in one arm only, after |
+|---|---|---|---|---|---|
+| held2 | 213 / 240 | 0.305 / 0.309 | 0.297 | 0 | 0 |
+| held | 54 / 65 | 0.243 / 0.364 | 0.268 | 3 | 0 |
+| mid | 127 / 173 | 0.419 / 0.459 | 0.253 | 0 | 0 |
+| grad | 0 / 0 | 0.000 / 0.000 | n/a | 0 | 0 |
+| big | 1 / 1 | 0.032 / 0.032 | 0.045 | 0 | 0 |
+<!-- /table:stallhit_mapdiff -->
 
 <!-- table:stallhit_paired -->
 | sample | pass | fixed vs G | broken vs G | both wrong vs G | fixed vs S8 | broken vs S8 | both wrong vs S8 |
@@ -61,12 +73,15 @@
 | grad | after | 0 | 0 | 56 | 31 | 24 | 32 |
 | big | before | 0 | 0 | 74 | 10 | 17 | 57 |
 | big | after | 0 | 0 | 21 | 8 | 5 | 16 |
+
+Note: G and H share their random draws (aligned draws). S8 does not: the counts against S8 pair the same voxels only.
 <!-- /table:stallhit_paired -->
 
 <!-- table:stallhit_predictions -->
 | prediction | held2 | held | mid | grad | big |
 |---|---|---|---|---|---|
 | 1 replay (gate) | n/a | n/a | True (8 changed) | True (0 changed) | True (1 changed) |
+| 1, same candidate: every matched step stops at the same position (whole run, stallhit_extra.py) | True | True | True | True | True |
 | 2 replay saving | n/a | n/a | True (7.86%) | True (0.16%) | True (4.53%) |
 | 3 total fewer (mid 6-9, big 3.5-5.5, grad -0.5..0.5, held 2-6, held2 2-8; held2 seed 6-18) | True (4.33%) | True (3.84%) | True (8.11%) | True (0.16%) | True (4.53%) |
 | 4 broken - fixed vs G in -3..3, median shift <= 0.0005 | True (0) | True (0) | True (0) | True (0) | True (0) |
@@ -81,7 +96,19 @@
 | mid | 8.11 | pass | 0 | pass | -0.00000 | pass | 0; 4/4 | pass | 54.8; 4; -0.00111 | pass | yes | pass |
 | grad | 0.16 | pass | 0 | pass | 0.00000 | pass | 0; 5/5 | pass | 43.4; -7; -0.00129 | pass | yes | pass |
 | big | 4.53 | pass | 0 | pass | 0.00001 | pass | 0; 0/0 | pass | 56.4; -3; -0.00116 | pass | yes | pass |
+
+Note: G and H share their random draws (aligned draws). S8 does not: the counts against S8 pair the same voxels only.
 <!-- /table:stallhit_rules -->
+
+<!-- table:stallhit_samecand -->
+| sample | matched seed steps with fits | same stop position | same taken position | same fits (position, candidate, kind) |
+|---|---|---|---|---|
+| held2 | 3,600 | 3,600 | 3,600 | 3,600 |
+| held | 3,687 | 3,687 | 3,687 | 3,687 |
+| mid | 1,582 | 1,582 | 1,582 | 1,582 |
+| grad | 1,280 | 1,280 | 1,280 | 1,280 |
+| big | 317 | 317 | 317 | 317 |
+<!-- /table:stallhit_samecand -->
 
 <!-- table:stallhit_shares -->
 | sample | taken seed ends changed, of matched steps (Wilson 95%) |

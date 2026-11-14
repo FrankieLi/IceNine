@@ -30,6 +30,17 @@ import stats as ST  # noqa: E402
 SAMPLES = SJ.SAMPLES
 N = 24570
 STATUS_PENDING = "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+# review fix 4: the comparisons with S8 pair voxels only
+S8_NOTE = (
+    "Note: G and H share their random draws (aligned draws). S8 does not: the counts against S8 "
+    "pair the same voxels only."
+)
+# review fix 5
+TIMING_NOTE = (
+    "All wall times of these runs are contended (several runs on the machine at once); none is a "
+    "timing. The run.json files of the four runs started together at 11:07 (S8, G, H on held2 and "
+    "H on held) read 'single-worker': each preflight ran before the others started. Not cited."
+)
 
 
 def f(x: float, d: int = 5) -> str:
@@ -161,6 +172,8 @@ def predictions(st: Dict[str, Any], gate: Dict[str, Any]) -> Dict[str, Any]:
         )
         p1[s] = dict(met=met, changed=ps[s]["taken_changed"], detail=d)
     out["p1"] = p1
+    # review fix 6: the "same candidate" clause, checked on the whole runs (stallhit_extra.py)
+    out["p1_same"] = {s: bool(st[s]["extra"]["same_candidate"]["all_same"]) for s in SAMPLES}
     out["p2"] = {
         s: dict(met=ps[s]["prediction2"]["saving_in_range"], saving=ps[s]["prediction2"]["saving"])
         for s in ("mid", "grad", "big")
@@ -236,8 +249,9 @@ def tables(st: Dict[str, Any], pred: Dict[str, Any]) -> Dict[str, str]:
                 "stall checks": n(c["stall_checks"]),
                 "stopped (cuts)": n(c["stall_checks_stopped"]),
                 "went on": n(c["stall_checks_went_on"]),
+                # 4 decimals: the largest went-on values (0.94980, 0.94954) would print as 0.950
                 "hit ratio of the checks that went on (min / median / max)": (
-                    "%.3f / %.3f / %.3f"
+                    "%.4f / %.4f / %.4f"
                     % (c["went_on_hit_min"], c["went_on_hit_median"], c["went_on_hit_max"])
                     if c["stall_checks_went_on"]
                     else "n/a"
@@ -293,7 +307,7 @@ def tables(st: Dict[str, Any], pred: Dict[str, Any]) -> Dict[str, str]:
                     "fixed / broken vs S8": f"{p8['fixed']} / {p8['broken']}",
                 }
             )
-    t["stallhit_layer"] = DT.markdown_table(rows, list(rows[0].keys()))
+    t["stallhit_layer"] = DT.markdown_table(rows, list(rows[0].keys())) + "\n\n" + S8_NOTE
     rows = []
     for s in SAMPLES:
         d = st[s]
@@ -327,7 +341,7 @@ def tables(st: Dict[str, Any], pred: Dict[str, Any]) -> Dict[str, str]:
                     "both wrong vs S8": a[f"paired_{tag}"]["both_wrong"],
                 }
             )
-    t["stallhit_paired"] = DT.markdown_table(rows, list(rows[0].keys()))
+    t["stallhit_paired"] = DT.markdown_table(rows, list(rows[0].keys())) + "\n\n" + S8_NOTE
     rows = []
     for s in SAMPLES:
         d = st[s]
@@ -357,7 +371,7 @@ def tables(st: Dict[str, Any], pred: Dict[str, Any]) -> Dict[str, str]:
                 "H passes": "pass" if r["passes"] else "FAIL",
             }
         )
-    t["stallhit_rules"] = DT.markdown_table(rows, list(rows[0].keys()))
+    t["stallhit_rules"] = DT.markdown_table(rows, list(rows[0].keys())) + "\n\n" + S8_NOTE
     rows = []
     for s in SAMPLES:
         v = st[s]["validity"]
@@ -390,6 +404,41 @@ def tables(st: Dict[str, Any], pred: Dict[str, Any]) -> Dict[str, str]:
         )
         tot_ch += d["taken_changed_n"]
     t["stallhit_shares"] = DT.markdown_table(rows, list(rows[0].keys()))
+    # review fix 2: the H and G maps (stallhit_extra.py)
+    rows = []
+    for s in SAMPLES:
+        mp = st[s]["extra"]["maps"]
+        b, a = mp["before"], mp["after"]
+        mx = a["max_err_not_both_wrong_deg"]
+        rows.append(
+            {
+                "sample": s,
+                "voxels that differ, before / after the pass": f"{n(b['voxels_differ'])} / "
+                f"{n(a['voxels_differ'])}",
+                "largest angle H to G, before / after (deg)": f"{f(b['max_mis_deg'], 3)} / "
+                f"{f(a['max_mis_deg'], 3)}",
+                "largest error of a differing voxel, after (deg)": (
+                    "n/a" if mx is None else f(mx, 3)
+                ),
+                "differing voxels wrong in both, after": n(a["both_wrong"]),
+                "wrong in one arm only, after": n(a["one_wrong"]),
+            }
+        )
+    t["stallhit_mapdiff"] = DT.markdown_table(rows, list(rows[0].keys()))
+    # review fix 6: the same-candidate clause of prediction 1 over the whole runs
+    rows = []
+    for s in SAMPLES:
+        sc = st[s]["extra"]["same_candidate"]
+        rows.append(
+            {
+                "sample": s,
+                "matched seed steps with fits": n(sc["matched_steps_with_fits"]),
+                "same stop position": n(sc["same_stop"]),
+                "same taken position": n(sc["same_taken_position"]),
+                "same fits (position, candidate, kind)": n(sc["same_fits"]),
+            }
+        )
+    t["stallhit_samecand"] = DT.markdown_table(rows, list(rows[0].keys()))
     p1, p2, p3, p4 = pred["p1"], pred["p2"], pred["p3"], pred["p4"]
     rows = [
         {
@@ -397,6 +446,11 @@ def tables(st: Dict[str, Any], pred: Dict[str, Any]) -> Dict[str, str]:
             **{s: f"{p1[s]['met']} ({p1[s]['changed']} changed)" for s in ("mid", "grad", "big")},
             "held": "n/a",
             "held2": "n/a",
+        },
+        {
+            "prediction": "1, same candidate: every matched step stops at the same position "
+            "(whole run, stallhit_extra.py)",
+            **{s: f"{pred['p1_same'][s]}" for s in SAMPLES},
         },
         {
             "prediction": "2 replay saving",
@@ -434,6 +488,7 @@ def main() -> None:
         st[s]["unmatched"] = json.loads((SH / f"unmatched_{s}.json").read_text())
         st[s]["unmatched"].pop("only_h", None)
         st[s]["unmatched"].pop("only_g", None)
+        st[s]["extra"] = json.loads((SH / f"extra_{s}.json").read_text())
     gate = json.loads((SH / "gate.json").read_text())
     plot(st)  # the plot comes first
     per = {s: bool(st[s]["rules"]["passes"]) for s in SAMPLES}
@@ -464,6 +519,16 @@ def main() -> None:
         wrong_seeds_broad={s: st[s]["wrong_seeds"]["broad"] for s in SAMPLES},
         fits_differ_other={s: st[s]["validity"]["fits_differ_other"] for s in SAMPLES},
         status=status,
+        # review fixes 2, 3, 6 (stallhit_extra.py and the stats files)
+        maps_h_vs_g={s: st[s]["extra"]["maps"] for s in SAMPLES},
+        same_candidate={
+            s: {k: v for k, v in st[s]["extra"]["same_candidate"].items() if k != "differing_steps"}
+            for s in SAMPLES
+        },
+        went_on_hit_max={s: st[s]["cuts"]["went_on_hit_max"] for s in SAMPLES},
+        stop_hit_min={s: st[s]["cuts"]["stop_hit_min"] for s in SAMPLES},
+        s8_note=S8_NOTE,
+        timing_note=TIMING_NOTE,
     )
     (SH / "summary.json").write_text(json.dumps(out, indent=1, default=float) + "\n")
     print(
