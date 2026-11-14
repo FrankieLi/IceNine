@@ -5,7 +5,8 @@ quiet.py sample --out FILE.jsonl --watch-pid PID [--period 30]
 quiet.py verdict --samples FILE.jsonl --limit 2.5 --out FILE.json
     strict quiet: no load sample above the limit and no other process above 20% CPU.
     Exit 0 strictly quiet; 3 not strict but relaxed_ok (R4b, D-20261114-N1: median load within
-    the limit and every busy process a macOS daemon under /usr/libexec/, /System/ or /sbin/);
+    the limit and every busy process a macOS daemon under /usr/libexec/, /System/Library/ or
+    /sbin/);
     1 neither. The JSON also holds relaxed_ok and label.
 quiet.py pair --arm A --runs A1 A2 --cache DIR
     R4b pair check: if a run of the pair carried a label, the real times must agree within 2%;
@@ -45,12 +46,17 @@ def verdict(
     for s in proc_samples:
         busy += [p for p in s.get("procs", []) if float(p["cpu"]) > BUSY_PCT]
     max_load = max(loads) if loads else float("nan")
-    median = sorted(loads)[len(loads) // 2] if loads else float("nan")
+    median = sorted(loads)[len(loads) // 2] if loads else float("nan")  # upper median, n even
     quiet = bool(loads) and max_load <= limit and not busy
     # R4b (D-20261114-N1): median load within the limit and every busy process a macOS daemon
     relaxed_ok = bool(loads) and median <= limit and all(_is_daemon(p) for p in busy)
     names = sorted({os.path.basename(p["command"]) for p in busy})
-    label = "" if quiet else f"strict quiet check failed ({', '.join(names)})"
+    n_over = sum(x > limit for x in loads)
+    parts = []
+    if n_over:
+        parts.append(f"load max {max_load:.2f} > {limit} in {n_over} of {len(loads)} samples")
+    parts.append(f"busy: {', '.join(names)}" if names else "no process over 20% CPU caught")
+    label = "" if quiet else f"strict quiet check failed ({'; '.join(parts)})"
     return dict(
         quiet=quiet,
         limit=limit,
@@ -63,7 +69,7 @@ def verdict(
     )
 
 
-DAEMON_PREFIXES = ("/usr/libexec/", "/System/", "/sbin/")
+DAEMON_PREFIXES = ("/usr/libexec/", "/System/Library/", "/sbin/")  # not /System/Applications/
 PAIR_TOLERANCE = 0.02
 
 

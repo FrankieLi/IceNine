@@ -154,17 +154,32 @@ def timing_summary() -> Dict[str, Any]:
             preflight_load=float(pre["loadavg"][0]),
         )  # fmt: skip
     pairs = {a: json.loads((CACHE / f"pair_{a}.json").read_text()) for a in ("A", "B")}
-    arm: Dict[str, Any] = {}
-    for a, (x, y) in {"A": ("A1", "A2"), "B": ("B1", "B2")}.items():
-        for key in ("real_s", "wall_total_s", "full_s", "local_s"):
-            v = [runs[x][key], runs[y][key]]
-            arm.setdefault(a, {})[key] = dict(median=float(np.median(v)), lo=min(v), hi=max(v))
-    ratio = arm["B"]["wall_total_s"]["median"] / arm["A"]["wall_total_s"]["median"]
     sp = json.loads((CACHE / "quiet" / "split.json").read_text())
     split = json.loads((CACHE / "split" / "split.json").read_text())
+    arm, ratio, share = arm_times(runs, pairs)
+    fs = [r for r in split["runs"] if r["arm"] == "FS"]
+    ms = [1e3 * r["wall_s"] * r["shares"]["smooth"] / r["smooth_evals"] for r in fs]
+    extras: Dict[str, Any] = {}
+    if "A" in arm and "B" in arm:
+        full_a, full_b = arm["A"]["full_s"]["median"], arm["B"]["full_s"]["median"]
+        extra = arm["B"]["wall_total_s"]["median"] - arm["A"]["wall_total_s"]["median"]
+        n_smooth = pilot_smooth_evals()
+        extras = dict(
+            per_full_search_s=dict(A=full_a / 69, B=full_b / 69),
+            extra_ms_per_smooth_eval=1e3 * (full_b - full_a) / n_smooth,
+            split_ms_per_smooth_eval=ms,
+            smooth_s_at_split_rate=n_smooth * float(np.mean(ms)) / 1e3,
+            extra_s=extra,
+            gap_per_full_search_s=(extra - n_smooth * float(np.mean(ms)) / 1e3) / 69,
+        )
     return dict(
-        runs=runs, pairs=pairs, arm=arm, ratio_B_over_A=ratio,
-        smooth_share=(ratio - 1) / ratio,
+        runs=runs, pairs=pairs, arm=arm, ratio_B_over_A=ratio, smooth_share=share,
+        timing_label=TIMING_LABEL, extras=extras, sample_evidence=sample_evidence(),
+        process_sample_period_s=300, load_sample_period_s=30,
+        stopped_b1_real_s=dict(
+            values=[4494.29, 4480.81], source="D-20261114-N1 (time files overwritten)"
+        ),
+        e0_provenance=E0_PROVENANCE,
         split_quiet=dict(strict=bool(sp["quiet"]), max_load=sp["max_load"],
                          median_load=sp["median_load"]),
         split=[
@@ -174,11 +189,69 @@ def timing_summary() -> Dict[str, Any]:
                  all_strict_fused=bool(r["evaluate_fused_n"] == r["evaluate_n"]))
             for r in split["runs"]
         ],
-        e0_walls={
-            k: json.loads((CACHE / "e0" / d / "run_meta.json").read_text())["wall_s"]
-            for k, d in {"F": "e0_old_off_fused", "FS": "e0_old_e34t25_fused"}.items()
-        },
     )  # fmt: skip
+
+
+TIMING_LABEL = (
+    "single-worker; not strictly quiet (R4b label, see runs); the split run was strictly quiet"
+)
+E0_PROVENANCE = (
+    "E0 F and FS files were written 2026-11-11 23:28 to 23:34 by the first invocation of "
+    "run_item14.sh (scripts at da28fca, same library); the final invocation found them and ran "
+    "0 tasks; its E0 check re-compared the 2026-11-11 check files and did not rerun them"
+)
+
+
+def run_label(r: Dict[str, Any]) -> str:
+    """Label of a run: "quiet" if the strict check passed, else its stored label."""
+    return "quiet" if r["strict_quiet"] else str(r["label"])
+
+
+def arm_times(runs: Dict[str, Any], pairs: Dict[str, Any]) -> Tuple[Dict[str, Any], float, float]:
+    """Median and range per arm, and the B / A ratio and share; an arm whose pair check says
+    ``reported`` is false is left out (D-20261114-N1: no time is reported), and so are the ratio
+    and the share if either arm is."""
+    arm: Dict[str, Any] = {}
+    for a, (x, y) in {"A": ("A1", "A2"), "B": ("B1", "B2")}.items():
+        if not pairs[a]["reported"]:
+            continue
+        for key in ("real_s", "wall_total_s", "full_s", "local_s"):
+            v = [runs[x][key], runs[y][key]]
+            arm.setdefault(a, {})[key] = dict(median=float(np.median(v)), lo=min(v), hi=max(v))
+    if "A" not in arm or "B" not in arm:
+        return arm, float("nan"), float("nan")
+    ratio = arm["B"]["wall_total_s"]["median"] / arm["A"]["wall_total_s"]["median"]
+    return arm, ratio, (ratio - 1) / ratio
+
+
+def sample_evidence() -> Dict[str, Any]:
+    """From the stored load / process samples of each timed run: the load samples over the limit
+    (time, load) and the top process sample nearest before the first spike, with the processes
+    named by the verdict (time of that sample and their CPU)."""
+    out: Dict[str, Any] = {}
+    for n in ("A1", "A2", "B1", "B2"):
+        rows = [json.loads(x) for x in (CACHE / "quiet" / f"{n}.jsonl").read_text().splitlines()]
+        over = [(round(r["t"]), round(r["load"], 2)) for r in rows if r["kind"] == "load"
+                and r["load"] > 2.5]  # fmt: skip
+        procs = [r for r in rows if r["kind"] == "procs"]
+        busy = [(round(r["t"]), p["command"].split("/")[-1], p["cpu"]) for r in procs
+                for p in r["procs"] if p["cpu"] > 20.0]  # fmt: skip
+        before = [r for r in procs if over and r["t"] <= over[0][0]]
+        last = before[-1] if before else None
+        out[n] = dict(
+            load_over_limit=over, busy_caught=busy,
+            last_process_sample_before_first_spike=None if last is None else dict(
+                t=round(last["t"]),
+                top=[(p["command"].split("/")[-1], p["cpu"]) for p in last["procs"][:3]],
+            ),
+            first_spike_after_busy_s=(over[0][0] - busy[0][0]) if over and busy else None,
+        )  # fmt: skip
+    return out
+
+
+def pilot_smooth_evals() -> int:
+    r = json.loads((CACHE / "runs" / "B1" / "run.json").read_text())
+    return int(sum(r["smooth_evals_per_full_search"]))
 
 
 # ---------------------------------------------------------------------------------- tables
@@ -230,7 +303,7 @@ def tables(s: Dict[str, Any]) -> Dict[str, str]:
         rows.append(
             dict(run=n, arm="A (F)" if n[0] == "A" else "B (FS)", real=r["real_s"],
                  total=r["wall_total_s"], full=r["full_s"], loc=r["local_s"],
-                 label=r["label"] or "strict quiet check failed ()")
+                 label=run_label(r))
         )  # fmt: skip
     out["timing_runs"] = (
         DT.markdown_table(
@@ -262,31 +335,39 @@ def tables(s: Dict[str, Any]) -> Dict[str, str]:
     )
     rows = []
     for a, pr in t["pairs"].items():
+        if a not in t["arm"]:  # R4b (iii) failed: no time reported
+            rows.append(dict(arm=a, t1=None, t2=None, d=None, med=None,
+                             lab=pr["note"]))  # fmt: skip
+            continue
         rows.append(
             dict(arm=a, t1=pr["real_s"][0], t2=pr["real_s"][1], d=pr["rel_diff"] * 100,
-                 med=t["arm"][a]["wall_total_s"]["median"])
+                 med=t["arm"][a]["wall_total_s"]["median"],
+                 lab="single-worker; " + "; ".join(pr["labels"] or ["quiet"]))
         )  # fmt: skip
     out["pairs_time"] = (
         DT.markdown_table(
             rows,
-            ["arm", "t1", "t2", "d", "med"],
+            ["arm", "t1", "t2", "d", "med", "lab"],
             {"t1": ".2f", "t2": ".2f", "d": ".2f", "med": ".1f"},
         )
         .replace("| t1 |", "| first run, whole process (s) |")
         .replace("| t2 |", "| repeat (s) |")
         .replace("| d |", "| difference (%) |")
         .replace("| med |", "| median BFS wall_total_s (s) |")
+        .replace("| lab |", "| timing label |")
     )
+    SQ = t["split_quiet"]["strict"]
     rows = [
         dict(voxel=r["voxel"], arm=r["arm"], wall=r["wall_s"], screen=r["shares"]["screen"] * 100,
              smooth=r["shares"]["smooth"] * 100, strict=r["shares"]["strict"] * 100,
-             rest=r["shares"]["rest"] * 100, ev=r["evals"], sm=r["smooth_evals"])
+             rest=r["shares"]["rest"] * 100, ev=r["evals"], sm=r["smooth_evals"],
+             lab="single-worker; " + ("quiet" if SQ else "NOT strictly quiet"))
         for r in t["split"]
     ]  # fmt: skip
     out["split"] = (
         DT.markdown_table(
             rows,
-            ["voxel", "arm", "wall", "screen", "smooth", "strict", "rest", "ev", "sm"],
+            ["voxel", "arm", "wall", "screen", "smooth", "strict", "rest", "ev", "sm", "lab"],
             {c: ".1f" for c in ("wall", "screen", "smooth", "strict", "rest")}
             | {"ev": ",", "sm": ","},
         )
@@ -297,6 +378,7 @@ def tables(s: Dict[str, Any]) -> Dict[str, str]:
         .replace("| rest |", "| rest (%) |")
         .replace("| ev |", "| strict evaluations |")
         .replace("| sm |", "| smooth evaluations |")
+        .replace("| lab |", "| timing label |")
     )
     return out
 
@@ -313,6 +395,8 @@ def figure(s: Dict[str, Any], path: Path) -> None:
         1, 3, figsize=(13, 4.2), gridspec_kw=dict(width_ratios=[1, 1, 1])
     )
     for i, a in enumerate(("A", "B")):
+        if a not in t["arm"]:
+            continue
         full, loc = t["arm"][a]["full_s"]["median"], t["arm"][a]["local_s"]["median"]
         ax.bar(i, full, color="#4c72b0", label="full searches" if i == 0 else None)
         ax.bar(i, loc, bottom=full, color="#dd8452", label="local optimization" if i == 0 else None)
@@ -337,7 +421,7 @@ def figure(s: Dict[str, Any], path: Path) -> None:
         a_.bar(ARMS, w, yerr=[lo, hi], color="#55a868", capsize=3)
         a_.set_title(title + " (Wilson 95%)", fontsize=9)
         for i, v in enumerate(w):
-            a_.text(i, v, str(v), ha="center", va="bottom", fontsize=8)
+            a_.text(i, v + hi[i], str(v), ha="center", va="bottom", fontsize=8)
     fig.tight_layout()
     fig.savefig(path, dpi=130)
 

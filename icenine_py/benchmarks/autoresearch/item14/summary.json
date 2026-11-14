@@ -126,7 +126,7 @@
     "wall_total_s": 1619.7545680999756,
     "full_s": 1445.2294573783875,
     "local_s": 174.16367888450623,
-    "label": "strict quiet check failed (mediaanalysisd, searchpartyd)",
+    "label": "strict quiet check failed (busy: mediaanalysisd, searchpartyd)",
     "strict_quiet": false,
     "relaxed_ok": true,
     "max_load": 1.76904296875,
@@ -143,7 +143,7 @@
     "wall_total_s": 1626.1951751708984,
     "full_s": 1450.413279056549,
     "local_s": 175.4143579006195,
-    "label": "strict quiet check failed ()",
+    "label": "strict quiet check failed (load max 4.30 > 2.5 in 3 of 56 samples; no process over 20% CPU caught)",
     "strict_quiet": false,
     "relaxed_ok": true,
     "max_load": 4.29638671875,
@@ -157,7 +157,7 @@
     "wall_total_s": 4483.682945966721,
     "full_s": 4308.048841714859,
     "local_s": 175.28201389312744,
-    "label": "strict quiet check failed ()",
+    "label": "strict quiet check failed (load max 4.46 > 2.5 in 4 of 151 samples; no process over 20% CPU caught)",
     "strict_quiet": false,
     "relaxed_ok": true,
     "max_load": 4.45751953125,
@@ -171,7 +171,7 @@
     "wall_total_s": 4480.422723770142,
     "full_s": 4304.726004600525,
     "local_s": 175.3377857208252,
-    "label": "strict quiet check failed (mediaanalysisd, photolibraryd)",
+    "label": "strict quiet check failed (load max 4.69 > 2.5 in 2 of 151 samples; busy: mediaanalysisd, photolibraryd)",
     "strict_quiet": false,
     "relaxed_ok": true,
     "max_load": 4.6875,
@@ -193,8 +193,8 @@
     ],
     "rel_diff": 0.003935793512726622,
     "labels": [
-     "strict quiet check failed (mediaanalysisd, searchpartyd)",
-     "strict quiet check failed ()"
+     "strict quiet check failed (busy: mediaanalysisd, searchpartyd)",
+     "strict quiet check failed (load max 4.30 > 2.5 in 3 of 56 samples; no process over 20% CPU caught)"
     ],
     "reported": true,
     "note": "",
@@ -211,8 +211,8 @@
     ],
     "rel_diff": 0.0007251728700557157,
     "labels": [
-     "strict quiet check failed ()",
-     "strict quiet check failed (mediaanalysisd, photolibraryd)"
+     "strict quiet check failed (load max 4.46 > 2.5 in 4 of 151 samples; no process over 20% CPU caught)",
+     "strict quiet check failed (load max 4.69 > 2.5 in 2 of 151 samples; busy: mediaanalysisd, photolibraryd)"
     ],
     "reported": true,
     "note": "",
@@ -270,6 +270,166 @@
   },
   "ratio_B_over_A": 2.761627991413054,
   "smooth_share": 0.6378947479134126,
+  "timing_label": "single-worker; not strictly quiet (R4b label, see runs); the split run was strictly quiet",
+  "extras": {
+   "per_full_search_s": {
+    "A": 20.98291837996331,
+    "B": 62.411411929821625
+   },
+   "extra_ms_per_smooth_eval": 2.7432928877950746,
+   "split_ms_per_smooth_eval": [
+    1.6650896778482718,
+    1.5935145816172123
+   ],
+   "smooth_s_at_split_rate": 1697.7654052241116,
+   "extra_s": 2859.077963232994,
+   "gap_per_full_search_s": 16.830616782737426
+  },
+  "sample_evidence": {
+   "A1": {
+    "load_over_limit": [],
+    "busy_caught": [
+     [
+      600,
+      "searchpartyd",
+      47.8
+     ],
+     [
+      600,
+      "mediaanalysisd",
+      42.2
+     ]
+    ],
+    "last_process_sample_before_first_spike": null,
+    "first_spike_after_busy_s": null
+   },
+   "A2": {
+    "load_over_limit": [
+     [
+      1441,
+      4.3
+     ],
+     [
+      1471,
+      3.29
+     ],
+     [
+      1501,
+      2.71
+     ]
+    ],
+    "busy_caught": [],
+    "last_process_sample_before_first_spike": {
+     "t": 1201,
+     "top": [
+      [
+       "searchpartyd",
+       0.6
+      ],
+      [
+       "Finder",
+       0.3
+      ],
+      [
+       "UserEventAgent",
+       0.1
+      ]
+     ]
+    },
+    "first_spike_after_busy_s": null
+   },
+   "B1": {
+    "load_over_limit": [
+     [
+      3902,
+      4.46
+     ],
+     [
+      3932,
+      3.16
+     ],
+     [
+      3962,
+      2.52
+     ],
+     [
+      4472,
+      2.57
+     ]
+    ],
+    "busy_caught": [],
+    "last_process_sample_before_first_spike": {
+     "t": 3902,
+     "top": [
+      [
+       "launchd",
+       5.5
+      ],
+      [
+       "dasd",
+       5.5
+      ],
+      [
+       "runningboardd",
+       3.7
+      ]
+     ]
+    },
+    "first_spike_after_busy_s": null
+   },
+   "B2": {
+    "load_over_limit": [
+     [
+      3782,
+      4.69
+     ],
+     [
+      3812,
+      3.38
+     ]
+    ],
+    "busy_caught": [
+     [
+      3302,
+      "mediaanalysisd",
+      56.6
+     ],
+     [
+      3302,
+      "photolibraryd",
+      44.4
+     ]
+    ],
+    "last_process_sample_before_first_spike": {
+     "t": 3602,
+     "top": [
+      [
+       "searchpartyd",
+       1.6
+      ],
+      [
+       "airportd",
+       0.5
+      ],
+      [
+       "bluetoothd",
+       0.4
+      ]
+     ]
+    },
+    "first_spike_after_busy_s": 480
+   }
+  },
+  "process_sample_period_s": 300,
+  "load_sample_period_s": 30,
+  "stopped_b1_real_s": {
+   "values": [
+    4494.29,
+    4480.81
+   ],
+   "source": "D-20261114-N1 (time files overwritten)"
+  },
+  "e0_provenance": "E0 F and FS files were written 2026-11-11 23:28 to 23:34 by the first invocation of run_item14.sh (scripts at da28fca, same library); the final invocation found them and ran 0 tasks; its E0 check re-compared the 2026-11-11 check files and did not rerun them",
   "split_quiet": {
    "strict": true,
    "max_load": 1.36376953125,
@@ -336,10 +496,6 @@
     "err_deg": 0.020533061665925795,
     "all_strict_fused": true
    }
-  ],
-  "e0_walls": {
-   "F": 0.01908707618713379,
-   "FS": 0.020275115966796875
-  }
+  ]
  }
 }

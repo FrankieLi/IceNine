@@ -17,10 +17,10 @@
 <!-- /table:e0_pairs -->
 
 <!-- table:pairs_time -->
-| arm | first run, whole process (s) | repeat (s) | difference (%) | median BFS wall_total_s (s) |
-|---|---|---|---|---|
-| A | 1621.02 | 1627.40 | 0.39 | 1623.0 |
-| B | 4484.94 | 4481.69 | 0.07 | 4482.1 |
+| arm | first run, whole process (s) | repeat (s) | difference (%) | median BFS wall_total_s (s) | timing label |
+|---|---|---|---|---|---|
+| A | 1621.02 | 1627.40 | 0.39 | 1623.0 | single-worker; strict quiet check failed (busy: mediaanalysisd, searchpartyd); strict quiet check failed (load max 4.30 > 2.5 in 3 of 56 samples; no process over 20% CPU caught) |
+| B | 4484.94 | 4481.69 | 0.07 | 4482.1 | single-worker; strict quiet check failed (load max 4.46 > 2.5 in 4 of 151 samples; no process over 20% CPU caught); strict quiet check failed (load max 4.69 > 2.5 in 2 of 151 samples; busy: mediaanalysisd, photolibraryd) |
 <!-- /table:pairs_time -->
 
 <!-- table:pilot_arms -->
@@ -51,19 +51,19 @@
 <!-- /table:quiet_runs -->
 
 <!-- table:split -->
-| voxel | arm | wall (s) | screen (%) | smooth (%) | strict (%) | rest (%) | strict evaluations | smooth evaluations |
-|---|---|---|---|---|---|---|---|---|
-| 15901 | F | 21.0 | 11.2 | 0.0 | 48.2 | 40.6 | 328,182 | 0 |
-| 15901 | FS | 45.7 | 5.2 | 54.0 | 22.2 | 18.6 | 329,256 | 14,816 |
-| 17034 | F | 21.9 | 10.9 | 0.0 | 48.5 | 40.5 | 340,242 | 0 |
-| 17034 | FS | 46.2 | 5.2 | 52.4 | 23.2 | 19.3 | 341,081 | 15,199 |
+| voxel | arm | wall (s) | screen (%) | smooth (%) | strict (%) | rest (%) | strict evaluations | smooth evaluations | timing label |
+|---|---|---|---|---|---|---|---|---|---|
+| 15901 | F | 21.0 | 11.2 | 0.0 | 48.2 | 40.6 | 328,182 | 0 | single-worker; quiet |
+| 15901 | FS | 45.7 | 5.2 | 54.0 | 22.2 | 18.6 | 329,256 | 14,816 | single-worker; quiet |
+| 17034 | F | 21.9 | 10.9 | 0.0 | 48.5 | 40.5 | 340,242 | 0 | single-worker; quiet |
+| 17034 | FS | 46.2 | 5.2 | 52.4 | 23.2 | 19.3 | 341,081 | 15,199 | single-worker; quiet |
 <!-- /table:split -->
 
 <!-- table:timing_runs -->
 | run | arm | whole process (s) | BFS wall_total_s | full searches (s) | local optimization (s) | label |
 |---|---|---|---|---|---|---|
-| A1 | A (F) | 1621.0 | 1619.8 | 1445.2 | 174.2 | strict quiet check failed (mediaanalysisd, searchpartyd) |
-| A2 | A (F) | 1627.4 | 1626.2 | 1450.4 | 175.4 | strict quiet check failed () |
-| B1 | B (FS) | 4484.9 | 4483.7 | 4308.0 | 175.3 | strict quiet check failed () |
-| B2 | B (FS) | 4481.7 | 4480.4 | 4304.7 | 175.3 | strict quiet check failed (mediaanalysisd, photolibraryd) |
+| A1 | A (F) | 1621.0 | 1619.8 | 1445.2 | 174.2 | strict quiet check failed (busy: mediaanalysisd, searchpartyd) |
+| A2 | A (F) | 1627.4 | 1626.2 | 1450.4 | 175.4 | strict quiet check failed (load max 4.30 > 2.5 in 3 of 56 samples; no process over 20% CPU caught) |
+| B1 | B (FS) | 4484.9 | 4483.7 | 4308.0 | 175.3 | strict quiet check failed (load max 4.46 > 2.5 in 4 of 151 samples; no process over 20% CPU caught) |
+| B2 | B (FS) | 4481.7 | 4480.4 | 4304.7 | 175.3 | strict quiet check failed (load max 4.69 > 2.5 in 2 of 151 samples; busy: mediaanalysisd, photolibraryd) |
 <!-- /table:timing_runs -->

@@ -22,6 +22,7 @@ import e0_arms as E  # noqa: E402
 import quiet as Q  # noqa: E402
 import same_run as S  # noqa: E402
 import split as SP  # noqa: E402
+import summary as SM  # noqa: E402
 
 RECORD: Dict[str, Any] = dict(voxel_idx=3, n_evals=10, wall_s=1.5, hit_ratio=0.9)
 
@@ -162,7 +163,10 @@ def test_verdict_relaxed_daemon_and_load_spike() -> None:
     procs = [dict(t=0, procs=[_proc("/usr/libexec/spotlightknowledged")])]
     v = Q.verdict(loads, procs, limit=2.5)
     assert v["quiet"] is False and v["relaxed_ok"] is True
-    assert v["label"] == "strict quiet check failed (spotlightknowledged)"
+    assert v["label"] == (
+        "strict quiet check failed (load max 3.10 > 2.5 in 1 of 3 samples; "
+        "busy: spotlightknowledged)"
+    )
     assert Q.exit_code(v) == 3
 
 
@@ -191,3 +195,38 @@ def test_pair_check() -> None:
     assert p["reported"] is False and p["note"] == "no time reported for arm B"
     p = Q.pair_report("A", 1000.0, 1030.0, "", "")  # unlabelled pair: no check needed
     assert p["reported"] is True
+
+
+def test_label_when_nothing_busy_was_caught() -> None:
+    loads = [dict(t=i, load=v) for i, v in enumerate([1.0, 4.46, 1.2, 3.0, 1.1, 1.3])]
+    v = Q.verdict(loads, [dict(procs=[])], limit=2.5)
+    assert v["label"] == (
+        "strict quiet check failed (load max 4.46 > 2.5 in 2 of 6 samples; "
+        "no process over 20% CPU caught)"
+    )
+    assert v["relaxed_ok"] is True and Q.exit_code(v) == 3
+
+
+def test_system_applications_is_not_a_daemon() -> None:
+    p = [dict(procs=[_proc("/System/Applications/Photos.app/Contents/MacOS/Photos")])]
+    v = Q.verdict([dict(t=0, load=1.0)], p, limit=2.5)
+    assert v["relaxed_ok"] is False
+
+
+def test_summary_run_label() -> None:
+    assert SM.run_label(dict(strict_quiet=True, label="")) == "quiet"
+    assert SM.run_label(dict(strict_quiet=False, label="strict quiet check failed (x)")) == (
+        "strict quiet check failed (x)"
+    )
+
+
+def test_summary_leaves_out_an_unreported_arm() -> None:
+    def run(t: float) -> Dict[str, float]:
+        return dict(real_s=t, wall_total_s=t, full_s=t - 1, local_s=1.0)
+
+    runs = {"A1": run(100.0), "A2": run(101.0), "B1": run(300.0), "B2": run(400.0)}
+    ok = dict(reported=True)
+    arm, ratio, share = SM.arm_times(runs, dict(A=ok, B=ok))
+    assert set(arm) == {"A", "B"} and ratio == pytest.approx(350.0 / 100.5)
+    arm, ratio, share = SM.arm_times(runs, dict(A=ok, B=dict(reported=False)))
+    assert set(arm) == {"A"} and np.isnan(ratio) and np.isnan(share)

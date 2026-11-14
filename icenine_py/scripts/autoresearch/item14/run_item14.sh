@@ -109,6 +109,9 @@ timed() { # name cmd...   (gated, sampled, time -p; not quiet or failing stops t
     --out "$C/quiet/$n.json" >> "$MAIN" 2>&1
   local q=$?
   echo "quiet_$n rc=$q" >> "$CODES"
+  if [ $q -eq 3 ] && [ "$n" = split ]; then  # a single run has no repeat for R4b (iii)
+    if [ "$DRY" != 1 ]; then finish 5 "run split was not strictly quiet and has no repeat (R4b needs one); no time is reported"; fi
+  fi
   if [ $q -eq 3 ]; then  # R4b: strict check failed, relaxed check passed; go on, with the label
     say "LABEL $n: $(grep -o '"label": "[^"]*"' "$C/quiet/$n.json" | cut -d'"' -f4)"
     q=0
