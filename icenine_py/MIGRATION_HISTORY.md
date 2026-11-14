@@ -11986,3 +11986,26 @@ changed voxels 986 against 983 and 688 against 681 (`keys_pass_contents.py`,
 shown for `S8L` in AR3 step 10 and not tested for `S10L` and `S11L`. Full suite after the fixes
 round 1,724 passed, 47 skipped, 1 deselected (`suite_counts.json`). Not tested: timing, `mid`,
 `held`, realistic images; no recommended setting. Page: `docs/autoresearch/findings_ar5_keys.md`.
+
+## Autoresearch items 14 and 3: both speed keys together, with a timing A/B (done 2026-11-14, task item14)
+
+Plan (D-20261111-N25; quiet rule amended by D-20261114-N1 after two stops on OS daemons): run
+`FusedCost` (F) and `SmoothCostRank E3+E4,tau=0.25` (S) together on E0 (200 voxels) and on the
+2,000-voxel pilot, and time pilot arms A (F) and B (FS) twice each, single-worker. New scripts
+only (`scripts/autoresearch/item14/`: `e0_arms.py`, `same_run.py`, `quiet.py`, `split.py`,
+`summary.py`, `run_item14.sh`, `both_keys.config`); no library, default, golden or dependency
+change.
+
+Results: E0 wrong 41 (F, equal to off) and 7 (FS, equal to S), 0 fixed and 0 broken in both
+pairs. Pilot wrong: off 37, F 24, S 34, FS 26 (FS against F 6 fixed, 8 broken, within the
+off-to-F route noise of 20 and 7); rule R3 not met (24 minus 26). Times (single-worker, all four
+failed the strict quiet check and are reported under R4b with labels; B1 and A2 have an empty
+label with load samples up to 4.46 and 4.30): A 1,621.02 s and 1,627.40 s, B 4,484.94 s and
+4,481.69 s (pairs within 0.39% and 0.07%), B / A 2.76. Split (strictly quiet): smooth key 54.0%
+and 52.4% of an FS full search. Repeats identical; A1 equals the stored `key_off_fused`. Seven
+predictions: 1 to 3 and 6 right; 4 right on wrong count, wrong on 65 full searches (69); 5 right
+for A, wrong for B and B / A; 7 right for smooth share, wrong for screen and strict shares. The
+R4b amendment was made after seeing the two stops. Not tested: realistic images, full sample,
+`BatchedQuickMC`, smooth key without `FusedCost`, C++ time. Page text: findings page draft in
+`.claude/reports/20261114-item14-findings_page_draft.md` (the write of
+`docs/autoresearch/findings_item14.md` was refused by the tool).
