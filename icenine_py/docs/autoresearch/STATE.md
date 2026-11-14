@@ -46,7 +46,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
 ## Running jobs
 - AR5 step 14: big, grad, mid done. held, held2 restarted 12:57, 14 Nov after fix 1d34368 (step
   14's freeze check replaces step 12's stale one). Worktree `agent-a1bd2e7a7dbfe1efd`, marker
-  `…/ar5/polish/cache/logs/polish_runs.done`; if dead: move marker aside, `polish_run_all.sh --resume`.
+  `…/polish/cache/logs/polish_runs.done`; if dead: move marker aside, then `--resume`.
 - Page v50 live (10:40, 14 Nov); v51 after the next finished step. Step 13: blocked.
 
 ## Queue
