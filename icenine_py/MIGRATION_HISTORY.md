@@ -12602,8 +12602,9 @@ the wrapper), `stallhit_run.py` (arm `H`), `stallhit_whatif.py`, `stallhit_repla
 `stallhit_extra.py` (review fixes 2 and 6), `stallhit_judge.py`, `stallhit_summary.py`; phase B
 `stallhit_hl.py` (script arm `Hl`), `stallhit_lib_run.py` (library run `LibH`),
 `stallhit_lib_check.py`, `stallhit_phase_b.sh`; shell helpers `stallhit_link_cache.sh`,
-`stallhit_run_all.sh`. Tests `tests/test_ar5_stallhit.py` (the script rule) and
-`tests/test_seed_index_stall_hit.py` (the key). Results in `benchmarks/autoresearch/ar5/stallhit/`
+`stallhit_run_all.sh`; `stallhit_cache_guard.py` (second review, fix 1). Tests
+`tests/test_ar5_stallhit.py` (the script rule), `tests/test_seed_index_stall_hit.py` (the key) and
+`tests/test_stallhit_cache_guard.py` (the cache guard). Results in `benchmarks/autoresearch/ar5/stallhit/`
 (`frozen.json`, `counts.json`, `whatif.md`, `gate.json`, `stats_<sample>.json`,
 `unmatched_<sample>.json`, `extra_<sample>.json`, `summary.json`, `tables.md`, `lib_check.json`,
 `tables_lib.md`, `pareto_rows.json`, the plot). The run cache is untracked.
@@ -12780,8 +12781,16 @@ On all five samples every matched step stops at the same candidate position with
   counts exactly as the script does: an uncut refinement counts its evaluations plus one per check
   that went on; a stopped one counts the evaluations before the check, plus the check, plus one per
   earlier check that went on. On a stop the kept cost is the one already computed for the best (the
-  script evaluates it once more without counting it). The counters `index_stallhit_*` and the
-  `stall_hit` field of each `index_log` entry exist only with the key on.
+  script evaluates it once more without counting it). The two costs agree: in all 197 stopped
+  refinements of `Hl` the script's re-evaluated cost equals the kept running-best cost bit for bit
+  (checked by the second review from `Hl`'s cached trace), so results and counts are the same. The
+  counters `index_stallhit_*` and the `stall_hit` field of each `index_log` entry exist only with
+  the key on.
+- Tested scope (second review, fix 2): the key ran on real data only together with
+  `SeedIndexCMAFirst 200` and `SeedRescueCMA 0.25 1000` (step 9's `LibG` keys), that is the MC part
+  of the mixed refinement. The stock path, without `SeedIndexCMAFirst`, is covered by unit tests
+  only. No key-off control run was made in this step (step 9 had `LibS11`): with the key off nothing
+  changes by construction and the unit tests check it, but no real-data control run exists (fix 3).
 - Tests first: `tests/test_seed_index_stall_hit.py` (parsing, bad values, refused combinations, the
   counter on synthetic sequences, `seed_mc_refine` against the stock refinement, the same results
   as the script's `patch_evaluate` and counting on 12 random cost sequences with ties, the wiring in
@@ -12844,7 +12853,13 @@ Equal before the pass: yes.
 - An error in phase B, now undone: the script pass of `Hl` (`order_pass.py`) wrote its outputs
   (`D4_Hl`, `before_Hl.npy`, `after_Hl.npy`) through a symlinked `passes_mid` folder into the
   phase A implementer's worktree cache, which was to be read only. Nothing there was overwritten;
-  the three new entries were moved into this worktree's own cache right after the pass.
+  the three new entries were moved into this worktree's own cache right after the pass. Since the
+  second review (fix 1), `stallhit_phase_b.sh`, `stallhit_run_all.sh`, `stallhit_hl.py` and
+  `stallhit_lib_run.py` refuse to write when the real path of an output (run folder, pass folder
+  or file, logs) lies outside their own cache (`stallhit_cache_guard.py`). The frozen
+  `stallhit_run.py` and `order_pass.py` are not edited; their runners check for them. Replacing
+  the remaining whole-folder links in the existing caches by per-entry links is left to the main
+  session.
 - Page: the findings page `docs/autoresearch/findings_ar5_stallhit.md` waits for the owner (the
   guard refused its write; the implementer left its text outside the repository for the owner).
 
@@ -12863,3 +12878,8 @@ are tracked (fix 1); the wrong-voxel explanation above with the map numbers (fix
 same-candidate check on the whole runs (fix 6, in `stallhit_extra.py`: `stallhit_stats.py` imports
 `stallhit_common`, whose guard refuses `held` and `held2` once the library differs from the frozen
 one, so it could not be rerun after phase B's library change).
+
+**Second review fixes** (review `20261113-1730-review-ar5l-B`, D-20261113-N10): the cache guard
+(fix 1, above); the tested scope of the key (fix 2) and the agreement of the two stop costs and
+the missing key-off control run (fix 3), both under phase B; the page wording "In these runs,
+every changed end stayed at the same candidate" (fix 4).
