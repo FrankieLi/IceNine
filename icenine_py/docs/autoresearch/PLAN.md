@@ -3501,6 +3501,157 @@ random seed. A new sample.
 - Not (b) revisits or neighbour fits: no per-fit trace in any cache (step 10's recorder never ran
   a layer); neighbour fits are a fixed 61 evaluations. A recording run would come first.
 
+### AR5 step 14: a second local optimization from a failed rescue's ends, before the grid search
+
+Task `ar5n`. Approved: D-20261114-N4. Starts from `feature/eval-reduction` (step 12 merged at fe3d277);
+reuses `rescue_common.cma_rescue`, `rescue_rules.py`, `stallhit_*` helpers and step 12's cache
+(read only). Phase A ends at "READY FOR KEY" or at a gate; phase B only after a recorded decision.
+
+**Why.** The owner asks for fewer evaluations, and for a general test of "will more local
+optimization help?". Under arm `H` the grid search is 23.3% of the run on `held2` and 22.2% on
+`held`. It runs only when rule `G1` fails. The stored record says the grid search mostly ends next
+to an end `G1` already reached, at a hit ratio of 0.64 to 0.81. A second, different local
+optimization from those ends may reach 0.95 for a few thousand evaluations, not 345,000.
+
+**What was read.** PLAN steps 9, 12, 13; D-20261113-N1 to N10, D-20261114-N1 to N3; `STATE.md`;
+step 12's reports (grep); `rescue_rules.py`, `rescue_common.py`, `rescue_replay.py`,
+`stallhit_stats.py`, `sampling.get_structured_local_grid`. Stored, step 12 cache: `H_<s>/`
+`rescue_log.json.gz` and `records.json.gz` of `mid`, `grad`, `held` only; for `held2` file times
+only (`stat`). Nothing under `passes_held2/` was opened or listed with sizes.
+
+**What the stored record says.** Reading line: one row per sample; arm `H`'s run with the pass,
+its grid searches (one per failed rescue), their evaluations, how many grid ends reach hit ratio
+0.95, and the best hit ratio among the rescue ends of a failed case.
+
+| sample | H total | failed rescues | grid evaluations (share of H) | grid end at 0.95 | best rescue end, hit ratio |
+|---|---|---|---|---|---|
+| held2 | 31,143,763 | 21 | 7,252,187 (23.3%) | not opened | not opened |
+| held | 29,588,170 | 19 | 6,563,817 (22.2%) | 13 | 0.64 to 0.80 |
+| mid | 11,950,397 | 4 | 1,334,072 (11.2%) | 4 | 0.72 to 0.77 |
+| grad | 10,180,191 | 5 | 1,697,698 (16.7%) | 4 | 0.66 to 0.81 |
+| big | 3,635,256 | 0 | 0 | - | - |
+
+On the 28 disclosed cases (step 13's draft, map before the pass): a rescue end lies within
+0.6 degree of the grid end in 20 (Wilson 95% 53% to 85%), within 1.06 in 27. That near end is the
+lowest-cost one in only 13 (30% to 64%), so picking an end by cost does not work. On `held` 2 grid
+ends are wrong (33, 40 degrees), each with a rescue end 0.1 to 0.5 degree away. The grid end reaches
+0.95 in 21 of 28 (57% to 87%); those 21 hold 7,181,436 of the 9,595,587 grid evaluations (74.8%).
+That is the ceiling: a rule that skips a grid search only when it finds a 0.95 end nearby can save
+at most about 75% of them, about 17% of `H` on `held2`, less its own cost. So the idea can pay.
+What reaches 0.95 from 0.1 to 0.6 degree is not on record: that is what the probe measures.
+
+**Terms.** **Hit ratio**: the share of simulated peaks that land on lit pixels. **Seed test**: a
+seed step passes at 0.80. **Kept end**: per seed candidate, the lower-cost end of its CMA fit and
+MC refinement. **Rescue (`G1`)**: after a failed seed test, a CMA local optimization
+(first step 0.25 degree, 1,000 evaluations) from each kept end in order of cost, at most 5; the
+first end at 0.95 or more is taken. **Rescue end**: the end of one `G1` try (stored).
+**Failed rescue**: no rescue end at 0.95. **Grid search**: the global search (no starting guess)
+that runs after a failed rescue, about 345,000 evaluations. **Rule `G2`**: after a failed rescue,
+a second local optimization from every rescue end in `G1`'s order; the first end at 0.95 or more is
+taken; if none, the grid search runs unchanged. Two forms, both frozen now. `G2a` (more of the
+same): CMA from the rescue end, first step 0.5 degree, 3,000 evaluations. `G2b` (short starts
+nearby): the library's fixed local grid about the rescue end (`get_structured_local_grid`, side
+1.5 degrees, level 2: 64 points about 0.375 degree apart), each scored once, then CMA (0.1 degree,
+500 evaluations) from its 2 lowest-cost points. Own generator (`default_rng(1)`); every evaluation
+counts, one hit ratio check per CMA end included: at most 15,005 (`G2a`) or 5,330 (`G2b`) a case.
+**Arm `J`**: arm `H` with `G2`. **Right** / **wrong**: at most / over 1 degree from the truth
+(symmetry-reduced). **Aligned draws**: as step 8; `G2` takes no draw from the book, so a grid
+search after a failed `G2` equals `H`'s. **Probe replay**: `G2` from the stored rescue ends, grid
+evaluations from the log. It replays the whole changed path at the voxel (`G2` acts only after a
+failed rescue; all other seed steps stay as in `H`), but growth after the voxel can change, which
+only whole layers show. So it is a cost estimate and a voxel check, not the result.
+
+**Samples, and what has touched them.** `mid`, `grad`, `held`: their 28 failed rescues were read by
+step 13's draft and this one, and `G2`'s values are chosen on them; disclosed. `big`: no failed
+rescue, so `J` must equal `H` there (a parity check). `held2` is the test; no new sample and no new
+random seed. Disclosed limit: step 12's review opened `held2`'s seed logs (`e1_log.json.gz`, read
+16:01 and 16:03, 13 Nov), its map (15:55) and `rescue.json` (counts: 64 failed seed tests, 43
+rescued, 21 grid searches). So it could know which 21 voxels failed and how good their grid ends
+are. `held2`'s rescue logs were never opened: in `G_held2` and `H_held2` their access time equals
+their write time (13:05:49, 13:04:31). `G2`'s outcome depends on those rescue ends and a new
+computation, so nobody has seen it. This draft did not open them. `passes_held2/` holds step 13's
+unopened test: step 14 opens nothing under it until step 13's `held2` result is on record. Clean
+images, Q-max 8.
+
+**Measured**, per probe case: each `G2` try (start, end, hit ratio, cost, evaluations, error,
+angle to the grid end); accepted or not; evaluations saved. Per whole layer: evaluations by stage;
+failed seed tests, rescues, `G2` accepted, grid searches left; wrong voxels (Wilson 95%); fixed
+and broken against `H` and `S8`; median error; wrong seeds, matched and unmatched; error of each
+accepted end and its angle to `H`'s grid end.
+
+**Predictions, written before any run.**
+1. Re-scoring each stored rescue end gives its stored cost and hit ratio (to 1e-9).
+2. Disclosed probe: the better form accepts 12 to 20 of 28, `G2b` at least as many as `G2a`; none
+   wrong; 0.002 to 0.2 degree from the grid end; net saving 40% to 70% of 9,595,587.
+3. `held2` probe: 7 to 15 of 21 accepted, none wrong; net saving 30% to 70% of 7,252,187.
+4. `J` against `H`, with the pass: `held2` 6% to 16% fewer; `held` 6% to 15%; `mid` 0% to 8%;
+   `grad` 0% to 10%; `big` identical. Grid searches: `held2` 21 to 6 to 14; `held` 19 to 5 to 12.
+5. Broken minus fixed against `H` in -2 to 3; median error moves at most 0.0005 degree.
+
+**Decision rules, fixed now.** Gate 1, disclosed probe, for each form: (g0) prediction 1; (g1) at
+least 13 of 28 accepted; (g2) no accepted end wrong where the grid end is right; (g3) median error
+of accepted ends at most 0.05 degree, none over 0.3; (g4) grid evaluations of accepted cases minus
+all `G2` evaluations on the 28 at least 40% of 9,595,587. If both forms pass, take the larger
+(g4); a tie goes to `G2b`. If neither passes: stop, report, no tuning, no third form, no whole
+layer. Gate 2, `held2` probe of the chosen form (after the freeze commit): (t1) at least 7 of 21
+accepted; (t2) as (g2); (t3) net saving at least 25% of 7,252,187. Else stop, no whole layer.
+Then `J` passes on a sample if, against `H` (aligned draws): (1) total with the pass at least 6%
+fewer on `held2`, at least 5% fewer on `held`, at most 0.5% more on `mid` and `grad`, identical on
+`big`; (2) broken minus fixed at most 5; (3) median error at most 0.001 degree higher; (4) at most
+1 more wrong seed (matched or unmatched); (5) the house rule against `S8` with the pass: at least
+20% fewer evaluations, broken minus fixed at most 5, median error at most 0.005 degree higher. If
+`H` fails (5) on a sample, `J` is judged there by (1) to (4). The step passes if `J` passes on
+`held2` and on `held`, `mid`, `grad`, `big`. If it fails on `held2`: no key.
+
+**The margin on `mid`, said plainly.** `H` is at net +4 of limit 5 against `S8` there. `J` can
+change at most 4 seed ends on `mid` (its 4 failed rescues), and growth from them can move later
+voxels. So rule 5 on `mid` is a risk: about one in four (a judgement, not a measurement). The limit
+is not moved, `mid` is not dropped, no rerun: a fail on `mid` alone means no key.
+
+**Machine.** Gate 1: at most 28 x 20,335 evaluations plus re-scoring, about 0.6 million, under 10
+process-minutes, 2 processes; gate 2 at most 0.32 million. Whole layers (`J` with its pass): about
+27, 26, 11.5, 9.7, 3.6 million (`held2`, `held`, `mid`, `grad`, `big`), 78 million; at about 20
+million an hour (step 12) about 4 process-hours, 1.5 hours wall with 4 processes; caps 300 minutes
+a run. Phase B: one `mid` run, 11.5 million. In all about 90 million, about 4.6 process-hours.
+
+**Stop rule:** stop and report if a stored count does not reproduce (`H` totals and grid
+evaluations above), if prediction 1 fails, if a gate fails, if `held2`'s rescue logs are read
+before the freeze commit, if anything under `passes_held2/` is opened before step 13's `held2`
+result is recorded, if a run hits its cap, if `J` on `big` differs from `H`, or if the key-on run
+differs from the script arm before the pass.
+
+**Phase A (script layer).** 1. Link step 12's cache read only (not `passes_held2`); check counts;
+write only into step 14's own cache (D-20261113-N10). 2. Tests first: `tests/test_ar5_polish.py`
+(order of tries, first 0.95 taken, grid call unchanged after a failed `G2`, own generator, aligned
+draws untouched, every evaluation counted, guards on `held2`'s rescue logs and `passes_held2`).
+3. Gate 1; choose the form. 4. Commit `ar5/polish/frozen.json` (form, values, hashes). 5. Gate 2.
+6. `J` on all five samples (4 at a time), then its passes; checks before the pass. 7. After step
+13's `held2` result is on record (else the owner decides): `held2` after the pass. Stats; the plot
+first (run evaluations against wrong voxels after the pass: `S8`, `H`, `J`, a panel per sample);
+tables; predictions. "READY FOR KEY".
+
+**Phase B (key).** One opt-in key, `SeedRescuePolish` (the frozen form's values; default off),
+used by `reconstructor.index_seed` after `G1` fails and before the grid search; parsed in
+`config_file.py`, `orientation_search.py`. Unit tests; key-off suite with no golden change; key
+on, a library run on `mid` equal to a script arm `Jl` (library draws) before the pass. Page
+`findings_ar5_polish.md` (plot first), history, pareto rows with a status field.
+**Files:** `ar5/polish_*.py`, `tests/test_ar5_polish.py`, `benchmarks/autoresearch/ar5/polish/`
+(under 2 MB tracked). **Library changes:** phase A none; phase B the key, only if the step passes.
+
+**Not in this step.** A choice of rescue end by cost (the near end is lowest in 13 of 28). A
+change to `G1` or to rescued seeds. Other values of 0.80, 0.95 or `G2`. Arm `HK` (step 13,
+blocked): `J` builds on `H`, the accepted recipe. A learned ranking of level 0. Neighbour or
+revisit stops. Realistic images. Other crystals. A timing. Another random seed. A new sample.
+
+**Choices made.**
+- This idea, not (c) or (d): it can pay (ceiling about 75% of a stage that is 22% to 23% of `H`
+  on `held`, `held2`); a case costs at most 15,005 evaluations against 345,000; a gate under 1
+  million comes first. (c) needs a recording run first; (d) repeats step 10's risk.
+- After a failed rescue only, not a stronger `G1`, which would change every rescued end (step 12).
+- Two forms, chosen by a fixed rule on disclosed cases: `G2a` asks if more of the same helps; `G2b`
+  does what the grid search's finer levels do (short starts close by), out to 0.75 degree.
+- `held2` as the test, with its disclosed limit, not a new sample: its rescue logs are unread.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
