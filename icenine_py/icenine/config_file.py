@@ -239,6 +239,8 @@ class ConfigFile:
     # AR5 step 9 (opt-in, off at 0 0): SeedRescueCMA sigma evals (see SearchParameters)
     seed_rescue_sigma_deg: float = 0.0  # degrees (kept in degrees, not converted)
     seed_rescue_evals: int = 0
+    # AR5 step 12 (opt-in, off at 0): SeedIndexMCStallHit k (see SearchParameters)
+    seed_index_mc_stall_hit: int = 0
     cpp_overlap_rule: bool = False  # C++ CountQualifiedPeaks rule + centroid screen (opt-in)
     cpp_edge_rules: bool = False  # C++ conventions at the low edges (opt-in, see VoxelCostFunction)
     cpp_omega_interp: bool = False  # C++ omega interpolation in the level screen (opt-in)
@@ -497,6 +499,7 @@ class ConfigFile:
             "BFSNeighborCMANoFallback": self._parse_bool("bfs_neighbor_cma_no_fallback"),
             "BoundaryPassSkipHitRatio": self._parse_unit_interval("boundary_pass_skip_hit"),
             "SeedRescueCMA": self._parse_seed_rescue_cma,
+            "SeedIndexMCStallHit": self._parse_seed_index_mc_stall_hit,
             "CppOverlapRule": self._parse_bool("cpp_overlap_rule"),
             "CppEdgeRules": self._parse_bool("cpp_edge_rules"),
             "CppOmegaInterp": self._parse_bool("cpp_omega_interp"),
@@ -664,6 +667,22 @@ class ConfigFile:
         sigma, evals = float(tokens[1]), int(tokens[2])
         check_seed_rescue(sigma, evals)
         self.seed_rescue_sigma_deg, self.seed_rescue_evals = sigma, evals
+
+    def _parse_seed_index_mc_stall_hit(self, tokens: List[str]) -> None:
+        """SeedIndexMCStallHit k (Python-only, opt-in, AR5 step 12): the stall check in the
+        indexed seed step's MC refinement after ``k`` evaluations with no strict gain. ``0`` is
+        off; otherwise an integer ``k >= 1``. Its key combinations are checked by
+        ``reconstructor.check_bfs_keys``."""
+        from .orientation_search import check_seed_index_mc_stall_hit
+
+        if len(tokens) != 2:
+            raise ValueError(f"{tokens[0]} needs exactly one integer k, got {tokens[1:]}")
+        try:
+            k = int(tokens[1])
+        except ValueError:
+            raise ValueError(f"{tokens[0]} needs an integer >= 0, got {tokens[1]!r}") from None
+        check_seed_index_mc_stall_hit(k)
+        self.seed_index_mc_stall_hit = k
 
     def _parse_off_or_min2(self, attr_name: str) -> Callable[[List[str]], None]:
         """Parser for an integer that is 0 (off) or at least 2."""

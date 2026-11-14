@@ -170,6 +170,20 @@ def check_bfs_keys(params: Any) -> None:
             raise ValueError("SeedRescueCMA needs LocalOptimizer mc")
         if getattr(params, "use_hybrid_optimizer", False):
             raise ValueError("SeedRescueCMA cannot be combined with use_hybrid_optimizer")
+    if int(getattr(params, "seed_index_mc_stall_hit", 0)) > 0:  # AR5 step 12
+        if not getattr(params, "seed_by_indexing", False):
+            raise ValueError(
+                "SeedIndexMCStallHit needs SeedByIndexing 1 (it acts on the indexed seed step)"
+            )
+        if stop <= 0:
+            raise ValueError(
+                "SeedIndexMCStallHit needs SeedIndexStopHitRatio > 0 (the ratio that ends a "
+                "stalled refinement)"
+            )
+        if getattr(params, "local_optimizer", "mc") != "mc":
+            raise ValueError("SeedIndexMCStallHit needs LocalOptimizer mc")
+        if getattr(params, "use_hybrid_optimizer", False):
+            raise ValueError("SeedIndexMCStallHit cannot be combined with use_hybrid_optimizer")
     if cma_first:
         if getattr(params, "local_optimizer", "mc") != "mc":
             raise ValueError("BFSNeighborCMAFirst 1 needs LocalOptimizer mc")
@@ -504,6 +518,80 @@ class OutwardPolicyResult:
     wall_s: float
 
 
+class SeedStallHitStop(Exception):
+    """Raised by ``SeedMCStallHit``'s wrapped cost function when a stall check ends the
+    refinement (SeedIndexMCStallHit)."""
+
+
+class SeedMCStallHit:
+    """SeedIndexMCStallHit k (opt-in, AR5 step 12): the counting wrapper of one seed-step MC
+    refinement's cost function (rule ``PH(k)`` of ``scripts/autoresearch/ar5/stallhit_rules.py``).
+
+    ``wrap(evaluate)`` returns ``evaluate`` with every call counted (``n``). The first
+    lowest-cost orientation is kept (``best_R``, a copy; an equal cost does not replace it). A
+    strict gain re-arms the counter; after ``k`` evaluations with no strict gain (``since >= k``)
+    the armed counter makes one stall check: ``hit_fn(best_R)`` (one overlap evaluation). At
+    ``tau`` or more the check is recorded and ``SeedStallHitStop`` is raised after the evaluation
+    (the refinement ends with ``best_R`` and its cost ``best``; the check is its final, counted
+    evaluation). Else the check is counted as one evaluation (``continued``), the counter is
+    disarmed until the next strict gain, and the refinement goes on. Draws no random number and
+    changes no value. ``checks`` holds ``[n, hit ratio, stopped]`` per check."""
+
+    def __init__(self, k: int, tau: float, hit_fn: Callable[[np.ndarray], float]) -> None:
+        if int(k) < 1:
+            raise ValueError(f"SeedMCStallHit needs k >= 1, got {k}")
+        self.k = int(k)
+        self.tau = float(tau)
+        self.hit_fn = hit_fn
+        self.n = 0
+        self.best = float("inf")
+        self.best_R: Optional[np.ndarray] = None
+        self.since = 0
+        self.armed = True
+        self.checks: List[List[Any]] = []
+        self.continued = 0
+        self.stopped = False
+
+    def feed(self, orientation: Any, cost: float) -> None:
+        """Count one evaluation of ``orientation`` at ``cost``; may make the stall check."""
+        self.n += 1
+        if cost < self.best:
+            self.best = float(cost)
+            self.best_R = np.array(orientation, dtype=np.float64, copy=True)
+            self.since = 0
+            self.armed = True
+        else:
+            self.since += 1
+        if self.armed and self.since >= self.k:
+            assert self.best_R is not None
+            hit = float(self.hit_fn(self.best_R))
+            stop = hit >= self.tau
+            self.checks.append([self.n, hit, bool(stop)])
+            if stop:
+                self.stopped = True
+                raise SeedStallHitStop()
+            self.armed = False
+            self.continued += 1
+
+    def wrap(self, evaluate: Callable[..., Any]) -> Callable[..., Any]:
+        def wrapped(orientation: Any, *args: Any, **kw: Any) -> Any:
+            out = evaluate(orientation, *args, **kw)
+            self.feed(orientation, float(out.cost))
+            return out
+
+        return wrapped
+
+    def record(self, evals: int) -> Dict[str, Any]:
+        """The log entry of the refinement (``evals``: its counted evaluations)."""
+        return dict(
+            n=int(self.n),
+            evals=int(evals),
+            checks=[list(c) for c in self.checks],
+            continued=int(self.continued),
+            stopped=bool(self.stopped),
+        )
+
+
 # ---------------------------------------------------------------------------
 # AdaptiveVoxelReconstructor — single voxel, adaptive narrowing
 # ---------------------------------------------------------------------------
@@ -579,6 +667,8 @@ class AdaptiveVoxelReconstructor:
         # SeedByIndexing: (image-set key, SmoothCost, IndexParams, strict cost, crystals by phase)
         self._index_ctx_cache: Optional[Tuple[Any, ...]] = None
         self.index_pairing_s = 0.0  # one-time SmoothCost build + ray pairing (seconds)
+        # SeedIndexMCStallHit (opt-in): one entry per MC refinement of the last index_seed call
+        self.last_seed_stall_hit: List[Dict[str, Any]] = []
 
     @property
     def last_eval_counts(self) -> tuple:
@@ -1572,6 +1662,7 @@ class AdaptiveVoxelReconstructor:
         stop_hit: float = 0.0,
         cma_first_evals: int = 0,
         cma_sigma0_deg: float = 0.2,
+        mc_stall_hit: int = 0,
     ) -> Any:
         """SeedByIndexing (opt-in): the voxel's seed search from its observed rays
         (``ray_indexing.seed_by_indexing``): strict cost on the first ``n_cost`` candidates, the
@@ -1583,11 +1674,18 @@ class AdaptiveVoxelReconstructor:
         refinement (``ray_indexing.mixed_refinement``) in place of the MC refinement of each
         candidate: a CMA fit (first step ``cma_sigma0_deg`` degrees, ``cma_first_evals``
         evaluations, ``default_rng(0)``); the MC refinement from the same candidate (fresh
-        ``default_rng(0)``) only if the CMA end's hit ratio is below ``stop_hit``."""
+        ``default_rng(0)``) only if the CMA end's hit ratio is below ``stop_hit``.
+        ``mc_stall_hit`` k >= 1 (SeedIndexMCStallHit, needs ``stop_hit`` > 0): every MC
+        refinement of a candidate (the finisher, or the MC refinement of the mixed one) runs
+        through ``seed_mc_refine``: a stall check after k evaluations with no strict gain ends it
+        when the kept best's hit ratio reaches ``stop_hit``. Its log is ``last_seed_stall_hit``
+        (one entry per MC refinement of this call)."""
         from . import ray_indexing as RI
 
         if cma_first_evals and (cma_first_evals < 2 or stop_hit <= 0):
             raise ValueError("cma_first_evals needs a value >= 2 and stop_hit > 0")
+        if mc_stall_hit and (mc_stall_hit < 1 or stop_hit <= 0):
+            raise ValueError("mc_stall_hit needs a value >= 1 and stop_hit > 0")
         sc, crystal, params, strict_cf = self._index_context(phase_index)
 
         def strict(R: np.ndarray) -> float:
@@ -1605,6 +1703,16 @@ class AdaptiveVoxelReconstructor:
             return float(BFSReconstruction._ratios(info)[0])
 
         refine_fn = None
+        if mc_stall_hit:
+            self.last_seed_stall_hit = []
+
+            def stall_fn(R: np.ndarray, cost: float) -> Any:
+                return self.seed_mc_refine(
+                    R, cost, voxel_vertices, phase_index, mc_stall_hit, stop_hit, hit_fn
+                )
+
+            if not cma_first_evals:
+                refine_fn = stall_fn
         if cma_first_evals:
             from .orientation_search import SearchCandidate
 
@@ -1625,6 +1733,8 @@ class AdaptiveVoxelReconstructor:
                 )
 
             def mc_fn(R: np.ndarray, cost: float) -> Any:
+                if mc_stall_hit:
+                    return stall_fn(R, cost)[:3]
                 r = self.refine_from_candidates(
                     [SearchCandidate(orientation=R.copy(), cost=float(cost))],
                     voxel_vertices,
@@ -1644,6 +1754,48 @@ class AdaptiveVoxelReconstructor:
             self, sc, crystal, voxel_vertices, phase_index, params, strict, n_cost, n_refine,
             stop_hit=stop_hit, hit_fn=hit_fn, refine_fn=refine_fn,
         )  # fmt: skip
+
+    def seed_mc_refine(
+        self,
+        R: np.ndarray,
+        cost: float,
+        voxel_vertices: torch.Tensor,
+        phase_index: int,
+        k: int,
+        stop_hit: float,
+        hit_fn: Callable[[np.ndarray], float],
+    ) -> Tuple[np.ndarray, float, int, Dict[str, Any]]:
+        """SeedIndexMCStallHit (opt-in): one MC refinement of the seed candidate ``R`` (strict
+        cost ``cost``), the stock ``refine_from_candidates`` (``default_rng(0)``) with its local
+        cost function wrapped by ``SeedMCStallHit(k, stop_hit, hit_fn)``; the wrapper is scoped to
+        this refinement's cost function only. Returns (end, end cost, counted evaluations, log).
+        Uncut: the stock end and cost; evaluations = the cost function's count plus one per stall
+        check that went on. Cut by a stall check: the kept best (the first lowest-cost orientation)
+        and its cost; evaluations = those made before the check, plus the check (the final
+        evaluation), plus one per earlier check that went on. The log entry is also appended to
+        ``last_seed_stall_hit``."""
+        meter = SeedMCStallHit(k, stop_hit, hit_fn)
+        cf = self._make_local_cost_fn()
+        setattr(cf, "evaluate", meter.wrap(cf.evaluate))  # this cost function only
+        try:
+            r = self.refine_from_candidates(
+                [SearchCandidate(orientation=np.asarray(R).copy(), cost=float(cost))],
+                voxel_vertices,
+                phase_index,
+                rng=np.random.default_rng(0),
+                local_cost_fn=cf,
+            )
+            end, c_end = np.asarray(r.orientation, np.float64), float(r.cost)
+            evals = int(cf.eval_count) + meter.continued
+        except SeedStallHitStop:
+            assert meter.best_R is not None
+            end, c_end = meter.best_R.copy(), float(meter.best)
+            evals = meter.n + 1 + meter.continued
+        self._last_global_evals = 0
+        self._last_local_evals = int(cf.eval_count)
+        log = meter.record(evals)
+        self.last_seed_stall_hit.append(log)
+        return end, c_end, evals, log
 
     def rescue_seed(
         self,
@@ -2475,6 +2627,9 @@ class BFSReconstruction:
         cma_first = int(getattr(sp, "seed_index_cma_first", 0))
         if cma_first:
             kw.update(cma_first_evals=cma_first, cma_sigma0_deg=float(sp.cma_sigma0_deg))
+        stall_k = int(getattr(sp, "seed_index_mc_stall_hit", 0))
+        if stall_k:  # SeedIndexMCStallHit (opt-in)
+            kw["mc_stall_hit"] = stall_k
         res = self.reconstructor.index_seed(vertices, voxel.phase, **kw)
         dt = time.time() - t0  # includes the one-time pairing on the first call
         rec.n_evals += res.evals
@@ -2507,6 +2662,16 @@ class BFSReconstruction:
             self._count("index_mixed_cands", len(res.mixed))
             self._count("index_mixed_cma_reached", sum(1 for m in res.mixed if not m["mc_ran"]))
             self._count("index_mixed_mc_ran", sum(1 for m in res.mixed if m["mc_ran"]))
+        if stall_k:  # SeedIndexMCStallHit: per MC refinement, its stall checks and evaluations
+            logs = [dict(x) for x in getattr(self.reconstructor, "last_seed_stall_hit", [])]
+            entry["stall_hit"] = logs
+            self._count("index_stallhit_refinements", len(logs))
+            self._count("index_stallhit_checks", sum(len(x["checks"]) for x in logs))
+            self._count("index_stallhit_stops", sum(1 for x in logs if x["stopped"]))
+            self._count("index_stallhit_went_on", sum(int(x["continued"]) for x in logs))
+            self._count(
+                "index_stallhit_evals_in_stopped", sum(x["evals"] for x in logs if x["stopped"])
+            )
         self.index_log.append(entry)
         self._count("index_runs")
         self._count("index_evals", res.evals)
