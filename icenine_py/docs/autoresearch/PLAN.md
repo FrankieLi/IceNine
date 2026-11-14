@@ -3350,6 +3350,157 @@ Another random seed.
 - Not (c) neighbour or revisit stops: no trace is stored (step 10's recorder never ran a layer;
   step 11's caches hold none). `held2`, not `held`, as the test: `held`'s result is nearly fixed.
 
+### AR5 step 13: arm H with the pass skip, as the best current recipe and the skip's clean test
+
+Task `ar5m`. Approved: D-20261113-N9. Starts from `feature/eval-reduction` after step 12's merge
+(D-20261113-N8); phase A needs no new key; phase B needs step 12's key `SeedIndexMCStallHit`.
+Reuses `gate_live.py`, `gate_rules.py`, step 12's cache. Phase B only after a recorded decision.
+
+**Why.** The owner asks for fewer evaluations and a general early stop: predict whether more
+local optimization can still help a voxel. Under arm `H` the boundary pass is 16.8% to 36.1% of
+the run. Step 7's key `BoundaryPassSkipHitRatio` is such a stop (a voxel whose own end already
+reaches hit ratio 0.95 gets no try), but it was never run with `H`, and its only test on an unread
+sample was not clean: variant 2 was chosen after `held` had been read live (D-20261112-N5).
+
+**What was read** (stored files only, nothing rerun). PLAN steps 7, 10, 11, 12; D-20261113-N4 to
+N8; reviews `20261113-1000-review-ar5k.md`, `20261113-1600-review-ar5l.md`. Step 12 (worktree
+`agent-a0ffe667...`, `ar5/stallhit/`): `tables.md`; `stats_<s>.json` (totals of `H`, `S8`) and,
+for `mid`, `grad`, `big`, `held` only: `cache/passes_<s>/D4_H/tries.npz`, `cache/stats/`
+`part2_H_<s>_err.npz`, `G_<s>/rescue_log.json.gz`, `passes_<s>/before_G.npy`; one row of
+`levels_mid.json`. Step 7's `live_held_S11v2_h0.95_v2.json`. Code: `run_boundary_pass`.
+
+**Where arm `H`'s evaluations go.** Reading line: one row per sample; each stage as a share of
+`H`'s run with the pass (step 12's `tables.md`); grid searches in brackets.
+
+| sample | total | seed step | rescue | grid search | neighbour fits | revisits | boundary pass |
+|---|---|---|---|---|---|---|---|
+| held2 | 31,143,763 | 44.5% | 0.6% | 23.3% (21) | 4.8% | 10.1% | 16.8% |
+| held | 29,588,170 | 43.8% | 0.6% | 22.2% (19) | 5.0% | 10.8% | 17.6% |
+| mid | 11,950,397 | 36.5% | 0.3% | 11.2% (4) | 12.5% | 14.1% | 25.5% |
+| grad | 10,180,191 | 14.9% | 0.3% | 16.7% (5) | 14.5% | 17.5% | 36.1% |
+| big | 3,635,256 | 14.2% | 0 | 0 (0) | 41.2% | 13.4% | 31.2% |
+
+After the seed step: the pass leads on `mid`, `grad`, `big`; the grid search on `held`, `held2`.
+
+**The skip on `H`'s stored passes** (this draft, arithmetic). The replay is exact for the library
+pass: candidate lists are built from the map before the pass, before any try, and a skipped voxel
+draws its tries' seeds and discards them, so every kept try equals the full pass's (step 7, `held`
+variant 2: 23,557 kept tries, 0 differences). Reading line: per disclosed sample, the pass, the
+share skipped, then `HK` against `H` and against `S8` (after the pass).
+
+| sample | pass evaluations | cut | HK total | fewer than H | fixed / broken vs H | vs S8: fewer; broken minus fixed | median shift (deg) | top own hit of a voxel wrong before |
+|---|---|---|---|---|---|---|---|---|
+| mid | 3,052,257 | 68.7% | 9,854,315 | 17.5% | 0 / 0 | 62.7%; +4 | +0.00016 | 0.9388 |
+| grad | 3,679,520 | 82.8% | 7,134,949 | 29.9% | 0 / 0 | 60.4%; -7 | +0.00002 | 0.9411 |
+| big | 1,135,332 | 76.5% | 2,767,226 | 23.9% | 0 / 0 | 66.8%; -3 | +0.00008 | 0.9486 |
+| held | 5,195,553 | 72.8% | 25,806,780 | 12.8% | 0 / 0 | 56.9%; -1 | +0.00011 | 0.9218 |
+
+Skipped voxels that the full pass would have moved: 277, 113, 307, 191; each by at most 0.27
+degree, none across the 1-degree line. The margin under 0.95 is thin on `big` (0.9486).
+
+**Terms.** **Boundary pass, try, own hit ratio**: as step 7 (a try is one 61-evaluation CMA local
+optimization from a neighbour's orientation; own hit ratio is that of the voxel's end before the
+pass, already scored by the pass). **Skip** (`h` = 0.95): a boundary voxel with own hit ratio at
+least 0.95 gets no try. **Arm `HK`**: arm `H` with the skip. **Replay**: `H`'s stored tries with the
+skipped ones removed. **Live pass**: the library pass with the key, on `H`'s map before the pass.
+**Whole changed path**: here the pass alone: nothing before the pass reads the key. **Right** /
+**wrong**: at most / over 1 degree from the truth (symmetry-reduced). **Aligned draws**: as step 8.
+
+**Samples, and what has touched them.** `mid`, `grad`, `big`: step 7 chose 0.95 on their passes;
+this draft replayed the skip on `H`'s; disclosed. `held`: step 7 ran and read a live skipped pass
+on it; this draft replayed `H`'s; disclosed. `held2` (step 12, built after its freeze): step 12's
+implementer and review read its seed logs, traces, maps and pass summaries. This draft opened only
+`tables.md` (stage totals, wrong counts, paired counts) and listed `passes_held2/`. The skip's
+outcome needs each voxel's own hit ratio, stored only in `D4_H/tries.npz`: its access time equals
+its write time (13:14:07), so nobody read it, and step 12's scripts never load `old_score`. `h`
+was fixed in step 7, before `held2` existed. So `held2` is an honest, untouched test of the skip.
+Knowing that 97 voxels were wrong before `H`'s pass and 67 after does not say where the fixes sit
+in own hit ratio. This draft did not open `held2`'s rescue logs. Clean images, Q-max 8.
+
+**Frozen now.** `h` = 0.95 (step 7); arm `H` unchanged. Nothing is tuned after any run.
+
+**Measured**, per sample: pass evaluations with and without the skip; skipped voxels, tries; run
+total; wrong voxels after the pass (Wilson 95%); fixed and broken against `H` and `S8` (not
+draw-aligned: voxel-paired only); median error; own hit ratio of each voxel the full pass moved
+across the 1-degree line; live against replay, try by try.
+
+**Predictions, written before any run.**
+1. The replay reproduces the table above exactly; every live pass equals its replay try by try,
+   with the same skipped voxels and evaluations (61 per kept try).
+2. `held2`: the skip cuts 68% to 78% of `H`'s pass (5,227,517); `HK` needs 11% to 13.5% fewer
+   evaluations than `H`; fixed / broken against `H` 0 / 0 (at most 0 / 1); median error up by at
+   most 0.0003 degree; the highest own hit ratio of a voxel wrong before the pass is under 0.95.
+3. `HK` against `S8` on `held2`: 54% to 56.5% fewer; broken minus fixed -5 to -3 (`H`: -4).
+
+**Decision rules, fixed now.** Gate before `held2`'s tries are read: (g1) the committed replay
+script reproduces the table (cuts 2,096,082, 3,045,242, 868,030, 3,781,390; 0 fixed, 0 broken);
+(g2) the live pass with the key on `mid`'s map before `H`'s pass equals the replay in every kept
+try (voxel, candidate, end, cost, hit ratio, evaluations) and in the skipped set; (g3) `mid`'s
+broken minus fixed against `S8` stays 4. This replays the whole changed path. Else stop, report,
+no tuning. Then `HK` passes on a sample if, against `H`: (1) the pass is cut by at least 50% and the
+total is fewer (on `held2` at least 8% fewer); (2) broken minus fixed is at most 5% of `H`'s pass
+net gain (wrong before minus after the pass), rounded up, at least 1 (`held2`: 30, so 2);
+(3) median error at most 0.001 degree higher; (4) the house rule against `S8` with the pass: at
+least 20% fewer evaluations, broken minus fixed at most 5, median error at most 0.005 degree
+higher. The step passes if `HK` passes on `held2` and on `held`, `mid`, `grad`, `big`. Then `HK`
+is the best current recipe (pareto row, a recipe config); a default is the owner's choice. If it
+fails on `held2`: the skip stays opt-in, the page says its clean test failed, no other `h`.
+
+**The margin on `mid`, said plainly.** `H` is at net 4 of limit 5 against `S8` there. The skip
+changes no wrong voxel on `mid` in the exact replay (0 fixed, 0 broken; net stays 4), and the live
+pass equals the replay by construction. So rule 5 on `mid` is not at risk in this step except
+through a bug, which (g2) stops. The step does not widen the margin: any later rule that moves
+growth on `mid` keeps the one-voxel risk. The limit is not moved, `mid` not dropped.
+
+**Machine.** Replay: seconds. Live passes with the key on `H`'s stored maps (kept tries plus one
+score per boundary voxel): about 0.98 (`mid`), 0.66 (`grad`), 0.29 (`big`), 1.44 (`held`), 1.2 to
+1.7 (`held2`) million evaluations; about 5 million, 20 to 30 process-minutes, at most 2 processes
+side by side. Phase B: one recipe run on `mid`, about 9.9 million, 35 minutes. About 15 million in
+all, under 1.5 hours wall. Caps 60 minutes a pass, 120 the run.
+
+**Stop rule:** stop and report if a stored count does not reproduce (`H`'s passes 3,052,257,
+3,679,520, 1,135,332, 5,195,553, 5,227,517; totals as above), if the gate fails, if a live pass
+differs from its replay in a kept try or the skipped set, if `held2`'s tries are read before the
+freeze commit, or if the recipe run differs from the script arm (before the pass, and in it).
+
+**Phase A (script layer).** 1. Link step 12's cache (`H` runs, passes, error files, `S8`
+errors); check counts. 2. Tests first: `tests/test_ar5_recipe.py` (replay on a synthetic pass:
+skipped voxels keep their end, kept tries unchanged, counts; the judge; a guard that refuses
+`held2` before the freeze). 3. Commit `ar5/recipe/frozen.json` (`h`, rules, hashes of `H`'s runs
+and passes, every script) before any `held2` tries are read. 4. Replay on `mid`, `grad`, `big`,
+`held`; gate (live `mid` pass). 5. Live passes on `grad`, `big`, `held`, then `held2`; `held2`'s
+replay from the same tries as a cross-check. 6. Stats; the plot first (run evaluations against
+wrong voxels after the pass, `S8`, `G`, `H`, `HK`, one panel per sample); tables; predictions.
+
+**Phase B (recipe).** After step 12's phase B is merged: a recipe config (`SeedRescueCMA`,
+`SeedIndexMCStallHit 3000`, `BoundaryPass 1`, `BoundaryPassSkipHitRatio 0.95`); one library run on
+`mid`. Before the pass it equals step 12's key-on library run `Hl` (fits, map, counts); its pass
+equals the replay of the skip on `Hl`'s pass, try by try. Page `findings_ar5_recipe.md` (plot
+first), history, README line, pareto rows with a status field ("best current recipe, opt-in keys,
+not a default"). **Files:** `recipe_*` scripts and test, `benchmarks/autoresearch/ar5/recipe/`
+(under 2 MB tracked).
+
+**Library changes:** none. All three keys exist (steps 7, 9, 12); off paths untouched.
+**Not in this step.** A longer local optimization or local grid search from the rescue's ends.
+Neighbour, revisit or grid stops. Other `h`. A learned predictor. A timing (the machine is shared;
+`HK` is the arm for a later quiet timing against `S8`). Realistic images. Other crystals. Another
+random seed. A new sample.
+
+**Choices made.**
+- (c), the combined run, because the data supports it best: on four disclosed samples its effect
+  is exact arithmetic, 12.8% to 29.9% fewer than `H` with 0 fixed and 0 broken, and `held2` gives
+  the skip its first clean test at a cost of about 15 million evaluations.
+- Not (a) yet. Opened: the failed rescues of `mid` (4), `grad` (5), `held` (19), with the map
+  before the pass. A rescue end lies within 0.6 degree of the grid end in 20 of 28 and within
+  1.06 in 27, but it is the lowest-cost end in only 13; on `held` 2 grid ends are wrong (33, 40
+  degrees) with a rescue end 0.1 to 0.5 degree from them. What local optimization reaches 0.95
+  from 0.1 to 0.6 degree is not on record (the MC refinement and the CMA both stopped at 0.59 to
+  0.81), and step 10 showed such readings fail later stages. Next: a probe replay of a polish from
+  every rescue end on the 28 (under 1 million evaluations), `held2`'s rescue logs as the test. If
+  it worked it could remove much of the grid search, 23.3% of `H` on `held2`.
+- Not (b) revisits or neighbour fits: no per-fit trace in any cache (step 10's recorder never ran
+  a layer); neighbour fits are a fixed 61 evaluations. A recording run would come first.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
