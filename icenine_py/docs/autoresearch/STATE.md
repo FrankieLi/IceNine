@@ -44,9 +44,9 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    `SendMessage` a1bd2e7a7dbfe1efd for stats (never open step 13 `passes_held2/`), then review.
 
 ## Running jobs
-- AR5 step 14 runs (11:24, 14 Nov), worktree `agent-a1bd2e7a7dbfe1efd`, in `icenine_py/`: marker
-  `benchmarks/autoresearch/ar5/polish/cache/logs/polish_runs.done`; if dead, rerun detached:
-  `scripts/autoresearch/ar5/polish_run_all.sh --resume`. `ar5d` worktree a8a1ac8... is kept.
+- AR5 step 14 runs: big, grad, mid done (rc 0). held and held2 stopped at start (12:53, 14 Nov):
+  step 12's stale freeze check. Implementer a1bd2e7a (worktree `agent-a1bd2e7a7dbfe1efd`) is fixing
+  the script layer; after its report, start detached: `polish_run_all.sh --resume` (RUNBOOK form).
 - Page v50 live (10:40, 14 Nov); v51 after the next finished step. Step 13: blocked.
 
 ## Queue
