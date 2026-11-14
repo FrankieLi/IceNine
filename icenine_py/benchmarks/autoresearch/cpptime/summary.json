@@ -1,0 +1,208 @@
+{
+ "limit_used": 3.5,
+ "cpp": {
+  "C0": {
+   "real_s": 1247.03,
+   "user_s": 2204.02,
+   "sys_s": 284.61,
+   "user_over_real": 1.7674153789403624,
+   "user_sys_over_real": 1.9956456540740801,
+   "bfs_s": 1233.0,
+   "start_up_s": 14.029999999999973,
+   "read_s": 14.224999904632568,
+   "global_s": 1142.0,
+   "local_s": 91.0,
+   "global_searches": 85,
+   "local_optimizations": 1921,
+   "wrong": 416,
+   "wrong_ci": [
+    0.19077970668551297,
+    0.2263398899931866
+   ],
+   "n_output": 2000,
+   "n_missing": 0,
+   "samples": {
+    "n_load": 43,
+    "n_over_2_5": 20,
+    "n_over_limit": 10,
+    "max_load": 33.55517578125,
+    "n_proc_samples": 5,
+    "load_period_s": 30,
+    "proc_period_s": 300
+   }
+  },
+  "C1": {
+   "real_s": 1236.87,
+   "user_s": 2193.19,
+   "sys_s": 279.6,
+   "user_over_real": 1.773177455997801,
+   "user_sys_over_real": 1.999231932215997,
+   "bfs_s": 1222.0,
+   "start_up_s": 14.86999999999989,
+   "read_s": 13.82800006866455,
+   "global_s": 1137.0,
+   "local_s": 85.0,
+   "global_searches": 85,
+   "local_optimizations": 1921,
+   "wrong": 416,
+   "wrong_ci": [
+    0.19077970668551297,
+    0.2263398899931866
+   ],
+   "n_output": 2000,
+   "n_missing": 0,
+   "samples": {
+    "n_load": 43,
+    "n_over_2_5": 1,
+    "n_over_limit": 0,
+    "max_load": 2.521484375,
+    "n_proc_samples": 5,
+    "load_period_s": 30,
+    "proc_period_s": 300
+   },
+   "strict_quiet": true,
+   "relaxed_ok": true,
+   "median_load": 2.16162109375,
+   "busy": []
+  },
+  "C2": {
+   "real_s": 1231.87,
+   "user_s": 2181.77,
+   "sys_s": 281.2,
+   "user_over_real": 1.771104093776129,
+   "user_sys_over_real": 1.999374934043365,
+   "bfs_s": 1218.0,
+   "start_up_s": 13.86999999999989,
+   "read_s": 13.833999872207642,
+   "global_s": 1134.0,
+   "local_s": 84.0,
+   "global_searches": 85,
+   "local_optimizations": 1921,
+   "wrong": 416,
+   "wrong_ci": [
+    0.19077970668551297,
+    0.2263398899931866
+   ],
+   "n_output": 2000,
+   "n_missing": 0,
+   "samples": {
+    "n_load": 43,
+    "n_over_2_5": 7,
+    "n_over_limit": 3,
+    "max_load": 6.216796875,
+    "n_proc_samples": 5,
+    "load_period_s": 30,
+    "proc_period_s": 300
+   },
+   "strict_quiet": false,
+   "relaxed_ok": true,
+   "median_load": 2.13916015625,
+   "busy": []
+  }
+ },
+ "c0_max_load": 33.55517578125,
+ "pair": {
+  "arm": "C",
+  "real_s": [
+   1236.87,
+   1231.87
+  ],
+  "rel_diff": 0.0040588698482794455,
+  "labels": [
+   "strict quiet check failed ()"
+  ],
+  "reported": true,
+  "note": "",
+  "runs": [
+   "C1",
+   "C2"
+  ]
+ },
+ "pair_gaps": {
+  "cpp_pair_C1_C2": 0.0040588698482794455,
+  "python_pair_A1_A2": 0.003935793512726622
+ },
+ "ratios": {
+  "whole_process_A1_over_C1": 1.3105823570787554,
+  "bfs_A1_over_C1": 1.3254947365793581,
+  "per_global_search_A1_over_C1": 1.5658356452546485,
+  "caveat": "different jobs: C++ left 416 of 2000 wrong, Python arm A 24; labels in the page"
+ },
+ "python": {
+  "A1": {
+   "wall_s": 1619.7545680999756,
+   "real_s": 1621.02,
+   "full_s": 1445.2294573783875,
+   "local_s": 174.16367888450623,
+   "label": "strict quiet check failed (busy: mediaanalysisd, searchpartyd)",
+   "median_load": 1.330078125,
+   "n_load": 56,
+   "user_over_real": 0.998223340859459,
+   "user_sys_over_real": 0.999814931339527
+  },
+  "A2": {
+   "wall_s": 1626.1951751708984,
+   "real_s": 1627.4,
+   "full_s": 1450.413279056549,
+   "local_s": 175.4143579006195,
+   "label": "strict quiet check failed (load max 4.30 > 2.5 in 3 of 56 samples; no process over 20% CPU caught)",
+   "median_load": 1.3193359375,
+   "n_load": 56,
+   "user_over_real": 0.9981627135307853,
+   "user_sys_over_real": 0.999754209167998
+  }
+ },
+ "python_arm_a": {
+  "wrong": 24,
+  "wrong_ci": [
+   0.00807709618377981,
+   0.017794010594320817
+  ],
+  "full_searches": 69,
+  "evals_total": 25602383,
+  "evals_full": 22904126,
+  "setup_s": 0.09576106071472168
+ },
+ "trace_c1": {
+  "records": 1921,
+  "refit": 393,
+  "refit_wrong": 393,
+  "accepted_wrong": 23,
+  "unchanged": 1921,
+  "distinct_record_voxels": 1921,
+  "seeds_in_log": 77,
+  "voxels_not_in_records": 79,
+  "wrong_among_voxels_not_in_records": 0,
+  "wrong_total": 416,
+  "wrong_near_another_grain_truth": 416,
+  "wrong_checked": 416,
+  "distinct_output_orientations": 80
+ },
+ "paired_c1_vs_python_a1": {
+  "n_region": 2000,
+  "n_output": 2000,
+  "n_missing": 0,
+  "wrong": 416,
+  "wrong_frac": 0.208,
+  "wrong_wilson": [
+   0.19077970668551297,
+   0.2263398899931866
+  ],
+  "median_err_deg": 0.01997750618439095,
+  "python_wrong_all": 24,
+  "python_wrong_on_cpp_voxels": 24,
+  "paired_on_cpp_voxels": {
+   "both": 12,
+   "only_cpp": 404,
+   "only_python": 12,
+   "neither": 1572
+  }
+ },
+ "evaluations_cpp": "not measured (lldb cannot launch the binary: developer mode off)",
+ "provenance": {
+  "item14_summary": "benchmarks/autoresearch/item14/summary.json",
+  "item14_python_recon": "benchmarks/autoresearch/item14/runs/A1/recon.mic",
+  "item14_time_files": "python_time/A1.time, A2.time (copies of item 14 cache/logs)",
+  "item14_commit": "07d308f"
+ }
+}
