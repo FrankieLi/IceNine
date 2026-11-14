@@ -1,0 +1,128 @@
+{
+ "mid S11n": {
+  "boundary_kept": 4068,
+  "skipped": 13809,
+  "end_differs_skipped": 269,
+  "end_differs_kept": 1674,
+  "end_differs_not_boundary": 0,
+  "fixed_vs_full": 4,
+  "broken_vs_full": 7,
+  "fixed_own_hit": [
+   0.885,
+   0.895,
+   0.903,
+   0.91
+  ],
+  "broken_own_hit": [
+   0.889,
+   0.896,
+   0.901,
+   0.901,
+   0.905,
+   0.911,
+   0.915
+  ],
+  "flips_skipped": 0,
+  "wrong_full_and_live_both": 31
+ },
+ "grad S11n": {
+  "boundary_kept": 2968,
+  "skipped": 20140,
+  "end_differs_skipped": 119,
+  "end_differs_kept": 820,
+  "end_differs_not_boundary": 0,
+  "fixed_vs_full": 15,
+  "broken_vs_full": 12,
+  "fixed_own_hit": [
+   0.716,
+   0.773,
+   0.869,
+   0.877,
+   0.888,
+   0.893,
+   0.901,
+   0.903,
+   0.905,
+   0.909,
+   0.909,
+   0.91,
+   0.911,
+   0.913,
+   0.925
+  ],
+  "broken_own_hit": [
+   0.882,
+   0.885,
+   0.894,
+   0.901,
+   0.902,
+   0.903,
+   0.903,
+   0.903,
+   0.907,
+   0.912,
+   0.913,
+   0.926
+  ],
+  "flips_skipped": 0,
+  "wrong_full_and_live_both": 44
+ },
+ "big S11": {
+  "boundary_kept": 1828,
+  "skipped": 9220,
+  "end_differs_skipped": 279,
+  "end_differs_kept": 944,
+  "end_differs_not_boundary": 0,
+  "fixed_vs_full": 2,
+  "broken_vs_full": 6,
+  "fixed_own_hit": [
+   0.903,
+   0.933
+  ],
+  "broken_own_hit": [
+   0.904,
+   0.906,
+   0.916,
+   0.919,
+   0.921,
+   0.926
+  ],
+  "flips_skipped": 0,
+  "wrong_full_and_live_both": 16
+ },
+ "held S11v2": {
+  "boundary_kept": 4497,
+  "skipped": 16610,
+  "end_differs_skipped": 180,
+  "end_differs_kept": 1264,
+  "end_differs_not_boundary": 0,
+  "fixed_vs_full": 4,
+  "broken_vs_full": 10,
+  "fixed_own_hit": [
+   0.831,
+   0.866,
+   0.901,
+   0.901
+  ],
+  "broken_own_hit": [
+   0.77,
+   0.814,
+   0.889,
+   0.897,
+   0.904,
+   0.906,
+   0.906,
+   0.911,
+   0.912,
+   0.915
+  ],
+  "flips_skipped": 0,
+  "wrong_full_and_live_both": 65
+ },
+ "parity_map": {
+  "max_abs_diff": 5.661621371721992e-08,
+  "voxels_differing": 1491,
+  "stored_changed": 1491,
+  "differing_among_unchanged": 0
+ }
+}

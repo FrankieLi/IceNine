@@ -1,0 +1,237 @@
+{
+ "run": "S8",
+ "sample": {
+  "n_grains": 250,
+  "grain_size_min_median_max": [
+   9,
+   89.5,
+   271
+  ],
+  "n_by_level": {
+   "0.0": 39,
+   "0.2": 40,
+   "0.5": 44,
+   "1.0": 37,
+   "2.0": 46,
+   "4.0": 44
+  },
+  "max_abs_spread_minus_level_deg": 4.878548683126538e-05,
+  "lit_pixels": 10897893,
+  "spots": 179718
+ },
+ "unfinished": false,
+ "derived": {
+  "note": "derived from the stored run files and the maps; quoted in the findings page",
+  "first_seeds": 305,
+  "reseeds": 3262,
+  "wall_min": 133.4,
+  "wall_pass_min": 9.7,
+  "wall_label": "contended: cpptools at 101% CPU at the start of the run and of the pass, and the three AR5 step 4 runs on held (D-20261111-N18) on the machine from 16:53; not a timing result",
+  "lower_levels": [
+   0.0,
+   0.2,
+   0.5,
+   1.0,
+   2.0
+  ],
+  "lower_levels_wrong_before": 46,
+  "lower_levels_wrong_after": 17,
+  "top_level": 4.0,
+  "evals_total_minus_grid": 34008405,
+  "grains_with_wrong_before": 53,
+  "grains_with_wrong_after": 34,
+  "small_grain_voxels": 40,
+  "n_grains_under_small": 28,
+  "n_grains": 250
+ },
+ "seed_steps": 3567,
+ "stopped_early": 2801,
+ "wrapper": {
+  "wrapper_calls": 75614,
+  "picked_fell": 71386,
+  "fallback_runs": 4228,
+  "fallback_won": 165,
+  "evals_picked": 4612454,
+  "evals_fallback": 2949071,
+  "cma_calls_total": 75614,
+  "vmo_calls_total": 12717,
+  "vmo_calls_in_wrapper": 4228,
+  "vmo_calls_outside_wrapper": 8489,
+  "cma_not_fell": 0,
+  "mc_fallback_off": false
+ },
+ "held": {
+  "stages": {
+   "seed_step": 21257244,
+   "grid_fallback": 25915118,
+   "neighbour": 3004901,
+   "revisit": 4556624,
+   "pass_": 5189636,
+   "before_pass": 54733887,
+   "total": 59923523
+  },
+  "grid_fallbacks": 75,
+  "before": {
+   "wrong": 95,
+   "wilson_lo": 0.003164240462137113,
+   "wilson_hi": 0.004723887212617655,
+   "median_err_deg": 0.028844559123757454
+  },
+  "after": {
+   "wrong": 70,
+   "wilson_lo": 0.002255787723261974,
+   "wilson_hi": 0.0035976560459857285,
+   "median_err_deg": 0.028587037850269052
+  },
+  "n_boundary": 21131
+ },
+ "by_level": {
+  "0.0": {
+   "n_grains": 39,
+   "n_voxels": 4150,
+   "wrong_before": 7,
+   "wrong_after": 0,
+   "fixed_by_pass": 7,
+   "broken_by_pass": 0
+  },
+  "0.2": {
+   "n_grains": 40,
+   "n_voxels": 3562,
+   "wrong_before": 7,
+   "wrong_after": 0,
+   "fixed_by_pass": 7,
+   "broken_by_pass": 0
+  },
+  "0.5": {
+   "n_grains": 44,
+   "n_voxels": 4359,
+   "wrong_before": 2,
+   "wrong_after": 0,
+   "fixed_by_pass": 2,
+   "broken_by_pass": 0
+  },
+  "1.0": {
+   "n_grains": 37,
+   "n_voxels": 3680,
+   "wrong_before": 9,
+   "wrong_after": 2,
+   "fixed_by_pass": 7,
+   "broken_by_pass": 0
+  },
+  "2.0": {
+   "n_grains": 46,
+   "n_voxels": 4473,
+   "wrong_before": 21,
+   "wrong_after": 15,
+   "fixed_by_pass": 7,
+   "broken_by_pass": 1
+  },
+  "4.0": {
+   "n_grains": 44,
+   "n_voxels": 4346,
+   "wrong_before": 49,
+   "wrong_after": 53,
+   "fixed_by_pass": 0,
+   "broken_by_pass": 4
+  }
+ },
+ "wrong_both": 65,
+ "wrong_fixed_by_pass": 30,
+ "wrong_broken_by_pass": 5,
+ "wall_s": 8001.584308385849,
+ "wall_label": "contended (other jobs on the machine); not a timing result",
+ "wall_pass_s": 583.0684888362885,
+ "cap_min": 480.0,
+ "first_run_capped": {
+  "cap_s": 7200.0,
+  "evals_before_pass": 48312402,
+  "grid_fallbacks": 61,
+  "first_seeds": 305,
+  "reseeds": 2932
+ },
+ "predictions": {
+  "p1_evals_20_to_40_million": false,
+  "p2_wrong_after_30_to_120": true,
+  "p3_grid_fallbacks_5_to_40": false,
+  "evals_total": 59923523,
+  "wrong_after": 70,
+  "grid_fallbacks": 75
+ },
+ "others": {
+  "big": {
+   "stages": {
+    "seed_step": 2856712,
+    "grid_fallback": 0,
+    "neighbour": 3491437,
+    "revisit": 853714,
+    "pass_": 1138565,
+    "before_pass": 7201863,
+    "total": 8340428
+   },
+   "grid_fallbacks": 0,
+   "before": {
+    "wrong": 67,
+    "wilson_lo": 0.0021480022296533167,
+    "wilson_hi": 0.003461279470933539,
+    "median_err_deg": 0.03203684557345755
+   },
+   "after": {
+    "wrong": 24,
+    "wilson_lo": 0.0006565177937645098,
+    "wilson_hi": 0.001453107589350192,
+    "median_err_deg": 0.031606382282736975
+   },
+   "n_boundary": 11054
+  },
+  "grad": {
+   "stages": {
+    "seed_step": 3008757,
+    "grid_fallback": 5449501,
+    "neighbour": 2798001,
+    "revisit": 3060730,
+    "pass_": 3683241,
+    "before_pass": 14316989,
+    "total": 18000230
+   },
+   "grid_fallbacks": 16,
+   "before": {
+    "wrong": 210,
+    "wilson_lo": 0.007470309001022389,
+    "wilson_hi": 0.00977736463906488,
+    "median_err_deg": 0.02285236562148693
+   },
+   "after": {
+    "wrong": 63,
+    "wilson_lo": 0.002004792724438049,
+    "wilson_hi": 0.003278939551267675,
+    "median_err_deg": 0.022638749845755476
+   },
+   "n_boundary": 23126
+  },
+  "mid": {
+   "stages": {
+    "seed_step": 12007352,
+    "grid_fallback": 5002750,
+    "neighbour": 3859661,
+    "revisit": 2517272,
+    "pass_": 3056039,
+    "before_pass": 23387035,
+    "total": 26443074
+   },
+   "grid_fallbacks": 15,
+   "before": {
+    "wrong": 84,
+    "wilson_lo": 0.0027625009856155278,
+    "wilson_hi": 0.004230365770716132,
+    "median_err_deg": 0.030239472968499957
+   },
+   "after": {
+    "wrong": 31,
+    "wilson_lo": 0.0008890352069823217,
+    "wilson_hi": 0.0017903016696743583,
+    "median_err_deg": 0.029722923795110812
+   },
+   "n_boundary": 17859
+  }
+ }
+}

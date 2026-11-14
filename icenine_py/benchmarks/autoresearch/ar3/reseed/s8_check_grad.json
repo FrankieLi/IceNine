@@ -1,0 +1,116 @@
+{
+ "sample": "grad",
+ "tau": 0.95,
+ "n": 12,
+ "all_equal": true,
+ "rows": [
+  {
+   "voxel": 11,
+   "lib_evals": 3534,
+   "all_evals": 3534,
+   "same_orientation": true,
+   "same_cost": true,
+   "e1_evals": 1550,
+   "part2_evals": 1550
+  },
+  {
+   "voxel": 1756,
+   "lib_evals": 4428,
+   "all_evals": 4428,
+   "same_orientation": true,
+   "same_cost": true,
+   "e1_evals": 2425,
+   "part2_evals": 2425
+  },
+  {
+   "voxel": 3546,
+   "lib_evals": 2943,
+   "all_evals": 2943,
+   "same_orientation": true,
+   "same_cost": true,
+   "e1_evals": 835,
+   "part2_evals": 835
+  },
+  {
+   "voxel": 5279,
+   "lib_evals": 3428,
+   "all_evals": 3428,
+   "same_orientation": true,
+   "same_cost": true,
+   "e1_evals": 481,
+   "part2_evals": 481
+  },
+  {
+   "voxel": 6844,
+   "lib_evals": 4584,
+   "all_evals": 4584,
+   "same_orientation": true,
+   "same_cost": true,
+   "e1_evals": 1711,
+   "part2_evals": 1711
+  },
+  {
+   "voxel": 8779,
+   "lib_evals": 3918,
+   "all_evals": 3918,
+   "same_orientation": true,
+   "same_cost": true,
+   "e1_evals": 1295,
+   "part2_evals": 1295
+  },
+  {
+   "voxel": 10761,
+   "lib_evals": 8532,
+   "all_evals": 8532,
+   "same_orientation": true,
+   "same_cost": true,
+   "e1_evals": 2815,
+   "part2_evals": 2815
+  },
+  {
+   "voxel": 12634,
+   "lib_evals": 4765,
+   "all_evals": 4765,
+   "same_orientation": true,
+   "same_cost": true,
+   "e1_evals": 4765,
+   "part2_evals": 4765
+  },
+  {
+   "voxel": 15121,
+   "lib_evals": 5273,
+   "all_evals": 5273,
+   "same_orientation": true,
+   "same_cost": true,
+   "e1_evals": 2551,
+   "part2_evals": 2551
+  },
+  {
+   "voxel": 17387,
+   "lib_evals": 4002,
+   "all_evals": 4002,
+   "same_orientation": true,
+   "same_cost": true,
+   "e1_evals": 1549,
+   "part2_evals": 1549
+  },
+  {
+   "voxel": 19651,
+   "lib_evals": 4397,
+   "all_evals": 4397,
+   "same_orientation": true,
+   "same_cost": true,
+   "e1_evals": 1033,
+   "part2_evals": 1033
+  },
+  {
+   "voxel": 22093,
+   "lib_evals": 4037,
+   "all_evals": 4037,
+   "same_orientation": true,
+   "same_cost": true,
+   "e1_evals": 1583,
+   "part2_evals": 1583
+  }
+ ]
+}

@@ -1,0 +1,27 @@
+{
+ "sample": "grad",
+ "top_n": 0,
+ "rule": "no cut (full search)",
+ "wall_s": 24.900856733322144,
+ "wall_label": "contended; not a timing result",
+ "rows": [
+  {
+   "sample": "grad",
+   "voxel": 19058,
+   "step": 255,
+   "n": 0,
+   "evals": 341304,
+   "global_evals": 77706,
+   "local_evals": 263598,
+   "level0_listed": null,
+   "level0_run": null,
+   "hit": 0.9789184234647113,
+   "cost": 0.0779226245135336,
+   "err": 0.02124568083378583,
+   "mis_to_full_end": 0.0,
+   "full_end_hit": 0.9789184234647113,
+   "full_end_err": 0.021276304052142904,
+   "full_end_cost": 0.0779226245135336
+  }
+ ]
+}

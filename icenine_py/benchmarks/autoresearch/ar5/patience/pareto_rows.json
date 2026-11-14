@@ -1,0 +1,130 @@
+[
+ {
+  "sample": "held",
+  "arm": "S",
+  "order": "interleaved + rescue G1 + patience P(3000)",
+  "boundary_pass": false,
+  "evals_total": 23814265,
+  "evals_per_voxel": 969.24,
+  "wrong": 101,
+  "n": 24570,
+  "interval_pct": [
+   0.34,
+   0.5
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_held.json",
+  "status": "study: step 11 failed rule (5) on mid (D-20261113-N6); no key; not a candidate arm"
+ },
+ {
+  "sample": "held",
+  "arm": "S",
+  "order": "interleaved + rescue G1 + patience P(3000)",
+  "boundary_pass": true,
+  "evals_total": 29010916,
+  "evals_per_voxel": 1180.75,
+  "wrong": 69,
+  "n": 24570,
+  "interval_pct": [
+   0.22,
+   0.36
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_held.json",
+  "status": "study: step 11 failed rule (5) on mid (D-20261113-N6); no key; not a candidate arm"
+ },
+ {
+  "sample": "mid",
+  "arm": "S",
+  "order": "interleaved + rescue G1 + patience P(3000)",
+  "boundary_pass": false,
+  "evals_total": 8576519,
+  "evals_per_voxel": 349.06,
+  "wrong": 78,
+  "n": 24570,
+  "interval_pct": [
+   0.25,
+   0.4
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_mid.json",
+  "status": "study: step 11 failed rule (5) on mid (D-20261113-N6); no key; not a candidate arm"
+ },
+ {
+  "sample": "mid",
+  "arm": "S",
+  "order": "interleaved + rescue G1 + patience P(3000)",
+  "boundary_pass": true,
+  "evals_total": 11626275,
+  "evals_per_voxel": 473.19,
+  "wrong": 37,
+  "n": 24570,
+  "interval_pct": [
+   0.11,
+   0.21
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_mid.json",
+  "status": "study: step 11 failed rule (5) on mid (D-20261113-N6); no key; not a candidate arm"
+ },
+ {
+  "sample": "grad",
+  "arm": "S",
+  "order": "interleaved + rescue G1 + patience P(3000)",
+  "boundary_pass": false,
+  "evals_total": 6501927,
+  "evals_per_voxel": 264.63,
+  "wrong": 206,
+  "n": 24570,
+  "interval_pct": [
+   0.73,
+   0.96
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_grad.json",
+  "status": "study: step 11 failed rule (5) on mid (D-20261113-N6); no key; not a candidate arm"
+ },
+ {
+  "sample": "grad",
+  "arm": "S",
+  "order": "interleaved + rescue G1 + patience P(3000)",
+  "boundary_pass": true,
+  "evals_total": 10181935,
+  "evals_per_voxel": 414.41,
+  "wrong": 55,
+  "n": 24570,
+  "interval_pct": [
+   0.17,
+   0.29
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_grad.json",
+  "status": "study: step 11 failed rule (5) on mid (D-20261113-N6); no key; not a candidate arm"
+ },
+ {
+  "sample": "big",
+  "arm": "S",
+  "order": "interleaved + rescue G1 + patience P(3000)",
+  "boundary_pass": false,
+  "evals_total": 2480562,
+  "evals_per_voxel": 100.96,
+  "wrong": 74,
+  "n": 24570,
+  "interval_pct": [
+   0.24,
+   0.38
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_big.json",
+  "status": "study: step 11 failed rule (5) on mid (D-20261113-N6); no key; not a candidate arm"
+ },
+ {
+  "sample": "big",
+  "arm": "S",
+  "order": "interleaved + rescue G1 + patience P(3000)",
+  "boundary_pass": true,
+  "evals_total": 3616809,
+  "evals_per_voxel": 147.2,
+  "wrong": 21,
+  "n": 24570,
+  "interval_pct": [
+   0.06,
+   0.13
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/patience/stats_big.json",
+  "status": "study: step 11 failed rule (5) on mid (D-20261113-N6); no key; not a candidate arm"
+ }
+]

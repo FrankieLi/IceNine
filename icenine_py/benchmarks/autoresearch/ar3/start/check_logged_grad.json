@@ -1,0 +1,48 @@
+{
+ "counters_logged_vs_stored": {
+  "n_seeds": [
+   348,
+   348
+  ],
+  "n_reseeds": [
+   945,
+   945
+  ],
+  "n_evals_seed": [
+   1877992,
+   1877992
+  ],
+  "n_evals_reseed": [
+   9211155,
+   9211155
+  ],
+  "n_evals_neighbor": [
+   2786526,
+   2786526
+  ],
+  "n_evals_revisit": [
+   3072127,
+   3072127
+  ],
+  "n_neighbor_fits": [
+   24222,
+   24222
+  ],
+  "n_revisit_attempted": [
+   29041,
+   29041
+  ],
+  "index_evals": [
+   5990794,
+   5990794
+  ]
+ },
+ "counters_equal": true,
+ "reseeds_logged": 945,
+ "reseeds_stored": 945,
+ "reseeds_equal": true,
+ "evals_total_logged": 16947800,
+ "evals_total_stored": 16947800,
+ "wall_logged_s": 1917.7177939414978,
+ "timing_label": "contended: timing preflight refused (cpptools at 99% CPU, Python at 80% CPU); single run, one worker"
+}

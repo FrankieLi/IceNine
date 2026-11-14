@@ -1,0 +1,261 @@
+{
+ "per_sample_passes": {
+  "held": true,
+  "mid": false,
+  "grad": true,
+  "big": true
+ },
+ "step_passes": false,
+ "verdict": "STOP: no key (study merge)",
+ "failed_rules": [
+  "mid:(5)"
+ ],
+ "rules": {
+  "held": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "g_fails_5": false,
+   "total_cut_pct": 5.713408296769589,
+   "seed_cut_pct": 14.920898638671455,
+   "passes": true
+  },
+  "mid": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": false,
+   "g_fails_5": false,
+   "total_cut_pct": 10.597766596483037,
+   "seed_cut_pct": 25.336956232794982,
+   "passes": false
+  },
+  "grad": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "g_fails_5": false,
+   "total_cut_pct": 0.1447234063753225,
+   "seed_cut_pct": 1.0015154251434943,
+   "passes": true
+  },
+  "big": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "g_fails_5": false,
+   "total_cut_pct": 5.014461307434554,
+   "seed_cut_pct": 28.199947085486013,
+   "passes": true
+  }
+ },
+ "predictions": {
+  "p1": {
+   "mid": {
+    "met": true,
+    "detail": {
+     "g1": true,
+     "changed_in_range": true,
+     "changed_range": [
+      20,
+      28
+     ],
+     "stop_type_still_095_12_to_20": true,
+     "mis_in_0_01_to_0_3_median_under_0_1": true,
+     "none_wrong": true,
+     "seed_test_failures_within_1": true
+    }
+   },
+   "grad": {
+    "met": false,
+    "detail": {
+     "g1": true,
+     "changed_in_range": true,
+     "changed_range": [
+      0,
+      2
+     ],
+     "stop_type_still_095_12_to_20": null,
+     "mis_in_0_01_to_0_3_median_under_0_1": false,
+     "none_wrong": true,
+     "seed_test_failures_within_1": true
+    }
+   },
+   "big": {
+    "met": true,
+    "detail": {
+     "g1": true,
+     "changed_in_range": true,
+     "changed_range": [
+      3,
+      5
+     ],
+     "stop_type_still_095_12_to_20": null,
+     "mis_in_0_01_to_0_3_median_under_0_1": true,
+     "none_wrong": true,
+     "seed_test_failures_within_1": true
+    }
+   }
+  },
+  "p2": {
+   "mid": {
+    "met": true,
+    "saving": 0.11008733390406074
+   },
+   "grad": {
+    "met": true,
+    "saving": 0.001999668127663364
+   },
+   "big": {
+    "met": true,
+    "saving": 0.06043915207601765
+   }
+  },
+  "p3": {
+   "seed_cut_pct": 14.920898638671455,
+   "total_cut_pct": 5.713408296769589,
+   "met": true
+  },
+  "p4": {
+   "mid": {
+    "total_cut_pct": 10.597766596483037,
+    "met": true
+   },
+   "big": {
+    "total_cut_pct": 5.014461307434554,
+    "met": true
+   },
+   "grad": {
+    "total_cut_pct": 0.1447234063753225,
+    "met": true
+   }
+  },
+  "p5": {
+   "held": {
+    "net": 0,
+    "median_shift_deg": 2.1435833444875818e-05,
+    "met": true
+   },
+   "mid": {
+    "net": 2,
+    "median_shift_deg": -2.7960895042242195e-05,
+    "met": true
+   },
+   "grad": {
+    "net": -1,
+    "median_shift_deg": -4.647872521600094e-06,
+    "met": true
+   },
+   "big": {
+    "net": 0,
+    "median_shift_deg": -7.671323768859706e-07,
+    "met": true
+   }
+  }
+ },
+ "cut_end_hit_under_095": {
+  "held": {
+   "cut": 763,
+   "under": 420,
+   "at_least": 343
+  },
+  "mid": {
+   "cut": 348,
+   "under": 151,
+   "at_least": 197
+  },
+  "grad": {
+   "cut": 15,
+   "under": 3,
+   "at_least": 12
+  },
+  "big": {
+   "cut": 55,
+   "under": 23,
+   "at_least": 32
+  }
+ },
+ "cut_end_hit_under_095_all_four": {
+  "cut": 1181,
+  "under": 597
+ },
+ "unmatched": {
+  "held": {
+   "sample": "held",
+   "matched_steps": 3640,
+   "seed_steps_g": 3705,
+   "seed_steps_s": 3699,
+   "only_s_n": 59,
+   "only_g_n": 65,
+   "only_s_wrong": 1,
+   "only_g_wrong": 1,
+   "only_s_wrong_where_g_map_right": 0,
+   "only_g_wrong_where_s_map_right": 0,
+   "only_s_with_a_cut": 16,
+   "only_s_wrong_where_g_map_right_voxels": [],
+   "only_g_wrong_where_s_map_right_voxels": []
+  },
+  "mid": {
+   "sample": "mid",
+   "matched_steps": 1478,
+   "seed_steps_g": 1607,
+   "seed_steps_s": 1612,
+   "only_s_n": 134,
+   "only_g_n": 129,
+   "only_s_wrong": 1,
+   "only_g_wrong": 0,
+   "only_s_wrong_where_g_map_right": 1,
+   "only_g_wrong_where_s_map_right": 0,
+   "only_s_with_a_cut": 52,
+   "only_s_wrong_where_g_map_right_voxels": [
+    13013
+   ],
+   "only_g_wrong_where_s_map_right_voxels": []
+  },
+  "grad": {
+   "sample": "grad",
+   "matched_steps": 1280,
+   "seed_steps_g": 1280,
+   "seed_steps_s": 1284,
+   "only_s_n": 4,
+   "only_g_n": 0,
+   "only_s_wrong": 0,
+   "only_g_wrong": 0,
+   "only_s_wrong_where_g_map_right": 0,
+   "only_g_wrong_where_s_map_right": 0,
+   "only_s_with_a_cut": 0,
+   "only_s_wrong_where_g_map_right_voxels": [],
+   "only_g_wrong_where_s_map_right_voxels": []
+  },
+  "big": {
+   "sample": "big",
+   "matched_steps": 281,
+   "seed_steps_g": 317,
+   "seed_steps_s": 316,
+   "only_s_n": 35,
+   "only_g_n": 36,
+   "only_s_wrong": 0,
+   "only_g_wrong": 0,
+   "only_s_wrong_where_g_map_right": 0,
+   "only_g_wrong_where_s_map_right": 0,
+   "only_s_with_a_cut": 15,
+   "only_s_wrong_where_g_map_right_voxels": [],
+   "only_g_wrong_where_s_map_right_voxels": []
+  }
+ },
+ "wrong_seeds_matched_plus_s_only": {
+  "held": 0,
+  "mid": 1,
+  "grad": 0,
+  "big": 0
+ },
+ "wrong_seeds_note": "the frozen rule (4) counts matched seed steps (same voxel, same occurrence); matched_plus_s_only adds S-only steps wrong where G's map before the pass is right",
+ "status": "study: step 11 failed rule (5) on mid (D-20261113-N6); no key; not a candidate arm"
+}

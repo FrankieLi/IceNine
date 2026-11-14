@@ -13,7 +13,7 @@ import re  # noqa: E402
 import sys  # noqa: E402
 import time  # noqa: E402
 from pathlib import Path  # noqa: E402
-from typing import Any, Dict, Tuple  # noqa: E402
+from typing import Any, Dict, Optional, Tuple  # noqa: E402
 
 import numpy as np  # noqa: E402
 import torch  # noqa: E402
@@ -25,6 +25,13 @@ ICE = HERE.parents[2]  # icenine_py
 EX = ICE.parent / "Examples" / "Example2.ManyGrains"
 REGION = ICE / "benchmarks" / "phase_d_pilot"
 OUT = ICE / "benchmarks" / "autoresearch" / "ar3"
+# AR3 step 7: AR3_SAMPLE=big switches every script that reads ``OUT`` (and gradient_common) to the
+# 32-grain sample; the default (unset) is the gradient sample, so earlier scripts behave as before.
+SAMPLE_KIND = os.environ.get("AR3_SAMPLE", "gradient")
+# AR3 step 9: AR3_SAMPLE=mid is the third sample (about 120 grains, same grid), same layout as big.
+assert SAMPLE_KIND in ("gradient", "big", "mid", "held", "held2"), SAMPLE_KIND  # step 12: held2
+if SAMPLE_KIND in ("big", "mid", "held", "held2"):
+    OUT = OUT / SAMPLE_KIND
 CONFIG = ICE / "scripts" / "autoresearch" / "ar2" / "key_on_fused.config"
 STORED_KEY_ON = ICE / "benchmarks" / "autoresearch" / "ar2" / "key" / "runs" / "key_on"
 STORED_KEY_ON_FUSED = ICE / "benchmarks" / "autoresearch" / "ar2" / "key" / "runs" / "key_on_fused"
@@ -53,12 +60,22 @@ def preflight_label(out: Path) -> str:
         )
 
 
-def build(config: Path, out: Path) -> Tuple[Any, Any, float]:
-    """(setup, BFSReconstruction, setup seconds) on the pilot region with clean images."""
+def build(
+    config: Path,
+    out: Path,
+    sample: Optional[Path] = None,
+    extra: str = "",
+    stack_name: str = "clean.npy",
+) -> Tuple[Any, Any, float]:
+    """(setup, BFSReconstruction, setup seconds) with clean images; the pilot region unless
+    ``sample`` is given (AR3 step 2: the whole layer). ``extra`` is appended to the config.
+    ``stack_name``: the uint8 stack under ``stacks/`` (AR3 step 3: ``grad_clean.npy``)."""
     cfg_text = config.read_text()
-    sample = REGION / "region_grid.mic"
+    sample = sample or REGION / "region_grid.mic"
     cfg_text, n = re.subn(r"(?m)^SampleFilename\s+\S+", f"SampleFilename {sample}", cfg_text)
     assert n == 1 and "BFSRevisitRefit 1" in cfg_text
+    if extra:
+        cfg_text += "\n" + extra + "\n"
     cfg_path = out / "run.config"
     cfg_path.write_text(cfg_text)
     os.chdir(EX)
@@ -67,7 +84,7 @@ def build(config: Path, out: Path) -> Tuple[Any, Any, float]:
     from icenine.reconstructor import BFSReconstruction, setup_reconstruction
 
     cfg = ConfigFile.from_file(str(cfg_path))
-    stack = EX / "ScatteringData_PhaseD" / "stacks" / "clean.npy"
+    stack = EX / "ScatteringData_PhaseD" / "stacks" / stack_name
     t0 = time.time()
     setup = setup_reconstruction(cfg, exp_data=ExperimentalData.from_binary_memmap(stack, 180, 2))
     return setup, BFSReconstruction(setup), time.time() - t0

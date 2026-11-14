@@ -1,0 +1,19 @@
+{
+ "command": "uv run pytest tests/ --junitxml=junit.xml",
+ "commit": "63fca69",
+ "commit_note": "the suite started at 04:26 on the working tree committed as 63fca69 at 04:28 (the junit file lists its 42 tests of test_bfs_seed_rescue); icenine/ and tests/ are unchanged from 63fca69 to 107db3c; the junit file itself is not kept",
+ "junit_timestamp": "2026-11-13T04:26:14.180852-08:00",
+ "key": "SeedRescueCMA off (absent: the default)",
+ "junit": {
+  "tests": 1886,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 44
+ },
+ "passed": 1842,
+ "skipped": 44,
+ "deselected": 1,
+ "deselected_source": "pytest --collect-only -m slow: '1/1887 tests collected (1886 deselected)'",
+ "test_bfs_seed_rescue_cases": 42,
+ "timing_label": "contended: other jobs ran on the machine; no time is a result"
+}

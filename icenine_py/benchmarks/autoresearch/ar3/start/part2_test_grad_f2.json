@@ -1,0 +1,41 @@
+{
+ "sample": "grad",
+ "set": "test",
+ "fits_in_set": 26659,
+ "rejected_fits": 15162,
+ "clusters": 513,
+ "seed_evals_clusters": 4520102,
+ "settings": {
+  "0.05": {
+   "f2_evals": 924882,
+   "rejected_pass": 1149,
+   "clusters_vanish": 76,
+   "seed_evals_vanish": 726430,
+   "fixed": 0,
+   "broken": 0,
+   "both_wrong": 0,
+   "err_median_new": 38.82859976818837
+  },
+  "0.1": {
+   "f2_evals": 924882,
+   "rejected_pass": 1357,
+   "clusters_vanish": 82,
+   "seed_evals_vanish": 766868,
+   "fixed": 0,
+   "broken": 0,
+   "both_wrong": 0,
+   "err_median_new": 38.82584190368652
+  },
+  "0.2": {
+   "f2_evals": 924882,
+   "rejected_pass": 1327,
+   "clusters_vanish": 77,
+   "seed_evals_vanish": 390687,
+   "fixed": 0,
+   "broken": 0,
+   "both_wrong": 0,
+   "err_median_new": 38.82564809823394
+  }
+ },
+ "err_median_stored_end": 38.82444763183594
+}

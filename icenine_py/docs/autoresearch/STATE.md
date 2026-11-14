@@ -1,346 +1,120 @@
 # Autoresearch stage: saved state
 
-Read this file first after any restart. It says where the work stands and what to do next. The plan
-is `docs/autoresearch/PLAN.md`. The mandate is D-20261109-N1 in `docs/DECISIONS.md`.
+Read this file first after any restart or wake. It holds only what is true now and stays under
+120 lines: rewrite it, do not append. Then read "Keeping the main context small" in
+`docs/autoresearch/RUNBOOK.md`, and after that only the runbook section for the step at hand.
+
+| what | where |
+|---|---|
+| mandate | D-20261109-N1 in `docs/DECISIONS.md` |
+| plan | `docs/autoresearch/PLAN.md` |
+| how to run a step, limits, tools | `docs/autoresearch/RUNBOOK.md` |
+| finished steps, old notes (archive, use `grep`) | `docs/autoresearch/STATE_HISTORY.md` |
+| numbers of a finished step | its findings page, or `shmem query "IceNine autoresearch <step>"` |
+| review page for the owner | https://claude.ai/artifact/A63khAHf7nEx6NBZioSnGW |
+| open PR | #43 (AR3 steps 2 to 11, AR5 steps 1 to 3, 5, 7 to 12, AR4 step 1), https://github.com/FrankieLi/IceNine/pull/43 |
 
 ## How to restart
 
-1. In the repository root, check `git status` and the branch (`feature/eval-reduction`
-   or one of its task branches).
-2. Read "Next action" below. For more context: `shmem ask "What is the state of the IceNine
-   autoresearch stage?"` (it works again since the evening of 2026-11-09, after the owner updated
-   the key; fall back to `shmem query "IceNine autoresearch"` if it fails).
-3. Before a new task: `scripts/dev/read_on_fetch.sh --save`, merge
-   `origin/feature/python-speed-parity`, rerun with `--mark`, read Ilium's mailbox in
-   `docs/ROADMAP.md`.
-4. Do one step. Then update this file, commit, push, and save one shmem fact
-   (`shmem add --source llm "IceNine autoresearch <step>: <result>"`).
-
-Rules that hold for every step: Python only through `uv run`; one fresh implementer agent per
-task in its own worktree (brief from `scripts/dev/make_brief.sh --plan docs/autoresearch/PLAN.md
---task <task> --section "<heading>"`), `scripts/dev/verify_handback.sh`, then `/review-task`, fixes
-applied, merge with `scripts/dev/finish_task.sh`; at most 6 heavy processes; no merge to `develop`
-without the owner's go; no change to `.claude/` files; no p-values; no extra seeds; findings in
-plain English with the plot before the table.
-
-## The wake-up job
-
-A session cron job (id 6f6deed3, created 2026-11-09, every 3 hours at :23) sends the wake-up
-prompt while the session is open and idle. It expires on 2026-11-16: create it again on or after
-2026-11-15 and write the new date here. It dies with the session. After a closed session the owner
-types `/resume` or "continue the autoresearch"; this file is enough to go on.
-
-## Status (2026-11-10)
-
-- Review page: 24 items decided (D-20261109-N2 to N4). Table on
-  `docs/owner_review_2026-10-30.md`, "Decisions of 2026-11-09".
-- Plan approved under the mandate (D-20261109-N5).
-- Item 6 is done: the review-fix branch was reviewed (APPROVE, 4 required fixes, all applied) and
-  merged and pushed (d113694). D-20261109-N6 settles how a boundary crossing is counted.
-- AR0 is done: reviewed, 12 fixes applied, merged and pushed (0decc3a). Results below.
-- AR1 is done: reviewed (18 fixes applied), merged and pushed (5bd9ecc). Full suite on the task
-  branch: 1463 passed, 41 skipped, 1 deselected. Results below.
-- D-20261109-N7 settles the review's three questions: the 3 broken voxels count against the
-  best-1 arm; AR2 uses the finisher on the best 2 and starts with a holdout; the symmetry
-  operators are fixed now for non-cubic crystals.
-- The plan's AR2 section now has two steps: the holdout of the finisher arms, then the key.
-- AR2 step 1 (the holdout) is done: reviewed (10 fixes applied, D-20261109-N8), merged and pushed
-  (86dd905). Full suite on the task branch: 1461 passed, 47 skipped, 1 deselected (6 skips are
-  `test_coarse_proxy.py` caches not linked into that worktree). Results below.
-- AR2 step 2 (the key `SeedByIndexing`) is done: reviewed (14 fixes applied, D-20261109-N9 and
-  N10), merged and pushed (a8c99b7). Full suite at the merge: 1473 passed, 47 skipped, 1
-  deselected. MIGRATION_HISTORY entry, ROADMAP row AR and the heads-up to Ilium are written.
-  Results below.
-- The pre-commit check is tightened on the owner's word "tighten the pre-commit check"
-  (D-20261109-N12): reviewed (2 required fixes, applied), merged and pushed (f76f776). Full suite
-  at the merge: 1500 passed, 37 skipped, 1 deselected. What it does: the Developer-tooling table
-  of `icenine_py/README.md`. What it cannot do: "For the owner" below.
-- The AR3 section of the plan is written in full and approved under the mandate (D-20261110-N1,
-  2026-11-10). Two steps: painting on the pilot region as a study, then the key and the whole
-  layer.
-- **AR3 step 1 is done** (2026-11-10): implemented, reviewed (12 required fixes, all applied),
-  merged and pushed (8e3098f). Full suite at the merge: 1505 passed, 44 skipped, 1 deselected.
-  Numbers: "Results so far". The gate for step 2 is met.
+1. In the repository root: `git status`, branch `feature/eval-reduction` (or a task branch).
+2. Do "Next action" below: every ready step in turn, independent jobs side by side (owner,
+   2026-11-10). After each step: rewrite this file, commit, push, one shmem fact.
+3. A detail that is not here: `shmem ask "<question>" | head -30`, then `grep` in the page.
 
 ## Next action
 
-1. AR0: done. Nothing left.
-2. AR1: done. Nothing left. Its old worktree `.claude/worktrees/agent-af5119989737208f0` could not be
-   removed (it holds two untracked links into the main checkout and 216K of run logs); it is
-   harmless and can be removed with `git worktree remove --force`.
-3. If an agent died with the session (a task branch exists but no report): look at
-   `git log feature/eval-reduction..<task branch>` in its worktree, and start a fresh
-   implementer with the same brief (regenerate it with `make_brief.sh`) and the note "continue from
-   the commits on the branch".
-4. AR2 step 1 (the holdout): done, merged and pushed (86dd905). Its worktree
-   `.claude/worktrees/agent-a1bb4d7c15c5bb0d5` could not be removed (untracked link, cache and
-   marker files); harmless, removable with `git worktree remove --force`.
-5. AR2 step 2 (the key `SeedByIndexing`): done, merged and pushed (a8c99b7). Reports:
-   `.claude/reports/20261109-1700-ar2b.md`, `20261109-review-ar2b.md`,
-   `20261109-1838-ar2b-fixes.md`. Its worktree `.claude/worktrees/agent-aa30ebdcbce5ec948` could
-   not be removed (untracked link and cache); harmless, removable with
-   `git worktree remove --force`. Left open and recorded: `key_run_bg.sh` still writes "single
-   run" into the label of future runs.
-6. **AR3 step 2 is running: the implementer of task `ar3b` was started 2026-11-10.**
-   Step 1 is merged (8e3098f); its page is `docs/autoresearch/findings_ar3_paint.md`, the review
-   `.claude/reports/20261110-0430-review-ar3a.md`. The details of step 2 are in the plan
-   (7ac1216, section "AR3: index the layer and paint grains", "Step 2, the details"), approved
-   under the mandate (D-20261110-N2, ad16c3a). What the plan fixes: the opt-in key `PaintGrains`
-   (needs `SeedByIndexing 1`; the loop of `grain_paint.py` is not changed); checks first (the
-   pilot through the key gives step 1 again; the key-on BFS with a fit log is the stored run);
-   then the whole layer, paint against the key-on BFS, every count split into the pilot region
-   and the rest; a fit-settled voxel keeps its fit and both rules are reported; a paired count
-   is called a gain only when the error-rate intervals do not overlap; a log of every BFS local
-   fit (did it move, how far did the cost fall) as the first reading for an early stop; a
-   per-seed record as the reading for a cheaper seed. Budget 3 hours.
-   - Is the agent alive? `git -C .claude/worktrees/agent-a849170b7d4502001 log --oneline -5`
-     and `git -C .claude/worktrees/agent-a849170b7d4502001 status --short | head`. New commits
-     or changed files mean it is working: do nothing else on this wake. If the session was
-     restarted and there is no hand-back, follow point 3 (fresh Sonnet implementer, the brief
-     from `make_brief.sh --plan icenine_py/docs/autoresearch/PLAN.md --task ar3b --section
-     "AR3: index the layer and paint grains"`, the note "continue from the commits on the
-     branch"; first `git -C <old worktree> checkout --detach` to free the branch).
-   - When it hands back: write the findings page (`docs/autoresearch/findings_ar3_layer.md`) and
-     the report (`.claude/reports/20261110-0658-ar3b.md`) from its returned text, commit the
-     page on the task branch, then `scripts/dev/verify_handback.sh feature/eval-reduction
-     <report> --branch feature/eval-reduction-ar3b`, then `/review-task` (Opus), fixes by an
-     Opus implementer, `finish_task.sh --yes --push` in the task's worktree.
-   - Before that merge: post to Ilium in `docs/ROADMAP.md` (the task changes the shared files
-     `reconstructor.py`, `config_file.py`, `orientation_search.py`). After it: `gh pr edit 42`,
-     this file, the review page, one shmem fact.
-7. Item 7: **PR #41 is merged** into `develop` (357a2b3, 2026-11-09, at branch head 16c72db), on
-   the owner's word in the session (D-20261109-N11). The branch `feature/eval-reduction` is kept.
-   **PR #42 is open** (2026-11-10, https://github.com/FrankieLi/IceNine/pull/42): what landed
-   since 357a2b3 (the item 22 hook change fd1721f, the tightened pre-commit check f76f776, AR3
-   step 1 8e3098f). It gains commits as later steps merge; update its text then (`gh pr edit 42`).
-   Do not merge that PR without the owner's word in the session.
-   The owner's review page (https://claude.ai/artifact/A63khAHf7nEx6NBZioSnGW) is updated after
-   each step; its source is in the session scratchpad (republish from a read of the page if the
-   scratchpad is gone).
-8. Item 12 is **not applied**. Its two edits to three `.claude/` files are kept as a patch,
-   `icenine_py/docs/autoresearch/item12_owner.patch`. The owner applies and commits it (commands
-   under "For the owner"). The working tree is clean, so `finish_task.sh` runs. Do not apply
-   the patch in the main checkout again: a dirty tree makes `finish_task.sh` refuse. Never
-   `git add -A`, never `git stash`.
-9. Merges and the tightened check (f76f776). A merge that git commits by itself and that brings
-   a `CLAUDE.md`/`.claude/` change is refused by `.githooks/pre-merge-commit` and left staged.
-   Run `git commit` to conclude it. That passes when a fetched remote branch brings the file
-   unchanged (for example a merge of `origin/feature/python-speed-parity`). If `git commit`
-   refuses too, stop and tell the owner; do not go around it (`git merge --abort` is fine).
+Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a task branch
+before its fixes round (shared files conflict).
 
-Note on implementer agents: since 2026-11-09 the tool refuses a subagent's Write of `.md` files
-("subagents must return findings as text"). The agent stops and returns the text. The main
-session then writes the findings page and the hand-back report from that text and the committed
-result files, and says so in both.
+1. AR5 step 4 (task `ar5d`; N16, N18, N20, N23): `S11v2` on `held` 37.4% fewer evaluations
+   than `S8`, 69 wrong; approved with three fixes (N23); fix 3 done (fac79f9). BLOCKED on fix 1
+   (the page; agent writes refused): the owner places it or allows it. Then: sync check,
+   commit, fix 2 (MIGRATION_HISTORY names that commit), merge, close (PR #43).
+2. AR5 step 6 (`ar5f`; N3): fixed, waits. Steps 9 to 12: merged (10, 11 failed studies, no key).
+   Step 12 (`ar5l`; key `SeedIndexMCStallHit`, off): merged at fe3d277, 13 Nov; page waits.
+   Step 13 (`ar5m`): BLOCKED FOR THE OWNER (Queue). Nothing else is ready for an agent.
+3. Items 14 + 3 (task `item14`; N25): E0 arms done. Run 1 (17:40, 13 Nov) stopped with exit 5:
+   B1 not quiet (OS daemon, load 3.07, limit 2.5). Run 2 started detached 21:53: check marker
+   `item14.done` (exit 0). If dead or exit 5: rerun the command below when the load is under 1.5.
+   After exit 0: phase B by `SendMessage`, then `cpptime`. While it runs: no merge, tests, run.
+
+## Running jobs
+- Items 14 + 3: `caffeinate -i bash scripts/autoresearch/item14/run_item14.sh` in `icenine_py/`
+  of worktree `agent-a012b8f461d1630a1` (run 2, detached 21:53, 13 Nov); marker `item14.done`.
+  Branch `ar5d` is held by worktree `agent-a8a1ac8e80f8913cf` (tip fac79f9).
+- Page v49 live (17:38, 13 Nov; v50 after the next finished step). Step 13: blocked (Queue).
 
 ## Queue
-
-Reading the table: one row per step, in order, with its state.
+Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
+7, 18, 22, 23, AR0 to AR2, AR3 1 to 11, AR5 1 to 3, 5, 7 to 12, AR4 1): `STATE_HISTORY.md`.
 
 | step | what | state |
 |---|---|---|
-| item 6 | review and merge the review fixes | **done** 2026-11-09 (d113694) |
-| AR0 | stop rules from the stored results | **done** 2026-11-09 (0decc3a) |
-| AR1 | recall of the ray-indexing proposer | **done** 2026-11-09 (5bd9ecc) |
-| item 7 | open the PR to `develop` (merge waits for the owner) | **done**: PR #41 merged 2026-11-09 (357a2b3) on the owner's word (D-20261109-N11) |
-| items 12, 22, 23 | owner said yes to all three (D-20261109-N11) | 22 **done** (fd1721f, hook exception for merges); 23 **done** (rule recorded, Ilium told); 12 is a patch file, **apply and commit wait for the owner** |
-| pre-commit tightening | owner: "tighten the pre-commit check" (D-20261109-N12) | **done** 2026-11-09 (f76f776) |
-| item 14 + 3 | both keys on E0 and the pilot, timing A/B | not started; needs a quiet machine |
-| item 18 | does C++'s clang fuse the clip's multiply-adds | **done** 2026-11-09: yes (below) |
-| C++ time | measured C++ time on the pilot region (owner's question on finding 6) | not started |
-| AR2 | indexing as the BFS seed search | step 1 (holdout) **done** 2026-11-09 (86dd905); step 2 (the key) **done** 2026-11-09 (a8c99b7) |
-| AR3 | index the layer and paint grains | step 1 (paint on the pilot, a study) **done** 2026-11-10 (8e3098f), gate met; step 2 (the key `PaintGrains`, the whole layer): plan details written (7ac1216, D-20261110-N2), **implementer running** (task `ar3b`, started 2026-11-10) |
-| AR4 | the learned proposer | waits for AR1 |
-| AR5 | the stop rule | waits for AR1; first job: a per-level record of full searches on full-sample voxels (the pilot's 69), then the AR0 stop grid on it |
+| AR5 step 4 | `S10`, `S11`, `S11v2` on the held-out sample (task `ar5d`) | waits for the owner (page): `.claude/reports/20261111-2330-ar5d-phaseB-page.md` (main checkout) goes to `icenine_py/docs/autoresearch/findings_ar5_held.md` in worktree `agent-a8a1ac8e80f8913cf` |
+| AR5 step 6 | `S11n`, `S11h` on `mid` and `grad` (task `ar5f`) | reviewed and fixed; waits for the owner (page) and for step 4's merge. Branch tip d643eff, held by the fixes worktree `agent-a9420a98460078e81`; the first worktree `agent-a89458addd73332d9` (detached, 4c18740) holds the run cache `ar5/ver/cache/`: keep both. Opus review (`.claude/reports/20261112-0510-review-ar5f.md`): every headline number recomputed, none differs; 11 wording fixes, no rerun (N3). Fixes round done (7f272ce, 18260d5, d643eff; report `.claude/reports/20261112-0517-ar5f-fixes.md` in the fixes worktree; hand-back check: only the expected format flag; no number changed, `predictions[4].met` now false; 14 tests pass). Numbers: on `mid` `S11n` 14,105,137 evaluations (12.3% fewer than `S11`, 6 seeds kept, 0 wrong), `S11h` 15,680,025 (2.5%, 1 kept); both pass; "plain does as well" not met on `mid` (20.4% of the saving; 62.2% on `grad`, in-sample); six of seven predictions met. PAGE: not in the repo (Write refused). Corrected text: `.claude/reports/20261112-ar5f-page-v2.md` in the fixes worktree; the owner places it at `icenine_py/docs/autoresearch/findings_ar5_ver.md` there (or allows it). Then: sync check, commit, merge after step 4 (`finish_task.sh` in the fixes worktree), close (pareto points, page, PR #43); then a decision on an opt-in key for the `N1` rule |
+| items 14 + 3 | both speed keys on E0 and the pilot, timing A/B (task `item14`) | E0 done; timing started detached ~17:45, 13 Nov (see "Next action") |
+| C++ time | measured C++ time on the pilot region (MPI mode, own config) | D-20261112-N1, task `cpptime`: phase A done (agent and worktree `ad44bb90c441eca35`, tip 5d6cec2, report in that worktree's `.claude/reports/20261112-0012-cpptime.md`). Run, after item 14's timing and on a quiet machine: `caffeinate -i bash scripts/autoresearch/cpptime/run_cpp_time.sh` in its `icenine_py/` (background command); marker `benchmarks/autoresearch/cpptime/cache/cpptime.done`; then phase B by `SendMessage`. R4 limit 3.5 (own load 2.0: the server rank spins). `lldb` cannot run (developer mode off): evaluations missing unless the owner enables it or accepts a print in `Src/` |
+| AR5 step 7 | opt-in key `BoundaryPassSkipHitRatio` (task `ar5g`) | MERGED at 50c3b9c (N4, N5, N6), see "Last finished step". Open: only its page, for the owner to place: text `.claude/reports/20261112-ar5g-page-v2.md` (main checkout; the merge removed the fixes worktree, the text was recovered exactly from the recorded write and a table sync) goes to `icenine_py/docs/autoresearch/findings_ar5_gate.md` on `feature/eval-reduction`, then a sync check and a commit. Keep worktree `agent-a331e7882919e74aa` (stored passes, `ar5/gate/`). Step 6's page text and reports are now also copied to the main `.claude/reports/` |
+| AR5 step 8 | sweep order of the seed step (task `ar5h`) | MERGED at 949dc61 as a study; failed rule 5 (N9), no key; see "Last finished step". Open: only its page for the owner: `.claude/reports/20261112-ar5h-page.md` (main checkout) goes to `icenine_py/docs/autoresearch/findings_ar5_order.md`. Keep worktree `agent-abdf64302f4022c0a` (detached): the step 8 cache `ar5/order/cache` that step 9 links, and the MC traces. Reports also in the main `.claude/reports/`: `20261112-1419-ar5h.md`, `-corrected.md`, `20261112-2215-ar5h-fixes.md` |
+| AR5 step 9 | rule `G1`, key `SeedRescueCMA` (task `ar5i`) | MERGED at 28b75fa. Open: its page for the owner: `.claude/reports/20261113-ar5i-page.md` goes to `icenine_py/docs/autoresearch/findings_ar5_rescue.md`. Keep worktrees `agent-a8d20b3821621fd41`, `agent-ab6ee3e8ef1058af1` (`ar5/rescue/cache`) |
+| AR5 step 12 | rule PH(3000), key `SeedIndexMCStallHit` (task `ar5l`) | MERGED at fe3d277 (13-N7, N8, N10), see "Last finished step". Open: only its page for the owner: `.claude/reports/20261113-ar5l-page-v2.md` (main checkout) goes to `icenine_py/docs/autoresearch/findings_ar5_stallhit.md`. Keep worktrees `agent-a0ffe667a1a6ee068` (held2 sample, runs; `passes_held2/D4_H/tries.npz` stays unopened until step 13's freeze) and `agent-ab6f021fc3d6bed02` (LibH, Hl runs on `mid`). Reports in the main `.claude/reports/`: `20261113-1100-ar5l.md`, `-1600-review-ar5l.md`, `-1630-ar5l-B.md`, `-1730-review-ar5l-B.md`, `-1800-ar5l-fixes2.md` |
+| AR5 step 13 | arm HK = H + pass skip key 0.95, best current recipe; clean test on held2 (task `ar5m`) | D-20261113-N9 (6d13c12), PLAN "AR5 step 13". BLOCKED FOR THE OWNER since 17:05, 13 Nov (agent `afef88a15cf24bade`, worktree `.claude/worktrees/agent-afef88a15cf24bade`, tip be8d2fc, report `.claude/reports/20261113-1700-ar5m.md` there; no freeze commit; held2 tries unopened). (1) The agent's run of `recipe_freeze.py` was refused by the permission classifier; the main session does NOT run it for the agent; the owner runs it or allows it. (2) Gate g2 cannot hold as written: the library pass uses one generator, H's stored passes used aligned draws per try (mid: same skipped set 13,782, same 15,675 kept tries and 956,175 evaluations, only 105 tries identical, wrong 37 live vs 35 replay). Recommended amendment (needs a decision before any held2 read): g2 compares a script-layer aligned-draw pass with the skip against the replay; the library pass is compared on skipped set, counts and own hit ratios. Phase B's precondition (step 12 merged) is now met. |
 | item 5 | full-sample baseline run, `FusedCost` on | after item 14 |
+| tooling | `audit_numbers.py`: thousands separators; false misses in wide table rows | small |
 
-## Running jobs
+## Last finished step
 
-One agent is running (started 2026-11-10): the Sonnet implementer of task `ar3b` (AR3 step 2),
-branch `feature/eval-reduction-ar3b`, worktree `.claude/worktrees/agent-a849170b7d4502001`. It
-will start two whole-layer runs in the background (paint, then the key-on BFS; the BFS may take
-about an hour). Check: the two `git -C` commands under "Next action" 6, and
-`scripts/dev/job_status.sh` for its compute jobs. Old agent
-worktrees under `.claude/worktrees/` are detached and can stay; `agent-a3fcfcc95d9db6295` holds
-the untracked run files of the paint run (pairing cache, `run.config` files, the image symlink).
+AR5 step 12 (`ar5l`): merged at fe3d277, 13 Nov; suite 1976 passed. Rule PH(3000) passes rules
+1 to 5 on 5 samples; opt-in key `SeedIndexMCStallHit` (off); 3.8% to 8.1% fewer evaluations.
 
-## Results so far
+## Untracked data that later steps need
 
-**AR2 step 2, the key (done, reviewed).** Page: `docs/autoresearch/findings_ar2_key.md`. Pilot
-region, clean images, Q-max 8, one run per arm, every time contended (the preflight refused).
+Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, do not commit it.
 
-- The stored key-off numbers were recomputed from the stored files (no rerun): 37 wrong,
-  25,547,935 evaluations, 69 full searches.
-- Evaluations: 2,819,906 with the key on against 25,547,935 (about 9.1 times fewer). 64 indexing
-  paths at 1,909 each against 69 grid searches at 331,636. Local fits: 2,697,708 on, 2,665,070 off.
-- The key's own path (N9: the chain on the seed voxel itself): 0 of 64 indexed seeds wrong (0.0 to
-  5.7%) against 2 of 62 for the grid search (0.9 to 11.0%); not shown different. 64 of 64 passed
-  the seed test (grid: 7 of 69 failed). 0 fallbacks, so the fallback ran on no real voxel.
-- Whole run: 22 wrong of 2,000 against 37 (22 fixed, 7 broken, 15 both). With `FusedCost` on in
-  both: 22 against 24 (14 fixed, 12 broken, 10 both). Two key-off runs alone differ by 20 fixed
-  and 7 broken. So no gain in wrong voxels is claimed (N9).
-- Every flip is an edge-sharing boundary voxel that takes a touching grain's orientation. Three
-  fixes are on the key's own path and count for it (N10): 5876, 24334, and 16476 in the
-  `FusedCost` pair. The rest count neither way. The trace is an orientation match within 1 degree;
-  how an orientation reached a voxel is inferred, since no parent is recorded.
-- The key changes which voxels are seeds, so the BFS route changes. Not tested on its own.
-- The two key-on runs (`FusedCost` off and on) differ in stored orientation on 2 of 2,000 voxels.
-  The review's 637 came from an angle function with a floor.
-- Wall time, `FusedCost` on, one worker, contended, one run per arm: 213 s key on, 1633 s key off.
-  Pairing 17.6 s once, indexing 0.186 s per voxel. A first reading only; item 14 stays open.
-- Voxel 17361: both finisher stages ran and accepted nothing. One `RayGaussNewton` step reaches
-  0.1283 (exact truth 0.0949). The strict cost is 0.1556 at 0.02 degrees from the truth and the
-  finisher's first step is 0.132 degrees: consistent with a minimum narrower than the first step,
-  not tested with a smaller step. A named case for AR5.
-- Not tested: the fallback on real voxels; key-off bit-identity on real images (shown with fakes
-  and the golden grid); the library's hull and crystal build against the scripts'; the whole
-  layer (the pilot pairs rays with the hull of the 2,000-voxel region); few-ray voxels;
-  realistic images.
+- `agent-acc78ac2a483ed86f` (AR5 step 2), `agent-ab349f0b6193c2ca1` (AR4 step 1): caches, links.
+- `agent-a5a3601b746680640` (AR5 step 3): the `S11` caches and maps under `ar5/mix/`, links.
+- `agent-af8961874e131bda2` (AR3 step 11): the sample `held`, its image stack, the baseline
+  cache (`S8_held/`, `S8_held_cap120/`).
+- AR5 step 4: `agent-a814d0121e137b01c` (caches on `held`), `agent-a8a1ac8e80f8913cf`. Step 5:
+  `agent-afc3f195cb4fffb30`. Item 14: `agent-a012b8f461d1630a1`. C++: `agent-ad44bb90c441eca35`.
+- Step 12: `agent-a0ffe667a1a6ee068` (`held2`, `ar5/stallhit/cache`),
+  `agent-ab6f021fc3d6bed02` (`mid`).
+- `agent-a68538c58665829a1` (AR5 step 1, detached at 29e9b56): `ar5/cache/` and links.
+- Step 10: `agent-a9920a0aeaf5d1276` (`ar5/cut/`); 11: `agent-a69be86211b6c2797` (`ar5/patience/`).
+- Step 10: `agent-a6c7c67b4a03d1843` (`ar3/keys/cache/`), `agent-a3145f902bf0a61fb` (two reruns).
+- AR5 step 8: `agent-abdf64302f4022c0a` (`ar5/order/cache`, MC traces; step 9 links it).
+- `agent-a9c88b610fb10e1b6` (step 9): `ar3/start/cache/`, the image stack and samples of `mid`.
+- `agent-a635b2f904279bdc9` (step 8): `ar3/reseed/cache/` (logged rerun, `S8` maps), stack links.
+- `agent-a38ba6f5a25aa033e` (step 7): its caches and runs under `ar3/big/`, and its report.
+- Step 6: `agent-a6db3cabf8ab230e9` (`seed/`, a `boundary/cache/`), `agent-a27b4a932b0dd99b6`.
+- Step 5: `agent-a4fd6282107a76186`, `agent-ad88d4ade1ca5a039` (fixes). Steps 3 and 4:
+  `agent-ae68d32fb972a8ad4`, `agent-ac609f1c28c619ed0`. More: `grep -n "worktrees/agent-"
+  docs/autoresearch/STATE_HISTORY.md`.
 
-**AR0 (done, reviewed).** Page: `docs/autoresearch/findings_ar0_stopping.md`. E0 is 200 hard
-voxels; the pilot is the 2,000-voxel BFS key-off rerun. Lower cost is better.
+## For the owner (open items only; details by `grep` in `STATE_HISTORY.md`, "For the owner")
 
-- After a search, the final cost tells right from wrong with no mistake on E0: 159 right voxels all
-  at 0.390 or less, 41 wrong voxels all at 0.673 or more. Read on the same 200 voxels.
-- During a search, the best cost after a level does not. On E0 a rule "stop after level k when the
-  best cost is at most c" saves at most 1.26% of the evaluations with no voxel broken (finisher
-  skipped), 0.37% if the finisher still runs.
-- That is E0 only. Level-0 screen and re-cost: 90.7% of the evaluations on E0, 23.7% on full-sample
-  voxels (332,046 per search), where 39.2% come after level 0. A stop after level 0 could save far
-  more there. Untested: the pilot's `records.json` has no per-level record. First job of AR5.
-- On full-sample voxels the screen is 13.2% of the evaluations but 0.9% of the wall time (contended
-  timing). So evaluations and wall time do not rank the stages the same way.
-- Pilot: at a hit-ratio cut of 0.93, all 1,948 answers at or above are right; all 37 wrong ones
-  are below, with 15 right local fits. Picked and read on the same run.
+- Place six pages, or allow me to: AR5 steps 4, 6, 7, 8, 9 and 12. Paths: their Queue rows.
+- Your word on PR #43 ("merge PR 43" in the session): AR3 2 to 11, AR5 1 to 3, 5, 7 to 12, AR4 1.
+- A choice: which seed step the documentation of the keys recommends. Step 10 added the
+  keys and recommends none. My recommendation: the settings of `S8` (`SeedIndexCandidates 20
+  5`, `SeedIndexStopHitRatio 0.95`): cheapest on all three samples, wrong counts not worse.
+- Item 12: apply and commit `docs/autoresearch/item12_owner.patch` (the commands are in the
+  history file). Agents cannot: it needs your `ALLOW_CLAUDE_CONFIG=1`.
+- Three questions that block nothing (gradient shapes, your settings, voxels per grain).
+- A note: C++ parallel mode keeps the higher confidence for a voxel that two clients fit;
+  that rule did harm in the Python test of step 5. A reading of the source, not a test.
+- A choice: try test `P2 m=2` as an opt-in key (no gain lost; cuts 17% to 39% of the pass).
+- A choice: whether the documentation recommends the two `S11` keys (N21) and the skip key
+  of step 7 (N6; `held` is not a clean test for it). All are off; none is recommended now.
+- Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N25 and
+  D-20261112-N1 to N10, D-20261113-N1 to N10. N15 adds `held` (new seed); N17, N18: run caps
+  of 480 minutes. The gradient levels of step 7's sample are my choice. Step 5's result files
+  add about 50 MB to git; say so if you want them pruned.
 
-**AR1 (done, reviewed).** Page:
-`docs/autoresearch/findings_ar1_ray_indexing.md`. Module: `icenine/ray_indexing.py`. The idea: a
-spot on detector 0 paired with its spot on detector 1 gives a ray, a ray gives a scattering vector,
-and two vectors of different families give an orientation. So candidates come from votes, not from
-a grid.
+## Bookkeeping
 
-- Pilot, the 69 voxels that took a full search (images with all grains' spots): the truth is among
-  the first 5 candidates for 69 of 69, and the first candidate for 41 of 69. In the other 28 the
-  first candidate is the real orientation of a neighbouring grain.
-- Evaluations for one full search on those voxels: median 1,138 (strict cost on 5 candidates, then
-  the finisher on the best one) against 332,154 for the stored grid search.
-- Wrong voxels (more than 1 degree off): 3 of 69 against 4 of 69 stored. It fixes the 4 and breaks
-  3. The review traced the 3: the arm picks one candidate before refining, and the neighbour grain
-  is ahead only on the unrefined cost; after the finisher the true grain is lower in all 3. So the
-  breaks count against this arm. Two of the 4 "fixed" are against an unresolved stored fit (7 of the
-  69 are rejected seeds, not plain full searches). With the finisher on the best 2 or the best 3:
-  0 of 69, at a mean of 1,926 or 2,546 evaluations; both arms were added after the first result was
-  seen, so they need the holdout of AR2 step 1.
-- Pairing and indexing time are outside the evaluation count. Indexing one voxel takes about as
-  long as 400 strict evaluations (contended).
-- In 27 of the 28 voxels whose first candidate is another grain, that grain touches the voxel.
-- E0 (the easy case: its images hold only each voxel's own spots): 200 of 200 at every K; 0 wrong
-  against 41 stored; median 530 evaluations against 48,724.
-- Indexing one voxel: median 0.18 s; one-time pairing of all spots: 17 s. Both contended. No
-  wall-time comparison yet.
-- The gate for AR2 (recall at 20 of at least 90%) is met.
-
-**AR2 step 1, the holdout (done, reviewed).** Page: `docs/autoresearch/findings_ar2_holdout.md`. 300 voxels outside the pilot region, fixed by
-stride before the run: 150 boundary voxels (134 grains) and 150 interior voxels (116 grains).
-Arms: strict cost on the first 5 indexing candidates, then the finisher on the best 1, 2 or 3.
-
-- Wrong voxels (more than 1 degree off), both sets: best 1 has 5 of 300, best 2 has 1 of 300,
-  best 3 has 1 of 300. All wrong voxels are boundary voxels; interior is 0 of 150 in every arm.
-- The plan's rule: best 2 does not have more wrong voxels than best 3, so best 2 stays the main arm
-  for the key.
-- Mean evaluations per voxel: 1,302 (best 1), 2,046 (best 2), 2,634 (best 3).
-- The truth is among the first 5 candidates for 300 of 300, and is the first for 207 of 300
-  (boundary 78 of 150, interior 129 of 150).
-- Four of best 1's wrong voxels (1687, 8343, 11568, 21535) are the AR1 pattern: the truth is
-  second on the unrefined cost and wins after the finisher. They count against best 1.
-- Voxel 17361 is wrong in every arm. The first reading (the strict cost prefers the touching
-  grain) was wrong. The review found the strict cost at the exact truth is 0.0949, below the
-  touching grain's 0.133; the finisher started 0.044 degrees from the truth and did not move
-  (0.162 before and after). So it is a failure of the finisher and counts against all three arms
-  (D-20261109-N8). Why the finisher did not move is not known: a named test case for AR2 step 2
-  and AR5.
-- The review also found: the error angle has a floor of a few thousandths of a degree (the
-  function clipped; wrong counts are not affected; fixed in the library with atan2), and 74 of the 150
-  boundary voxels touch another grain only at a corner (all 5 wrong voxels share an edge).
-- Not covered: every holdout voxel has at least 30 explained rays, so few-ray voxels are untested
-  (target of AR4). Timing was contended (3 processes). No stored grid search for these voxels.
-
-Note on the `.md` refusal: the AR0 fix agent's Write of a new report file was allowed the same
-afternoon. The refusal is not consistent; the rule in "Next action" still holds when it happens.
-
-**Item 18.** The C++ build on this machine fuses the clip's multiply-add: Apple clang 21.0.0 (arm64) at
-`-O3 -DNDEBUG` compiles `p0 + slope * (m - p0)` of `SutherlandHodgman.h` to one `fmadd` (single
-precision); with `-ffp-contract=off` it is `fmul` then `fadd`. Test: `scripts/autoresearch/item18/clip_fma.cpp`.
-Not checked: GCC, x86.
-
-**AR3 step 1 (paint grains on the pilot; reviewed).** Page: `docs/autoresearch/findings_ar3_paint.md`.
-Pilot region, 2,000 voxels, clean images, Q-max 8, FusedCost on, one fixed voxel order.
-- Evaluations: paint 156,766; key-on BFS 2,819,906 (paint is 5.6%); key-off BFS 25,547,935
-  (0.6%). By stage in paint: seed paths 119,033 (62 seeds), scoring 6,697, rejected local fits
-  31,036 (48 fits, none accepted), grid search 0.
-- Wrong voxels: paint 0 of 2,000 (0.0 to 0.2%); key on 22; key off 37. Against key on: 22
-  fixed, 0 broken. Two key-off runs alone differ by 20 one way and 7 the other, so the count
-  alone is not called a gain.
-- The direct test carries the result: on the 44 contested voxels whose passing grains are over
-  1 degree apart, the lowest strict cost names the true grain in 44 of 44 (92 to 100%). The
-  other 82 contested voxels are passed only by two entries of one grain; the test cannot fail
-  there.
-- Of the 22 voxels wrong in key on: on 19 the wrong grain passes in paint too and loses on cost;
-  on 3 it does not pass without a fit.
-- Passes outside the true grain: 44, all within 1 voxel side. 62 entries for 60 grains.
-- Accuracy without a fit: median 0.0169 degrees against 0.0159 for key on (62 distinct values,
-  not 1,978 independent ones).
-- Wall, contended, one worker: paint 37.9 s (17.2 s of it the one-time pairing); key on 224.3 s
-  in the same session. A first reading of an unbatched loop.
-- Review: no leak of the truth into any decision; same inputs and tests as the stored key-on
-  run; evaluations counted on the same footing.
-- Limits: the truth has exactly one orientation per grain, so the premise is true by
-  construction. Not tested: the whole layer, realistic images, another voxel order, the
-  fallback and the fit-settled branch (they ended no voxel).
-- Found on the way, not traced: the key-on BFS map has only 64 distinct orientations (key off
-  63), so the BFS local fits nearly always return their start.
-
-## For the owner
-
-- Still yours: item 12 (apply and commit, below), Ilium's plan approvals, and the note on what
-  the pre-commit check cannot do (below).
-- 2026-11-09 (evening): the owner commented on the review page (merge PR #41; yes to items 12,
-  22, 23; the embedder is no longer run) and then said in the session "Go ahead and execute
-  according to the comments". That session message is the authority (D-20261109-N11); the page
-  comments alone were not acted on. Done: PR #41 merged (357a2b3); item 22 implemented, reviewed
-  (1 required fix, applied) and merged (fd1721f; suite 1489 passed, 37 skipped, 1 deselected);
-  item 23 recorded and Ilium told (ROADMAP mailbox).
-- Item 12, left for the owner. The edits are a patch file, not in the working tree (uncommitted
-  `.claude/` files made `finish_task.sh` refuse every merge, so they were taken out again on
-  2026-11-09). From the repository root, on `feature/eval-reduction`:
-  `git apply icenine_py/docs/autoresearch/item12_owner.patch`, then
-  `git add .claude/skills/implement-plan/SKILL.md .claude/skills/apply-fixes/SKILL.md
-  .claude/hooks/run-tests-on-change.sh`, then `ALLOW_CLAUDE_CONFIG=1 git commit -m "Item 12:
-  show make_brief notes; drop the extra -q in the test hook"`. The agents cannot do this: the
-  Bash hook refuses an agent that sets an `ALLOW_*` override. An earlier offer on the review
-  page to commit with the override was wrong and is withdrawn.
-- 2026-11-09 (night): the owner said in the session "tighten the pre-commit check"
-  (D-20261109-N12). Done and merged (f76f776). The three gaps noted before are closed: a merge
-  that git commits by itself is now checked (`.githooks/pre-merge-commit`); a deletion, a rename
-  away, a change of type and a submodule entry are refused; any letter case is guarded. The
-  merge exception of item 22 is narrower: the merged commit must be on a remote-tracking branch
-  and not already part of `HEAD`, and the merged branch must have changed the file since every
-  merge base. The reviewer required 2 fixes (submodule entries; a merge head already in `HEAD`);
-  both are applied. One further narrowing came from a reviewer note (a merge could bring back an
-  older copy that the merged branch merely still had).
-- What the pre-commit check cannot do. It is a git hook, so it runs only for `git commit` and
-  for merges. The reviewer tried each route below and each one changes a guarded file with no
-  check. None is new. An agent taking one would be breaking the rule "agents never bypass the
-  hooks" (D-20261028-N3); the hook guards against accidents, not against that.
-  (a) `git commit-tree` with `git update-ref`. (b) A fast-forward merge of a commit made that
-  way. (c) `git cherry-pick`, `git revert`, `git rebase`, `git am` of such a commit.
-  (d) `git merge --no-verify` (the Bash hook blocks `--no-verify` only for `git commit`).
-  (e) `git -c core.hooksPath=... commit`. (f) Making a local commit look fetched with
-  `git update-ref refs/remotes/...` or a remote that points at the clone itself.
-  Routes (d) to (f) could be refused in `.claude/hooks/check-bash-command.sh`. That file is the
-  owner's; no agent has changed it. A stronger backstop is on GitHub: a rule on `develop` that
-  needs the owner's review for `CLAUDE.md` and `.claude/**` (a CODEOWNERS file).
-- Small, known, not fixed: `precommit_check.py` stops with a traceback (so it refuses) when a
-  submodule entry is staged anywhere outside `.claude/`. The repository has no submodules.
-- The `shmem` warning about the local embedder (ollama, port 11434) is expected: the owner said
-  on 2026-11-09 that the embedder is no longer run. Do not report it.
+- Next decision ID: D-20261113-N11 (first of a day is N1).
+- Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
+  2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
+- Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
+  mailbox in `docs/ROADMAP.md`. Its plan approvals are the owner's; so is a "finisher" rename.

@@ -1,0 +1,28 @@
+{
+ "sample": "grad",
+ "same_candidate": {
+  "matched_steps_with_fits": 1280,
+  "same_stop": 1280,
+  "same_taken_position": 1280,
+  "same_fits": 1280,
+  "all_same": true,
+  "differing_steps": []
+ },
+ "maps": {
+  "before": {
+   "voxels_differ": 0,
+   "max_mis_deg": 0.0,
+   "max_err_not_both_wrong_deg": null,
+   "both_wrong": 0,
+   "one_wrong": 0
+  },
+  "after": {
+   "voxels_differ": 0,
+   "max_mis_deg": 0.0,
+   "max_err_not_both_wrong_deg": null,
+   "both_wrong": 0,
+   "one_wrong": 0
+  }
+ },
+ "note": "maps: H against G (aligned draws), voxels whose stored orientation differs; error against the truth, symmetry-reduced; wrong = over 1 degree"
+}

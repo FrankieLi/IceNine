@@ -1,0 +1,460 @@
+{
+ "per_sample_passes": {
+  "held2": true,
+  "held": true,
+  "mid": true,
+  "grad": true,
+  "big": true
+ },
+ "step_passes": true,
+ "verdict": "READY FOR KEY",
+ "failed_rules": [],
+ "rules": {
+  "held2": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "g_fails_5": false,
+   "total_cut_pct": 4.333623973665129,
+   "seed_cut_pct": 9.212768549251166,
+   "passes": true
+  },
+  "held": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "g_fails_5": false,
+   "total_cut_pct": 3.837310616604765,
+   "seed_cut_pct": 8.328756939235074,
+   "passes": true
+  },
+  "mid": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "g_fails_5": false,
+   "total_cut_pct": 8.10537494952692,
+   "seed_cut_pct": 19.44026830968443,
+   "passes": true
+  },
+  "grad": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "g_fails_5": false,
+   "total_cut_pct": 0.1618269925187502,
+   "seed_cut_pct": 1.0797076983073826,
+   "passes": true
+  },
+  "big": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "g_fails_5": false,
+   "total_cut_pct": 4.530001599370967,
+   "seed_cut_pct": 25.07493799988952,
+   "passes": true
+  }
+ },
+ "predictions": {
+  "p1": {
+   "mid": {
+    "met": true,
+    "changed": 8,
+    "detail": {
+     "g1": true,
+     "changed_in_range": true,
+     "changed_range": [
+      7,
+      11
+     ],
+     "all_changed_still_095": true,
+     "mis_in_0_005_to_0_15": true,
+     "none_wrong": true,
+     "failed_seed_tests_equal": true
+    }
+   },
+   "grad": {
+    "met": true,
+    "changed": 0,
+    "detail": {
+     "g1": true,
+     "changed_in_range": true,
+     "changed_range": [
+      0,
+      0
+     ],
+     "all_changed_still_095": true,
+     "mis_in_0_005_to_0_15": false,
+     "none_wrong": true,
+     "failed_seed_tests_equal": true
+    }
+   },
+   "big": {
+    "met": true,
+    "changed": 1,
+    "detail": {
+     "g1": true,
+     "changed_in_range": true,
+     "changed_range": [
+      1,
+      2
+     ],
+     "all_changed_still_095": true,
+     "mis_in_0_005_to_0_15": true,
+     "none_wrong": true,
+     "failed_seed_tests_equal": true
+    }
+   }
+  },
+  "p1_same": {
+   "held2": true,
+   "held": true,
+   "mid": true,
+   "grad": true,
+   "big": true
+  },
+  "p2": {
+   "mid": {
+    "met": true,
+    "saving": 0.07863419441503786
+   },
+   "grad": {
+    "met": true,
+    "saving": 0.001618269925187502
+   },
+   "big": {
+    "met": true,
+    "saving": 0.04530001599370967
+   }
+  },
+  "p3": {
+   "mid": {
+    "total_cut_pct": 8.10537494952692,
+    "met": true
+   },
+   "big": {
+    "total_cut_pct": 4.530001599370967,
+    "met": true
+   },
+   "grad": {
+    "total_cut_pct": 0.1618269925187502,
+    "met": true
+   },
+   "held": {
+    "total_cut_pct": 3.837310616604765,
+    "met": true
+   },
+   "held2": {
+    "total_cut_pct": 4.333623973665129,
+    "met": true,
+    "seed_cut_pct": 9.212768549251166,
+    "seed_met": true
+   }
+  },
+  "p4": {
+   "held2": {
+    "net": 0,
+    "median_shift_deg": 4.8347185235449175e-06,
+    "met": true
+   },
+   "held": {
+    "net": 0,
+    "median_shift_deg": 5.935147096784721e-06,
+    "met": true
+   },
+   "mid": {
+    "net": 0,
+    "median_shift_deg": -6.61332762625505e-07,
+    "met": true
+   },
+   "grad": {
+    "net": 0,
+    "median_shift_deg": 0.0,
+    "met": true
+   },
+   "big": {
+    "net": 0,
+    "median_shift_deg": 5.97033829673882e-06,
+    "met": true
+   }
+  },
+  "p5": {
+   "met": true,
+   "house_h": {
+    "a": true,
+    "b": true,
+    "c": true,
+    "passes": true
+   }
+  }
+ },
+ "taken_changed": {
+  "held2": 12,
+  "held": 3,
+  "mid": 7,
+  "grad": 0,
+  "big": 1
+ },
+ "unmatched": {
+  "held2": {
+   "sample": "held2",
+   "matched_steps": 3600,
+   "seed_steps_g": 3631,
+   "seed_steps_h": 3632,
+   "only_h_n": 32,
+   "only_g_n": 31,
+   "only_h_wrong": 0,
+   "only_g_wrong": 0,
+   "only_h_wrong_where_g_map_right": 0,
+   "only_g_wrong_where_h_map_right": 0,
+   "only_h_with_a_cut": 4,
+   "only_h_wrong_where_g_map_right_voxels": [],
+   "note": "unmatched = a seed step (voxel, occurrence) that only one arm has; the other arm's map is read before the pass for the counts; rule (4) adds them to the matched steps"
+  },
+  "held": {
+   "sample": "held",
+   "matched_steps": 3687,
+   "seed_steps_g": 3705,
+   "seed_steps_h": 3700,
+   "only_h_n": 13,
+   "only_g_n": 18,
+   "only_h_wrong": 1,
+   "only_g_wrong": 1,
+   "only_h_wrong_where_g_map_right": 0,
+   "only_g_wrong_where_h_map_right": 0,
+   "only_h_with_a_cut": 1,
+   "only_h_wrong_where_g_map_right_voxels": [],
+   "note": "unmatched = a seed step (voxel, occurrence) that only one arm has; the other arm's map is read before the pass for the counts; rule (4) adds them to the matched steps"
+  },
+  "mid": {
+   "sample": "mid",
+   "matched_steps": 1582,
+   "seed_steps_g": 1607,
+   "seed_steps_h": 1607,
+   "only_h_n": 25,
+   "only_g_n": 25,
+   "only_h_wrong": 0,
+   "only_g_wrong": 0,
+   "only_h_wrong_where_g_map_right": 0,
+   "only_g_wrong_where_h_map_right": 0,
+   "only_h_with_a_cut": 9,
+   "only_h_wrong_where_g_map_right_voxels": [],
+   "note": "unmatched = a seed step (voxel, occurrence) that only one arm has; the other arm's map is read before the pass for the counts; rule (4) adds them to the matched steps"
+  },
+  "grad": {
+   "sample": "grad",
+   "matched_steps": 1280,
+   "seed_steps_g": 1280,
+   "seed_steps_h": 1280,
+   "only_h_n": 0,
+   "only_g_n": 0,
+   "only_h_wrong": 0,
+   "only_g_wrong": 0,
+   "only_h_wrong_where_g_map_right": 0,
+   "only_g_wrong_where_h_map_right": 0,
+   "only_h_with_a_cut": 0,
+   "only_h_wrong_where_g_map_right_voxels": [],
+   "note": "unmatched = a seed step (voxel, occurrence) that only one arm has; the other arm's map is read before the pass for the counts; rule (4) adds them to the matched steps"
+  },
+  "big": {
+   "sample": "big",
+   "matched_steps": 317,
+   "seed_steps_g": 317,
+   "seed_steps_h": 317,
+   "only_h_n": 0,
+   "only_g_n": 0,
+   "only_h_wrong": 0,
+   "only_g_wrong": 0,
+   "only_h_wrong_where_g_map_right": 0,
+   "only_g_wrong_where_h_map_right": 0,
+   "only_h_with_a_cut": 0,
+   "only_h_wrong_where_g_map_right_voxels": [],
+   "note": "unmatched = a seed step (voxel, occurrence) that only one arm has; the other arm's map is read before the pass for the counts; rule (4) adds them to the matched steps"
+  }
+ },
+ "wrong_seeds_broad": {
+  "held2": 0,
+  "held": 0,
+  "mid": 0,
+  "grad": 0,
+  "big": 0
+ },
+ "fits_differ_other": {
+  "held2": 0,
+  "held": 0,
+  "mid": 0,
+  "grad": 0,
+  "big": 0
+ },
+ "status": "study result of step 12 (rule PH(3000), passed); library key SeedIndexMCStallHit 3000 (opt-in, off by default, not recommended as a default); not a default arm",
+ "maps_h_vs_g": {
+  "held2": {
+   "before": {
+    "voxels_differ": 213,
+    "max_mis_deg": 0.3050309519502886,
+    "median_mis_deg": 0.05193795033545179,
+    "max_err_not_both_wrong_deg": 0.2869690537455743,
+    "both_wrong": 0,
+    "one_wrong": 0,
+    "both_wrong_err_deg": []
+   },
+   "after": {
+    "voxels_differ": 240,
+    "max_mis_deg": 0.3092205261418713,
+    "median_mis_deg": 0.05289830446106198,
+    "max_err_not_both_wrong_deg": 0.2967736813741385,
+    "both_wrong": 0,
+    "one_wrong": 0,
+    "both_wrong_err_deg": []
+   }
+  },
+  "held": {
+   "before": {
+    "voxels_differ": 54,
+    "max_mis_deg": 0.24264270997073648,
+    "median_mis_deg": 0.06220478156408459,
+    "max_err_not_both_wrong_deg": 0.24612680851828406,
+    "both_wrong": 3,
+    "one_wrong": 0,
+    "both_wrong_err_deg": [
+     34.93718596317669,
+     34.93415231977703,
+     34.905430467879405
+    ]
+   },
+   "after": {
+    "voxels_differ": 65,
+    "max_mis_deg": 0.3639488609810126,
+    "median_mis_deg": 0.06881208520085508,
+    "max_err_not_both_wrong_deg": 0.2677684386830131,
+    "both_wrong": 3,
+    "one_wrong": 0,
+    "both_wrong_err_deg": [
+     34.93718596317669,
+     34.93415231977703,
+     34.905430467879405
+    ]
+   }
+  },
+  "mid": {
+   "before": {
+    "voxels_differ": 127,
+    "max_mis_deg": 0.41880209752423997,
+    "median_mis_deg": 0.08354562167597415,
+    "max_err_not_both_wrong_deg": 0.3979109297834374,
+    "both_wrong": 0,
+    "one_wrong": 0,
+    "both_wrong_err_deg": []
+   },
+   "after": {
+    "voxels_differ": 173,
+    "max_mis_deg": 0.4586913937654346,
+    "median_mis_deg": 0.08227472304536343,
+    "max_err_not_both_wrong_deg": 0.25300373365807355,
+    "both_wrong": 0,
+    "one_wrong": 0,
+    "both_wrong_err_deg": []
+   }
+  },
+  "grad": {
+   "before": {
+    "voxels_differ": 0,
+    "max_mis_deg": 0.0,
+    "max_err_not_both_wrong_deg": null,
+    "both_wrong": 0,
+    "one_wrong": 0
+   },
+   "after": {
+    "voxels_differ": 0,
+    "max_mis_deg": 0.0,
+    "max_err_not_both_wrong_deg": null,
+    "both_wrong": 0,
+    "one_wrong": 0
+   }
+  },
+  "big": {
+   "before": {
+    "voxels_differ": 1,
+    "max_mis_deg": 0.03165997692393028,
+    "median_mis_deg": 0.03165997692393028,
+    "max_err_not_both_wrong_deg": 0.04485995958213087,
+    "both_wrong": 0,
+    "one_wrong": 0,
+    "both_wrong_err_deg": []
+   },
+   "after": {
+    "voxels_differ": 1,
+    "max_mis_deg": 0.03165997692393028,
+    "median_mis_deg": 0.03165997692393028,
+    "max_err_not_both_wrong_deg": 0.04485995958213087,
+    "both_wrong": 0,
+    "one_wrong": 0,
+    "both_wrong_err_deg": []
+   }
+  }
+ },
+ "same_candidate": {
+  "held2": {
+   "matched_steps_with_fits": 3600,
+   "same_stop": 3600,
+   "same_taken_position": 3600,
+   "same_fits": 3600,
+   "all_same": true
+  },
+  "held": {
+   "matched_steps_with_fits": 3687,
+   "same_stop": 3687,
+   "same_taken_position": 3687,
+   "same_fits": 3687,
+   "all_same": true
+  },
+  "mid": {
+   "matched_steps_with_fits": 1582,
+   "same_stop": 1582,
+   "same_taken_position": 1582,
+   "same_fits": 1582,
+   "all_same": true
+  },
+  "grad": {
+   "matched_steps_with_fits": 1280,
+   "same_stop": 1280,
+   "same_taken_position": 1280,
+   "same_fits": 1280,
+   "all_same": true
+  },
+  "big": {
+   "matched_steps_with_fits": 317,
+   "same_stop": 317,
+   "same_taken_position": 317,
+   "same_fits": 317,
+   "all_same": true
+  }
+ },
+ "went_on_hit_max": {
+  "held2": 0.9493554327808471,
+  "held": 0.9498031496062992,
+  "mid": 0.9485018726591761,
+  "grad": 0.9259606373008434,
+  "big": 0.9495412844036697
+ },
+ "stop_hit_min": {
+  "held2": 0.9500462534690102,
+  "held": 0.9502712477396021,
+  "mid": 0.9501915708812261,
+  "grad": 0.9514134275618374,
+  "big": 0.9617437722419929
+ },
+ "s8_note": "Note: G and H share their random draws (aligned draws). S8 does not: the counts against S8 pair the same voxels only.",
+ "timing_note": "All wall times of these runs are contended (several runs on the machine at once); none is a timing. The run.json files of the four runs started together at 11:07 (S8, G, H on held2 and H on held) read 'single-worker': each preflight ran before the others started. Not cited."
+}

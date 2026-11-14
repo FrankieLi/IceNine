@@ -11368,3 +11368,1518 @@ runs' voxel order). Wrong means more than 1 degree from the truth.
 Not claimed: anything about the whole layer, realistic images, another Q-max, samples with more than
 one orientation per grain, another voxel order, the fallback (it ran on no voxel). Step 2 (the key
 and the whole layer) starts only after this step's review.
+
+## Autoresearch AR3 step 2: the key PaintGrains and the whole layer (done 2026-11-10, task ar3b)
+
+New opt-in config key `PaintGrains` (default 0; `config_file.py`, `orientation_search.py`,
+`reconstructor.py`): `BFSReconstruction.reconstruct_sample` runs `grain_paint.paint_grains` in place
+of the BFS, with the BFS's voxel order and generator. It writes the map (confidence 0 on painted
+voxels), one record per voxel (`seed`, `paint`, `fit`, `failed`, `unresolved`) and the evaluations
+by stage in `stats["paint_evals"]`; the result stays on `bfs.paint_result`. It needs
+`SeedByIndexing 1` and refuses `OutwardSearch 1` (a `ValueError` naming the keys, in
+`setup_reconstruction` and `BFSReconstruction.__init__`). The BFS's revisits, restart pass and
+reseeding do not run under the key; single-process only. The loop in `grain_paint.py` is unchanged;
+`ReconstructorHooks` now keeps one record per seed path and per local fit for study scripts. Off
+path: one `if` after the shuffle and an early-return check; check B below (pilot, `SeedByIndexing
+1`, `PaintGrains` off) reproduced a run stored before the key existed, on every orientation and the
+evaluation total. The tests in
+`tests/test_paint_key.py` compare two key-off runs of this code and check that the loop is never
+called; they do not compare with the base commit. Painting is a starting approximation: every
+painted voxel takes its grain entry's orientation unfitted, exact only when a grain holds one
+orientation (as in the simulated test sample); grains with orientation gradients need a per-voxel
+refinement after painting (not built).
+
+Checks: run A (pilot through the key) gives step 1 again (156,766 evaluations, same stages, 62
+entries, same map); run B (key-on BFS with the fit log) is the stored run (2,816,897 evaluations,
+same map). Then the whole layer (clean images, Q-max 8, `FusedCost` on, one worker, contended by an
+editor process at about 98% CPU): C paint 1,316,345 evaluations, 14 wrong of 24,570 (0.03 to
+0.10%), 528 entries for 497 true grains; D key-on BFS 33,040,126 evaluations, 153 wrong (0.53 to
+0.73%). C is 4.0% of D's evaluations. Paired against D: 145 fixed, 6 broken, 8 wrong in both; the
+intervals do not overlap in the layer, the pilot or the rest. Direct test: lowest strict cost names
+the true grain on 350 of 363 contested voxels (94.0 to 97.9%). On this simulated sample, whose
+truth map has exactly one orientation per grain by construction, the side arm (fit the contested)
+fixed 0 and broke 0 at every margin (482,493 evaluations); all 363 kept fits ended within 0.01
+degrees of their start, so the arm could not differ from the lowest-cost rule here and does not
+show that a fit could not help elsewhere. No fit accepted (0 of 372), no failed voxel, grid search
+never ran. Wall: C 194.3 s, D 2,263.8 s (contended). BFS fit log, on the same sample: 88.7% of D's
+fits move under 0.01 degrees (89.8% of local-fit evaluations); a reading that need not transfer to
+grains with orientation gradients, where an inherited start is not the voxel's own orientation.
+Seed record: lowest-cost candidate is the finisher's end in 513 of 528 seeds. Page:
+`docs/autoresearch/findings_ar3_layer.md` (returned as text by the implementer, since the tool
+refuses a new `.md`; the main session places it). Results: `benchmarks/autoresearch/ar3/layer/`.
+
+Review fixes (task ar3b, 2026-11-10): the key's per-voxel records now include the local-fit
+evaluations and skip each seed's own score, so they add up to `stats["paint_evals_total"]` (new
+test; run C's committed `records.json` was written before the fix, and the page rebuilds C's split
+from `fit_records.json`). The fit log's "wrong at the end" is now counted by voxel in the final map
+(D: 25 of 4,747 voxels with a fit that moved over 0.1 degrees, 128 of 19,491 fitted voxels with
+none). The second finisher run is 41.6% of the seed-path evaluations (measured); on the 15 seeds
+whose taken candidate was not the lowest-cost one, the first run's end is more than 1 degree from
+the truth on all 15. The page and docstrings are scoped to the one-orientation-per-grain sample;
+step 1's page carries a dated correction (D-20261110-N3). Full suite after the fixes: 1515 passed,
+44 skipped, 1 deselected.
+
+Not claimed: realistic images, another Q-max or voxel order, samples whose grains hold orientation
+gradients, other layers, a tested stop rule or cheaper seed, a tested wall time, a parallel run;
+the fallback and the fit-settled branch still ended no voxel.
+
+## Autoresearch AR3 step 3: paint as a start, then refine, on grains with gradients (done 2026-11-10, task ar3c)
+
+New module `icenine/gradient_sample.py` (`gradient_orientations`, `spread_deg`, `LEVELS_DEG`; tests
+in `tests/test_gradient_sample.py`): a copy of the layer's truth in which each grain keeps its
+orientation at its centre and turns linearly with position, to a per-grain level of 0, 0.1, 0.2,
+0.5 or 1.0 degrees (one draw per grain, seed 0; 98, 81, 101, 101, 116 grains). Measured spread
+equals the level to 5.1e-5 degrees. Images rendered with `render_full.py` (new option `--mic`),
+tag `grad`. No config key, no change to the reconstructor, no new dependency. The gradient model is
+a choice, not measured on a real sample. Runs on the whole layer (clean, Q-max 8, `FusedCost` on,
+one worker, contended by an editor helper process at about 100% CPU; P and D ran side by side):
+P (paint through the key) 78,142,641 evaluations, 5,369 grain entries for 497 true grains (4.12 to
+24.52 per grain at levels 0.1 to 1.0, against 1.05 at level 0), 172 of them from the grid fallback
+and 74.8% of P's evaluations (76.6% with the 4 rejected grid searches); 59 times step 2's paint
+with the fallback, 13.9 times without it, for 10.2 times the entries; 170 wrong of 24,570 (0.60 to
+0.80%), median error 0.0342 degrees, consistent with the many seeds (21.9% of voxels; untested);
+7,390 s. R (one BFS local fit on each of the 19,013 painted voxels): 12,843,129 evaluations, 9
+voxels closer by more than 0.05 degrees, 2 hurt, wrong count unchanged; the fit ended within 0.02
+degrees of its start on 18,977 of 19,013. R2 (second fit on 4,768): 9 moved, 4 closer. D (BFS,
+indexed seeds): 118,350,225 evaluations, 203 wrong (0.72 to 0.95%), 9,369 s; 45,453 of its 90,192
+fits returned their start bit for bit, and 74,739 (82.9%) did not lower the cost; the share that
+did rises with the start's error up to 1 degree. P plus R against D: 91 fixed, 58 broken, 112 wrong
+in both; wrong-share intervals overlap on the layer, but P (R adds nothing) beats D on the share
+above 0.1 degrees, 2,531 (9.9 to 10.7%) against 3,545 (14.0 to 14.9%), and at levels 0.1 to 0.5,
+at 90,985,770 against 118,350,225 evaluations, one run each. Rules for skipping or stopping the fit
+were picked on grains with an even id and tested on odd ids; they sit at the edge of their grids and
+save 98 to 100% of the fit evaluations at 0 to 3 hurt voxels of 9,305, which says the fit moves
+nothing here, not that a fit can stop safely. Why the fit is inert, from the stored records: the
+strict cost of the true orientation is below the start's on 16,591 of 19,013 painted voxels (all
+2,240 starts more than 0.1 degrees off), yet the fit lowered the cost on 36; its first-block trial
+steps (median 0.70 degrees, 5th percentile 0.32, measured with `QuaternionGrid`) are many times the
+start's error (median 0.0406), and 18,500 fits are four failed blocks. Consistent with a step too
+coarse for this start (the C++ `AdaptiveSamplingZeroTemp` has the same logic; not run); a
+finer-box run would test it (step 4). Step 2's sample showed the same inertness. Reading 0: at
+level 1.0, 92.6 to 93.9% of voxels have a centre-orientation hit ratio under 0.9 times the true
+one's. Wall times are all contended; R and R2 ran in a separate process without a preflight while
+D was running. The image stack's build and the truth's sha256 are in `gradient/grad_stack.json`
+(`grad_stack_note.py`). Review fixes applied from the stored records, no new run. Page:
+`docs/autoresearch/findings_ar3_gradient.md` (returned as text by the implementer, since the tool
+refuses a new `.md`; the main session places it). Results:
+`benchmarks/autoresearch/ar3/gradient/`.
+
+Full suite: 1517 passed, 47 skipped, 1 deselected (5 new tests; 3 more skips than step 2's count,
+consistent with the `benchmarks` extra not being installed in this worktree; not checked).
+
+Deviations: the 90- and 150-minute stops on P and D were not coded. P ran 123 minutes
+(all-or-nothing output; below twice the budget); D 156 minutes. Total compute about 4.95 h against
+the 4-hour budget. R and R2 ran as a stage that loads P's stored paint and generator state.
+
+Not claimed: sharp sub-grain boundaries, realistic images, another Q-max, voxel order or layer, a
+tested stop rule, a tested wall time, another local optimizer.
+
+## Autoresearch AR3 step 4: a local fit whose step matches the error (done 2026-11-10, task ar3d)
+
+No change under `icenine/`; scripts `scripts/autoresearch/ar3/{run_fine,fine_summary,fine_part2,
+run_wrapped,wrapped_bg,wrapped_summary}.py`, results `benchmarks/autoresearch/ar3/fine/`, page
+`docs/autoresearch/findings_ar3_fine.md`. The box
+(`search_box_side`, radians) is replaced by the script while its own `local_optimization` call
+runs; no config key. Gradient sample of step 3 only; C++ not run; one run per arm. Part 1, fits
+from step 3's stored painted starts (19,013 voxels), stock box reproduces run R on the first 200
+fits (200 of 200). Share above 0.1 degrees: start 11.3 to 12.2%, stock 11.3 to 12.2%, box 5/8
+4.6 to 5.2%, box 5/16 2.6 to 3.1%, CMA fit (first step 0.05 degrees, 60 evaluations) 1.6 to 2.0%
+at 61 evaluations per fit. The plan's "about 46 evaluations" for a small box was wrong: medians
+398 (5/8), 1,245 (5/16), 22,145 (5/32, run on 600 voxels only; the ladder too); the MC budget
+extends while a block's cost spread is large (consistent with; two voxels looked at, not
+tabulated); box 5/8 is still about 1.6 times cheaper than the stock box (median 398 against
+662). Wrong count unchanged (87) in every arm. Pick on set A among the four arms run on all
+voxels: the CMA fit (B015 and L, 600 voxels only, were not candidates; with them added, on
+their 299 set-A voxels, the rule still picks the CMA fit). On set B a gain over the start and
+the stock box (204 of 9,305 above 0.1 against 1,304). Part 2 (step 3's stop readings on the CMA
+fit, trace by generation): little to save; second fit helps 73 of 4,768. Part 3, whole layer,
+wrapped fit (CMA first, stock fit when the cost did not fall; the caller's acceptance test was
+not evaluated, it would need the caller's local variables): D4 35,129,496 evaluations against
+118,350,225, wrong 225 against 203 (no difference), above 0.1 a gain; P4 plus R4 50,892,696
+against 90,985,770, wrong 281 against 170 (loss); E4 13,608,181 against 33,040,126, wrong 305
+against 153 (loss). These losses are for the "cost did not fall" trigger: the stock fit ran on
+only 3,974 of 53,373 calls (D4), 232 of 9,290 (P4 paint) and 14,609 of 48,237 (E4), so the
+plan's "stock as fallback on the caller's test" was not tested. From the records: all 134 voxels
+broken in P4 plus R4 were wrong after the paint; 107 were fit-settled, 104 of them from an entry
+seeded in another true grain, all passing the 0.9 test; in E4 the 170 broken were accepted at the
+first neighbour fit (114) or a revisit (56). No run killed at its cap; all walls contended (the
+three ran side by side). Wrapper only in `local_optimization`: every CMA call is the wrapper's.
+Review fixes (task ar3d, same day): text and summary output only, no rerun. Open question for
+the owner: whether something known at acceptance (hit ratio over the best, cost) tells the
+accepted wrong fits apart.
+
+## Autoresearch AR3 step 5: neighbouring grains compete for the boundary voxels (done 2026-11-10, task ar3e)
+
+No change under `icenine/`; scripts `scripts/autoresearch/ar3/{boundary_common,boundary_part0,
+boundary_check,boundary_pass,boundary_lib,boundary_summary,boundary_ratio,run_keys,keys_bg}.py`,
+results `benchmarks/autoresearch/ar3/boundary/`, page `docs/autoresearch/findings_ar3_boundary.md`
+(placed by the main session; the tool refused the implementer's write).
+Gradient sample of step 3 and step 2's sample; C++ read, not run; one run, one voxel order.
+On one footing (the same pass on both sides): D4 plus pass 74 wrong against step 3's D plus pass
+88 (38.8 against 122.1 million evaluations), P4R4 plus pass 82 against PR plus pass 78 (54.6
+against 94.7 million): no detectable difference, fewer evaluations. Step 2's sample: E4 plus pass
+0 against step 2's D plus pass 14 (16.6 against 36.1 million), a gain by the interval rule, but
+all 14 of D2's wrong voxels after the pass were right before it (broken by the pass). KE plus
+pass and E4 plus pass both end with 0 wrong (8.45 against 16.63 million). One-sided (pass on one
+side only, no verdict): D4 plus pass 74 against D without it 203. The pass (every try of every
+boundary voxel, 61 evaluations each, 3.0 to 3.7 million evaluations, 3 to 22% of a stored run's
+evaluations; for the KE run the pass is 56% of its evaluations): pick on set A is the `hit` rule,
+by a margin of about 2 voxels over `cost`; wrong voxels after it (A and B pooled): D4 225 to 74,
+P4R4 281 to 82, E4 305 to 0 (step 3's D, PR and step 2's D: 203 to 88, 170 to 78, 153 to 14). A
+skip rule on the neighbour-relative hit ratio (at least 0.94) skips about 92% of the tries and
+loses none of 360 fixed voxels on A, 1 of 313 on B; the cost axis of the skip grid is
+uninformative. Part 0 gate passed (412 of 412), but it could hardly fail here: 93 to 94% of
+voxels are boundary voxels (about 50 voxels per grain) and the truth beats the end on hit ratio
+for 1,337 of 1,337 wrong voxels. One try reproduces run C on 200 of 200 voxels. C++ (source
+read): one client never refits an accepted voxel, but in mode `p` each client has a private grid
+and the server keeps the strictly higher confidence, so several clients do refit; harm to C++ not
+tested. Run `KE` (library keys, no wrapper; the seed's local optimization also switches to CMA)
+finished. Run `K` hit its cap of 60 awake minutes (no map; 38.1 million evaluations by then, 31.07
+million in grid fallbacks; 8 heavy processes for a few minutes). The first K and KE attempts were
+stopped by a wall-clock cap while the machine slept and were rerun with an awake-time cap. Parts 0
+and 1 took about 145 minutes, not 90. Next: step 6, the seed cost (grid fallbacks: 25.8 of D4's
+35.1 million); the opt-in key for the pass waits for a larger-grain check; K is repeated after
+step 6. Review fixes (same day, decision D-20261110-N7): text, summary keys, tables and a lead
+plot only; no pass, K or reconstruction rerun; summary.json gained new keys only.
+
+## Autoresearch AR3 step 6: the seed cost (done 2026-11-10, task ar3f)
+
+No change under `icenine/`; scripts `scripts/autoresearch/ar3/{seed_common,seed_replay,seed_part01,
+seed_extra,seed_summary,seed_pick,run_seed,seed_bg,seed_pass,seed_summary2}.py`, results
+`benchmarks/autoresearch/ar3/seed/` (slim, 2.19 MB), page `docs/autoresearch/
+findings_ar3_seed.md` (placed by the main session; the tool refused the implementer's write).
+Gradient sample only; C++ not run; one run per setting, one voxel order.
+Why the index seed fails: of 189 different fallback voxels (511 listings in D4, step 3's D, P4, P)
+the replay fails the seed test on 189 and passes 200 of 200 control seeds (evaluations equal on
+200 of 200). On 188 a candidate within 1 degree of the truth is among the indexer's first 5; on 175
+it is costed but not refined, because the strict cost of an unrefined candidate puts it behind a
+wrong one (median 0.449 degrees off the truth, against 0.220 on the controls; among the 2 refined
+on 13 of 188 against 196 of 200). Class (a) (truth fails the test) holds 0 voxels. Remedies by
+replay on A (91 voxels): refine the best 5 of 20 costed candidates leaves 9 for the grid search;
+tries from the neighbours in the final map leave 30 (a limit: that map was made after the voxel was
+settled); the pick (tries, then the 20/5 seed step) leaves 6 (3 to 14%) at a mean 24,124
+evaluations, against 341,893 for the stored seed step plus grid search. On the controls the tries
+break 6 of 200 right ends. Whole-layer runs with the pass on both sides: S (the pick) 11 grid
+fallbacks against 76, 16.1 against 38.8 million evaluations (D4 plus pass), but 100 wrong voxels
+against 74 (intervals overlap; the 602 voxels settled by tries are wrong on 59, the same voxels in
+D4 on 27); S5 (added: the 20/5 seed step without the tries) 15 fallbacks, 20.6 million, 62 wrong
+after the pass (no detectable difference from D4 plus pass); K2 (library CMA keys plus the pick) 53
+fallbacks, 30.3 million, 96 wrong. Two remedies (7a, 7b: indexer order, no strict cost) and run S5
+were added beyond the plan. Parts 0 and 1 took about 8 minutes of compute. Not done: an opt-in key
+for the remedy (waits for the owner and a larger-grain check); README unchanged (no library
+module).
+Review fixes (2026-11-11, decision D-20261111-N1, all 11 fixes, no rerun): page text, summary
+keys, tables and the plot label only; summary files gained new keys only. The pass did not repair
+most tries-settled wrong voxels: 40 of the 59 are still wrong after it (D4: 24 on the same 602
+voxels). S5 against S after the pass: 62 against 100, intervals do not overlap, 57 fixed and 19
+broken (S5 added after S). The tries are "consistent with" the extra wrong voxels, not shown per
+voxel. The 14 near-truth refined ends all fail the 0.80 seed test (median hit 0.779). Default
+until the owner decides: the S5 seed step (best 5 of 20, no tries), checked on larger grains
+before any opt-in key.
+
+## Autoresearch AR3 step 7: the same pipelines on larger grains (done 2026-11-11, task ar3g)
+
+No change under `icenine/`; scripts `scripts/autoresearch/ar3/big_{make_sample,stack_note,
+seed_check,run,pass,errors,summary}.py` and a sample switch (`AR3_SAMPLE=big`, default the
+gradient sample) in `ar3_common.py` and `gradient_common.py`; results
+`benchmarks/autoresearch/ar3/big/` (slim, under 3 MB); page `docs/autoresearch/
+findings_ar3_big.md` (placed by the main session; the tool refused the implementer's write).
+Simulated sample only; C++ not run; one run per pipeline, one voxel order; wall times contended.
+The sample `big`: 32 grains (132 to 1,720 voxels) on the gradient sample's 24,570-voxel grid,
+levels 0 to 4 degrees, one level per grain (5, 5, 1, 9, 6, 6 grains at 0, 0.2, 0.5, 1, 2, 4).
+Checks passed: every fine voxel in exactly one coarse voxel, 32 distinct orientations, the truth
+passes the seed test on 200 of 200 voxels (and on the gradient sample, 200 of 200).
+With the pass, evaluations on `big` against the gradient sample: `D` 65.87 against 122.07
+million, `D4` 11.94 against 38.81, `S5` 13.00 against 20.63, `P4R4` 19.96 against 54.56. Wrong
+after the pass: `D` 26, `D4` 21, `S5` 30, `P4R4` 31 of 24,570 (`S5` against `D4`: intervals
+overlap, 6 fixed, 15 broken). Predictions: (1) reseeds fall to the order of the number of grains
+and the seed step plus grid fallbacks are under a tenth of `S5`: does not agree (314 reseeds on
+32 grains; 57.5% of the evaluations); (2) `S5` with the pass close to its local optimizations and
+pass alone: does not agree (529.1 against 225.1 per voxel); (3) wrong share at matched levels no
+higher than on the gradient sample: agrees, judged first on the plan's pairs (`big` 2 against
+0.5, 4 against 1; the factor-5 pairs were added; each level holds 1 to 9 grains). Evaluations
+are raw calls of the strict cost, the same counters as steps 3 to 6. Result for the keys step:
+`S5` has no more wrong voxels than `D4` (intervals) but costs 8.8% more evaluations on `big` (it
+saves 47% on the gradient sample). The rule's first branch fails; read literally the second does
+not fire either, read as "otherwise" it picks `D4`'s seed step; the owner decides. The seed step
+is 57.5% of `S5` on `big`, 267 of its 349 seed steps are in the 6 grains of level 4 ("consistent
+with" fast turning of the orientation; not tested). No run hit its cap. Added beyond the plan:
+seed steps by level, the cost of an index run and the break-even grid fallback rate, assuming
+`S5` never falls back (3.0% on `big`; on the gradient sample 0.6%, or 1.75% with `S5`'s own 15
+fallbacks in 1,293 index runs; `D4` fell back on 2.4% and 5.9%). On `big` 0.43 of the 1.00
+million extra seed-step evaluations of `S5` come from its 20 extra index runs (priced at `S5`'s
+cost; untested cause). Review fixes 1 to 10 applied to the page (D-20261111-N3).
+
+## Autoresearch AR3 step 8: why the seed step costs so much in grains with strong gradients (done 2026-11-11, task ar3h)
+
+No change under `icenine/`; no key, no default, no dependency. Scripts
+`scripts/autoresearch/ar3/reseed_*.py`; results `benchmarks/autoresearch/ar3/reseed/` (slim, under
+2 MB; caches stay out of git); page `docs/autoresearch/findings_ar3_reseed.md` (the tool refused
+the implementer's write; the page text was returned to the main session). Simulated samples only
+(`big`: 32 grains; the first gradient sample: 497 grains); C++ not run; one run per arm, one voxel
+order; wall times contended.
+Part 1 (seed steps replayed from the stored runs, one logged rerun of `S5` on `big` that
+reproduced the stored counters and reseed list exactly; every replayed seed step has the stored
+evaluation count): the refinements are 99.9% of the evaluations of a seed step in `S5` on `big`
+(mean 21,403 per step; 20 evaluations of costing), 99.6% on the gradient sample (mean 4,633).
+The first refinement is dearer on `big`, also without a gradient: 4,710 at level 0 on `big` (5
+grains, one seed step each) against 1,115 on the gradient sample (101 steps); the later
+refinements are not dearer there (level 0, fifth: 514 against 570); in the grains at 4 degrees
+refinements 2 to 5 are 16,554 of 24,427.
+62.2% of `S5`'s seed-step evaluations on `big` (55.5% on the gradient sample) run after a
+refinement that, judged with the truth, already passed the seed test at a right orientation (a
+share a run cannot save, since it lacks the truth). Of the 1,471 voxels in the 314
+reseed clusters of `S5` on `big`, 1,069 (72.7%) were reached by a local optimization that ended
+right (median error 0.294 degrees) and was rejected by the relative test (median hit ratio
+0.835, flood best 1.000: class A); 22 started in their own grain at a wrong orientation (B); 380
+started from another grain (C). 314 reseeds settle 1,471 voxels (4.7 per reseed). Part 2: the
+plan's `E1` (stop the refinements at the first that passes the seed test, 0.80) fails the plan's
+rule on the test set (odd grains): 6 broken against 0 fixed on `big` and 51 against 2 on the
+gradient sample. So by the plan's rule no listed remedy passed. A variant of `E1` with a stop
+test of 0.95, added after those results and chosen on the pick set (even grains), cuts the seed
+step by 58.4% on `big` and 48.4% on the gradient sample on the test set and breaks no case. The
+stop-test grid and pick rule were written after the 0.80 test rows of the gradient sample had
+been read; the pick set alone shows the same failure at 0.80 (45 broken, 1 fixed, pooled), and
+the 0.95 test rows were not read before the choice.
+`E2` (keep a rejected fit that passes a second test) fails on the pick set: no test has broken
+at most fixed (best: 3 broken, 2 fixed, 4.4% cut); `E3` not tried (class B 1.5%). Part 3 was
+run on the variant: `S8` = `S5` + the variant (stop at 0.95), with the pass: 8.34 million
+evaluations on `big` (`D4` 11.94, `S5` 13.00) and 18.00 on the gradient sample (`S5` 20.63, `D4`
+38.81); wrong voxels after the pass 24 (`D4` 21, `S5` 30) and 63 (`S5` 62, `D4` 74), intervals
+overlap. Predictions (written before the runs): 1 and 2 agree; 3 is met by the variant only, not
+a confirmed prediction of the plan (D-20261111-N5). The variant is not confirmed until it is an
+arm of a whole-layer run on a sample it was not chosen on. The choice of the seed step for the
+opt-in key stays the owner's; no recommendation is made.
+Added after seeing results (labelled on the page): the stop-test grid of `E1`, counting voxels at
+their first appearance in a cluster, and the plurality reading of "cost share".
+
+## Autoresearch AR3 step 9: a start test for the neighbour fits, class A, a third sample (done 2026-11-11, task ar3i)
+
+No change under `icenine/`; no key, no default, no dependency. Scripts
+`scripts/autoresearch/ar3/start_*.py` (`start_bg.sh` starts a logged background job); results
+`benchmarks/autoresearch/ar3/start/` (slim, 3.6 MB; caches stay out of git); page
+`docs/autoresearch/findings_ar3_start.md` (the tool refused the write of the page; the text was
+returned beside the report for the main session to place). Simulated samples only: `big` (32
+grains), the first gradient sample `grad` (497) and the new `mid` (120 grains, same 24,570-voxel
+grid, Voronoi grain map, step 7's gradient generator with seed 0); C++ not run; one run per arm;
+wall times contended. Evaluation counts are with the boundary pass.
+Part 1 (one logged rerun of `S5` on `grad` reproduced the stored run exactly: 16,947,800
+evaluations, 945 reseeds): 35.1% of the 24,535 neighbour fits of `S5` on `big` (19.1% of 24,222 on
+`grad`) start at hit ratio 0.95 or more; no such start is wrong; the fit moves them a median 0.040
+degrees. In every class A voxel (1,069 on `big`, 589 on `grad`) the true orientation itself passes
+the relative test, but on clean images that holds by construction (the truth scores at least 0.954
+and 0.961, and any hit ratio above 0.90 passes). The evidence is one more fit (0.1 degrees, 61
+evaluations: 60 plus the final one, against the plan's "at most 60"; the same for `F2`) from the
+rejected end, which passes in 807 and 451: consistent with fits that stop a
+few tenths of a degree short. The stored rejected fit has no BFS retry (classic mode).
+Part 2 (pick committed before the test set was read, commits `55b7323` then `91c48a6`): `F1` (start
+test) at 0.90 passes: 57.7% fewer neighbour and revisit evaluations on the test set, 0 fixed, 0
+broken (41 kept wrong starts where the stored fit was wrong too, not counted by the rule). `F2`
+(one more fit before rejecting) fails: 4.8% net cut of the reseed seed steps at 0.2 degrees on the
+pooled test set. The pooled rule (written before any `F2` result) decides: by sample the cut is
+34.1% on `big` (above a third) and -11.8% on `grad`. Only 137 of 672 test clusters vanish (every
+member must pass); with `F2` free the pooled cut would be 21.5% (26.2% at 0.1), under a third.
+Part 3: `mid` with the pass, `D4` 40.56, `S5` 39.09, `S8` 26.44 million evaluations; wrong voxels
+48, 34, 31 (intervals overlap): `S8` is confirmed by prediction 3 in one run of each arm on one new
+sample, whose grain map (a 120-cell Voronoi map) departs from the plan; D-20261111-N7 counts it
+as the confirmation, and the owner can overrule that.
+`S9` (`S8` + `F1` 0.90): 5.63 million on `big` (`S8` 8.34), 14.63 on `grad` (18.00), 22.67 on `mid`
+(26.44); wrong voxels 29 (24), 70 (63), 40 (31), intervals overlap, but paired against `S8` it
+breaks more than it fixes on all three (10 fixed / 15 broken, 31 / 38, 9 / 18), which fails Part
+2's own rule in the whole layer; median error after the pass 0.0550 (0.0316), 0.0360 (0.0226),
+0.0429 (0.0297) degrees. Predictions: 1 (by construction on clean images), 3 and 4 agree; 2 does
+not agree (its first part fails: 49.9% of the neighbour fits at 1 degree or less start at 0.95,
+interval 49.1 to 50.7, not more than half; its second part, 0.6% at 4 degrees, holds). The
+choice of keys stays the owner's: `S8`'s seed step is the plan's recommendation; `F1` at 0.90 is
+not a candidate for a key (D-20261111-N7); `F1` at 0.95 was not run on a whole layer.
+
+## Autoresearch AR3 step 10: opt-in keys for the indexed seed step and the boundary pass (done 2026-11-11, task ar3j)
+
+The first AR3 step that changes `icenine/`: four opt-in config keys and one new module, all off
+by default (D-20261111-N8). No default flip, no golden change, no new dependency, no setting
+recommended. Keys: `BFSNeighborCMAFirst` (each neighbour and revisit fit runs a CMA fit first,
+the stock MC fit if its end cost is not below its start cost, the lower cost kept),
+`SeedIndexCandidates n_cost n_refine` (default `5 2`), `SeedIndexStopHitRatio t` (default 0, the
+early stop) and `BoundaryPass` (step 5's pass, rule `hit`, once before the `.mic` is written).
+Code: `icenine/boundary_pass.py` (new); `check_bfs_keys`, `_cma_first_fit`, the `optimizer`
+argument of `local_optimization` and the `stop_hit` argument of `index_seed` in `reconstructor.py`;
+`seed_by_indexing(stop_hit, hit_fn)` and `SeedResult.stopped_at` in `ray_indexing.py`;
+`CMAResult.start_cost` in `orientation_search.py`; the key table in `config_file.py`. Tests first
+(`tests/test_bfs_ar3_keys.py`, 57 tests, committed before the code; 59 after the fixes round);
+full suite on the branch after the fixes round 1576 passed, 47 skipped, 1 deselected
+(`keys/suite.json`). The two checks before the code: no test or golden compares a whole
+`CMAResult` or `SeedResult`; `cma_sigma0_deg` and `cma_neighbor_max_evals` are read only on the
+`LocalOptimizer cma` paths of `local_optimization` (the grid search and `refine_from_candidates`
+never read them under `mc`).
+Validation on `big` (scripts `scripts/autoresearch/ar3/libkeys_*.py`, results in
+`benchmarks/autoresearch/ar3/keys/`, contended, one run of each): `D4L`, `S5L`, `S8L` reproduce
+the stored runs `D4`, `S5`, `S8` exactly before the pass (seeds, reseeds, grid fallbacks,
+10,811,715, 11,867,509 and 7,201,863 evaluations, every counter, all 24,570 records, the map as
+a `.mic` byte for byte, 3,194 and 3,235 MC fallbacks, 322 early stops in 329 seed steps). The
+pass on the stored (rounded) maps is exact: 18,557, 18,563 and 18,665 tries, 1,131,977, 1,132,343
+and 1,138,565 evaluations, every try. In the run the pass reads the unrounded map and differs a
+little (as the plan predicted): `D4L` 18,557 tries and the same evaluations, 22 wrong voxels
+against 21 (voxel 19614 broken); `S5L` identical, 30; `S8L` 18,664 tries, 1,138,504
+evaluations, 24 wrong against 24 with 5 fixed and 5 broken against the stored map. Off path: the
+2,000-voxel pilot on the parent package and on this branch gives equal orientations, records,
+stats, logs and `.mic` bytes. The optional single-worker wall pair was not run (preflight
+refused). Page: `docs/autoresearch/findings_ar3_keys.md`.
+
+Fixes round (review `20261111-0941-review-ar3j`, decision D-20261111-N9). Page: the plot first;
+"Check 2 gives a reading"; which counts carry an interval, with the Wilson intervals added to the
+table of earlier runs; `grad` and `mid` defined; "both wrong" in the paired split; the uncounted
+evaluations as numbers (boundary scores 11,087, 11,049 and 11,054; 465 early-stop hit
+evaluations in `S8L`); the pass wall times and the suite counts in `keys/summary.json`; the
+stored `S8` run's "S5" label explained. Tests: two compare with values recorded from the parent
+code (4ff3ce6), one renamed, `SeedIndexCandidates` with a third number now raises `ValueError`.
+Library: annotations, `LOCAL_OPTIMIZERS`, docstrings (no behaviour change except the new
+`ValueError`). The reading of the in-run pass was tested (`libkeys_fresh.py`, `S8L` and `D4L`
+rerun, contended): a fresh process on the unrounded map gives the in-run pass try for try, and
+the same process after the BFS on the `.mic`-rounded map gives the script's stored tries. For
+these two runs the input rounding alone accounts for the difference; the process does not. The
+single-worker pair was not run (the timing preflight refused again).
+
+## Autoresearch AR5 step 1: stop rules for the boundary pass, the grid fallbacks and the finished map (done 2026-11-11, task ar5a)
+
+No change under `icenine/`; no key, no default, no dependency. Scripts
+`scripts/autoresearch/ar5/stop_*.py` (pure rule functions in `stop_rules.py`, tests in
+`tests/test_ar5_stop_rules.py`, written and committed first); results
+`benchmarks/autoresearch/ar5/` (slim; caches stay out of git); page
+`docs/autoresearch/findings_ar5_stop.md` (the write of the page into `docs/` was refused; the text
+was written beside the report for the main session to place). Simulated samples only (`big`, the
+first gradient sample, `mid`); C++ not run; one run per arm; wall times contended. Git order does
+not prove that `mid` was unseen at the picks (a first computation of `mid`'s start scores ran
+before the Part 1 pick commit and was deleted; `mid`'s Part 3 inputs were committed before the
+Part 3 pick); the picks are protected by being mechanical (see the fixes round below). None of the
+three ideas passed its rule, so the whole-layer run `T1` (Part 4) was not run.
+Part 1 (a try test for the boundary pass, replayed on the stored tries of `S8`): the replay with no
+test reproduces the stored maps (24, 63, 31 wrong voxels). Settings that skip tries by the start
+hit ratio (`P1`, `P3`) cut 95.7% to 98.2% of the pass's evaluations on the two pick samples and
+lose 17.9% to 60.0% of its net gain (winning tries start well below the voxel's hit ratio). `P2`
+with `m` = 1 (keep the try with the best start hit ratio) is the pick: 55.1% cut, 4.7% of the
+gain lost on the pick samples; on `mid` 62.7% cut, 9.4% lost (48 of 53), 5 broken, 0 fixed: fails.
+Part 2 (31 grid-fallback cases, 16 and 15): the first candidate is within 2 degrees of the truth
+in 27, and in all 31 the near-truth candidate was among the 20 costed and the 5 refined; the
+refinement of the right candidate ended under hit ratio 0.80. `R1` (the first 100 costed; the
+lists held 32 to 62, so every candidate) passes the seed test in 0; `R3` (grid level 0 alone, about 200,000 evaluations each) in 17; the ladder needs
+11,364,144 evaluations against 10,606,351 for the grid fallbacks (107.1%), right in 30 against 28:
+fails (the evaluation rule). Prediction 2 does not agree (0 of 31).
+Part 3 (the map after the pass): hit ratio under 0.95 flags every wrong voxel on all three samples
+(87 of 87, 31 of 31) but 8.8% of the voxels on the pick samples and 15.1% on `mid`; no wrong voxel
+is left among the unflagged (upper interval end 0.018%). The vote count of the unexplained rays
+separates wrong from right weakly (cut chosen after the result: 67 of 118 wrong, 1,410 of 7,908
+right at or above it). Check `V1` (the seed step at the 3,709 flagged voxels of `mid`) fixes 13 of
+31 wrong voxels, breaks none (wrong 31 to 18), and costs 27,882,533 evaluations, 105.4% of the
+run: fails the cost rule. Predictions 1, 2, 3, 4 and 5 do not agree; 6 is not evaluated. No rule
+is a candidate for a key; the use of `V1` after a flag stays the owner's choice.
+
+Fixes round (review `20261111-1215-review-ar5a`, decision D-20261111-N11; documents and the
+summary script only, no result changed, no new run). The parent was merged into the task branch.
+New `stop_summary_review.py` (called by `stop_summary.py`) recomputes from committed files the
+numbers the page now gives, under the key `review` of `summary.json`. The picks: both read only
+`big` and the first gradient sample, and the one free choice (`P3`'s `d`) cannot change the Part 1
+pick (no `d` reaches the needed net gain of 180.5; the most is 156); with hindsight no plan setting
+passes on `mid` (a what-if). The Part 1 pick clears the 5% rule by one voxel (181 against 180.5).
+`R1` repeated the seed step's refinements in 20 of 31 cases. What-if: a ladder whose grid search
+reused `R3`'s level 0 would need 8,536,861 evaluations (80.5%), still above two thirds. The
+vote-count verdict rests on a cut chosen after the result; the best cut moves from 1,975 to 3,035
+between samples. The page now says that all three samples have orientation gradients inside
+grains, defines `H3`, gives hit ratios near 0.80 with 4 decimals, Wilson intervals for the Part 2
+counts and the boundary-voxel shares; the flag plot shows markers only and the vote plot the cut.
+
+## Autoresearch AR5 step 2: two long local optimizations that rarely change the result (done 2026-11-11, task ar5b)
+
+Scripts and results only (D-20261111-N12): nothing under `icenine/` changed, no key, no default,
+no golden, no dependency. Scripts `scripts/autoresearch/ar5/fit_*.py`, tests of the pure rule
+functions `tests/test_ar5_fit_rules.py` (13 tests, committed before `fit_rules.py`), results in
+`benchmarks/autoresearch/ar5/fit/`. Page text: `docs/autoresearch/findings_ar5_fits.md` (the
+implementer's Write of the page was refused; the text was left in the report folder for the
+main session to place).
+Part 0 (stored `S8`): the seed refinements and the MC fallbacks are 62.5%, 31.1% and 57.5% of the
+evaluations with the pass (`big`, first gradient sample, `mid`); the MC fallback ended lower than
+the CMA end in 3 of 3,197, 3 of 3,903 and 45 of 4,568 runs.
+Part 1 (replay of all 3,219 stored seed steps, `M` on every step, 0 differences from the log; arms
+`C60`, `C200`, `C0` against the stock refinement `M`): no CMA arm meets the plan's 1% rule on the
+pick samples pooled (1,608 steps): `C200` loses 60 passes net (limit 16); `C60` 245; `C0` 1,050.
+Pick: `M` (commit `e5f422f`, before any `mid` run; the first `mid` run at 12:00:47). On `mid` all
+three arms fail rules (a) and (b) as well. So change (i) was not applied.
+Part 2: the base check (script layer, both changes off, `big`) reproduces stored `S8` exactly
+(7,201,863 evaluations, 67 wrong, same map). `S10` = `S8` with no MC fallback after CMA (script
+`fit_run.py --no-mc-fallback`): with the pass 5,898,258, 15,167,998 and 22,668,704 evaluations
+against 8,340,428, 18,000,230 and 26,443,074 (29.3%, 15.7% and 14.3% fewer); wrong after the pass
+22, 67 and 35 against 24, 63 and 31; broken minus fixed -2, 4 and 4; the plan's rule passes on
+`big` and fails on the other two (fewer than 20% evaluations). `S10a` and `S10b` were not run
+separately (no arm picked, so they would be `S8` and `S10`). Predictions 1, 3 and 5 agree; 2 and 4
+do not. Rows of the three `S10` runs (before and after the pass) were added to
+`docs/autoresearch/pareto/pareto_rows.json`. Walls contended, not timing results. Full suite on
+the branch: 1589 passed, 47 skipped, 1 deselected.
+
+Fixes round (review `20261111-1310-review-ar5b`, decision D-20261111-N14; documents, the summary
+script and `part1_mid.json` only, no new run). The parent was merged into the task branch.
+`part1_mid.json` was written again from the cached replay of `mid` and now holds the end errors,
+so the page's error table has the `mid` rows (median 0.020, 0.160, 0.013, 0.423 degree for `M`,
+`C60`, `C200`, `C0`). The Part 2 and rule tables say their medians are over all 24,570 voxels.
+Prediction 4 no longer gives an untested cause; it gives a what-if by arithmetic, not run (`S10`
+with the `C60` replay's seed-step evaluations: about 3.20, 12.32 and 11.68 million, under the
+limits). The Reproduce section names the two sibling worktrees that hold the stored `S8` runs.
+
+## Autoresearch AR3 step 11: a held-out sample and its S8 baseline (done 2026-11-11, task ar3k)
+
+**Superseded in part by the completion round below** (paragraph "Completion round of AR3 step 11",
+after the AR5 step 3 section; D-20261111-N17) and its fixes round: the run was made again with a
+cap of 480 minutes and finished, the pareto rows replaced the `excluded` entry, and the main
+session placed the page in `docs/`. The lines "no pareto rows", "Not rerun" and "left in the
+report folder" below describe the first round only.
+
+Scripts and results only (D-20261111-N15): nothing under `icenine/` changed, no key, no default, no
+golden, no dependency. Scripts `scripts/autoresearch/ar3/held_*.py` (builder `held_make_sample.py`
+with pure parts in `held_sample_lib.py`, tests `tests/test_ar3_held_sample.py`, 7 tests); the three
+sample-name tables of `ar3_common.py`, `gradient_common.py` and `reseed_common.py` got `held`
+added (other samples unchanged). Results in `benchmarks/autoresearch/ar3/held/`. The page text
+`docs/autoresearch/findings_ar3_held.md` was refused by the Write guard of the implementer and was
+left in the report folder (`20261111-1351-ar3k-findings-page.md`) for the main session to place.
+Sample `held`: 250 Voronoi cells (generator seed 1), 250 grains (9 to 271 voxels, median 89.5), six
+gradient levels on 39, 40, 44, 37, 46 and 44 grains, clean images (10,897,893 lit pixels, 179,718
+spots). Base check on `big` (script layer of AR5 step 2, both changes off): reproduces stored `S8`
+exactly (7,201,863 evaluations, 67 wrong, same map and seed-step log). The `S8` run on `held`
+reached the 120 minute cap (contended) before it finished: no map, no wrong count, no pass, no
+pareto rows (listed under `excluded`). Counters at the cap: 48,312,402 evaluations before the pass,
+61 grid fallbacks (21,082,802 evaluations), 3,237 seed steps. Predictions 1 and 3 not met, 2 not
+evaluated. Not rerun, by the plan's rule.
+
+## Autoresearch AR4 step 1: a learned verifier, measured offline against the hit ratio (done 2026-11-11, task ar4a)
+
+No change under `icenine/`; no key, no default, no dependency (`pyproject.toml` and `uv.lock`
+unchanged). Scripts `scripts/autoresearch/ar4/verify_*.py` (pure functions in `verify_lib.py`,
+tests `tests/test_ar4_verifier.py`, written and committed first; model definitions in
+`verify_models.py` and the training script `verify_fit.py` committed before any training); results
+`benchmarks/autoresearch/ar4/` (slim; the pair inputs stay in an untracked cache); findings page
+`docs/autoresearch/findings_ar4_verifier.md` (placed by the main session from the implementer's
+text, commit `1d862a5`). Approval D-20261111-N13.
+Simulated samples (`big`, the first gradient sample, `mid`), clean images only; realistic images
+untested; one training run per model, generator seed 0; wall times contended.
+Pairs: 229,651 (49,103, 94,306, 86,242), one evaluation each; per-peak pixel counts come from the
+same overlap data in a script (the library returns totals only). Per-peak sums equal the totals of
+the per-peak path exactly and differ from the fused evaluation by at most 6 pixels (hit ratio at
+most 0.0047). The seed-step replays (329, 1,279, 1,611) matched the stored logs. The vote count
+among unexplained rays (50 to 200 ms a pair) was not computed; no model uses it.
+Order rule: models, training and the thresholds file (`669b9a3`) were committed before the first
+script that read `mid` (12:44 on 11 Nov 2026).
+Use 1 (flag unfinished voxels, `mid`, 31 wrong voxels): `B0` (cut 0.926) flags 31 and 1,760 voxels;
+`B1` 31 and 13,653; `N1` (21,953 parameters, cut 0.749) 23 (0.57 to 0.86) and 190: no model passes
+the plan's rule. `N1` misses 8 of 31 wrong voxels (hit ratios 0.889 to 0.910; all 31 are
+boundary voxels), against 4 of 87 on the train voxels where its cut was picked.
+Use 2 (accept a seed without a grid search, the 15 fallback cases of `mid`): `N1` accepts 7 of 10
+right ends and 0 of 5 wrong ends; `B0` 0 of 10 and 0 of 5, by construction (fallback ends have
+hit ratios under 0.80, its cut is 0.926). By arithmetic from stored numbers, not a run: as an OR
+rule (seed test or `N1`) `N1` skips 2,325,301 of the 5,002,750 grid-only evaluations of the 15
+cases; as a replace rule its 20 refused right passing seeds cost about 6,670,333. AR5 step 1's
+5,087,764 is larger by the seed steps of the reseed cases (85,014), which run before any accept
+decision. Predictions 1 (on a `B1` without `best_votes`) and 3 agree; 2 and 4 do not (the share
+of lit peaks has `auc` 0.496 against 0.974 for the hit ratio at boundary voxels). No whole-layer
+run; step 2 (wiring a verifier in) is not triggered by the plan's rule.
+
+Fixes round (review `20261111-1335-review-ar4a`, decision D-20261111-N15; no new evaluation, no
+change under `icenine/`). The parent was merged into the task branch. `verify_summary.py`
+subtracts the seed-step evaluations of the reseed cases (stored `S8` log) from AR5's
+`grid_evals` and checks the total against the library counter `index_fallback_grid_evals`
+(equal on both samples: 5,449,501 and 5,002,750); first gradient sample, in-sample: 3,744,760
+skipped. The page states both readings of use 2 with their counts, the per-peak inputs of `N1`
+and its two deviations from the plan, the sum-back difference as consistent with D-20261027-I2
+(about 2.6% of pairs, alike for right and wrong pairs; not traced per pair), why AR5's stored
+vote counts (2,017, 3,803, 4,420 voxels) were not used, and the lit-share distribution. Use-2
+counts, the rule prices and the sum-back check are pure functions in `verify_lib.py` with tests.
+
+## Autoresearch AR5 step 3: a mixed seed refinement, tested on whole layers (done 2026-11-11, task ar5c)
+
+Scripts and results only (D-20261111-N14): nothing under `icenine/` changed, no key, no default, no
+golden, no dependency, no step 2 script changed (so no rerun of step 2's base check). Scripts
+`scripts/autoresearch/ar5/mix_*.py` (they import step 2's `fit_*.py`; `mix_common.py` adds the arms
+`X60` and `X200` to `fit_common.refine_arm` at run time), tests of the pure rule functions
+`tests/test_ar5_mix_rules.py` (12 tests, committed before `mix_rules.py`), results in
+`benchmarks/autoresearch/ar5/mix/`, findings page `docs/autoresearch/findings_ar5_mix.md`
+(placed by the main session from the implementer's text, commit `6174af7`).
+Mixed refinement: a CMA fit (at most 60 or 200 evaluations); the stock MC optimizer from the same
+candidate only when the CMA end hit ratio is below 0.95; the lower-cost end is kept; the early
+stop is tested on it.
+Part 1 (stored replay, no new evaluation): on the pick samples pooled (1,608 steps) `X200` has
+1,596 seed-test passes and 1,589 ends within 1 degree against 1,592 and 1,583 for the stock
+refinement, with 2,501,991 against 5,865,469 seed-step evaluations (57.3% fewer); `X60` meets
+the same two rules with 4,390,198 (25.2% fewer). Pick: `X200` (commit `22db075`, 13:57; the
+first whole-layer run started 14:05:51). On `mid` the plan's what-if differs by one step
+(5,643,575 here, 5,643,374 there: the lower-cost end is kept and the early stop tested on it).
+Check of the script layer on 20 seed steps of `big` (10 with an MC run): 20 of 20 identical to
+Part 1 (121,659 evaluations both).
+Part 2: `S11` (= `S10` plus `X200`, with the pass): 4,015,342, 12,307,994 and 16,082,696
+evaluations against 8,340,428, 18,000,230 and 26,443,074 for `S8` (51.9%, 31.6%, 39.2% fewer) and
+against 5,898,258, 15,167,998 and 22,668,704 for `S10`; wrong after the pass 18, 62 and 36
+against 24, 63 and 31; broken minus fixed against `S8` -6, -1 and 5; the step 2 rule passes on all
+three (`mid` is at the limit of 5). `S11a` not needed. Grid fallbacks 0, 11, 12 (`S8`: 0, 16, 15).
+Predictions 1, 2 and 4 agree; 3 does not. The mixed rule was found in a replay that included
+`mid`, so no sample is held out for it. Rows of the three `S11` runs (before and after the pass)
+were added to `docs/autoresearch/pareto/pareto_rows.json`. Walls contended, not timing results.
+
+Fixes round (review `20261111-1503-review-ar5c`, decision D-20261111-N16; documents, the Part 1
+and summary scripts only, no new run and no new evaluation). The parent was merged into the
+task branch. `mix_part1.py --all` also stores the plan's what-if count: a variant that stops
+when either end of a candidate reaches 0.95 (`mix_rules.mixed_step(stop_on_either=True)`, off
+by default, two new tests) gives 5,643,374 on `mid`; it differs from the rule as run only at
+replay step 442 (CMA end hit 0.94752, cost 0.06939; MC end hit 0.95300, cost 0.07189).
+`mix_summary.py` adds the share of `S11`'s saving by stage against `S8` and `S10` (against `S10`
+the grid-fallback stage is 47.8% on the first gradient sample and 15.2% on `mid`), the cost of
+one grid fallback (333,517 to 340,594 evaluations), and the uncounted hit-ratio checks of the
+mixed refinement (436, 2,158 and 2,814, under 0.02%). The page no longer calls the seed step
+the largest piece of the saving (false against `S8` on `big` and the first gradient sample),
+words the lower fallback count as consistent with a direct or a path effect, and says plainly
+that `mid` has 36 wrong voxels after the pass against 31 for `S8`, at the rule's limit.
+
+Completion round of AR3 step 11 (decision D-20261111-N17): the first `S8` run on `held` missed the
+120 minute budget; the same run went again with a cap of 480 minutes and finished (8,001.6 s, then
+the pass 583.1 s; contended, not timing results). Numbers: 54,733,887 evaluations before the pass
+and 59,923,523 with it (seed step 21,257,244, grid fallbacks 25,915,118, neighbour 3,004,901,
+revisit 4,556,624, pass 5,189,636); 75 grid fallbacks; wrong voxels 95 (Wilson 0.32 to 0.47%)
+before and 70 (0.23 to 0.36%) after the pass; median error over all voxels 0.0288 and 0.0286 degree;
+21,131 boundary voxels (86.0%). The pass fixed 30, broke 5; at the 4 degree level it did not help
+(49 before, 53 after). Predictions: 2 met, 1 and 3 not met. The excluded entry in
+`pareto_rows.json` was replaced by the row pair and the sample entry `held_24570`. The counters of
+the capped run are kept in `cache/S8_held_cap120/` (untracked). The updated page text is in the
+report folder (`20261111-1351-ar3k-findings-page.md`), because the Write to `docs/` was refused
+again; the main session places it.
+
+Fixes round of AR3 step 11 (review 20261111-1900, D-20261111-N19; documents, tables and small
+scripts, no new run): at the 4 degree level the pass fixed 0 wrong voxels and broke 4 (49 before,
+53 after; "did not help" above understates it), and `ar3_held_levels` now has `fixed` and `broken`
+columns; `summary.json` has a `derived` block (3,262 reseeds, 133.4 wall minutes, 46 and 17 wrong
+over the five lower levels, 53 and 34 grains holding wrong voxels, 28 grains under 40 voxels); the
+page scopes "no other run" to this step and names the three AR5 step 4 runs on `held` (N18, started
+16:53), labels both wall times contended inline, drops the 120 minute counterfactual, lists the
+four heavy processes as a deviation (the plan allowed two) and gives the exact second-run command;
+`held_chain.sh` takes the cap and log name as arguments (default 120, `chain_held`); the
+`held_24570` sample note says only run S8 was run on `held` in AR3 step 11.
+
+## Autoresearch AR5 step 5: opt-in keys for the mixed seed refinement and for no MC fallback (done 2026-11-11, task ar5e)
+
+Plan (D-20261111-N21): move the two changes of script run `S11` into the library as keys that are
+off by default, and show parity with the stored script runs. `SeedIndexCMAFirst n` (0 = off, else
+n >= 2): each refined seed candidate gets a CMA fit first (`CMASigma0`, n evaluations); if the hit
+ratio of its end reaches `SeedIndexStopHitRatio` it is kept, else the stock MC refinement runs
+from the same candidate and wins only on a strictly lower cost. `BFSNeighborCMANoFallback 0|1`:
+the CMA end of a neighbour fit or revisit is returned (needs `BFSNeighborCMAFirst 1`). Refused
+combinations raise `ValueError` (`check_bfs_keys`). Stock paths (`local_optimization`,
+`refine_from_candidates`) are not edited; no default, golden, dependency or C++ change.
+
+Done: `ray_indexing.mixed_refinement` and `seed_by_indexing(refine_fn=)`; `index_seed(cma_first_evals,
+cma_sigma0_deg)`; the no-fallback branch of `_cma_first_fit`; counters `cma_not_fell`,
+`index_mixed_cands`, `index_mixed_cma_reached`, `index_mixed_mc_ran`; 68 new tests
+(`tests/test_bfs_ar5_keys.py`, written first, 62 plus 6 refusal rows of the fixes round; the plan
+expected 25 to 50); README key table; scripts
+`scripts/autoresearch/ar5/keys_*.py`. Parity (library run vs stored script run, same evaluations,
+seeds, reseeds, records, counters and `.mic` bytes before the pass): `big` S8 keys 7,201,863
+evaluations and 67 wrong voxels; `big` no fallback 4,767,135 (`S10`); `big` both keys 2,879,705
+(`S11`); first gradient sample both keys 8,622,191 with 11 grid fallbacks (`S11`). The pass from
+the stored maps gave the stored tries; totals with the pass 4,015,342 and 12,307,994. The pass
+inside a run differed from the stored pass by 1 and 4 tries in two `big` runs. For `S11` it had the
+stored counts on both samples but not the stored contents: costs differ in 4,372 of 18,617 tries
+(`big`) and 15,813 of 60,423 (first gradient sample), ends up to 1.22 and 1.11 degrees apart,
+changed voxels 986 against 983 and 688 against 681 (`keys_pass_contents.py`,
+`pass_contents.json`). This is consistent with the in-run pass reading the unrounded map; that was
+shown for `S8L` in AR3 step 10 and not tested for `S10L` and `S11L`. Full suite after the fixes
+round 1,724 passed, 47 skipped, 1 deselected (`suite_counts.json`). Not tested: timing, `mid`,
+`held`, realistic images; no recommended setting. Page: `docs/autoresearch/findings_ar5_keys.md`.
+
+## Autoresearch AR5 step 7: skip the boundary pass at voxels that already fit (done 2026-11-12, task ar5g)
+
+Plan (D-20261112-N4): one opt-in key, `BoundaryPassSkipHitRatio h` (float in [0, 1], 0 = off): in
+the boundary pass a voxel whose own hit ratio (the hit ratio of its end before the pass, from the
+score the pass already makes) is at least `h` gets no try and keeps its end. `run_boundary_pass`
+takes `skip_hit` (default 0); the reconstructor passes it only when it is above 0, so the key-off
+call and path are unchanged. `bfs.stats` gains `boundary_skipped` (key on only). The own-hit-ratio
+evaluation is the pass's old-end score, counted in `n_evals_boundary_score` (one per boundary
+voxel) with and without the key. `BoundaryPassSkipHitRatio > 0` without `BoundaryPass 1` (and with
+`PaintGrains 1`) raises `ValueError`. No default, golden, dependency or C++ change.
+
+Done: key and parser (`config_file.py`, `orientation_search.py`, `reconstructor.py`,
+`boundary_pass.py`); 14 new tests in `tests/test_boundary_pass_skip.py` (parsing, bad values,
+refusals, key off equals key absent, key on skips exactly the voxels at or above `h`, counts, the
+call from the BFS) and 9 in `tests/test_ar5_gate.py` (replay rule, fixed / broken, decision rule);
+scripts `scripts/autoresearch/ar5/gate_*.py`; results `benchmarks/autoresearch/ar5/gate/`.
+`h` = 0.95, the rule and the predictions were frozen in `frozen.json` (commit `b32f1de`, 13:11:16)
+before any file of `held` was opened (13:12:10). Replay at 0.95 on five stored passes of the
+disclosed samples and on `held` `S11v2`: cut 68.9% to 83.5% (`held` 72.3%), 0 fixed / 0 broken
+against the full pass on all six; the plan's five pass totals reproduced. Key-off parity pass on
+`mid` `S11n`: all 50,151 tries identical to the stored ones (voxel, candidate, end, cost, hit
+ratio, confidence, evaluations), same 1,491 changed voxels. Live skipped passes spend exactly the
+replay's evaluations on all four samples; live wrong voxels differ from the replay by +3 (`mid`),
+-3 (first gradient), +4 (`big`) and +6 (`held`), so prediction 4 fails on all four. On `held`
+live: 75 wrong against 69 with the full pass, fixed / broken 4 / 10, the run needs 10.0% fewer
+evaluations than with the full pass. The skip fails the plan's rule on `held`, `mid` and `big`
+and passes on the first gradient sample, so it fails the step: the key stays off, not
+recommended; `h` was not tuned. Every flipped voxel is a kept voxel (none skipped); consistent
+with the kept tries drawing other random numbers from the one generator, not tested. Wall times
+are contended; no timing claim. Tests run: the touched files and the `boundary_pass`,
+`config_file`, `reconstructor`, BFS key files (201 passed); the full suite is left to the merge.
+Page: `docs/autoresearch/findings_ar5_gate.md`; the page text waits for the owner to place it at
+that path.
+
+### AR5 step 7, phase D: variant 2, aligned draws (decided after the first live result, D-20261112-N5)
+
+Variant 1's live skipped passes (above) failed the plan's rule on `held`, `mid` and `big`. Phase D
+tests whether the order of random draws caused the flips. Read from the code: a CMA try draws
+exactly one integer (`CMAOptimizer.optimize`, before any early return) from the pass's generator,
+and the pass draws nothing else; a voxel's number of tries is its candidate count, known before
+any try. Library change in `boundary_pass.py` only, with the key on: each skipped try draws and
+discards that integer (no evaluation). Key off is unchanged. Tests first (3 new, 17 in
+`tests/test_boundary_pass_skip.py`): a cut that skips nothing equals key off try by try; kept
+tries get the full pass's draws; key-off draws unchanged. Live passes, same seed 0, same four
+samples: every kept try identical to the stored full pass (voxel, candidate, end, cost, hit ratio,
+confidence, evaluations): 15,592 of 15,592 (`mid`), 10,074 (first gradient), 4,491 (`big`),
+23,557 (`held`); fixed / broken 0 / 0 on all four; wrong voxels equal the replay's (35, 59, 18,
+69); pass evaluations equal the replay's; the rule passes on all four. Draw order was the whole
+cause of variant 1's flips on these four stored maps (one run each): variant 2 changes only the
+discarded draws, and every kept try is then identical. The other cause named in D-20261112-N5
+(kept tries starting from neighbour ends the pass had changed) is ruled out by the code: tries
+start from `R`, a snapshot of the map before the pass. `held` was read live once, under variant 1,
+before variant 2 was decided, so `held` is not a clean test of variant 2; its variant 2 entries in
+`tables.md` and `pareto_rows.json` say so. With the key on, the library always gives variant 2:
+variant 1 cannot be selected and is reproducible only at commit `7b4fd0f` (library as at
+`31cfa0b`). Variant 1's files are unchanged; variant 2's carry `_v2`. Variant 1's flips are also a
+finding, from one shifted re-draw of the kept tries per sample (n = 1; the spread over re-draws is
+not measured): it changes 820 to 1,674 kept voxels' ends and gives 4/7, 15/12, 2/6 and 4/10 fixed
+/ broken against the full pass; a tilt toward broken cannot be judged from these counts. Review
+fixes (2026-11-12): a test ties `CMA_SEED_BOUND` and the one draw per try to the real
+`CMAOptimizer.optimize` (9 new test cases, 26 in `tests/test_boundary_pass_skip.py`); the plot
+title no longer clips.
+
+## Autoresearch AR5 step 8, phase A: sweep order of the mixed seed refinement, scripts and checks (2026-11-12, task ar5h)
+
+Scripts and checks only (D-20261112-N7, amended by D-20261112-N8): nothing under `icenine/` changed, no key,
+no default, no golden, no dependency. Both arms are the run `S11` (merged keys, no `N1` rule). Scripts
+`scripts/autoresearch/ar5/order_*.py` and `order_run_all.sh` (they import steps 2 and 3), tests
+`tests/test_ar5_order.py` (14 tests: the sweep rule on synthetic steps, the aligned-draw seeding), results in
+`benchmarks/autoresearch/ar5/order/`. Aligned draws live in the script layer (`order_draws.py`): every
+neighbour/revisit fit, grid fallback and pass try draws from its own generator seeded by (voxel, kind of
+call, count at that voxel). The what-if table of the plan was reproduced from the stored replay to the
+digit (329, 1,279 and 1,611 steps; sweep order 230,604, 1,301,274 and 3,268,675 seed-step evaluations).
+Checks: 20 stored seed steps of `mid`, both orders, run live: 20 of 20 identical in both orders (86 fits,
+63,306 and 21,011 evaluations, as stored); arm `A` twice on `big`: identical map, seed log, MC traces,
+totals (2,672,415 before the pass) and pass (1,135,332 evaluations); the interleaved order with the
+library draws (`Al`) reproduces step 3 `S11` on `big` exactly (2,879,705 before the pass, same map).
+The freeze (`order/frozen.json`) was committed before any `held` read. The nine whole-layer runs are
+started by `order_run_all.sh` (phase A step 5, not made in this task).
+
+**Result (phase A step 5, commit e601888; review fixes 2026-11-12).** The step FAILS its frozen
+rule, so there is no key `SeedIndexCMASweep`, no phase B and nothing tuned (D-20261112-N9). The
+sweep order `Y` passes rules 1 to 4 against the present order `A` on all four samples. It fails
+rule 5, the house rule against `S8`, on `held` (broken minus fixed 8, limit 5) and on `mid` (7).
+`A` passes rule 5 on all four samples, so the clause "if `A` itself fails (5)" does not apply.
+Saving of `Y` against `A`: 22.6%, 38.8%, 16.4% and 60.1% of the seed-step evaluations (`held`,
+`mid`, `grad`, `big`), 7.7%, 13.4%, 2.1% and 10.6% of the total with the pass (the grid
+fallback, neighbour fits, revisits and the pass do not change). `Y` against `A` after the pass,
+fixed / broken: 1 / 6, 2 / 5, 0 / 0, 3 / 0. Predictions not met: 1-2 on `big` (total cut 10.6%
+against 12% to 22%) and 3 on `held` (net 5 against -3 to 3); the others met. Validity: no step of
+`Y` ran MC after a CMA end at 0.95, and 0 shared fits differ (10,564, 2,896, 2,649, 318).
+How the runs part (`order_trace.py`, from the run files, review fixes 2 and 3): the two seed logs
+visit the same voxels for the first 116, 65, 458 and 28 seed steps; the first taken end that
+differs is at step 30, 52, 457 and 22 (counting from 1; the review's 0-based 29, 51, 456, 21);
+before the pass the maps differ at 2,749, 3,049, 125 and 1,175 voxels. The earlier sentence "none
+of the differing ends is wrong" covers only the matched seed steps (3,231 on `held`). Steps made
+in one arm only: 478 / 449, 434 / 437, 19 / 11, 100 / 102, with 1 / 2, 4 / 2, 0 / 0, 0 / 0 wrong
+ends. On `held` and `mid` 14 voxels flip (the review counted 13): 6 made before the pass and 8 in
+the pass. Two come straight from a wrong seed end at a seed step only `Y` made (`held` 9669, `mid`
+13013; no end reached 0.95 there, and both orders take the lowest cost then). The flips are
+consistent with path divergence after the first differing end; this was not traced voxel by
+voxel. Noise (review fix 4): the nets of `Y` against `A` and the margin of rule 5 (net 3 for `A`,
+8 for `Y`, limit 5 on `held`) are within the draw noise seen before (step 7, one re-draw of the
+pass tries: 4 / 10, 4 / 7, 15 / 12, 2 / 6; here `Yl` against `Y` on `big`: 5 / 12), and the
+comparisons with `S8` are not draw-aligned. The FAIL is the outcome of the pre-set rule, not a
+measured accuracy cost of the sweep order. Review fixes also: `tables.md` headers spelled out
+(the wall column says contended, not a timing result) and an `order_terms` block (fix 5); the log
+readers moved unchanged to `order_logs.py` (`stats_<sample>.json` reproduce byte for byte) and 7
+new tests of them and of the verdict (21 in `tests/test_ar5_order.py`); the plot has Wilson 95%
+bars and the `S8` and `Yl` points; a local `.gitignore` keeps the run cache out. The pareto rows
+file holds `A` and `Y`, before and after the pass, on all four samples (16 rows). The page
+`docs/autoresearch/findings_ar5_order.md` waits for the owner (fix 6): the guard refused the
+helper's write; its text is in `.claude/reports/20261112-ar5h-page.md` of the fixes worktree.
+
+## Autoresearch AR5 step 9, phase A: rescue of a failed seed before the grid fallback (2026-11-12, task ar5i)
+
+Script layer only; no library change, no golden change. Rule `G1` (plan, "AR5 step 9"): after a
+failed seed test, try the kept ends of the seed step in order of cost with a CMA local
+optimization (0.25 degree, 1,000 evaluations, `default_rng(0)`), at most 5; take the first end
+with hit ratio at least 0.95; else the grid fallback as today. Arm `G` is step 8's arm `A` with
+`G1`. Files: `scripts/autoresearch/ar5/rescue_*.py`, `tests/test_ar5_rescue.py` (17 tests),
+`benchmarks/autoresearch/ar5/rescue/` (cache untracked). Frozen at commit `b6f93d9` (2026-11-12
+23:27:17) before any `held` file was read. Deviation from the plan's order: the cost check and the
+replay ran at 22:46 to 22:48, before the freeze commit (plan: freeze at step 3). They used the
+disclosed samples only, with the plan's approved values, which were not changed after.
+
+- Stored totals reproduce: fallback evaluations 3,726,723 (`grad`) and 4,007,241 (`mid`); totals
+  with the pass 12,189,777, 15,645,472 and 3,807,747 (`big`).
+- Cost check (prediction 1): the grid fallback's end costs less than every kept end in 23 of 23
+  cases (predicted at least 21). The end is the voxel's orientation in the stored map, not the
+  fallback's own end (not stored).
+- Replay of `G1` on the 23 disclosed cases (gate): rescued 14 of 23 (Wilson 95% 41% to 78%), no
+  wrong rescued end (errors 0.001 to 0.011 degree, median 0.003), 66 tries (mean 2.87 a case;
+  prediction 2.5 not met), 66,066 evaluations (a cost estimate: kept ends are the log's 12-decimal
+  values). Gate (at least 12, no wrong end): passed.
+- A short script-layer run on `mid` (an integration check, killed before the end; contended, not a
+  timing) rescued six of the disclosed fallback voxels and fell back to the grid at voxel 7167, as
+  the replay predicts.
+- Per-level record of the 23 grid fallbacks (untracked): re-running them with arm `A`'s aligned
+  draws reproduces the stored fallback evaluations exactly (3,726,723 and 4,007,241).
+- `rescue_run_all.sh` (held 300 min, others 240, at most 4 heavy processes, held first;
+  `--dry-run`, `--resume`, marker `rescue_run_all.done`).
+
+Step 6, the whole-layer runs of arm `G` and their boundary passes (contended; wall times not
+given), from `rescue/summary.json`, `tables.md`, `stats_<sample>.json` and
+`isolation_<sample>.json`:
+
+- Total evaluations with the pass, `A` to `G`: `held` 46,516,396 to 30,768,867 (33.9% fewer),
+  `mid` 15,645,472 to 13,004,457 (16.9%), `grad` 12,189,777 to 10,196,692 (16.4%), `big`
+  3,807,747 in both. Grid fallbacks 65 to 19, 12 to 4, 11 to 5, 0 to 0.
+- Rescued of tried: `held` 46 of 65 (Wilson 95% 58.8% to 80.4%), `mid` 8 of 12 (39.1% to 86.2%),
+  `grad` 6 of 11 (28.0% to 78.7%); wrong rescued seeds 0 of 60 (0.0% to 6.0%). Every try is in the
+  totals as 1,001 evaluations (167, 32 and 34 tries); the one overlap evaluation per try for the hit
+  ratio (233 in all) is not counted, as in the seed step.
+- Accuracy, `G` against `A` by voxel, after the pass: fixed / broken 4 / 0 (`held`), 0 / 0 on the
+  other three; wrong voxels after the pass (`A`, `G`) 73, 69; 35, 35; 56, 56; 21, 21. Before the pass
+  the 3 `held` voxels fixed are rescued voxels where `A`'s map was 47 to 58 degrees off and `G`'s end
+  is right. So on `held` the grid fallback's voxel ended wrong at 3 of the 46 rescued voxels: the
+  23 of 23 right ends of the disclosed samples do not carry over.
+- Draw isolation (review fix 6): voxels whose map differs between `A` and `G` before the pass: `mid`
+  8, exactly the rescued set; `grad` 32 (6 rescued and 26 others, 20 of them in a rescued voxel's
+  grain, largest change 0.2707 degree); `held` 67 (46 and 21, 20 in a rescued grain, largest
+  0.1010). This is consistent with local growth from the changed seeds; the growth link of the rest
+  is not traced. `G` equals `A` on `big`, but no seed test fails there, so that shows only that the
+  idle wrapper adds no draws; it is not a test of isolation.
+- At the rescued voxels `G`'s end differs from `A`'s by a median of 0.0123 degree (`mid`, largest
+  0.0907) and 0.0018 (`grad`, largest 0.0178); on `held` by at most 0.7050 where `A` was right. The
+  table column "seed step's own end differs" is 0 by construction (the rescue runs after the seed
+  step, whose fits are unchanged): it checks the pairing only.
+- Rules (1) to (5) are met on all four samples; `A` also passes rule (5) on all four, so the
+  "if `A` fails (5)" clause was not used. Predictions 1, 3 and 4 met; 2 not met (mean tries 2.87);
+  5 not met only because `held`'s broken minus fixed is -4, outside -3 to 5 on the favourable side.
+  Step verdict: PASS, READY FOR KEY (phase B: D-20261113-N1).
+
+## Autoresearch AR5 step 9, phase B: the opt-in key SeedRescueCMA (2026-11-13, task ar5i)
+
+Approved in D-20261113-N1 (with the 8 review fixes of phase A, done first). One opt-in library
+key, `SeedRescueCMA sigma evals`, default `0 0` (off); no default changed, no golden file
+regenerated, no new dependency. Turning it on by default is the owner's choice; the study does
+not recommend it.
+
+- Library: `ray_indexing.seed_rescue` (rule `G1`: kept ends in order of cost, ties by position,
+  at most `SEED_RESCUE_MAX_TRIES` = 5, the first end with hit ratio at least the stop ratio is
+  taken), `AdaptiveVoxelReconstructor.rescue_seed` (one CMA local optimization per try, first step
+  `sigma`, `evals` evaluations, a fresh `default_rng(0)` each), and in `BFSReconstruction`
+  `_index_seed` / `_rescue_seed` (after the seed test fails and before the grid search; the
+  evaluations count as the seed's and in `index_rescue_*`). `config_file.py` parses the key and
+  `orientation_search.check_seed_rescue` checks it; `check_bfs_keys` needs `SeedByIndexing 1`,
+  `SeedIndexStopHitRatio` above 0 and `LocalOptimizer mc`. The plan names
+  `reconstructor.index_seed`; the seed test is applied by its caller, the BFS, so the rescue sits
+  in the BFS's seed path, with the per-voxel code next to `index_seed`.
+- Tests first: `tests/test_bfs_seed_rescue.py` (42: parsing, bad values, refused combinations,
+  the rule on synthetic steps, the call arguments of a rescue, key off equal to key absent, the
+  BFS bookkeeping with the key on, the rule equal to the script's `rescue_rules.rescue_choose`).
+  Key off: full suite 1,842 passed, 44 skipped, 1 deselected (`rescue/suite_counts.json`, written
+  by `rescue_suite_counts.py` from the run's junit file); no golden change.
+- Pilot: the library's `rescue_seed` on the 12 failed seed steps of `mid` that the phase A
+  replay used gives the replay's tries exactly on all 12.
+- Key on, `mid` (`rescue/lib_check.json`, `tables_lib.md`): the library run `LibG`
+  (`rescue_lib_run.py`, keys of `S11L` plus `SeedRescueCMA 0.25 1000`) equals the script arm `Gl`
+  (`rescue_gl.py`: arm `G` with library draws) before the boundary pass: the stored map byte for
+  byte, 10,064,185 evaluations, all 36 counters of the script run (the script's grid count holds
+  its rescue evaluations), the 24,570 records, and the rescues (13 tried, 10 rescued, 30 tries,
+  every try equal). The control `LibS11` (key off) equals the stored script run `S11` of step 3 the
+  same way (13,034,526 evaluations).
+- The boundary pass made inside the library run differs from the script's pass of `Gl`: 50,026
+  against 50,027 tries, 3,051,586 against 3,051,647 evaluations (13,115,771 against 13,115,832 with
+  the pass). After the pass, 1,683 voxels are more than 0.001 degree apart and 8 more than 1
+  degree apart; the largest gap is 60.2 degrees. Accuracy after the pass has the same count: 37
+  wrong voxels in both, and by voxel (script pass as the base) 4 fixed, 4 broken, 33 wrong in both
+  (`lib_check.json`, table `libpass`). The control (key off) differs the same way (49,968 against
+  49,970 tries). The library's pass function on the stored map of `Gl` (`rescue_lib_pass.py`) gives
+  the script's tries exactly (every field) and the same changed voxels.
+- Try by try (table `libtries`): the in-run pass and the script's pass try the same voxels and
+  candidates in the same order for the first 11,632 tries (control: 4,872), but the ends already
+  differ from try 0, in 11,626 of those tries (control: 4,870), with no evaluation count
+  different. Same targets and the same fresh generator would give an equal try 0 if the input maps
+  were equal; a shifted generator would keep the early tries equal. So the input maps differ from
+  the start. That is consistent with the in-run pass reading the unrounded map in memory and the
+  script the stored, rounded `.mic`. This reading was tested directly in AR3 step 10 (fixes round,
+  `libkeys_fresh.py`: a fresh process on the unrounded map gave the in-run pass try for try, and on
+  the `.mic`-rounded map the script's tries). It was not tested again for this run: the library
+  run's unrounded map before the pass was not saved.
+- Stop rule: read strictly, the plan's stop rule fired on the in-run boundary pass (the key-on
+  library run differs from the script arm after the pass). The run stopped and reported. The key
+  was accepted on the before-the-pass equality by D-20261113-N2, as in AR3 step 10 and AR5 step 5.
+- macOS file names are case-insensitive: the library run folders are `LibG_mid` / `LibS11_mid`, not
+  `GL_mid` (a first start with `GL` shared the folder with `Gl` and was stopped after a minute).
+- Second review fixes (review `20261113-0520-review-ar5i-B`, D-20261113-N2): the pass difference
+  and the try-level evidence above (fixes 1, 2), no pointer to an untracked file (fixes 3, 4), the
+  suite counts in a tracked file (fix 5), and the failed-rescue BFS test now asserts that the grid
+  search gets the BFS generator object in the same state as with the key off (fix 6).
+- Page: the findings page waits for the owner (the guard refused its write).
+
+## Autoresearch AR5 step 10, phase A: the level-0 cut (gate not passed) (2026-11-13, task ar5j)
+
+**Outcome.** The step fails its replay gate. By the rule fixed before the run there is no tuning,
+no other N, no whole-layer run and no key `GridLevel0Top` (D-20261113-N4). This section is the
+record of the step; there is no findings page. Script layer only: nothing under `icenine/` changed,
+no default, no golden, no dependency.
+
+**The rule.** A grid search has four levels. Each level lists candidates sorted by the discrete
+score, runs a quick MC refinement on each one, and keeps the best quarter for the next level. At
+level 0 the list holds about 10,200 candidates. The level-0 cut runs the quick MC of level 0 only
+on the first N = 1,000 of that list. The quarter kept is counted from the cut list, so level 1
+starts from 250 candidates. Levels 1 to 3 and the final local optimization are unchanged. Each
+grid search keeps its own generator (voxel, "grid", 0). Files: `scripts/autoresearch/ar5/cut_*.py`
+(`cut_rules.py` the rule and the wrapper, `cut_replay.py` the replay, `cut_gate.py` the gate and
+the tables), `tests/test_ar5_cut.py` (8 tests), results in `benchmarks/autoresearch/ar5/cut/`
+(`frozen.json`, `gate.json`, `tables.md`, the 4 replay files). The run cache `cut/cache` is
+untracked: `cut_link_cache.sh` links it read only to the stored step 8 and 9 caches of sibling
+worktrees, so its inputs are gone if those worktrees are pruned.
+
+**Reproduction.** The 2 stored full searches were rerun without the cut. They give 335,077
+evaluations (`mid` 7167) and 341,304 (`grad` 19058), as stored, with the same end (0.0 degree
+apart). The record's totals are 4,007,241 (`mid`, 12 searches) and 3,726,723 (`grad`, 11), as
+stored.
+
+**The gate.** The cut was replayed on the 23 stored grid searches of `mid` and `grad` (disclosed
+samples). The replay's evaluation count is a cost estimate only. Reading line: one row per gate
+item; "full search" is the stored search the cut replaces, on the same 23 voxels.
+
+<!-- table:cut_gate -->
+| item | cut search | Wilson 95% | gate | full search | met |
+|---|---|---|---|---|---|
+| right (at most 1 degree) | 20 of 23 | 0.68 to 0.95 | at least 22 | 23 of 23 | no |
+| hit ratio at least 0.95 | 15 of 23 | 0.45 to 0.81 | at least 20 | 21 of 23 (0.73 to 0.98) | no |
+| evaluations, 23 searches | 2,499,899 | n/a | at least 50% fewer | 7,733,964 | yes (67.7% fewer) |
+<!-- /table:cut_gate -->
+
+Paired split against the full search, by voxel. Reading line: "fixed" means the cut meets the
+count where the full search does not; "broken" means the reverse.
+
+<!-- table:cut_paired -->
+| count | both | fixed | broken | neither |
+|---|---|---|---|---|
+| right | 20 | 0 | 3 | 0 |
+| hit ratio at least 0.95 | 14 | 1 | 7 | 1 |
+<!-- /table:cut_paired -->
+
+The three wrong cut ends are `mid` 1339, `grad` 20136 and `grad` 3494. The full search was right
+(at most 1 degree) in all three. `grad` 3494's full end was right at 0.55 degree, but its hit
+ratio of 0.70 was under 0.95. Reading line: one row per cut search that ends wrong or under hit
+ratio 0.95; angles are to the truth, except the last column.
+
+<!-- table:cut_cases -->
+| case | cut end, degrees | cut hit | full end, degrees | full hit | cut end to full end, degrees |
+|---|---|---|---|---|---|
+| mid 7167 | 0.06 | 0.77 | 0.002 | 1.00 | 0.06 |
+| mid 1339 | 34.98 | 0.75 | 0.016 | 0.95 | 34.99 |
+| mid 15577 | 0.04 | 0.88 | 0.022 | 0.97 | 0.06 |
+| mid 7134 | 0.02 | 0.93 | 0.008 | 0.96 | 0.02 |
+| mid 12282 | 0.17 | 0.66 | 0.002 | 0.98 | 0.17 |
+| grad 20136 | 24.36 | 0.71 | 0.004 | 0.98 | 24.36 |
+| grad 3494 | 50.27 | 0.66 | 0.550 | 0.70 | 50.34 |
+| grad 19063 | 0.18 | 0.80 | 0.021 | 0.99 | 0.16 |
+<!-- /table:cut_cases -->
+
+**Prediction 1** (written before the run). Reading line: one row per prediction for the replay.
+
+<!-- table:cut_pred1 -->
+| prediction | result | met |
+|---|---|---|
+| right in 23 | 20 | no |
+| hit ratio at least 0.95 in 20 or 21 | 15 | no |
+| within 0.1 degree of the full end in at least 18 | 17 | no |
+| 85,000 to 135,000 evaluations each | 103,749 to 112,041 | yes |
+<!-- /table:cut_pred1 -->
+
+Predictions 2 to 5 and the pass rules are not evaluated: no whole-layer run was made.
+
+**Deviations from the plan.**
+- Steps 8's and 9's freeze checks no longer agree, because step 9's phase B changed the library
+  (the opt-in key `SeedRescueCMA`, off). The step's own freeze (`cut_freeze.py`: the same script
+  list, the library as it is now) replaced them; `cut_common.py` switches the two older checks off
+  inside its own process only. Caveat: arm `C` would have run on the library after step 9's phase
+  B, while arm `G` is stored from before it. This is moot after the gate.
+- The freeze was committed twice (673076c, then f0eaf3c), both before any `held` run.
+- A wiring smoke of `cut_run.py` on `big` was killed after about 6 minutes, and its folder was
+  deleted. It was a wiring check, not a result.
+- The plan's step 1 said to rerun the 2 full searches "with the recorder". The reproduction checked
+  totals and end only, which is enough for the stop rule. The replay stores no per-level arrays and
+  no level-0 count kept.
+- `cut_run_all.sh` was not written: the gate failed first.
+- Review fix 3 changed `cut_run.py`'s docstring after the freeze, so `cut_freeze.py --check` no
+  longer agrees. No `held` run belongs to this step.
+
+**No `held` file was read.** The replay refuses any sample but `grad` and `mid`, and the gate reads
+only `cut/` files. The cache links to the `held` runs are names only; none was opened.
+
+**Read after the gate (post hoc, not a test).** The review read the stored per-level files of the
+full searches (no new search). Because the generator is shared, the cut's 1,000 quick-MC results
+equal the full search's first 1,000, so the stored record shows what the cut kept.
+- The plan's claim is right as stated: a candidate within 5 degrees of the end sits at place 165
+  or better of the level-0 list in 23 of 23. It measures reach at level 0 only.
+- In 7 of the 8 cut searches under 0.95, a candidate near the full end is in the first 1,000 and
+  survives the kept quarter. It is lost after level 0. In the eighth (`grad` 20136) no candidate
+  of the cut's 1,000 is within 3 degrees of the full end after the quick MC.
+- Five of the 7 end 0.02 to 0.17 degree from the full end but under 0.95: the basin is found and
+  the final local optimization falls short. Two end wrong (`mid` 1339, `grad` 3494), at an end
+  with hit ratio 0.75 and 0.66: near-degenerate solutions.
+- The cut also shrinks levels 1 to 3: they start from 250 candidates instead of about 2,540. On
+  `mid` 7167 the global stages use 47,124 evaluations instead of 77,517. The draws after level 0
+  also differ. Both are consistent with the losses; neither was tested. A single cut replay with
+  the recorder would separate them.
+
+**Lesson (D-20261113-N4).** A claim about where the right candidate sits at one level does not
+show that later levels keep it. The plan's choice (a) weighed level-0 reach alone, not the smaller
+later levels.
+
+**Review fixes** (review `20261113-0625-review-ar5j`, all 6 accepted by D-20261113-N4): this
+section (fix 1) and the README study line (fix 2); `cut_run.py`'s docstring says `cut_freeze`
+replaces the step 8 and 9 checks (fix 3); the full search was right in all three wrong cases
+(fix 4); `cut_gate.py` uses `stats.wilson`, and adds the 0.95 intervals, the paired split and
+`tables.md`, with `gate.json` gaining fields only (fix 5); the quarter test is labelled a
+statement of the library formula and the draw test a weak check (fix 6).
+
+## Autoresearch AR5 step 11, phase A: patience P(3000) (rule 5 failed on mid) (2026-11-13, task ar5k)
+
+**Outcome.** The step fails its frozen rules on one sample. Arm `S` passes all five rules on
+`held`, `grad` and `big`. On `mid` it passes rules (1) to (4) and misses rule (5) by one voxel net
+(6, limit 5; arm `G` is at 4). The plan said before the run that a fail on `mid` alone means no key.
+So there is no key `SeedIndexMCPatience`, no findings page, no tuning, no other k and no rerun
+(D-20261113-N6). This section is the record of the step. Script layer only: nothing under
+`icenine/` changed, no default, no golden, no dependency.
+
+**Terms.** A **seed step** starts a new grain region: it fits up to 5 candidate orientations of one
+voxel and takes one end. An **MC refinement** is the seed step's stock MC local optimization from
+one candidate. **Rule `P(k)`** stops an MC refinement after k cost evaluations with no strict gain
+of its best cost; it keeps the first lowest-cost orientation and spends one final evaluation. Arm
+**`G`** is step 9's stored arm (interleaved seed step with rescue `G1`). Arm **`S`** is `G` with
+`P(3000)`, in seed-step MC refinements only. **`S8`** is the stored baseline of the house rule.
+**Right** / **wrong**: at most / over 1 degree from the truth. **Aligned draws**: as in step 8, so
+`S` and `G` differ only where the rule acts. **Matched steps**: seed steps both arms have (same
+voxel, same occurrence at that voxel).
+
+**Files.** `scripts/autoresearch/ar5/patience_*.py` (`patience_rules.py` the rule and the counter,
+`patience_run.py` arm `S`, `patience_replay.py` and `patience_gate.py` the gate, `patience_stats.py`
+and `patience_summary.py` the numbers, `patience_unmatched.py` the unmatched steps,
+`patience_judge.py` the decision rules, `patience_whatif.py` the what-if tables),
+`patience_link_cache.sh`, `patience_run_all.sh`, `tests/test_ar5_patience.py` (33 tests), results
+in `benchmarks/autoresearch/ar5/patience/` (`frozen.json`, `gate.json`, `stats_<sample>.json`,
+`unmatched_<sample>.json`, `summary.json`, `tables.md`, `whatif.md`, `pareto_rows.json`, the plot).
+
+**Freeze and reproduction.** The stored counts of the stop rule reproduce: totals with the pass
+13,004,457 (`mid`), 10,196,692 (`grad`), 3,807,747 (`big`); seed steps 5,417,024, 1,528,284,
+687,902; traces 1,605, 991, 153. `frozen.json` (rule, k and file hashes) was committed in
+`32440b5`, before the gate and before the first `held` run. `patience_freeze.py --check` passes.
+No `held` trace, log, record or map was opened before that commit.
+
+**The gate.** Before any whole-layer run, every seed step with an MC refinement on the disclosed
+samples was replayed with the rule, along its whole changed path (later candidates, seed test,
+rescue, grid search). Reading line: one row per gate item; a cell gives the replay's count and,
+where the plan set one, the limit in brackets.
+
+<!-- table:patience_gate -->
+| gate item | mid | grad | big |
+|---|---|---|---|
+| seed steps replayed (all with an MC refinement) | 770 | 478 | 99 |
+| (g1) equal to G where uncut or cut after the last gain | yes | yes | yes |
+| (g2) taken ends changed (limit) | 25 (30) | 1 (3) | 4 (6) |
+| (g3) changed end wrong where G right | 0 | 0 | 0 |
+| (g3) failed seed tests G / replay | 12 / 12 | 11 / 11 | 0 / 0 |
+| (g4) evaluations saved, share of G's run (mid at least 8%) | 1,431,626 (11.01%) | 20,390 (0.20%) | 230,137 (6.04%) |
+| new rescues / new grid searches | 0 / 0 | 0 / 0 | 0 / 0 |
+<!-- /table:patience_gate -->
+
+The gate passed. The replay ran each seed step on its own, not inside a whole run (a disclosed
+deviation). This is sound because each refinement has its own generator. The review checked it on
+the whole runs below: every paired refinement of `S` is cut exactly where the rule predicts from
+`G`'s stored trace, with no mismatch on any sample.
+
+**The plot.** Run evaluations against wrong voxels, for `S8`, `G` and `S` on the four samples,
+before and after the boundary pass. `S` (square) sits left of `G` (circle) on `held`, `mid` and
+`big` at about the same height; on `grad` the two overlap.
+
+![Run evaluations against wrong voxels, S8, G and S](benchmarks/autoresearch/ar5/patience/ar5_patience_evals_wrong.png)
+
+**Whole layers.** Reading line: one row per sample and arm, after the boundary pass. Evaluations
+include the pass. "Fixed / broken vs G" counts voxels by voxel: fixed means wrong in `G` and right
+in `S`, broken the reverse. The `S8` columns compare each arm with `S8` the same way.
+
+<!-- table:patience_layer -->
+| sample | arm | evaluations with the pass | seed step | wrong after pass | Wilson 95% (%) | fixed / broken vs G | fixed / broken vs S8 | broken minus fixed vs S8 |
+|---|---|---|---|---|---|---|---|---|
+| held | G | 30,768,867 | 14,150,515 | 69 | 0.22 to 0.36 | n/a | 25 / 24 | -1 |
+| held | S | 29,010,916 | 12,039,131 | 69 | 0.22 to 0.36 | 0 / 0 | 25 / 24 | -1 |
+| mid | G | 13,004,457 | 5,417,024 | 35 | 0.10 to 0.20 | n/a | 9 / 13 | 4 |
+| mid | S | 11,626,275 | 4,044,515 | 37 | 0.11 to 0.21 | 0 / 2 | 8 / 14 | 6 |
+| grad | G | 10,196,692 | 1,528,284 | 56 | 0.18 to 0.30 | n/a | 31 / 24 | -7 |
+| grad | S | 10,181,935 | 1,512,978 | 55 | 0.17 to 0.29 | 1 / 0 | 32 / 24 | -8 |
+| big | G | 3,807,747 | 687,902 | 21 | 0.06 to 0.13 | n/a | 8 / 5 | -3 |
+| big | S | 3,616,809 | 493,914 | 21 | 0.06 to 0.13 | 0 / 0 | 8 / 5 | -3 |
+<!-- /table:patience_layer -->
+
+So `S` uses 5.71% fewer evaluations than `G` on `held` (seed step 14.92% fewer), 10.60% on `mid`,
+0.14% on `grad` and 5.01% on `big`. The decision rules, as frozen. Reading line: one row per
+sample; each rule gives its number, then pass or fail; rule (5) is against `S8` (percent fewer;
+broken minus fixed; median error shift in degrees).
+
+<!-- table:patience_rules -->
+| sample | (1) total fewer vs G (%) | (1) | (2) broken - fixed vs G | (2) | (3) median shift (deg) | (3) | (4) extra wrong seeds; grid S/G | (4) | (5) vs S8: fewer %; broken - fixed; median shift | (5) | G passes (5) | S passes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| held | 5.71; seed 14.92 | pass | 0 | pass | 0.00002 | pass | 0; 20/19 | pass | 51.6; -1; -0.00258 | pass | yes | pass |
+| mid | 10.60 | pass | 2 | pass | -0.00003 | pass | 0; 4/4 | pass | 56.0; 6; -0.00114 | fail | yes | FAIL |
+| grad | 0.14 | pass | -1 | pass | -0.00000 | pass | 0; 5/5 | pass | 43.4; -8; -0.00130 | pass | yes | pass |
+| big | 5.01 | pass | 0 | pass | -0.00000 | pass | 0; 0/0 | pass | 56.6; -3; -0.00116 | pass | yes | pass |
+<!-- /table:patience_rules -->
+
+**The two `mid` voxels.** `mid` misses rule (5) by one voxel net (6, limit 5; `G` is at 4).
+Against `G`, with aligned draws, `S` breaks 2 voxels and fixes none, both through changed growth
+paths, not through a changed seed end. One run cannot separate the rule's effect from path-to-path
+variation. `S8` is not draw-aligned.
+- Voxel 5714: a seed voxel in `G` (its seed end 0.0089 degree from the truth), grown from a
+  neighbour in `S`, where it ends 60.0 degrees off. `S8` is right there. This adds one "broken"
+  against `S8`.
+- Voxel 13013: a new seed step in `S` (a reseed), with no cut in that step. It took an end 44.7
+  degrees off, at hit ratio 0.906, which passed the 0.80 seed test: a near-degenerate solution.
+  `G`'s map is right there (0.057 degree). `S8` is wrong there, at the same 44.7 degrees. This
+  removes one of `G`'s "fixed" against `S8`.
+
+Both are consistent with changed growth paths after the 20 changed seed ends. Whether that is an
+effect of the rule or ordinary variation from one path to another is not tested: there is one run
+per arm, the plan forbids reruns, and no extra seeds are proposed. The plan's "within draw noise"
+is an untested hypothesis.
+
+**Matched and unmatched seed steps.** The fit-by-fit check and the "S wrong where G right" count
+(rule (4)) cover matched steps only. Reading line: one row per sample; "S-only wrong where G's map
+right" counts seed steps that only `S` has whose taken end is wrong while `G`'s map is right at that
+voxel (before the pass); the last column adds it to the matched count.
+
+<!-- table:patience_unmatched -->
+| sample | seed steps G / S | matched | only in S | only in G | S-only with a cut | S-only wrong where G's map right | G-only wrong where S's map right | wrong seeds, matched + S-only (limit 1) |
+|---|---|---|---|---|---|---|---|---|
+| held | 3,705 / 3,699 | 3,640 | 59 | 65 | 16 | 0 | 0 | 0 |
+| mid | 1,607 / 1,612 | 1,478 | 134 | 129 | 52 | 1 | 0 | 1 |
+| grad | 1,280 / 1,284 | 1,280 | 4 | 0 | 0 | 0 | 0 | 0 |
+| big | 317 / 316 | 281 | 35 | 36 | 15 | 0 | 0 | 0 |
+<!-- /table:patience_unmatched -->
+
+On matched steps every fit that differs is a cut MC fit (`held` 733 of 12,817 compared, `mid` 280
+of 3,920, `grad` 15 of 3,027, `big` 35 of 512; none other). The one S-only wrong seed is voxel 13013
+on `mid`. Under this broad reading of rule (4), `mid` has 1 extra wrong seed; the limit is 1, so the
+verdict does not change.
+
+**Small shares.** Reading line: one row per sample; each cell is a count of a total, with its
+Wilson 95% interval.
+
+<!-- table:patience_shares -->
+| sample | taken seed ends changed, of matched steps (Wilson 95%) | cut refinements whose end is under hit ratio 0.95 (Wilson 95%) |
+|---|---|---|
+| held | 41 of 3,640 (0.8% to 1.5%) | 420 of 763 (51.5% to 58.5%) |
+| mid | 20 of 1,478 (0.9% to 2.1%) | 151 of 348 (38.3% to 48.6%) |
+| grad | 1 of 1,280 (0.0% to 0.4%) | 3 of 15 (7.0% to 45.2%) |
+| big | 4 of 281 (0.6% to 3.6%) | 23 of 55 (29.7% to 55.0%) |
+| all four | n/a | 597 of 1,181 (47.7% to 53.4%) |
+<!-- /table:patience_shares -->
+
+About half of the cut refinements (597 of 1,181) stopped with a best end under hit ratio 0.95.
+They are kept as data for a later stop that reads the hit ratio (D-20261113-N6).
+
+**`held`, seed tests and fallbacks.** On `held`, `S` has 2 more failed seed tests than `G` (67
+against 65), 1 more rescue (47 against 46) and 1 more grid search (20 against 19). No rule is
+broken: rule (4) allows grid searches within 1 of `G`'s. Prediction 1's "within 1" was about the
+replay, which did not include `held`. Reading line: one row per sample and arm; counts of the whole
+run, wrong voxels after the pass.
+
+<!-- table:patience_wrong -->
+| sample | arm | failed seed tests | rescued | grid searches | wrong after pass | Wilson 95% (%) | median error (deg) |
+|---|---|---|---|---|---|---|---|
+| held | G | 65 | 46 | 19 | 69 | 0.22 to 0.36 | 0.02599 |
+| held | S | 67 | 47 | 20 | 69 | 0.22 to 0.36 | 0.02601 |
+| mid | G | 12 | 8 | 4 | 35 | 0.10 to 0.20 | 0.02861 |
+| mid | S | 12 | 8 | 4 | 37 | 0.11 to 0.21 | 0.02859 |
+| grad | G | 11 | 6 | 5 | 56 | 0.18 to 0.30 | 0.02134 |
+| grad | S | 11 | 6 | 5 | 55 | 0.17 to 0.29 | 0.02134 |
+| big | G | 0 | 0 | 0 | 21 | 0.06 to 0.13 | 0.03044 |
+| big | S | 0 | 0 | 0 | 21 | 0.06 to 0.13 | 0.03044 |
+<!-- /table:patience_wrong -->
+
+**Predictions** (written before any run). Reading line: one row per prediction; "True" means met,
+with the number in brackets.
+
+<!-- table:patience_predictions -->
+| prediction | held | mid | grad | big |
+|---|---|---|---|---|
+| 1 replay (gate) | n/a | True | False | True |
+| 2 replay saving | n/a | True | True | True |
+| 3 held seed 10-30% / total 4-12% fewer | True (14.9%; 5.7%) | n/a | n/a | n/a |
+| 4 total fewer (mid 8-12, big 4-7, grad -1..1) | n/a | True (10.6%) | True (0.14%) | True (5.0%) |
+| 5 broken - fixed vs G in -4..4, median shift <= 0.0005 | True (0) | True (2) | True (-1) | True (0) |
+<!-- /table:patience_predictions -->
+
+Prediction 1 fails on `grad` on one clause only: its single changed end is 0.122 degree from `G`'s
+(the clause asked for a median under 0.1).
+
+**The what-if cost models.** Before the runs, `patience_whatif.py` walked each rule through the
+stored seed steps (arithmetic, a cost estimate). `whatif.md` gives each saving with and without
+estimated extra candidates: a step that loses its 0.95 stop is assumed to run its remaining
+candidates, each priced at that step's mean evaluations per candidate. Without the extras, rule
+(iii) saves 8.96% on `mid`, which matches the plan's 9.0%. Its gap to 3.4% comes from the
+extra-candidate pricing, not from a different reading of the rule. That price includes the long
+refinements the rule cuts, so it is likely to overprice them. The implementer's report quoted a
+pessimistic saving of 1.6% for `P(3000)`; it is not stored in any file and is dropped here. Neither
+model is a measurement: the measured gate replay (11.01% on `mid`) and the whole run (10.60%)
+supersede both.
+
+**Deviations from the plan.**
+- The plan's table (ii) (best of 120 cost-gated rules, the in-sample checkpoint rule) was not
+  rebuilt: its definitions are not given to the digit.
+- The what-if counts 25 changed taken ends for `P(3000)` on `mid`, against the plan's 24; the role
+  table has 102 and 1,093 against the plan's 103 and 1,092 (one refinement differs; the plan's tie
+  rule is not known).
+- The gate replayed each seed step on its own (see "The gate").
+- `frozen.json` hashes the run scripts and the library, not `patience_replay.py`,
+  `patience_gate.py`, `patience_run_all.sh` or the imported helpers `reseed_common.py` and
+  `ar3/gradient_common.py`. The gate ran on disclosed samples, and `patience_judge.py` (written
+  after the runs) matches the plan's frozen rule text clause by clause, so nothing leaked; hashing
+  them would make that checkable.
+- A wiring smoke run on `big` (untracked `S_big_smoke`) used another seed set; it is not a result.
+- Wall times are contended and are not a timing result. No timing is claimed.
+
+**The run cache.** `patience/cache` is untracked. `patience_link_cache.sh` links it read only to
+stored runs in sibling worktrees (`agent-a8d20b38...` arm `G`, `agent-abdf6430...` arm `A`,
+`agent-af896187...` the `held` `S8`, `agent-a635b2f9...` and `agent-a9c88b61...` the other stored
+`S8` runs and starts); `order_link_inputs.sh` links the truth maps the same way. The arm `S` runs
+and their passes live in the implementer's worktree (`agent-a69be862...`). If those worktrees are
+pruned, the inputs go with them.
+
+**Review fixes** (review `20261113-1000-review-ar5k`, all 6 applied by D-20261113-N6): this section
+(fix 1) and the README study line (fix 2); the validity and wrong-seed columns are labelled as
+matched steps and the unmatched steps are counted (`patience_unmatched.py`, fix 3); the cost-model
+paragraph above (fix 4); `whatif.md` has reading lines and both shares (fix 5); `pareto_rows.json`
+and `summary.json` carry a status field marking a failed-step study (fix 6). The plot's log axis
+gained minor tick labels (a review suggestion).
+
+## Autoresearch AR5 step 12: stop a stalled MC refinement only when its best reaches 0.95 (phases A and B) (2026-11-13, task ar5l)
+
+**Outcome.** Rule `PH(3000)` passes its frozen decision rules on all five samples: the new sample
+`held2`, `held`, `mid`, `grad` and `big` (phase A, "READY FOR KEY"). Against step 9's arm `G` it
+uses 4.33% fewer evaluations on `held2` and 8.11% on `mid`, with the same wrong voxels on every
+sample. Phase B (D-20261113-N8) adds the opt-in library key `SeedIndexMCStallHit k`, default 0
+(off). No default changed, no golden file was regenerated, no dependency was added. The key is off
+by default and is not recommended as a default: whether to turn it on is the owner's choice.
+
+**Terms.** A **seed step** starts a new grain region: it fits up to 5 candidate orientations of one
+voxel and takes one end. An **MC refinement** is the seed step's stock MC local optimization from
+one candidate (its MC stage, then its variance stage, then one final evaluation). The **hit ratio**
+of an orientation is the share of its simulated peaks that land on lit pixels; a seed step ends at
+the first kept end with hit ratio 0.95 or more. A **stall** is 3,000 evaluations of an MC refinement
+with no strict gain of its best cost. A **stall check** evaluates the hit ratio of the refinement's
+running best once. **Rule `PH(3000)`**: at a stall check, stop the refinement if its best has hit
+ratio 0.95 or more (keep the first lowest-cost orientation; the check counts as the final
+evaluation); else go on (the check counts as one evaluation) and check again 3,000 evaluations after
+the next gain. Arm **`G`** is step 9's arm (interleaved seed step with rescue `G1`). Arm **`H`** is
+`G` with `PH(3000)`. **`S8`** is the house baseline. **Right** / **wrong**: at most / more than 1
+degree from the truth. **Aligned draws**: as in step 8, so `H` and `G` differ only where the rule
+acts. **Matched steps**: seed steps both arms have (same voxel, same occurrence at that voxel).
+
+**Samples.** `held2` is a new sample, built by `held_make_sample.py` exactly as `held` (250 Voronoi
+grains, orientation gradients from 0 to 4 degrees) with generator seed 2 instead of 1. It is a new
+sample for an honest carry-over test, not an extra random seed for a comparison: `held` had become
+a disclosed sample, because step 11 had run it and `H`'s seed steps on it follow almost exactly
+from step 11's stored logs. `held2` was built after the freeze commit and the gate, and nothing read
+it before its runs ended. Its provenance files are tracked
+(`benchmarks/autoresearch/ar3/held2/gradient/sample/{sample.json,held_check.json,grainmap.npy}`,
+`held2_stack.json`, `scripts/phase_d/results/render_held2_nodrop.json` and its preflight). `mid`,
+`grad` and `big` were read to choose the rule (disclosed). Clean images, Q-max 8.
+
+**Files.** `scripts/autoresearch/ar5/stallhit_*.py`: `stallhit_rules.py` (the rule, the counter,
+the wrapper), `stallhit_run.py` (arm `H`), `stallhit_whatif.py`, `stallhit_replay.py` and
+`stallhit_gate.py` (the gate), `stallhit_make_held2.py`, `stallhit_freeze.py`, `stallhit_stats.py`,
+`stallhit_extra.py` (review fixes 2 and 6), `stallhit_judge.py`, `stallhit_summary.py`; phase B
+`stallhit_hl.py` (script arm `Hl`), `stallhit_lib_run.py` (library run `LibH`),
+`stallhit_lib_check.py`, `stallhit_phase_b.sh`; shell helpers `stallhit_link_cache.sh`,
+`stallhit_run_all.sh`; `stallhit_cache_guard.py` (second review, fix 1). Tests
+`tests/test_ar5_stallhit.py` (the script rule), `tests/test_seed_index_stall_hit.py` (the key) and
+`tests/test_stallhit_cache_guard.py` (the cache guard). Results in `benchmarks/autoresearch/ar5/stallhit/`
+(`frozen.json`, `counts.json`, `whatif.md`, `gate.json`, `stats_<sample>.json`,
+`unmatched_<sample>.json`, `extra_<sample>.json`, `summary.json`, `tables.md`, `lib_check.json`,
+`tables_lib.md`, `pareto_rows.json`, the plot). The run cache is untracked.
+
+**Freeze and reproduction.** The stored counts of the stop rule reproduce: totals with the pass
+13,004,457 (`mid`), 10,196,692 (`grad`), 3,807,747 (`big`); seed steps 5,417,024, 1,528,284 and
+687,902. `frozen.json` (the rule, k and the hashes of the run scripts, the replay, the helpers and
+the library) was committed in `9e315e2`, before the gate and before `held2` was built. No frozen
+file changed after it. Two notes from the review: the `G` and `S8` runs on `held2` were started with
+`rescue_run.py` and `fit_run.py`, whose own guards check only `held`, so those two runs were not
+guarded at run time (their integrity rests on the check that no frozen file changed after
+`9e315e2`); and `stallhit_judge.py`, which encodes the decision rules, was written after the runs
+and is not in `frozen.json` (the review checked its thresholds against the plan text, clause by
+clause).
+
+**The gate.** Before any whole-layer run, every seed step with an MC refinement on the disclosed
+samples was replayed with the rule, along its whole changed path. Reading line: one row per gate
+item; a cell gives the replay's count and, where the plan set one, the limit in brackets.
+
+<!-- table:stallhit_gate -->
+| gate item | mid | grad | big |
+|---|---|---|---|
+| seed steps replayed (all with an MC refinement) | 770 | 478 | 99 |
+| MC fits: unchanged / cut after the last gain / cut before a later gain | 3,244 / 188 / 8 | 2,213 / 12 / 0 | 329 / 26 / 1 |
+| (g1) equal to G where uncut or cut after the last gain | yes | yes | yes |
+| (g2) taken ends changed (limit) | 8 (12) | 0 (1) | 1 (3) |
+| (g3) changed end wrong where G right; failed seed tests G / H | 0; 12 / 12 | 0; 11 / 11 | 0; 0 / 0 |
+| (g4) evaluations saved, share of G's run (mid at least 6%) | 1,022,595 (7.86%) | 16,501 (0.16%) | 172,491 (4.53%) |
+| changed ends still at 0.95 or more | 8 | 0 | 1 |
+| angle of a changed end to G's (deg) | 0.011 to 0.078 | none | 0.032 to 0.032 |
+| new rescues / new grid searches | 0 / 0 | 0 / 0 | 0 / 0 |
+<!-- /table:stallhit_gate -->
+
+The gate passed.
+
+**The plot.** Run evaluations against wrong voxels, for `S8`, `G` and `H` on the five samples,
+before and after the boundary pass. On every sample `H` (square) sits at the height of `G`
+(circle), a little to its left: fewer evaluations, the same wrong voxels. `S8` (open triangle) is
+to the right of both.
+
+![Run evaluations against wrong voxels, S8, G and H](benchmarks/autoresearch/ar5/stallhit/ar5_stallhit_evals_wrong.png)
+
+**Whole layers.** Reading line: one row per sample and arm, after the boundary pass. Evaluations
+include the pass. "Fixed / broken vs G" counts by voxel: fixed means wrong in `G` and right in `H`,
+broken the reverse. The `S8` column compares each arm with `S8` the same way.
+
+<!-- table:stallhit_layer -->
+| sample | arm | evaluations with the pass | seed step | wrong after pass | Wilson 95% (%) | median error (deg) | fixed / broken vs G | fixed / broken vs S8 |
+|---|---|---|---|---|---|---|---|---|
+| held2 | G | 32,554,555 | 15,269,080 | 67 | 0.21 to 0.35 | 0.02648 | n/a | 19 / 15 |
+| held2 | H | 31,143,763 | 13,862,375 | 67 | 0.21 to 0.35 | 0.02649 | 0 / 0 | 19 / 15 |
+| held | G | 30,768,867 | 14,150,515 | 69 | 0.22 to 0.36 | 0.02599 | n/a | 25 / 24 |
+| held | H | 29,588,170 | 12,971,953 | 69 | 0.22 to 0.36 | 0.02600 | 0 / 0 | 25 / 24 |
+| mid | G | 13,004,457 | 5,417,024 | 35 | 0.10 to 0.20 | 0.02861 | n/a | 9 / 13 |
+| mid | H | 11,950,397 | 4,363,940 | 35 | 0.10 to 0.20 | 0.02861 | 0 / 0 | 9 / 13 |
+| grad | G | 10,196,692 | 1,528,284 | 56 | 0.18 to 0.30 | 0.02134 | n/a | 31 / 24 |
+| grad | H | 10,180,191 | 1,511,783 | 56 | 0.18 to 0.30 | 0.02134 | 0 / 0 | 31 / 24 |
+| big | G | 3,807,747 | 687,902 | 21 | 0.06 to 0.13 | 0.03044 | n/a | 8 / 5 |
+| big | H | 3,635,256 | 515,411 | 21 | 0.06 to 0.13 | 0.03045 | 0 / 0 | 8 / 5 |
+
+Note: G and H share their random draws (aligned draws). S8 does not: the counts against S8 pair the same voxels only.
+<!-- /table:stallhit_layer -->
+
+So `H` uses 4.33% fewer evaluations than `G` on `held2` (seed step 9.21% fewer), 3.84% on `held`,
+8.11% on `mid`, 0.16% on `grad` and 4.53% on `big`. The wrong voxels are the same voxels as `G`'s on
+every sample: 0 fixed and 0 broken, before and after the pass.
+
+The decision rules, as frozen. Reading line: one row per sample; each rule gives its number, then
+pass or fail; rule (5) is against `S8` (percent fewer; broken minus fixed; median error shift in
+degrees).
+
+<!-- table:stallhit_rules -->
+| sample | (1) total fewer vs G (%) | (1) | (2) broken - fixed vs G | (2) | (3) median shift (deg) | (3) | (4) extra wrong seeds (matched + unmatched); grid H/G | (4) | (5) vs S8: fewer %; broken - fixed; median shift | (5) | G passes (5) | H passes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| held2 | 4.33; seed 9.21 | pass | 0 | pass | 0.00000 | pass | 0; 21/21 | pass | 49.1; -4; -0.00131 | pass | yes | pass |
+| held | 3.84 | pass | 0 | pass | 0.00001 | pass | 0; 19/19 | pass | 50.6; -1; -0.00259 | pass | yes | pass |
+| mid | 8.11 | pass | 0 | pass | -0.00000 | pass | 0; 4/4 | pass | 54.8; 4; -0.00111 | pass | yes | pass |
+| grad | 0.16 | pass | 0 | pass | 0.00000 | pass | 0; 5/5 | pass | 43.4; -7; -0.00129 | pass | yes | pass |
+| big | 4.53 | pass | 0 | pass | 0.00001 | pass | 0; 0/0 | pass | 56.4; -3; -0.00116 | pass | yes | pass |
+
+Note: G and H share their random draws (aligned draws). S8 does not: the counts against S8 pair the same voxels only.
+<!-- /table:stallhit_rules -->
+
+**Stall checks.** Reading line: one row per sample, arm `H`. A check that "went on" found a best
+under 0.95. Hit ratios near 0.95 print with 4 decimals, so a check that went on never reads as
+0.95.
+
+<!-- table:stallhit_cuts -->
+| sample | MC refinements | stall checks | stopped (cuts) | went on | hit ratio of the checks that went on (min / median / max) | lowest hit ratio at a stop | evaluations in cut ones |
+|---|---|---|---|---|---|---|---|
+| held2 | 5,652 | 833 | 357 | 476 | 0.4458 / 0.9020 / 0.9494 | 0.9500 | 1,324,060 |
+| held | 5,443 | 789 | 343 | 446 | 0.4912 / 0.9026 / 0.9498 | 0.9503 | 1,266,396 |
+| mid | 1,606 | 346 | 197 | 149 | 0.6718 / 0.9114 / 0.9485 | 0.9502 | 781,191 |
+| grad | 991 | 15 | 12 | 3 | 0.8835 / 0.9175 / 0.9260 | 0.9514 | 37,253 |
+| big | 153 | 45 | 27 | 18 | 0.5246 / 0.8954 / 0.9495 | 0.9617 | 117,288 |
+<!-- /table:stallhit_cuts -->
+
+Every stop is at hit ratio 0.95 or more (lowest 0.9500, on `held2`); every check that went on is
+under it (highest 0.9498, on `held`).
+
+**Changed seed ends.** Reading line: one row per sample; matched steps only, except the last column,
+which adds the seed steps only `H` has (its end wrong where `G`'s map is right).
+
+<!-- table:stallhit_changed -->
+| sample | seed steps G / H | matched | only in H | only in G | taken ends changed (matched) | median angle to G (deg) | changed, now at 0.95 or more | changed, max error H (deg) | H wrong where G right: matched + only-H |
+|---|---|---|---|---|---|---|---|---|---|
+| held2 | 3,631 / 3,632 | 3,600 | 32 | 31 | 12 | 0.0622 | 12 | 0.0986 | 0 + 0 |
+| held | 3,705 / 3,700 | 3,687 | 13 | 18 | 3 | 0.0192 | 3 | 0.0634 | 0 + 0 |
+| mid | 1,607 / 1,607 | 1,582 | 25 | 25 | 7 | 0.0331 | 7 | 0.1303 | 0 + 0 |
+| grad | 1,280 / 1,280 | 1,280 | 0 | 0 | 0 | 0.0000 | 0 | 0.0000 | 0 + 0 |
+| big | 317 / 317 | 317 | 0 | 0 | 1 | 0.0317 | 1 | 0.0449 | 0 + 0 |
+<!-- /table:stallhit_changed -->
+
+**Why the wrong voxels are the same although maps differ.** The two maps are not identical. Reading
+line: one row per sample, `H` against `G`; a voxel "differs" when any entry of its stored orientation
+differs; the error is the angle to the truth.
+
+<!-- table:stallhit_mapdiff -->
+| sample | voxels that differ, before / after the pass | largest angle H to G, before / after (deg) | largest error of a differing voxel, after (deg) | differing voxels wrong in both, after | wrong in one arm only, after |
+|---|---|---|---|---|---|
+| held2 | 213 / 240 | 0.305 / 0.309 | 0.297 | 0 | 0 |
+| held | 54 / 65 | 0.243 / 0.364 | 0.268 | 3 | 0 |
+| mid | 127 / 173 | 0.419 / 0.459 | 0.253 | 0 | 0 |
+| grad | 0 / 0 | 0.000 / 0.000 | n/a | 0 | 0 |
+| big | 1 / 1 | 0.032 / 0.032 | 0.045 | 0 | 0 |
+<!-- /table:stallhit_mapdiff -->
+
+After the pass the maps differ at 240 voxels on `held2`, 65 on `held`, 173 on `mid` and 1 on `big`,
+by up to 0.309, 0.364, 0.459 and 0.032 degree. On `grad` they are byte-identical. Every differing
+voxel has an error of at most 0.297 degree in both arms after the pass (0.398 before it), so it
+stays far under the 1 degree line, except 3 `held` voxels that are wrong in both arms (about 35
+degrees). That is why the wrong-voxel sets match: the changes are real, but small and far from the
+line. (The phase A report's "under 0.13 degree" was the largest error of a changed taken end, not
+the size of the map differences; review fix 2.)
+
+**Same candidate.** Prediction 1 said a changed end stays at the same candidate. Reading line: one
+row per sample; the matched seed steps with fits in both arms, and how many have the same stop
+position, the same taken position and the same fits.
+
+<!-- table:stallhit_samecand -->
+| sample | matched seed steps with fits | same stop position | same taken position | same fits (position, candidate, kind) |
+|---|---|---|---|---|
+| held2 | 3,600 | 3,600 | 3,600 | 3,600 |
+| held | 3,687 | 3,687 | 3,687 | 3,687 |
+| mid | 1,582 | 1,582 | 1,582 | 1,582 |
+| grad | 1,280 | 1,280 | 1,280 | 1,280 |
+| big | 317 | 317 | 317 | 317 |
+<!-- /table:stallhit_samecand -->
+
+On all five samples every matched step stops at the same candidate position with the same fits.
+
+**Predictions** (written before the runs). Reading line: one row per prediction; each cell is
+"True" or "False" with its number.
+
+<!-- table:stallhit_predictions -->
+| prediction | held2 | held | mid | grad | big |
+|---|---|---|---|---|---|
+| 1 replay (gate) | n/a | n/a | True (8 changed) | True (0 changed) | True (1 changed) |
+| 1, same candidate: every matched step stops at the same position (whole run, stallhit_extra.py) | True | True | True | True | True |
+| 2 replay saving | n/a | n/a | True (7.86%) | True (0.16%) | True (4.53%) |
+| 3 total fewer (mid 6-9, big 3.5-5.5, grad -0.5..0.5, held 2-6, held2 2-8; held2 seed 6-18) | True (4.33%) | True (3.84%) | True (8.11%) | True (0.16%) | True (4.53%) |
+| 4 broken - fixed vs G in -3..3, median shift <= 0.0005 | True (0) | True (0) | True (0) | True (0) | True (0) |
+| 5 mid passes rule 5 | n/a | n/a | True | n/a | n/a |
+<!-- /table:stallhit_predictions -->
+
+**Phase B: the key.** Approved in D-20261113-N8.
+- Library: `SeedIndexMCStallHit k` (default 0). `config_file.py` parses it,
+  `orientation_search.check_seed_index_mc_stall_hit` checks it (an integer of 0 or more), and
+  `check_bfs_keys` needs `SeedByIndexing 1`, `SeedIndexStopHitRatio` above 0 and
+  `LocalOptimizer mc`. In `AdaptiveVoxelReconstructor.index_seed` every MC refinement of a candidate
+  (the stock one, or the MC refinement of the mixed one) runs through `seed_mc_refine`: the stock
+  `refine_from_candidates` with `default_rng(0)` and its own local cost function wrapped by
+  `SeedMCStallHit`. The wrapper sits on that one cost function, not on the cost function class. It
+  counts exactly as the script does: an uncut refinement counts its evaluations plus one per check
+  that went on; a stopped one counts the evaluations before the check, plus the check, plus one per
+  earlier check that went on. On a stop the kept cost is the one already computed for the best (the
+  script evaluates it once more without counting it). The two costs agree: in all 197 stopped
+  refinements of `Hl` the script's re-evaluated cost equals the kept running-best cost bit for bit
+  (checked by the second review from `Hl`'s cached trace), so results and counts are the same. The
+  counters `index_stallhit_*` and the `stall_hit` field of each `index_log` entry exist only with
+  the key on.
+- Tested scope (second review, fix 2): the key ran on real data only together with
+  `SeedIndexCMAFirst 200` and `SeedRescueCMA 0.25 1000` (step 9's `LibG` keys), that is the MC part
+  of the mixed refinement. The stock path, without `SeedIndexCMAFirst`, is covered by unit tests
+  only. No key-off control run was made in this step (step 9 had `LibS11`): with the key off nothing
+  changes by construction and the unit tests check it, but no real-data control run exists (fix 3).
+- Tests first: `tests/test_seed_index_stall_hit.py` (parsing, bad values, refused combinations, the
+  counter on synthetic sequences, `seed_mc_refine` against the stock refinement, the same results
+  as the script's `patch_evaluate` and counting on 12 random cost sequences with ties, the wiring in
+  `index_seed`, and the BFS with the key absent, written 0 and on, with `SeedRescueCMA` off and on).
+  The key-off tests of every touched library file pass with no golden change; the full suite is
+  left to the merge.
+- Key on, `mid`: the library run `LibH` (`stallhit_lib_run.py`: the keys of step 9's `LibG` plus
+  `SeedIndexMCStallHit 3000`) against the script arm `Hl` (`stallhit_hl.py`: step 9's script arm
+  `Gl`, which uses the library's own draws, plus `PH(3000)`). `Hl` is a new script run, because the
+  stored `H` used aligned draws, not the library's. Reading line: one row per compared item, before
+  the boundary pass; "equal" says whether the library run gives the script's value.
+
+<!-- table:stallhit_libcheck -->
+| item (before the boundary pass) | library run LibH | script arm Hl | equal |
+|---|---|---|---|
+| map: voxels that differ | 0 | - | yes |
+| evaluations | 8,713,457 | 8,713,457 | yes |
+| counters of the script run (36) | - | - | yes |
+| per-voxel records (24,570) | - | - | yes |
+| rescues: tried, rescued, tries | 12, 9, 29 | 12, 9, 29 | yes |
+| MC refinements with the stall check (each: checks, stop, evaluations) | 1,597 | 1,597 | yes |
+| stall checks; stopped; went on | 361; 197; 164 | 361; 197; 164 | yes |
+| evaluations in stopped refinements | 748,128 | 748,128 | yes |
+
+Equal before the pass: yes.
+<!-- /table:stallhit_libcheck -->
+
+  So the library run equals the script arm before the pass: the stored map byte for byte, 8,713,457
+  evaluations, all 36 counters of the script run, the 24,570 per-voxel records, the rescues, and
+  every one of the 1,597 MC refinements with its stall checks, stop and evaluation count. The stop
+  rule did not fire.
+- The boundary pass, reported apart as in step 9. The library makes it inside the run, from the map
+  in memory (unrounded angles); the script makes it after the run, from the stored `.mic` (rounded
+  angles). Reading line: one row per item; the library's in-run pass against the script's pass.
+
+<!-- table:stallhit_libpass -->
+| item | library run LibH: pass in the run | script arm Hl: pass after the run |
+|---|---|---|
+| pass tries | 49,963 | 49,971 |
+| pass evaluations | 3,047,743 | 3,048,231 |
+| total with the pass | 11,761,200 | 11,761,688 |
+| tries in the same (voxel, candidate) order from the start | 1,364 | - |
+| map after the pass against the script's: voxels that differ in any bit / more than 0.001 degree apart / more than 1 degree apart | 2,109 / 2,068 / 10 | - |
+| wrong voxels after the pass (more than 1 degree from the truth) | 36 | 38 |
+| by voxel, script pass as the base: fixed / broken / wrong in both | 6 / 4 / 32 | - |
+| median error after the pass, all 24,570 voxels (degrees) | 0.02913 | 0.02913 |
+<!-- /table:stallhit_libpass -->
+
+  The two passes try the same voxels and candidates in the same order for the first 1,364 tries,
+  but their ends already differ from the first try (the same cost there, 0.0096 degree apart), with
+  no evaluation count different. That is the pattern step 9 found and is consistent with the two
+  passes reading different input maps (unrounded against rounded). It was not tested again here:
+  the library run's unrounded map before the pass was not saved. After the pass 10 voxels are more
+  than 1 degree apart; the accuracy is close (36 against 38 wrong voxels, by voxel 6 fixed and 4
+  broken with the script pass as the base, the same median error).
+- Compute: the two `mid` runs made 17,426,914 evaluations before their passes (the plan's "about 18
+  million") and 23,522,888 with them. Both ran at the same time, each capped at 240 minutes; neither
+  hit its cap. Their wall times are contended, not timings (the `run.json` of `Hl` reads
+  "single-worker" because its preflight ran before `LibH` started).
+- An error in phase B, now undone: the script pass of `Hl` (`order_pass.py`) wrote its outputs
+  (`D4_Hl`, `before_Hl.npy`, `after_Hl.npy`) through a symlinked `passes_mid` folder into the
+  phase A implementer's worktree cache, which was to be read only. Nothing there was overwritten;
+  the three new entries were moved into this worktree's own cache right after the pass. Since the
+  second review (fix 1), `stallhit_phase_b.sh`, `stallhit_run_all.sh`, `stallhit_hl.py` and
+  `stallhit_lib_run.py` refuse to write when the real path of an output (run folder, pass folder
+  or file, logs) lies outside their own cache (`stallhit_cache_guard.py`). The frozen
+  `stallhit_run.py` and `order_pass.py` are not edited; their runners check for them. Replacing
+  the remaining whole-folder links in the existing caches by per-entry links is left to the main
+  session.
+- Page: the findings page `docs/autoresearch/findings_ar5_stallhit.md` waits for the owner (the
+  guard refused its write; the implementer left its text outside the repository for the owner).
+
+**Wall times.** All wall times of these runs are contended: several runs shared the machine. None
+is a timing. The `run.json` files of the four runs started together at 11:07 (`S8`, `G`, `H` on
+`held2` and `H` on `held`) read "single-worker", because each preflight ran before the others had
+started; they are not cited (review fix 5).
+
+**`S8` is not draw-aligned.** `G` and `H` share their random draws, so their paired counts measure
+the rule. `S8` does not: the counts against `S8` pair the same voxels only (review fix 4; the note
+is printed under the tables).
+
+**Review fixes** (review `20261113-1600-review-ar5l`, D-20261113-N8): the `held2` provenance files
+are tracked (fix 1); the wrong-voxel explanation above with the map numbers (fix 2); hit ratios near
+0.95 print with 4 decimals (fix 3); the `S8` note (fix 4); the wall-time note (fix 5); the
+same-candidate check on the whole runs (fix 6, in `stallhit_extra.py`: `stallhit_stats.py` imports
+`stallhit_common`, whose guard refuses `held` and `held2` once the library differs from the frozen
+one, so it could not be rerun after phase B's library change).
+
+**Second review fixes** (review `20261113-1730-review-ar5l-B`, D-20261113-N10): the cache guard
+(fix 1, above); the tested scope of the key (fix 2) and the agreement of the two stop costs and
+the missing key-off control run (fix 3), both under phase B; the page wording "In these runs,
+every changed end stayed at the same candidate" (fix 4).

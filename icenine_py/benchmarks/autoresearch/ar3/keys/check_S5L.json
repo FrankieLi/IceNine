@@ -1,0 +1,149 @@
+{
+ "kind": "S5L",
+ "stored_run": "S5",
+ "keys": [
+  "BFSNeighborCMAFirst 1",
+  "CMASigma0 0.05",
+  "CMANeighborMaxEvals 60",
+  "BoundaryPass 1",
+  "SeedIndexCandidates 20 5"
+ ],
+ "plan_numbers": {
+  "seeds": [
+   35,
+   35
+  ],
+  "reseeds": [
+   314,
+   314
+  ],
+  "grid": [
+   0,
+   0
+  ],
+  "evals_before_pass": [
+   11867509,
+   11867509
+  ]
+ },
+ "counters": {
+  "n_stored_counters": 33,
+  "differ": {},
+  "only_in_stored": [],
+  "only_in_library": [
+   "boundary_changed",
+   "boundary_tries",
+   "boundary_voxels",
+   "cma_first_fallback_runs",
+   "cma_first_fallback_won",
+   "n_evals_boundary_pass",
+   "n_evals_boundary_score"
+  ]
+ },
+ "stored_evals_total": 11867509,
+ "records": {
+  "equal": true,
+  "n": 24570
+ },
+ "map_before_pass_vs_stored_recon_mic": {
+  "equal": true,
+  "bytes": 6535568
+ },
+ "wrapper_counts": {
+  "fits": [
+   32673,
+   32673
+  ],
+  "mc_fallbacks": [
+   3235,
+   3235
+  ],
+  "fallback_won": [
+   3,
+   3
+  ]
+ },
+ "pass_in_run": {
+  "tries": [
+   18563,
+   18563
+  ],
+  "evals": [
+   1132343,
+   1132343
+  ],
+  "boundary_voxels": [
+   11049,
+   11049
+  ],
+  "same_voxel_and_candidate": 18563,
+  "same_evaluations": 18563,
+  "same_cost_exact": 14219,
+  "same_hit_exact": 13174,
+  "same_end_exact": 11,
+  "max_abs_end_difference": 0.015282390639185905,
+  "ends_further_apart_than_1e-5": 3272,
+  "max_abs_cost_difference": 0.4204336613225944,
+  "tries_equal_in_every_field": 11,
+  "tries_differ": 18552,
+  "voxels_touched_by_differing_tries": [
+   0,
+   1,
+   2,
+   8,
+   9,
+   10,
+   31,
+   32,
+   35,
+   36,
+   37,
+   38,
+   39,
+   41,
+   42,
+   53,
+   54,
+   55,
+   56,
+   57,
+   58,
+   60,
+   61,
+   62,
+   63,
+   80,
+   81,
+   82,
+   83,
+   96
+  ],
+  "first_differing_try": {
+   "voxel": 0,
+   "cand": 12299,
+   "evals": [
+    61,
+    61
+   ],
+   "cost": [
+    0.15036792627736906,
+    0.15036792627736906
+   ],
+   "max_abs_end_diff": 3.4086406230926514e-07
+  }
+ },
+ "pass_counts": {
+  "tries": [
+   18563,
+   18563
+  ],
+  "evals": [
+   1132343,
+   1132343
+  ],
+  "boundary_voxels": 11049,
+  "changed": 1023
+ },
+ "timing_label": "contended: timing preflight refused (cpptools at 99% CPU, Python at 100% CPU); single run, one worker",
+ "wall_total_s": 1156.439749956131
+}

@@ -1,0 +1,300 @@
+<!-- table:ar3d_bins -->
+| err | n | B5 | B06 | B03 | C |
+|---|---|---|---|---|---|
+| 0 to 0.05 | 11,423 | 0 (hurt 0) | 0 (hurt 13) | 0 (hurt 10) | 0 (hurt 12) |
+| 0.05 to 0.1 | 5,350 | 1 (hurt 1) | 1140 (hurt 9) | 1557 (hurt 4) | 2050 (hurt 1) |
+| 0.1 to 0.2 | 2,042 | 6 (hurt 1) | 1199 (hurt 5) | 1426 (hurt 1) | 1780 (hurt 1) |
+| 0.2 to 0.5 | 111 | 2 (hurt 0) | 65 (hurt 0) | 93 (hurt 0) | 80 (hurt 0) |
+| 0.5 and above | 87 | 0 (hurt 0) | 0 (hurt 1) | 0 (hurt 0) | 0 (hurt 1) |
+<!-- /table:ar3d_bins -->
+
+<!-- table:ar3d_evals -->
+| arm | n | median | mean | p95 | max | total |
+|---|---|---|---|---|---|---|
+| B5 stock box 5 deg | 19,013 | 662 | 675 | 662 | 2,168 | 12,843,129 |
+| B06 box 5/8 deg | 19,013 | 398 | 412 | 574 | 1,047 | 7,833,539 |
+| B03 box 5/16 deg | 19,013 | 1,245 | 1,455 | 2,895 | 17,657 | 27,659,741 |
+| C CMA, step 0.05 deg | 19,013 | 61 | 61 | 61 | 61 | 1,159,793 |
+| B015 box 5/32 deg | 600 | 22,145 | 31,860 | 87,805 | 380,954 | 19,115,922 |
+| L ladder 5/32, 5/8, 5 | 600 | 22,189 | 31,990 | 92,214 | 308,783 | 19,194,236 |
+<!-- /table:ar3d_evals -->
+
+<!-- table:ar3d_ladder -->
+| rung | ended | evals_med |
+|---|---|---|
+| box 0.15625 deg | 439 of 600 (69.5 to 76.6%) | 22,167 |
+| box 0.625 deg | 0 of 600 (0.00 to 0.64%) | n/a |
+| box 5 deg | 161 of 600 (23.4 to 30.5%) | 22,457 |
+<!-- /table:ar3d_ladder -->
+
+<!-- table:ar3d_level -->
+| level | n | start | B5 | B06 | B03 | C |
+|---|---|---|---|---|---|---|
+| all | 19,013 | 2240 of 19013 (11.3 to 12.2%) | 2230 of 19013 (11.3 to 12.2%) | 937 of 19013 (4.6 to 5.2%) | 542 of 19013 (2.6 to 3.1%) | 334 of 19013 (1.6 to 2.0%) |
+| level 0 | 4,774 | 3 of 4774 (0.02 to 0.18%) | 3 of 4774 (0.02 to 0.18%) | 3 of 4774 (0.02 to 0.18%) | 3 of 4774 (0.02 to 0.18%) | 3 of 4774 (0.02 to 0.18%) |
+| level 0.1 | 4,152 | 38 of 4152 (0.7 to 1.3%) | 38 of 4152 (0.7 to 1.3%) | 36 of 4152 (0.6 to 1.2%) | 26 of 4152 (0.43 to 0.92%) | 12 of 4152 (0.17 to 0.50%) |
+| level 0.2 | 4,332 | 141 of 4332 (2.8 to 3.8%) | 142 of 4332 (2.8 to 3.9%) | 82 of 4332 (1.5 to 2.3%) | 59 of 4332 (1.1 to 1.8%) | 28 of 4332 (0.45 to 0.93%) |
+| level 0.5 | 3,196 | 721 of 3196 (21.1 to 24.0%) | 718 of 3196 (21.1 to 23.9%) | 230 of 3196 (6.4 to 8.1%) | 143 of 3196 (3.8 to 5.2%) | 60 of 3196 (1.5 to 2.4%) |
+| level 1 | 2,559 | 1337 of 2559 (50.3 to 54.2%) | 1329 of 2559 (50.0 to 53.9%) | 586 of 2559 (21.3 to 24.6%) | 311 of 2559 (10.9 to 13.5%) | 231 of 2559 (8.0 to 10.2%) |
+<!-- /table:ar3d_level -->
+
+<!-- table:ar3d_main_full -->
+| arm | n | closer | hurt | med | p95 | gt01 | wrong | lowered | le_true | ev_med | ev_tot |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| start (no fit) | 19,013 |  |  | 0.0406 | 0.1329 | 2240 of 19013 (11.3 to 12.2%) | 87 of 19013 (0.37 to 0.56%) |  | 2422 of 19013 (12.3 to 13.2%) |  |  |
+| B5 stock box 5 deg | 19,013 | 9 of 19013 (0.02 to 0.09%) | 2 of 19013 (0.00 to 0.04%) | 0.0406 | 0.1325 | 2230 of 19013 (11.3 to 12.2%) | 87 of 19013 (0.37 to 0.56%) | 36 of 19013 (0.14 to 0.26%) | 2422 of 19013 (12.3 to 13.2%) | 662 | 12,843,129 |
+| B06 box 5/8 deg | 19,013 | 2404 of 19013 (12.2 to 13.1%) | 28 of 19013 (0.10 to 0.21%) | 0.0279 | 0.0993 | 937 of 19013 (4.6 to 5.2%) | 87 of 19013 (0.37 to 0.56%) | 6353 of 19013 (32.7 to 34.1%) | 4332 of 19013 (22.2 to 23.4%) | 398 | 7,833,539 |
+| B03 box 5/16 deg | 19,013 | 3076 of 19013 (15.7 to 16.7%) | 15 of 19013 (0.05 to 0.13%) | 0.0218 | 0.0803 | 542 of 19013 (2.6 to 3.1%) | 87 of 19013 (0.37 to 0.56%) | 11684 of 19013 (60.8 to 62.1%) | 7005 of 19013 (36.2 to 37.5%) | 1,245 | 27,659,741 |
+| C CMA, step 0.05 deg | 19,013 | 3910 of 19013 (20.0 to 21.1%) | 15 of 19013 (0.05 to 0.13%) | 0.0176 | 0.0581 | 334 of 19013 (1.6 to 2.0%) | 87 of 19013 (0.37 to 0.56%) | 15478 of 19013 (80.8 to 82.0%) | 7537 of 19013 (38.9 to 40.3%) | 61 | 1,159,793 |
+<!-- /table:ar3d_main_full -->
+
+<!-- table:ar3d_main_sub -->
+| arm | n | closer | hurt | med | p95 | gt01 | wrong | lowered | le_true | ev_med | ev_tot |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| start (no fit) | 600 |  |  | 0.0325 | 0.1010 | 33 of 600 (3.9 to 7.6%) | 4 of 600 (0.3 to 1.7%) |  | 109 of 600 (15.3 to 21.5%) |  |  |
+| B5 stock box 5 deg | 600 | 0 of 600 (0.00 to 0.64%) | 0 of 600 (0.00 to 0.64%) | 0.0325 | 0.1010 | 33 of 600 (3.9 to 7.6%) | 4 of 600 (0.3 to 1.7%) | 0 of 600 (0.00 to 0.64%) | 109 of 600 (15.3 to 21.5%) | 662 | 405,734 |
+| B06 box 5/8 deg | 600 | 43 of 600 (5.4 to 9.5%) | 2 of 600 (0.1 to 1.2%) | 0.0250 | 0.0786 | 13 of 600 (1.3 to 3.7%) | 4 of 600 (0.3 to 1.7%) | 171 of 600 (25.0 to 32.2%) | 177 of 600 (26.0 to 33.3%) | 387 | 242,441 |
+| B03 box 5/16 deg | 600 | 50 of 600 (6.4 to 10.8%) | 0 of 600 (0.00 to 0.64%) | 0.0201 | 0.0703 | 7 of 600 (0.6 to 2.4%) | 4 of 600 (0.3 to 1.7%) | 323 of 600 (49.8 to 57.8%) | 251 of 600 (38.0 to 45.8%) | 1,256 | 850,037 |
+| C CMA, step 0.05 deg | 600 | 80 of 600 (10.8 to 16.3%) | 0 of 600 (0.00 to 0.64%) | 0.0165 | 0.0501 | 5 of 600 (0.4 to 1.9%) | 4 of 600 (0.3 to 1.7%) | 448 of 600 (71.0 to 78.0%) | 290 of 600 (44.4 to 52.3%) | 61 | 36,600 |
+| B015 box 5/32 deg | 600 | 89 of 600 (12.2 to 17.9%) | 0 of 600 (0.00 to 0.64%) | 0.0157 | 0.0484 | 4 of 600 (0.3 to 1.7%) | 4 of 600 (0.3 to 1.7%) | 437 of 600 (69.1 to 76.2%) | 381 of 600 (59.6 to 67.3%) | 22,145 | 19,115,922 |
+| L ladder 5/32, 5/8, 5 | 600 | 94 of 600 (13.0 to 18.8%) | 0 of 600 (0.00 to 0.64%) | 0.0154 | 0.0459 | 5 of 600 (0.4 to 1.9%) | 4 of 600 (0.3 to 1.7%) | 439 of 600 (69.5 to 76.6%) | 368 of 600 (57.4 to 65.1%) | 22,189 | 19,194,236 |
+<!-- /table:ar3d_main_sub -->
+
+<!-- table:ar3d_p2_converged -->
+| level | n | med_evals | share | med_share | start_within |
+|---|---|---|---|---|---|
+| level 0 | 4,774 | 61 | 0.829 | 0.984 | 3498 of 4774 (72.0 to 74.5%) |
+| level 0.1 | 4,152 | 61 | 0.580 | 0.639 | 1032 of 4152 (23.6 to 26.2%) |
+| level 0.2 | 4,332 | 61 | 0.508 | 0.525 | 590 of 4332 (12.6 to 14.7%) |
+| level 0.5 | 3,196 | 61 | 0.387 | 0.295 | 140 of 3196 (3.7 to 5.1%) |
+| level 1 | 2,559 | 61 | 0.366 | 0.295 | 114 of 2559 (3.7 to 5.3%) |
+| all | 19,013 | 61 | 0.565 | 0.525 | 5374 of 19013 (27.6 to 28.9%) |
+<!-- /table:ar3d_p2_converged -->
+
+<!-- table:ar3d_p2_second -->
+| level | n | moved | helped | hurt |
+|---|---|---|---|---|
+| level 0 | 1206 | 10 | 1 | 0 |
+| level 0.1 | 1052 | 10 | 3 | 0 |
+| level 0.2 | 1088 | 27 | 8 | 0 |
+| level 0.5 | 754 | 56 | 19 | 2 |
+| level 1 | 668 | 82 | 42 | 1 |
+| all | 4768 | 185 | 73 | 3 |
+<!-- /table:ar3d_p2_second -->
+
+<!-- table:ar3d_p2_second_rule -->
+| threshold | A_pred | A_helped | B_pred | B_right | B_base |
+|---|---|---|---|---|---|
+| 0.97 | 2429 | 21 | 2202 | 2179 of 2202 (98.4 to 99.3%) | 42 of 2292 (1.4 to 2.5%) |
+<!-- /table:ar3d_p2_second_rule -->
+
+<!-- table:ar3d_p2_second_wil -->
+| what | v |
+|---|---|
+| moved by more than 0.05 deg | 185 of 4768 (3.4 to 4.5%) |
+| brought closer by more than 0.05 deg | 73 of 4768 (1.2 to 1.9%) |
+| pushed away by more than 0.05 deg | 3 of 4768 (0.02 to 0.18%) |
+<!-- /table:ar3d_p2_second_wil -->
+
+<!-- table:ar3d_p2_skip -->
+| rule | threshold | A_share | B_skipped | B_evals | B_hurt | B_med | B_p95 | B_gt01 | B_wrong |
+|---|---|---|---|---|---|---|---|---|---|
+| start hit ratio >= t x entry best | 0.99 | 0.359 | 3207 of 9305 | 195,627 of 567,605 | 103 of 9305 (0.9 to 1.3%) | 0.0191 | 0.0770 | 382 of 12184 (2.8 to 3.5%) | 86 of 12184 (0.57 to 0.87%) |
+| start cost <= c | 0.06968 | 0.200 | 1986 of 9305 | 121,146 of 567,605 | 107 of 9305 (1.0 to 1.4%) | 0.0186 | 0.0778 | 392 of 12184 (2.9 to 3.5%) | 86 of 12184 (0.57 to 0.87%) |
+<!-- /table:ar3d_p2_skip -->
+
+<!-- table:ar3d_p2_skip_level -->
+| rule | level | n | skipped | hurt | skipped_evals |
+|---|---|---|---|---|---|
+| hit | level 0 | 2170 | 1586 | 8 | 96,746 |
+| hit | level 0.1 | 1921 | 761 | 9 | 46,421 |
+| hit | level 0.2 | 2097 | 509 | 23 | 31,049 |
+| hit | level 0.5 | 1459 | 205 | 21 | 12,505 |
+| hit | level 1 | 1658 | 146 | 42 | 8,906 |
+| cost | level 0 | 2170 | 937 | 0 | 57,157 |
+| cost | level 0.1 | 1921 | 304 | 2 | 18,544 |
+| cost | level 0.2 | 2097 | 442 | 21 | 26,962 |
+| cost | level 0.5 | 1459 | 246 | 67 | 15,006 |
+| cost | level 1 | 1658 | 57 | 17 | 3,477 |
+<!-- /table:ar3d_p2_skip_level -->
+
+<!-- table:ar3d_p2_stop -->
+| rule | threshold | A_saved_share | B_saved | B_saved_share | B_hurt | B_med | B_p95 | B_gt01 | B_wrong |
+|---|---|---|---|---|---|---|---|---|---|
+| stop when best cost <= c | 0.0678 | 0.265 | 149,733 of 567,605 | 0.264 | 111 of 9305 (1.0 to 1.4%) | 0.0196 | 0.0789 | 391 of 12184 (2.9 to 3.5%) | 86 of 12184 (0.57 to 0.87%) |
+<!-- /table:ar3d_p2_stop -->
+
+<!-- table:ar3d_p2_stop_level -->
+| rule | level | n | saved | total | hurt |
+|---|---|---|---|---|---|
+| cost | level 0 | 2170 | 47,032 | 132,370 | 0 |
+| cost | level 0.1 | 1921 | 22,200 | 117,181 | 3 |
+| cost | level 0.2 | 2097 | 38,597 | 127,917 | 20 |
+| cost | level 0.5 | 1459 | 25,522 | 88,999 | 55 |
+| cost | level 1 | 1658 | 16,382 | 101,138 | 33 |
+<!-- /table:ar3d_p2_stop_level -->
+
+<!-- table:ar3d_p3_broken_bfs -->
+| pair | source | this_run | compared |
+|---|---|---|---|
+| D4 vs D (step 3) | neighbor | 61 | not stored |
+| D4 vs D (step 3) | revisit | 39 | not stored |
+| D4 vs D (step 3) | seed | 7 | not stored |
+| D4 vs D (step 3) | unresolved | 1 | not stored |
+| E4 vs D (step 2) | neighbor | 114 | 0 |
+| E4 vs D (step 2) | revisit | 56 | 165 |
+| E4 vs D (step 2) | seed | 0 | 5 |
+<!-- /table:ar3d_p3_broken_bfs -->
+
+<!-- table:ar3d_p3_broken_paint -->
+| stage_P4 | broken | wrong_after_paint | entry_other_grain | P: seed after a rejected fit | P: painted from a grain |
+|---|---|---|---|---|---|
+| seed | 3 | 3 |  | 1 | 2 |
+| fit-settled | 107 | 107 | 104 | 78 | 29 |
+| painted from a grain | 22 | 22 |  | 0 | 22 |
+| failed, not painted | 2 | 2 |  | 1 | 1 |
+<!-- /table:ar3d_p3_broken_paint -->
+
+<!-- table:ar3d_p3_entries -->
+| run | entries | seeds | reseeds | index_used | grid_fallbacks | grid_evals |
+|---|---|---|---|---|---|---|
+| D4 | 1,298 | 344 | 954 | 1,222 | 76 | 25,833,494 |
+| D (step 3) | 3,855 | 440 | 3,415 | 3,713 | 142 | 48,273,080 |
+| P4 | 2,535 | 2,535 | 0 | 0 | 4 | 0 |
+| P (step 3) | 5,369 | 5,369 | 0 | 0 | 4 | 0 |
+| E4 | 507 | 332 | 175 | 507 | 0 | 0 |
+| D (step 2) | 598 | 332 | 266 | 598 | 0 | 0 |
+<!-- /table:ar3d_p3_entries -->
+
+<!-- table:ar3d_p3_error -->
+| run | group | n | median | p95 | gt01 | wrong |
+|---|---|---|---|---|---|---|
+| D4 | all | 24,570 | 0.0229 | 0.1097 | 1458 of 24570 (5.6 to 6.2%) | 225 of 24570 (0.8 to 1.0%) |
+| D4 | level 0 | 4,877 | 0.0136 | 0.0419 | 30 of 4877 (0.43 to 0.88%) | 30 of 4877 (0.43 to 0.88%) |
+| D4 | level 0.1 | 4,488 | 0.0182 | 0.0513 | 26 of 4488 (0.40 to 0.85%) | 19 of 4488 (0.27 to 0.66%) |
+| D4 | level 0.2 | 5,041 | 0.0201 | 0.0601 | 74 of 5041 (1.2 to 1.8%) | 46 of 5041 (0.7 to 1.2%) |
+| D4 | level 0.5 | 4,625 | 0.0323 | 0.1076 | 282 of 4625 (5.4 to 6.8%) | 43 of 4625 (0.7 to 1.2%) |
+| D4 | level 1 | 5,539 | 0.0492 | 0.1835 | 1046 of 5539 (17.9 to 19.9%) | 87 of 5539 (1.3 to 1.9%) |
+| D (step 3) | all | 24,570 | 0.0427 | 0.1459 | 3545 of 24570 (14.0 to 14.9%) | 203 of 24570 (0.72 to 0.95%) |
+| D (step 3) | level 0 | 4,877 | 0.0169 | 0.0554 | 17 of 4877 (0.22 to 0.56%) | 17 of 4877 (0.22 to 0.56%) |
+| D (step 3) | level 0.1 | 4,488 | 0.0436 | 0.0964 | 179 of 4488 (3.5 to 4.6%) | 23 of 4488 (0.34 to 0.77%) |
+| D (step 3) | level 0.2 | 5,041 | 0.0533 | 0.1167 | 554 of 5041 (10.2 to 11.9%) | 38 of 5041 (0.5 to 1.0%) |
+| D (step 3) | level 0.5 | 4,625 | 0.0665 | 0.1618 | 1251 of 4625 (25.8 to 28.3%) | 47 of 4625 (0.8 to 1.3%) |
+| D (step 3) | level 1 | 5,539 | 0.0535 | 0.1960 | 1544 of 5539 (26.7 to 29.1%) | 78 of 5539 (1.1 to 1.8%) |
+| P4 plus R4 | all | 24,570 | 0.0208 | 0.0956 | 1140 of 24570 (4.4 to 4.9%) | 281 of 24570 (1.0 to 1.3%) |
+| P4 plus R4 | level 0 | 4,877 | 0.0114 | 0.0398 | 3 of 4877 (0.02 to 0.18%) | 3 of 4877 (0.02 to 0.18%) |
+| P4 plus R4 | level 0.1 | 4,488 | 0.0189 | 0.0519 | 38 of 4488 (0.6 to 1.2%) | 25 of 4488 (0.38 to 0.82%) |
+| P4 plus R4 | level 0.2 | 5,041 | 0.0201 | 0.0613 | 89 of 5041 (1.4 to 2.2%) | 56 of 5041 (0.9 to 1.4%) |
+| P4 plus R4 | level 0.5 | 4,625 | 0.0269 | 0.0972 | 226 of 4625 (4.3 to 5.5%) | 71 of 4625 (1.2 to 1.9%) |
+| P4 plus R4 | level 1 | 5,539 | 0.0346 | 0.1842 | 784 of 5539 (13.3 to 15.1%) | 126 of 5539 (1.9 to 2.7%) |
+| P plus R (step 3) | all | 24,570 | 0.0342 | 0.1302 | 2531 of 24570 (9.9 to 10.7%) | 170 of 24570 (0.60 to 0.80%) |
+| P plus R (step 3) | level 0 | 4,877 | 0.0161 | 0.0518 | 3 of 4877 (0.02 to 0.18%) | 3 of 4877 (0.02 to 0.18%) |
+| P plus R (step 3) | level 0.1 | 4,488 | 0.0313 | 0.0699 | 41 of 4488 (0.7 to 1.2%) | 10 of 4488 (0.12 to 0.41%) |
+| P plus R (step 3) | level 0.2 | 5,041 | 0.0401 | 0.0897 | 152 of 5041 (2.6 to 3.5%) | 23 of 5041 (0.30 to 0.68%) |
+| P plus R (step 3) | level 0.5 | 4,625 | 0.0570 | 0.1374 | 770 of 4625 (15.6 to 17.7%) | 39 of 4625 (0.6 to 1.2%) |
+| P plus R (step 3) | level 1 | 5,539 | 0.0550 | 0.1873 | 1565 of 5539 (27.1 to 29.5%) | 95 of 5539 (1.4 to 2.1%) |
+| E4 | all | 24,570 | 0.0131 | 0.0437 | 334 of 24570 (1.2 to 1.5%) | 305 of 24570 (1.1 to 1.4%) |
+| D (step 2) | all | 24,570 | 0.0206 | 0.0566 | 326 of 24570 (1.2 to 1.5%) | 153 of 24570 (0.53 to 0.73%) |
+<!-- /table:ar3d_p3_error -->
+
+<!-- table:ar3d_p3_evals -->
+| run | seed | neighbor | revisit | reseed | restart | total | seed_index | score | fit_rejected | fit_accepted | index_rejected | seed_grid | grid_rejected | refine |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| D4 | 1,556,905 | 2,817,382 | 3,089,366 | 27,665,843 | 0 | 35,129,496 |  |  |  |  |  |  |  |  |
+| D (step 3) | 2,458,801 | 16,088,317 | 44,231,514 | 55,571,593 | 0 | 118,350,225 |  |  |  |  |  |  |  |  |
+| P4 plus R4 |  |  |  |  |  | 50,892,696 | 6,383,950 | 138,580 | 292,096 | 431,758 | 241,081 | 41,126,866 | 1,366,110 | 912,255 |
+| P plus R (step 3) |  |  |  |  |  | 90,985,770 | 14,106,247 | 291,783 | 3,459,521 | 124,976 | 336,721 | 58,461,276 | 1,362,117 | 12,843,129 |
+| E4 | 649,395 | 6,219,398 | 6,439,797 | 299,591 | 0 | 13,608,181 |  |  |  |  |  |  |  |  |
+| D (step 2) | 648,496 | 15,883,966 | 16,024,764 | 482,900 | 0 | 33,040,126 |  |  |  |  |  |  |  |  |
+<!-- /table:ar3d_p3_evals -->
+
+<!-- table:ar3d_p3_paired -->
+| pair | group | n | wrong_base | wrong_other | fixed | broken | both_wrong |
+|---|---|---|---|---|---|---|---|
+| D4 vs D | all | 24,570 | 203 | 225 | 86 | 108 | 117 |
+| D4 vs D | level 0 | 4,877 | 17 | 30 | 1 | 14 | 16 |
+| D4 vs D | level 0.1 | 4,488 | 23 | 19 | 15 | 11 | 8 |
+| D4 vs D | level 0.2 | 5,041 | 38 | 46 | 19 | 27 | 19 |
+| D4 vs D | level 0.5 | 4,625 | 47 | 43 | 23 | 19 | 24 |
+| D4 vs D | level 1 | 5,539 | 78 | 87 | 28 | 37 | 50 |
+| P4+R4 vs P+R | all | 24,570 | 170 | 281 | 23 | 134 | 147 |
+| P4+R4 vs P+R | level 0 | 4,877 | 3 | 3 | 0 | 0 | 3 |
+| P4+R4 vs P+R | level 0.1 | 4,488 | 10 | 25 | 2 | 17 | 8 |
+| P4+R4 vs P+R | level 0.2 | 5,041 | 23 | 56 | 4 | 37 | 19 |
+| P4+R4 vs P+R | level 0.5 | 4,625 | 39 | 71 | 5 | 37 | 34 |
+| P4+R4 vs P+R | level 1 | 5,539 | 95 | 126 | 12 | 43 | 83 |
+| E4 vs D (step 2) | all | 24,570 | 153 | 305 | 18 | 170 | 135 |
+<!-- /table:ar3d_p3_paired -->
+
+<!-- table:ar3d_p3_ratio -->
+| run | ratio | n | wrong |
+|---|---|---|---|
+| P4 fit-settled (ratio tested) | 0.90 to 0.92 | 342 | 113 of 342 (28.3 to 38.2%) |
+| P4 fit-settled (ratio tested) | 0.92 to 0.95 | 614 | 22 of 614 (2.4 to 5.4%) |
+| P4 fit-settled (ratio tested) | 0.95 to 0.98 | 1,845 | 0 of 1845 (0.00 to 0.21%) |
+| P4 fit-settled (ratio tested) | 0.98 to 1.00 | 3,124 | 0 of 3124 (0.00 to 0.12%) |
+| P4 fit-settled (ratio tested) | 1.00 exactly | 1,153 | 0 of 1153 (0.00 to 0.33%) |
+| E4 neighbour or revisit (stored hit ratio) | below 0.90 | 87 | 87 of 87 (95.8 to 100.0%) |
+| E4 neighbour or revisit (stored hit ratio) | 0.90 to 0.92 | 218 | 212 of 218 (94.1 to 98.7%) |
+| E4 neighbour or revisit (stored hit ratio) | 0.92 to 0.95 | 114 | 6 of 114 (2.4 to 11.0%) |
+| E4 neighbour or revisit (stored hit ratio) | 0.95 to 0.98 | 3,520 | 0 of 3520 (0.00 to 0.11%) |
+| E4 neighbour or revisit (stored hit ratio) | 0.98 to 1.00 | 11,962 | 0 of 11962 (0.00 to 0.03%) |
+| E4 neighbour or revisit (stored hit ratio) | 1.00 exactly | 8,162 | 0 of 8162 (0.00 to 0.05%) |
+<!-- /table:ar3d_p3_ratio -->
+
+<!-- table:ar3d_p3_stage -->
+| run | stage | n | wrong |
+|---|---|---|---|
+| P4 plus R4 | seed | 2,535 | 58 of 2535 (1.8 to 2.9%) |
+| P4 plus R4 | fit-settled | 7,078 | 135 of 7078 (1.6 to 2.3%) |
+| P4 plus R4 | painted from a grain | 14,953 | 86 of 14953 (0.47 to 0.71%) |
+| P4 plus R4 | failed, later painted | 2 | 0 of 2 (0.0 to 65.8%) |
+| P4 plus R4 | failed, not painted | 2 | 2 of 2 (34.2 to 100.0%) |
+| P plus R (step 3) | seed | 5,369 | 80 of 5369 (1.2 to 1.9%) |
+| P plus R (step 3) | fit-settled | 184 | 0 of 184 (0.0 to 2.0%) |
+| P plus R (step 3) | painted from a grain | 19,013 | 87 of 19013 (0.37 to 0.56%) |
+| P plus R (step 3) | failed, later painted | 0 | 0 of 0 |
+| P plus R (step 3) | failed, not painted | 4 | 3 of 4 (30.1 to 95.4%) |
+<!-- /table:ar3d_p3_stage -->
+
+<!-- table:ar3d_p3_status -->
+| run | finished | killed |
+|---|---|---|
+| D4 | yes | no |
+| P4 | yes | no |
+| E4 | yes | no |
+<!-- /table:ar3d_p3_status -->
+
+<!-- table:ar3d_p3_wrapper -->
+| run | calls | callers | fell | fallback | fallback_won | cma_calls | vmo_in | vmo_out |
+|---|---|---|---|---|---|---|---|---|
+| D4 | 53,373 | _local_fit 53373 | 49,399 | 3,974 | 6 | 53,373 | 3,974 | 2,672 |
+| P4 (paint) | 9,290 | local_fit 9290 | 9,058 | 232 | 2 | 9,290 | 232 | 5,203 |
+| E4 | 48,237 | _local_fit 48237 | 33,628 | 14,609 | 0 | 48,237 | 14,609 | 1,014 |
+<!-- /table:ar3d_p3_wrapper -->
+
+<!-- table:ar3d_pick_sub -->
+| arm | n | gt01 | ev_tot | mark |
+|---|---|---|---|---|
+| B5 stock box 5 deg | 299 | 12 of 299 (2.3 to 6.9%) | 201,954 |  |
+| B06 box 5/8 deg | 299 | 5 of 299 (0.7 to 3.9%) | 120,190 | in overlap |
+| B03 box 5/16 deg | 299 | 1 of 299 (0.1 to 1.9%) | 419,830 | in overlap |
+| C CMA, step 0.05 deg | 299 | 2 of 299 (0.2 to 2.4%) | 18,239 | picked |
+| B015 box 5/32 deg | 299 | 1 of 299 (0.1 to 1.9%) | 9,882,129 | in overlap |
+| L ladder 5/32, 5/8, 5 | 299 | 2 of 299 (0.2 to 2.4%) | 10,118,883 | in overlap |
+<!-- /table:ar3d_pick_sub -->
+
+<!-- table:ar3d_sets -->
+| set | arm | n | med | gt01 | wrong | ev_tot | mark |
+|---|---|---|---|---|---|---|---|
+| A | start (no fit) | 9,708 | 0.0378 | 936 of 9708 (9.1 to 10.2%) | 43 of 9708 (0.33 to 0.60%) |  |  |
+| A | B5 stock box 5 deg | 9,708 | 0.0378 | 931 of 9708 (9.0 to 10.2%) | 43 of 9708 (0.33 to 0.60%) | 6,531,175 |  |
+| A | B06 box 5/8 deg | 9,708 | 0.0274 | 394 of 9708 (3.7 to 4.5%) | 43 of 9708 (0.33 to 0.60%) | 3,967,096 |  |
+| A | B03 box 5/16 deg | 9,708 | 0.0216 | 231 of 9708 (2.1 to 2.7%) | 43 of 9708 (0.33 to 0.60%) | 13,621,466 |  |
+| A | C CMA, step 0.05 deg | 9,708 | 0.0177 | 130 of 9708 (1.1 to 1.6%) | 43 of 9708 (0.33 to 0.60%) | 592,188 | picked |
+| B | start (no fit) | 9,305 | 0.0433 | 1304 of 9305 (13.3 to 14.7%) | 44 of 9305 (0.35 to 0.63%) |  |  |
+| B | B5 stock box 5 deg | 9,305 | 0.0433 | 1299 of 9305 (13.3 to 14.7%) | 44 of 9305 (0.35 to 0.63%) | 6,311,954 | no gain over start |
+| B | B06 box 5/8 deg | 9,305 | 0.0287 | 543 of 9305 (5.4 to 6.3%) | 44 of 9305 (0.35 to 0.63%) | 3,866,443 | gain over start; gain over B5 |
+| B | B03 box 5/16 deg | 9,305 | 0.0224 | 311 of 9305 (3.0 to 3.7%) | 44 of 9305 (0.35 to 0.63%) | 14,038,275 | gain over start; gain over B5 |
+| B | C CMA, step 0.05 deg | 9,305 | 0.0176 | 204 of 9305 (1.9 to 2.5%) | 44 of 9305 (0.35 to 0.63%) | 567,605 | gain over start; gain over B5 |
+<!-- /table:ar3d_sets -->

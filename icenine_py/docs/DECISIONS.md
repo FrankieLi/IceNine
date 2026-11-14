@@ -939,3 +939,878 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   seeds. The fit log and the seed record are readings for AR5, not tests. Budget 3 hours. Task
   ar3b. No merge to develop without the owner's word. Where: icenine_py/docs/autoresearch/PLAN.md,
   section AR3, Step 2, the details.
+
+### D-20261110-N3 · Track E / PR #42 · PR #42 merged into develop; painting is a starting approximation, grains hold orientation gradients
+- 2026-11-10, owner. Recorded by Newt Agent. Supersedes: none.
+- Owner, 2026-11-10: comment 'merge now' on the PR #42 card of the review page, then 'added
+  comments' in the session. PR #42 merged with a merge commit (66e93fd, at branch head 0b3852d);
+  branch feature/eval-reduction kept. Two more owner comments, same day: (1) 'one cost evaluation
+  and no fit per voxel is fine as a starting approximation, and then we can refine it'; (2) it is
+  NOT true that a strain-free grain has one orientation: there can be micro-gradients, so every
+  voxel in a grain may have a different orientation. Consequence: 'one orientation per grain' is a
+  property of the simulated test sample only; painting gives the start, a per-voxel refinement
+  follows; the next step needs a test sample with gradients inside grains. Also in the session:
+  the agent may run more per wake (more token limit left). Where: PR #42;
+  icenine_py/docs/autoresearch/STATE.md; review page comments of 2026-11-10.
+
+### D-20261110-N4 · Track A / AR3 step 3 · AR3 step 3 plan approved under the owner's mandate (paint as a start, refine, on grains with gradients); step 2 review items settled
+- 2026-11-10, owner. Recorded by Newt Agent. Supersedes: none.
+- Taken by Newt Agent under the owner's mandate D-20261109-N1; the owner may overrule any part.
+  (1) AR3 step 3 (task ar3c) is approved as written in PLAN.md at 93be764: a gradient sample (same
+  voxels and grains, a linear rotation field inside each grain, levels 0, 0.1, 0.2, 0.5 and 1.0
+  degrees drawn per grain with seed 0), clean images of it, runs P (paint), R (one local fit from
+  each painted start, with a trace), R2 (a second fit on every fourth voxel) and D (BFS with
+  indexed seeds), and stop-rule readings for goal 5 picked on even-id grains and reported on
+  odd-id grains. The gradient model is the agent's choice, not measured data; the owner is asked
+  which sizes and shapes are typical, and the task does not wait for the answer. It starts after
+  ar3b is merged. (2) Step 2 review (verdict: request changes, 12 fixes): all 12 go to a fresh
+  Opus implementer, plus fix 13, a dated correction note on step 1's findings page. (3) The
+  reviewer's three owner items: the plan's premise line is already corrected (D-20261110-N3); the
+  whole-layer result files of step 2 stay in git as committed and history is not rewritten, and
+  from step 3 on a task commits only the result files its summary reads; the off-path claim cites
+  check B, with no stored output from the base commit. Where:
+  icenine_py/docs/autoresearch/PLAN.md, AR3 Step 3; review report 20261110-0900-review-ar3b.md
+  under .claude/reports.
+
+### D-20261110-N5 · Track A / AR3 step 4 · AR3 step 4 plan approved under the mandate: a local fit whose step matches the error (task ar3d)
+- 2026-11-10, owner. Recorded by Newt Agent. Supersedes: none.
+- Approved under the mandate D-20261109-N1 by Newt Agent; the owner can overrule it. Step 3's
+  review found that the BFS local fit moves almost no painted voxel because its step is too
+  coarse: a box of 5 degrees, smallest trial step about 0.7 degrees, against a start that is 0.04
+  degrees off (median), while the true orientation costs less than the start on 16,591 of 19,013
+  painted voxels. Step 4 (PLAN.md 'Step 4', commit 592937a) tests a fit that starts with a small
+  box. Part 1: boxes of 5/8, 5/16 and 5/32 degree, a ladder and the existing CMA fit, from step
+  3's stored painted starts; picked on set A, reported on set B; stop if no arm is a gain over the
+  start. Part 2: the stop readings again on the picked fit. Part 3: whole-layer runs with a script
+  wrapper 'fine first, stock as fallback' (BFS with indexed seeds and paint plus refine on the
+  gradient sample, and the BFS on step 2's sample), each with a coded time cap. The box is set by
+  the script, not by MinLocalResolution. No library change, no default changed, C++ not run. An
+  opt-in key comes after, only if the whole-layer runs show a gain. Where:
+  icenine_py/docs/autoresearch/PLAN.md, AR3 'Step 4'.
+
+### D-20261110-N6 · Track A / AR3 step 5 · AR3 step 4 review decisions and step 5 plan approved under the mandate: let neighbouring grains compete for the boundary voxels (task ar3e)
+- 2026-11-10, owner. Recorded by Newt Agent. Supersedes: none.
+- Approved under the mandate D-20261109-N1 by Newt Agent; the owner can overrule it. (1) Step 4's
+  review (verdict request changes, 14 required fixes, text and summary output only) asked two
+  questions. Decided: no rerun of step 4 and no wrapper that reads the caller's frame; the plan's
+  fallback on the caller's 0.9 test stays untested and the page says so. Reason: the review's
+  recomputation from the stored records shows the extra wrong voxels sit in fits the caller
+  accepts (paint run: all 107 fit-settled newly wrong voxels passed the 0.9 test, 104 from a grain
+  seeded in another true grain; step 2's sample: 114 accepted at the first neighbour fit, 56 at a
+  revisit), so a fallback for rejected voxels would not act on them. (2) Step 5 (PLAN.md 'Step 5',
+  commit 05577ac): after a run, each voxel with a neighbour whose orientation differs by more than
+  0.5 degrees gets one CMA fit (0.05 degrees, 61 evaluations) from that neighbour's orientation
+  and keeps the better end. Part 0 reads from stored maps and single scores whether the pass can
+  work (a gate). Part 1 runs the pass on six stored maps with three keep rules (cost, hit ratio,
+  confidence), picked on set A, reported on set B, with a skip rule for when a try is needed. Part
+  2 makes two whole-layer runs with the existing library keys (LocalOptimizer cma, CMASigma0,
+  CMANeighborMaxEvals, CMARetrySigma0) and no wrapper, each with a coded 60-minute cap. No library
+  change, no default changed, C++ source read but not run. An opt-in key for the pass comes after,
+  only if the pass is a gain. Where: icenine_py/docs/autoresearch/PLAN.md, 'Step 5' of the AR3
+  section.
+
+### D-20261110-N7 · Track A / AR3 step 5 review, step 6 · AR3 step 5 review decisions approved under the mandate: all 15 fixes with no rerun, per-try arrays kept, no K rerun yet, step 6 is the seed cost
+- 2026-11-10, owner. Recorded by Newt Agent. Supersedes: none.
+- Approved under the mandate D-20261109-N1 by Newt Agent; the owner can overrule it. Step 5's
+  review (verdict request changes, 15 required fixes, the numbers reproduce) left four choices.
+  (1) All 15 fixes are applied, to text, the summary script and the tables only; no pass and no
+  run is repeated. Added to the fixes: a plot first (wrong voxels against evaluations per
+  pipeline, pass on both sides), the old-end score check cited, 'fit-settled' and 'grid fallback'
+  defined, a reading line before the ratio table, wall times labelled as contended, the run order
+  of boundary_summary.py and boundary_ratio.py documented, and 'local optimization' in place of
+  'finisher' in the page and the step 5 scripts. The lead result is the one-footing comparison:
+  with the boundary pass on both sides the CMA-first run shows no detectable difference in wrong
+  voxels on the gradient sample at about a third to 58% of the evaluations (D4+pass 74 against
+  D+pass 88 wrong at 38.8M against 122.1M; P4R4+pass 82 against PR+pass 78 at 54.6M against
+  94.7M), and 0 against 14 on step 2's sample at 16.6M against 36.1M. (2) The 14 tries.npz files
+  (about 47 MB) stay as committed: D-20261110-N4 allows them because the summary reads every one,
+  and removing them now would not shrink the history. From the next task on per-try arrays are
+  stored slim (only the fields the summary reads). The owner can ask for a prune or Git LFS. (3)
+  Run K (cma keys with the paint) is not repeated now: at its 60-minute cap it had already used
+  38.1M evaluations, more than D4's 35.1M, and 31.07M of them were grid fallbacks behind failed
+  index seeds; it also started under 8-process contention. It is repeated after step 6. (4) Step 6
+  is the seed cost: grid fallbacks behind failed index seeds are the largest remaining cost (25.8M
+  of D4's 35.1M). First read the stored records (does the grid search succeed where the index seed
+  failed, and why does the index miss), then test remedies. The opt-in library key for the
+  boundary pass waits for a check on a sample with larger grains, because here 93 to 94% of the
+  voxels are boundary voxels. The review's C++ note (in parallel mode several clients fit accepted
+  voxels again and the server keeps the higher confidence, the keep rule that breaks thousands of
+  right voxels here) goes to the owner as a question; it is not tested. Where:
+  icenine_py/docs/autoresearch/PLAN.md, AR3 section; review report
+  .claude/reports/20261110-2220-review-ar3e.md; findings_ar3_boundary.md after the fixes.
+
+### D-20261110-N8 · Track A / AR3 step 6 · AR3 step 6 plan approved under the mandate: why the index seed fails and what replaces the grid fallback (task ar3f)
+- 2026-11-10, owner. Recorded by Newt Agent. Supersedes: none.
+- Approved under the mandate D-20261109-N1 by Newt Agent; the owner can overrule it. Step 6
+  (PLAN.md 'Step 6', commit c88fdd8) follows D-20261110-N7. Reason: in run D4 the grid search
+  behind 76 failed index seeds took 25.8M of 35.1M evaluations, about 340,000 each; 74 of the 76
+  are at reseeds, 36 of them for a cluster of one voxel; and after the grid search 73 of the 76
+  voxels have a hit ratio of 0.88 or more, so a passing orientation exists that the index seed did
+  not reach (main session's reading of the stored records, to be derived again by the task). Part
+  0 replays the seed step on the fallback voxels and on 200 control seeds and puts each failure in
+  one class (the truth fails the seed test; no candidate near the truth; candidate not costed; not
+  refined; local optimization ends away). Part 1 tests six remedies by replay, with no whole-layer
+  run: more candidates, the cma-mode seed step, a wide CMA fit, tries from the neighbours, no seed
+  for clusters of one or two voxels, the existing outward search. Picked on set A, reported on B,
+  counts with intervals. Part 2 makes two whole-layer runs with the pick through a script wrapper
+  (S, and K2 which repeats step 5's unfinished run K), each with a coded 60-minute cap, then the
+  boundary pass; it is skipped if no remedy removes half of the grid fallbacks on A. No library
+  change, no default changed. Committed results stay under 5 MB and hold only what the summary
+  reads. Where: icenine_py/docs/autoresearch/PLAN.md, 'Step 6' of the AR3 section.
+
+### D-20261111-N1 · Track A / AR3 step 6 review · AR3 step 6 review decisions approved under the mandate: all 11 fixes with no rerun, additions 7a, 7b and S5 kept as marked, next key direction left to the owner with a default
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Approved under the mandate D-20261109-N1 by Newt Agent; the owner can overrule it. Step 6's
+  review (verdict request changes, 11 required fixes, the code, the evaluation counts and the
+  truth checks are sound) left three choices. (1) All 11 fixes are applied, to the findings page,
+  the summary script, its tables and the plot label only; no replay and no whole-layer run is
+  repeated. The summary script may be run again on the stored records; existing values in the
+  summary files stay unchanged and new keys (the intervals) are added. (2) The remedies 7a and 7b
+  and the whole-layer run S5 were added by the implementer beyond the plan after it saw the
+  results. They are kept, marked 'added after seeing results', and are not part of the plan's
+  pick. (3) The plan's pick (tries from the neighbours, then refine the best 5 of 20 candidates)
+  cut the grid fallbacks from 76 to 11 and the evaluations from 38.8M to 16.1M (run S against D4,
+  both with the boundary pass), but left 100 against 74 wrong voxels (intervals overlap), and the
+  voxels settled by a neighbour's try were wrong on 59 against 27 of 602 before the pass (40 of
+  the 59 still wrong after it). Run S5 (refine the best 5 of 20, no neighbour tries) gave 15
+  fallbacks, 20.6M evaluations and 62 wrong; against S that is 62 against 100 with 57 fixed and 19
+  broken; against D4 no detectable difference in wrong voxels at about half the evaluations. The
+  page presents the choice of the next opt-in key as the owner's. The default taken until the
+  owner says otherwise: the next work uses the seed step of S5 (best 5 of 20, no neighbour tries),
+  checks it on a sample with larger grains before any opt-in key is added, and does not add the
+  neighbour tries. One sample, one run each; no extra seeds. Where:
+  icenine_py/docs/autoresearch/findings_ar3_seed.md (task branch feature/eval-reduction-ar3f);
+  review report .claude/reports/20261111-0330-review-ar3f.md.
+
+### D-20261111-N2 · Track A / AR3 step 7 · AR3 step 7 plan approved under the mandate: the same pipelines on a sample with larger grains (task ar3g)
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Approved under the mandate D-20261109-N1 by Newt Agent; the owner can overrule it. The plan
+  (PLAN.md 'Step 7', commit 96b6902) follows D-20261111-N1. Reason: in step 6's run S5 (20.6M
+  evaluations with the boundary pass, 24,570 voxels) the seed step took 6.0M and 15 grid fallbacks
+  5.1M; both happen once per reseed, and the gradient sample has 497 grains of about 49 voxels.
+  The step builds one sample 'big': the 32 orientations of random_cubic_32grains.mic on the
+  gradient sample's voxel grid (about 770 voxels per grain), gradients by the step 3 function with
+  seed 0 and spreads of 0, 0.2, 0.5, 1, 2 and 4 degrees per grain (0.4 to 4 degrees gives the same
+  voxel-to-voxel change as 0.1 to 1 degree on the gradient sample), clean images. Four whole-layer
+  runs with coded caps, each followed by the boundary pass: D (stock BFS with grid search, 180
+  min), D4 (step 5), S5 (step 6's seed step, best 5 of 20), P4R4 (paint then CMA local
+  optimization), 90 min each. Three predictions are written in the plan before the runs. The
+  result decides which seed step the opt-in keys step uses, and names the next cost target from
+  the split by stage. No library change, no default change, no extra seeds; one sample, one run
+  each; the levels are a choice of the agent and the real gradient shape stays an open question
+  for the owner. Where: icenine_py/docs/autoresearch/PLAN.md, section 'Step 7: the same pipelines
+  on larger grains'.
+
+### D-20261111-N3 · Track A / AR3 step 7 · AR3 step 7 review: apply all 10 required fixes, no rerun
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- The review of task ar3g (report .claude/reports/20261111-0500-review-ar3g.md) asks for changes:
+  the data and code are sound, the findings page has wording and number errors. Apply all 10
+  required fixes in one fixes round. No whole-layer run is repeated; existing values in the
+  summary files stay unchanged; nothing under icenine_py/icenine/ changes. Any number a fix adds
+  is recomputed from the stored records, not copied from the review. The choice of the seed step
+  for the opt-in keys stays with the owner: on the sample with larger grains the seed step of run
+  S5 costs more than that of run D4, so the plan's rule does not pick one. Taken under the mandate
+  D-20261109-N1; the owner can overrule. Where: icenine_py/docs/autoresearch/PLAN.md, Step 7;
+  findings_ar3_big.md.
+
+### D-20261111-N4 · Track A / AR3 step 8 · AR3 step 8 plan approved: where the seed step's evaluations go in grains with strong gradients, remedies on stored cases first
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Approved under the mandate D-20261109-N1. Step 7 left the seed step as the largest stage on the
+  sample with larger grains (57.5% of run S5), with 267 of 349 seed steps in the 6 grains at 4
+  degrees and one seed step costing about 4.6 times what it costs on the first gradient sample.
+  Step 8 (task ar3h, scripts and results only, no key, no default change) measures where those
+  evaluations go (the split of one seed step; why the BFS rejected the fits that led to reseeds),
+  tries three listed remedies on stored cases with a pick set and a test set split by grain, and
+  spends whole-layer runs only on a remedy that cuts its target by a third and breaks no more
+  cases than it fixes. Three predictions are written in the plan before the runs. The choice of
+  the seed step for the opt-in key stays the owner's. The opt-in keys step waits for this result.
+  Where: icenine_py/docs/autoresearch/PLAN.md, 'Step 8: why the seed step costs so much in grains
+  with strong gradients'.
+
+### D-20261111-N5 · Track A / AR3 step 8 · AR3 step 8 review: apply all 10 required fixes, no rerun; the plan's remedy E1 did not pass, run S8 is a variant chosen after results
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- The review of task ar3h (report .claude/reports/20261111-0545-review-ar3h.md) asks for changes:
+  every number it recomputed matches, the page's wording and what it discloses do not. Apply all
+  10 required fixes in one fixes round. No whole-layer run is repeated; existing values in the
+  result files stay unchanged; nothing under icenine_py/icenine/ changes. On the reviewer's
+  question: by the plan's own rule the listed remedy E1 (stop at the seed test, hit ratio 0.80)
+  failed Part 2, so no listed remedy passed. Run S8 uses a variant (stop at hit ratio 0.95) whose
+  test was added after the 0.80 rows of one test set had been read. Its whole-layer numbers stand
+  as measured, and they meet the three parts of prediction 3, but the page reports prediction 3 as
+  met by that variant only, not as a confirmed prediction of the plan. The variant is not
+  confirmed until it is an arm of a whole-layer run on a sample it was not chosen on; the next
+  step that makes such a run includes it. The hit ratio at the true orientation of the class A
+  voxels (the reviewer's cheap check) is the first part of the next step, not of the fixes round.
+  The choice of the seed step for the opt-in key stays with the owner; the key takes the stop test
+  as a setting that is off by default. Taken under the mandate D-20261109-N1; the owner can
+  overrule. Where: icenine_py/docs/autoresearch/PLAN.md, Step 8; findings_ar3_reseed.md.
+
+### D-20261111-N6 · Track A / AR3 step 9 · AR3 step 9 plan approved: a start test for the neighbour fits, the rejected fits that end right, and a third sample that confirms or refutes run S8
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Step 9 (task ar3i) follows from step 8 and its review. Part 1 reads the stored runs: the hit
+  ratio and error at the start and end of every neighbour fit and revisit, and for class A the hit
+  ratio at the true orientation (the reviewer's check). Part 2 tries two remedies on stored cases
+  with step 8's pick and test split: F1, a start test that skips the fit (threshold 0.90, 0.95 or
+  0.98), and F2, one more fit from a rejected fit's end (first step 0.05, 0.1 or 0.2 degrees). The
+  settings and the pick rule are fixed in the plan; nothing is added after a result, and the pick
+  is committed before the test set is read. Part 3 builds a third sample, mid (about 120 grains,
+  step 7's generator and seed value), and runs D4, S5 and S8 with the boundary pass on it: the
+  confirmation that D-20261111-N5 asks for. Run S9 (S8 plus passed remedies) runs on all three
+  samples only if a remedy passes. Four predictions are written in the plan. No library change, no
+  key, no default change. The opt-in keys wait for this step, since the settings they would hold
+  are still moving. Taken under the mandate D-20261109-N1; the owner can overrule. Where:
+  icenine_py/docs/autoresearch/PLAN.md, Step 9.
+
+### D-20261111-N7 · Track A / AR3 step 9 · AR3 step 9 review: apply all 13 required fixes, no rerun; S8 counts as confirmed on one new sample; the start test F1 at 0.90 is not a candidate for a key; F2's fail stands
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Review of task ar3i (report .claude/reports/20261111-0810-review-ar3i.md): changes requested, 13
+  required fixes, all to wording and to what the page discloses. All 13 are applied; no
+  whole-layer run is repeated; fixes 4 and 7 add numbers to start_summary.py and regenerate the
+  summary from stored files. The reviewer's three open questions, decided under D-20261109-N1 (the
+  owner can overrule each): (1) The sample mid counts as the confirmation that D-20261111-N5 asked
+  for, worded as one run per arm on one new sample whose grain map (a 120-cell Voronoi map)
+  departs from the plan. No setting was chosen on mid; the reviewer checked that both pilots ran
+  on big and that mid's first result came after the pick commit. S8's seed step is therefore the
+  recommended seed step for the opt-in key; what the key recommends stays the owner's choice. (2)
+  The start test F1 at 0.90 passed on stored cases but in the whole layer run S9 broke more voxels
+  than it fixed on all three samples (10 fixed and 15 broken on big, 31 and 38 on the first
+  gradient sample, 9 and 18 on mid) and raised the median error. It is not a candidate for a key.
+  F1 at 0.95 was a listed setting, kept no wrong start on stored cases, and was not run on a whole
+  layer; a whole-layer test of it would be a variant chosen after results and needs its own plan.
+  (3) F2's verdict (fails) stands: the pooled rule was written in the scripts before any F2
+  result, and with F2's own cost set to zero the pooled cut is still under a third (21.5% and
+  26.2%). The page gives F2 by sample (big alone 34.1%) and says that the pooled rule decides.
+  Where: icenine_py/docs/autoresearch/findings_ar3_start.md;
+  .claude/reports/20261111-0810-review-ar3i.md.
+
+### D-20261111-N8 · Track A / AR3 step 10 · AR3 step 10 plan approved: opt-in keys in the library for the indexed seed step, its early stop, the CMA-first neighbour fit and the boundary pass; all off by default, no recommendation
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Plan in icenine_py/docs/autoresearch/PLAN.md, section 'Step 10: opt-in keys for the indexed seed
+  step and the boundary pass' (task ar3j), approved under D-20261109-N1; it starts after step 9 is
+  merged. First AR3 step that changes the library. Four keys, all off by default, off path
+  bit-identical: BFSNeighborCMAFirst (step 4's neighbour fit: CMA first, the stock fit if the cost
+  does not fall), SeedIndexCandidates (S5 uses 20 5), SeedIndexStopHitRatio (S8 uses 0.95),
+  BoundaryPass. Tests are written first. Validation: the library runs with the keys must reproduce
+  the stored script runs D4, S5 and S8 on the sample big exactly before the pass (evaluations,
+  seeds, reseeds, wrong counts); a difference stops the step. Decided with the plan, each the
+  owner's to overrule: (1) the third key BFSNeighborCMAFirst is in scope, because without it no
+  stored run can be reproduced; (2) icenine/boundary_pass.py is added to the plan's list of new
+  modules; (3) the pass is exact on the stored map and a prediction in the run, the library does
+  not round its map; (4) the pass uses its own fixed generator; (5) never-fitted voxels are
+  skipped by the pass; (6) the fixes round of this step may change the library files the step
+  touched, with its tests and bit-identity checks run again (an exception to the runbook's fixes
+  rule, this step only). The step recommends no seed step: the choice stays the owner's. No key
+  for the start test (D-20261111-N7). No default flip, no golden change, no new dependency. Where:
+  icenine_py/docs/autoresearch/PLAN.md (Step 10).
+
+### D-20261111-N9 · Track A / AR3 step 10 · Review of AR3 step 10 (task ar3j): apply the 8 required fixes, test the rounded-map reading, keep the word fit on the repo page
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Under the owner mandate D-20261109-N1, yours to overrule. The review (Opus,
+  .claude/reports/20261111-0941-review-ar3j.md) asks for changes in documentation and one test; it
+  found the library code, the tests and the validation runs sound. (1) All 8 required fixes are
+  applied in one fixes round (Opus), and the cheap suggestions with them (the both-wrong column,
+  the uncounted evaluations given as numbers, the type annotations, the README rows, the
+  docstrings, the note on the stored S8 label). (2) The reviewer left open whether to test the
+  reading that the boundary pass inside the run differs from the stored run because its input map
+  is not rounded. It is tested: the library pass is applied in a fresh process to the unrounded
+  map of the library run for D4L and S8L if the cache holds that map bit for bit, otherwise by one
+  BFS rerun of S8L. Equal tries to the in-run pass means the rounding accounts for the difference
+  and the process does not; anything else is reported as it is. No setting is changed and no key
+  default changes. (3) The page keeps the word fit, like the other repo pages; a repo-wide rename
+  to local optimization waits for the owner's word. The review page for the owner says local
+  optimization. No setting is recommended; the choice of the seed step stays the owner's. Where:
+  icenine_py/docs/autoresearch/PLAN.md, Step 10; review report 20261111-0941-review-ar3j.md.
+
+### D-20261111-N10 · Track A / AR5 step 1 · AR5 step 1 plan approved: stop rules for the boundary pass, the grid fallbacks and the finished map; scripts only
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Under the owner mandate D-20261109-N1, yours to overrule. Plan in
+  icenine_py/docs/autoresearch/PLAN.md, section AR5 step 1 (commit a633bfd), task ar5a. No library
+  file, key or default changes. Four parts: (1) a test before each try of the boundary pass, one
+  evaluation of the try's start, picked on big and the first gradient sample and tested on mid;
+  (2) a ladder of cheaper searches before a grid fallback (100 candidates costed; grid level 0
+  then a local optimization), on the 31 stored fallback cases of run S8; (3) a flag for voxels
+  that are not finished: the hit ratio after the pass, the vote count of unexplained rays (H3),
+  and a check that reruns the seed step at flagged voxels; (4) one whole-layer run T1 per sample
+  with the rules that passed. Pass rules and six predictions are written in the plan before any
+  run. The original AR5 line (AR0 thresholds with the H3 vote count) is kept as part 3; parts 1
+  and 2 are added because the stage table of S8 shows the boundary pass at 12 to 20 percent and
+  the grid fallbacks at 19 and 30 percent of the evaluations. It starts while the fixes round of
+  AR3 step 10 runs: it does not depend on step 10. Where: icenine_py/docs/autoresearch/PLAN.md,
+  AR5 step 1.
+
+### D-20261111-N11 · Track A / AR5 step 1 (task ar5a) · AR5 step 1 review: apply the 12 required fixes; V1 and the vote count are not adopted
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under the owner mandate D-20261109-N1; the owner may overrule. Review
+  report .claude/reports/20261111-1215-review-ar5a.md: verdict REQUEST CHANGES, documents only, no
+  result changes, the negative results stand at their stated scope. (1) All 12 required fixes are
+  applied in a fixes round (Opus), with the parent merged into the task branch first (fix 2). The
+  suggestions that cost little are applied too: remove the unused held parameter, offset the plot
+  labels, draw the vote cut, give the share of boundary voxels, Wilson intervals for the Part 2
+  counts. The audit_numbers tool artifact goes to the tooling queue. (2) The implementer's two
+  questions: the check V1 after the 0.95 flag is not adopted (13 of 31 wrong voxels fixed on mid
+  for 105.4% of the run's evaluations; 99.4% of them spent on right voxels); the vote count is
+  dropped as a stop rule (its cut was chosen after the result and moves between samples). (3) The
+  run T1 is not run. No new point on the plots of cost against accuracy. (4) The reviewer's three
+  next-step options: option 1 (try test P2 m=2 as an opt-in key) is left to the owner; options 2
+  and 3 (a second check beside the hit ratio) go into AR4 step 1. Where: PLAN.md AR5 step 1;
+  findings_ar5_stop.md.
+
+### D-20261111-N12 · Track A / AR5 step 2 (task ar5b) · AR5 step 2 plan approved: seed refinement by CMA and no MC fallback after CMA, replay then run S10
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under the owner mandate D-20261109-N1; the owner may overrule. Plan in
+  PLAN.md, 'AR5 step 2: two long local optimizations that rarely change the result' (commit
+  2030e9e). Scripts only, no library file, no key, no default. Why: in run S8 the stock MC
+  refinement of indexed candidates and the MC fallback after CMA in neighbour fits are about 62%,
+  31% and 58% of the evaluations (big, first gradient sample, mid), and the MC fallback ended
+  lower than CMA in 3 to 6 of 3,000 to 4,000 runs where that was counted. Part 0 recomputes these
+  from the stored runs. Part 1 replays the stored seed steps with arms M, C60, C200, C0; pick on
+  big and the first gradient sample, test on mid, no script runs on mid before the pick commit.
+  Part 2 runs S10 on the three samples with the pass, after a base check that reproduces S8
+  exactly on big. Pass rules and five predictions are written in the plan before any run.
+  Implementer: Sonnet, own worktree, at most 3 heavy processes. Where: PLAN.md AR5 step 2.
+
+### D-20261111-N13 · Track A / AR4 step 1 (task ar4a) · AR4 recast from a learned proposer to a learned verifier; step 1 plan approved (offline)
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under the owner mandate D-20261109-N1; the owner may overrule, and the
+  recast in particular is the owner's to overrule. Plan in PLAN.md, 'AR4: learning where the
+  search is uncertain' and 'AR4 step 1: a learned verifier, measured offline against the hit
+  ratio' (commit 2030e9e). Why the recast: the premise of H4 (a network proposes where the voting
+  fails) does not hold on these samples: AR1 had the truth among the first 5 candidates for 69 of
+  69 and 200 of 200 voxels, and in all 31 grid-fallback cases of S8 a candidate near the truth was
+  already costed and refined (AR5 step 1). What fails is the test of a result: right and wrong
+  ends overlap in hit ratio, a 0.95 flag marks 8.8% and 15.1% of voxels. Step 1 trains a logistic
+  regression and a small set network on per-peak overlap shares (train on big and the first
+  gradient sample, test on mid, thresholds committed before mid is scored) and compares them with
+  the hit ratio for two uses: the flag of unfinished voxels, and accepting a seed without a grid
+  search. Offline only; no BFS change. H4 comes back if ray indexing fails on realistic images
+  (not tested). Starts after AR5 step 1 is merged. Implementer: Sonnet, own worktree, at most 2
+  heavy processes. Where: PLAN.md AR4, AR4 step 1.
+
+### D-20261111-N14 · Track A / AR5 step 2 · AR5 step 2 review: 4 fixes to the documents; no key for 'no MC fallback' alone; next is a whole-layer test of a mixed seed refinement
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Review verdict APPROVE with 4 required fixes (report
+  .claude/reports/20261111-1310-review-ar5b.md); all four are applied in a fixes round, no new
+  run. On the implementer's two questions, decided under the mandate D-20261109-N1 and the owner's
+  to overrule: (1) No library key now for 'no MC fallback after CMA' alone. Run S10 keeps accuracy
+  on all three samples (broken minus fixed -2, 4, 4; limit 5) but meets the plan's 20% rule on 1
+  of 3 (29.3, 15.7, 14.3% fewer evaluations than S8 with the pass). The plan made a key
+  conditional on S10 passing, and I do not waive a rule written before the runs. (2) The next
+  step, AR5 step 3, tests a mixed seed refinement on whole layers: CMA with at most 200
+  evaluations first, the stock MC optimizer from the same start only when the CMA end hit ratio is
+  below 0.95, together with no MC fallback (run S11). The reviewer's what-if from the stored
+  replay (not a run): the same seed-test passes as MC (1,596 against 1,592 on the pick samples,
+  1,600 against 1,596 on mid) with 57.3% and 53.0% fewer seed-step evaluations. The sample mid is
+  no longer held out for this idea; the step says so and the whole-layer runs, with predictions
+  written first, are the test. A key for both changes together is considered only if S11 passes
+  its rule. Where: icenine_py/docs/autoresearch/PLAN.md (AR5 step 2; AR5 step 3 to be added),
+  .claude/reports/20261111-1310-review-ar5b.md.
+
+### D-20261111-N15 · Track A / AR4 step 1 · AR4 step 1 review: 10 fixes; the verifier's seed-acceptance use gets a whole-layer test only on a sample no choice has read; build that sample (held) with its S8 baseline
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Review verdict REQUEST CHANGES with 10 required fixes, 2 of them critical and both in the
+  findings page and its derived numbers (report .claude/reports/20261111-1335-review-ar4a.md); no
+  leakage and no code defect found. All 10 are applied in a fixes round, no new run. Result as
+  reviewed: no model passed the plan's rule for use 1 (flag of unfinished voxels): on mid the hit
+  ratio flags 31 of 31 wrong voxels at 1,760 voxels, the set network N1 23 of 31 at 190. Use 2
+  (accept a seed that fails the hit-ratio test when N1 scores it high) on the 15 fallback cases of
+  mid: 7 of 10 right ends accepted, 0 of 5 wrong; corrected what-if 2,325,301 of 5,002,750 grid
+  evaluations. It is usable only as an added rule (accept when the hit ratio or N1 says so); as a
+  replacement of the seed test it refuses 20 right seeds. Decided under the mandate D-20261109-N1,
+  the owner's to overrule: (1) AR4 step 1 closes as a script-only result after the fixes. (2) Use
+  2 as an added rule gets a whole-layer test with N1 frozen as trained, but only on a sample that
+  no choice has read, together with the mixed seed refinement of AR5 step 3 if run S11 passes. (3)
+  Approved now: AR3 step 11 (task ar3k) builds that sample, held (250 Voronoi grains with
+  gradients, built like mid, generator seed 1), and runs its S8 baseline with the boundary pass;
+  no other run reads held until the plans of the steps that use it are committed with their
+  predictions. The new generator seed makes a different sample for a carry-over test; it is not a
+  repeat to firm up a comparison (owner rule of 2026-10-12). Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR4 step 1; AR3 step 11),
+  .claude/reports/20261111-1335-review-ar4a.md.
+
+### D-20261111-N16 · Track A / AR5 step 3 · AR5 step 3 review: approve, 8 document fixes; no key for the mixed seed refinement before the test on the sample held; that test splits evaluations by stage
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Review of AR5 step 3 (task ar5c): APPROVE with 8 required fixes, all wording or traceability, no
+  new run. All 8 are applied in a fixes round (Opus), then the step is merged as a study with
+  scripts only. Reviewed numbers: pick X200; run S11 with the boundary pass needs 51.9%, 31.6% and
+  39.2% fewer evaluations than S8 on big, the first gradient sample and mid and meets the pass
+  rule on all three; on mid broken minus fixed is 5 (15 broken, 10 fixed), exactly at the limit,
+  with 36 wrong voxels against 31. The mixed rule was found in a replay that included mid, so no
+  sample is held out for it. Therefore no library key is added now. The test on the sample held
+  (AR3 step 11) comes first: runs S10 and S11, and S11 plus the verifier N1 as an added
+  seed-accept rule, against the S8 baseline, with evaluations by stage and the grid-fallback cases
+  paired by seed step, so that the fallback part of the saving (30% and 10% of it against S8,
+  untested why) is seen separately. Its plan and predictions are written after held exists and
+  before any run on it. Decided under the mandate D-20261109-N1; the owner may overrule. Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR5 step 3); review
+  .claude/reports/20261111-1503-review-ar5c.md; page
+  icenine_py/docs/autoresearch/findings_ar5_mix.md.
+
+### D-20261111-N17 · Track A / AR3 step 11 · AR3 step 11 hand-back (partial): rerun the S8 baseline on the sample held with a cap of 480 minutes
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- The S8 run on held reached its 120-minute cap: all 24,570 voxels had a record, 48,312,402
+  evaluations before the pass and 61 grid fallbacks (both lower bounds), and no map or log was
+  written. Predictions 1 and 3 of the plan missed. Decision under the mandate: run the same S8 run
+  on held again with a cap of 480 minutes and nothing else changed, started by the main session
+  from the task branch at e45bb0b; the counters of the capped run are kept as S8_held_cap120. The
+  120-minute cap was a budget taken from prediction 1; it is not part of the method. No choice of
+  method is made from the capped counters. After the run: a completion round (statistics, the
+  pass, pareto rows, the page), then one review of the whole step. The owner can overrule. Where:
+  icenine_py/docs/autoresearch/PLAN.md, AR3 step 11; report .claude/reports/20261111-1351-ar3k.md.
+
+### D-20261111-N18 · Track A / AR5 step 4 · AR5 step 4 plan approved with two amendments (cap 480 minutes; starts next to the baseline rerun)
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- The plan of AR5 step 4 (runs S10, S11 and S11v = S11 plus verifier N1 as an added seed-accept
+  rule, on the sample held, against S8) was committed at 17a27c1 with six predictions before any
+  number of held was read. Approved under the mandate with two amendments made after the hand-back
+  of AR3 step 11: the cap of a run is 480 minutes instead of 150, and the step starts now on a
+  task branch that merges the branch of step 11 first, with its runs next to the baseline rerun;
+  it merges after step 11 and reads no comparison before the baseline has finished. The
+  predictions, the pass rule, the frozen X200 rule and the frozen N1 model and cut were not
+  changed. The main session starts the long runs so that no agent has to wait on them. The owner
+  can overrule. Where: icenine_py/docs/autoresearch/PLAN.md, AR5 step 4.
+
+### D-20261111-N19 · Track A / AR3 step 11 · AR3 step 11 review: request changes, 7 document and script fixes, no rerun; then merge
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- The Opus review recomputed the finished S8 run on held from the cache (54,733,887 evaluations
+  before the pass, 59,923,523 with it, 75 grid fallbacks, wrong 95 then 70, the pass fixed 30 and
+  broke 5, boundary share 86.0%) and rebuilt mid and held from the builder; no code defect in the
+  run path. Decision under the mandate: apply all 7 required fixes of
+  .claude/reports/20261111-1900-review-ar3k.md in one Opus fixes round (fixed and broken by
+  gradient level, the scope of the held-out statement with the AR5 step 4 runs of N18 named,
+  contended labels, the process-count deviation, derived values in summary.json, the history note,
+  the cap as an argument of held_chain.sh), no new run, then merge into feature/eval-reduction.
+  The owner can overrule. Where: .claude/reports/20261111-1900-review-ar3k.md;
+  icenine_py/docs/autoresearch/findings_ar3_held.md.
+
+### D-20261111-N20 · Track A / AR5 step 4 · AR5 step 4 review: request changes; S10 and S11 stand; S11v was a defective arm, repair the hook and rerun it once as S11v2
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Opus review of task ar5d (report .claude/reports/20261111-2000-review-ar5d.md): every number
+  recomputed from the raw run files matches. S10 and S11 on held stand: with the pass S11 needs
+  23.3% fewer evaluations than S8 and meets the pass rule; S10 needs 3.6% fewer and fails part
+  (a). S11v did not test the planned rule: all 24 seeds that N1 accepted were refused by the
+  library's seed check afterwards, so no grain grew from them; the run only skipped grid
+  fallbacks. Decision under the mandate: (1) one Opus fixes round with the 10 required fixes; the
+  hook is repaired in the script layer only, checked on the stored fallback cases of mid, not on
+  held; (2) S11v runs once more on held as S11v2 with the frozen model, cut, rule and pass rule,
+  cap 480 minutes; the first run stays reported as a defective arm, its pareto rows are removed;
+  the rule part of prediction 5 and prediction 6 are judged on S11v2 and the page says the rerun
+  came after the defective numbers were seen; this is a bug repair, not tuning and not an extra
+  random seed; (3) because S11 passed on held, the library step for one opt-in key pair is planned
+  next under its own decision. The owner may overrule. Where: icenine_py/docs/autoresearch/PLAN.md
+  (AR5 step 4, amendment N20).
+
+### D-20261111-N21 · Track A / AR5 step 5 · AR5 step 5 plan approved: two opt-in library keys for run S11 (SeedIndexCMAFirst, BFSNeighborCMANoFallback), off by default, parity with the stored script runs
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- S11 met the pass rule on the held-out sample (23.3% fewer evaluations than S8 with the pass,
+  reviewed, D-20261111-N20), after passing on the three earlier samples; N14 and N16 made the key
+  wait for that test. Decision under the mandate: add two opt-in keys, both off by default, with
+  no default change and no recommended setting: SeedIndexCMAFirst n (the mixed seed refinement;
+  first step from CMASigma0, stop ratio from SeedIndexStopHitRatio) and BFSNeighborCMANoFallback
+  0|1. Tests first. Parity checks against the stored script runs S10 and S11 on big and S11 on the
+  first gradient sample (counts, records, map bytes); keys off is bit-identical. Four predictions
+  are in the plan, committed before any code. The verifier gets no key. Task ar5e, Sonnet
+  implementer; it may share the machine with the one rerun of AR5 step 4. The owner may overrule;
+  whether the documentation recommends the keys is the owner's choice. Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR5 step 5).
+
+### D-20261111-N22 · Track A / AR5 step 5 · AR5 step 5 review: request changes; six fixes to the page and the tests, no rerun, no library change
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- The Opus review (.claude/reports/20261111-2115-review-ar5e.md) recomputed parity checks 1 to 4
+  from the raw files and found them exact; with both keys off the library path is untouched. It
+  requests changes: (1) the page must say that the boundary pass inside the S11 library run has
+  the stored try counts and evaluations but not the stored contents (one try with another
+  candidate on big, costs differ in 4,372 of 18,617 tries on big and 15,813 of 60,423 on the
+  gradient sample, ends up to 1.2 degrees apart, changed sets 986 against 983 and 688 against
+  681); (2) the unrounded-map cause is shown only for S8L (AR3 step 10) and is untested for S10L
+  and S11L, and the page must say so; (3) refusal tests that only the new code refuses; (4) README
+  and page state that the hit ratio of the CMA end is one more overlap evaluation per candidate
+  that is not counted; (5) more terms defined; (6) a tracked source for the suite counts. Decided
+  under the mandate: apply all six in one Opus fixes round on the task branch, no new run, no
+  library behaviour change, then merge into feature/eval-reduction. The keys stay off by default
+  with no recommended setting. Where: icenine_py/docs/autoresearch/PLAN.md (AR5 step 5);
+  .claude/reports/20261111-2115-review-ar5e.md.
+
+### D-20261111-N23 · Track A / AR5 step 4 · AR5 step 4 phase B re-review: approve; three small fixes; the verifier gets one whole-layer step next
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- The Opus re-review of phase B (report .claude/reports/20261111-2215-review-ar5d-phaseB.md)
+  recomputed every S11v2 number from the stored files and approves. Three required fixes, no rerun
+  and no library change: (1) place the page text of
+  .claude/reports/20261111-2330-ar5d-phaseB-page.md as findings_ar5_held.md and confirm the table
+  sync check; this waits for the owner, because the implementer's write and the main session's
+  copy were both refused; (2) MIGRATION_HISTORY names the commit that places the page; (3) a note
+  in s11v2_validity and summary.json that the hook's fitted-voxel fields miss reseed growth and
+  that the log count 16 is the figure. Then merge the task into feature/eval-reduction. On the
+  question the reviewer left: S11v2 passed both rules on held (37.4% fewer evaluations than S8,
+  18.4% fewer than S11), but broken minus fixed against S11 is 4 of a limit of 5 from one run on
+  one sample, so no key and no recommendation follow from it. The next plan tests the same frozen
+  rule (N1, cut 0.74914) on samples it has not been run on with the whole layer, with predictions
+  written first; no extra random seeds. The owner can overrule. Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR5 step 4);
+  .claude/reports/20261111-2215-review-ar5d-phaseB.md.
+
+### D-20261111-N24 · Track A / AR5 step 6 · AR5 step 6 plan approved: the frozen N1 seed-accept rule on mid and grad, next to a plain hit-ratio rule
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Plan in PLAN.md, section AR5 step 6 (2ed6618), task ar5f, scripts only, no library change. Arms,
+  one run each with the boundary pass: S11n (S11 plus N1 at the frozen cut 0.74914 through the
+  repaired hook) and S11h (S11 plus a plain rule: keep a failed seed whose hit ratio is at least
+  h_c; h_c is fixed in phase A from a pool without mid, as the lowest cut that accepts no wrong
+  end). Test sample mid; grad runs too but N1 was trained on it, so its scores are labelled
+  in-sample. No sample is fully clean and none is generated: a new sample would be close to a
+  repeat with a new random seed, which the owner ruled out. The C++ converged-seed rule is not a
+  separate arm because it never fires at these costs. Pass rule unchanged; the reading plain does
+  as well (S11h passes on mid and saves at least 80% of what S11n saves against S11) and seven
+  numbered predictions are written before any run. Known limit: about 12 failed seeds per sample,
+  so counts are small. Cost at most 56.8 million evaluations, four runs side by side. The
+  implementer starts only after AR5 step 4 is merged, which waits for the owner to place its page.
+  The owner can overrule. Where: icenine_py/docs/autoresearch/PLAN.md (AR5 step 6).
+
+### D-20261111-N25 · Both tracks / review items 14 and 3 · Items 14 and 3 plan approved: both speed keys together on E0 and the pilot, timing A/B on a quiet machine
+- 2026-11-11, owner. Recorded by Newt Agent. Supersedes: none.
+- Plan in PLAN.md, section Items 14 and 3, task item14; scripts and one config only, no library
+  change. Stored arms are read (E0 off 41 wrong, smooth key 7; pilot off 37, smooth 34, FusedCost
+  24; all stored pilot times are contended). New runs: E0 with FusedCost alone and with both keys
+  (accuracy only); on the pilot the timing arms A (FusedCost) and B (both keys), one worker, alone
+  on the machine, order A1, B1, A2, B2 after a warm-up. Repeats of a timing are not extra random
+  seeds: each repeat must give byte-identical results and A1 must equal the stored run, or the
+  step stops. Decision rules R1 to R4 and seven predictions are written before any run; a run that
+  is not quiet reports no time. The measured C++ time is left as a separate step (its BFS runs
+  only in MPI mode and needs its own config). AR5 step 6 runs and any merge wait while the timing
+  arms run. The owner can overrule. Where: icenine_py/docs/autoresearch/PLAN.md (Items 14 and 3).
+
+### D-20261112-N1 · Track A / C++ time on the pilot (review page item 3) · C++ time plan approved: one client on the pilot region, stored binary, beside the Python timing A/B
+- 2026-11-12, owner. Recorded by Newt Agent. Supersedes: none.
+- Plan approved under D-20261109-N1 (owner mandate) and N2 (item 3 delegated). The stored Release
+  binary runs mode p with one server and one client (mpirun -n 2) on the 2,000-voxel pilot region,
+  config generated from key_off_fused.config minus the three Python-only lines. Two timed runs
+  under the quiet rule R4 of item 14, plus one untimed run that reads the evaluation counter with
+  lldb. No change under Src/ or icenine_py/icenine/. The page must say the two sides do not do the
+  same work (C++ one-client has no revisit and no reseed; predicted 740 to 1,300 wrong voxels
+  against 24 for Python arm A) and compares unit costs (seconds per global search, per local
+  optimization, microseconds per evaluation). A print added in Src/ plus a rebuild, and a Python
+  arm with C++ rules, are left as open choices for the owner. Timed runs start only after item
+  14's timing arms, never beside them. The owner may overrule. Where:
+  icenine_py/docs/autoresearch/PLAN.md, section 'C++ time on the pilot: one client, beside the
+  Python timing A/B' (af6514a).
+
+### D-20261112-N2 · Track A / AR5 step 6 (order of work) · AR5 step 6 starts now from the tip of the step 4 branch; its merge waits for step 4's
+- 2026-11-12, owner. Recorded by Newt Agent. Supersedes: none.
+- The plan (D-20261111-N24) said step 6 starts after step 4 (task ar5d) merges. Step 4 is
+  re-reviewed and approved (N23); only the placing of its page text waits for the owner, and that
+  does not touch the scripts step 6 reuses. The machine is idle until the owner frees it for the
+  timing runs. So the step 6 task branch (feature/eval-reduction-ar5f) is cut from the tip of
+  feature/eval-reduction-ar5d (fac79f9), with feature/eval-reduction recorded as its parent. Its
+  review reads the diff against fac79f9. It merges only after step 4 has merged. Its four runs are
+  not timing results and never run beside a timing run of item 14 or of the C++ step. Nothing else
+  in the plan changes. The owner may overrule. Where: icenine_py/docs/autoresearch/PLAN.md,
+  section 'AR5 step 6: the frozen seed-accept rule on two more whole layers, against a plain
+  rule'.
+
+### D-20261112-N3 · Track A / AR5 step 6 (review) · AR5 step 6 review: request changes, all 11 fixes accepted; wording only, no rerun; prediction 5 counts as not met in full
+- 2026-11-12, owner. Recorded by Newt Agent. Supersedes: none.
+- The Opus review of task ar5f (diff fac79f9..4c18740) recomputed every headline number from the
+  raw run files and found none that differs; frozen.json (b451086, 04:00) was committed before the
+  runs started (04:18). Verdict: request changes, 11 required fixes, all to wording on the page
+  text, in ver_tables.py and in the MIGRATION_HISTORY entry. All 11 are accepted. Prediction 5
+  names no arm in the plan, so it is quoted as written and reported as met for S11n (median growth
+  1 and 1) and not met for S11h on grad (4): six of seven predictions met, not seven. The page
+  states that nothing was tuned in this step but that N1 was trained and its cut picked on big and
+  grad, that the h_c pool holds 16 grad ends, and every earlier use of mid. The claim that the
+  plain rule does not replace the verifier is dropped: the page reports 20.4 percent of the saving
+  on mid (rule not met) and 62.2 percent on grad (in-sample). No rerun; no number in a summary
+  file changes; nothing under icenine_py/icenine/ changes. The fixes go to a fresh Opus
+  implementer. The page file itself is still for the owner to place (its Write was refused); the
+  fixes are made in the page text. The merge waits for step 4's merge (D-20261112-N2). The owner
+  may overrule. Where: .claude/reports/20261112-0510-review-ar5f.md (review report, 'Required
+  fixes').
+
+### D-20261112-N4 · Track A / AR5 step 7 (plan) · AR5 step 7 approved: an opt-in key that skips the boundary pass at voxels whose own hit ratio is at least 0.95, tested on held
+- 2026-11-12, owner. Recorded by Newt Agent. Supersedes: none.
+- With the owner's two pages and the quiet machine still open, the next step is planned and
+  started now. A table of the stored runs shows what is left in S11n with the pass: on mid the
+  seed step 39.2 percent, the boundary pass 21.7, the grid fallback 16.6, revisits 12.0, neighbour
+  local optimizations 10.6; on grad the pass is the largest stage at 38.6 percent. The step chosen
+  is a skip rule for the boundary pass: a boundary voxel whose own hit ratio before the pass is at
+  least 0.95 gets no try. A replay on five stored passes (mid, grad, big; written with the plan, a
+  what-if, not a result) removes 69 to 84 percent of the pass with 0 fixed and 0 broken against
+  the full pass; the highest hit ratio of a wrong voxel before the pass is 0.944, so the margin is
+  small. The cut 0.95 is frozen in the plan; held is the test sample and its pass files were not
+  opened. The library gains one opt-in key, BoundaryPassSkipHitRatio, default 0 (off), off path
+  bit-identical. Not chosen now: a library key for the N1 seed-accept rule (it makes the measured
+  12.3 percent usable but adds no new saving; it stays an open choice after step 6 closes), and
+  the MC part of the seed step (the next target; its log lacks the MC end). The task branch ar5g
+  starts from feature/eval-reduction and does not wait for steps 4 and 6. One implementer session
+  runs all phases; no run needs a quiet machine and none runs beside a timing run. The owner may
+  overrule. Where: icenine_py/docs/autoresearch/PLAN.md, section 'AR5 step 7: skip the boundary
+  pass at voxels that already fit' (2a4db6b).
+
+### D-20261112-N5 · Track A / AR5 step 7 (first result, added phase D) · AR5 step 7: the skip fails the plan's rule on held live (4 fixed, 10 broken); the key stays off; a phase D tests whether the order of random draws is the cause
+- 2026-11-12, owner. Recorded by Newt Agent. Supersedes: none.
+- First result, recorded as it is: the replay of the frozen skip (own hit ratio at least 0.95)
+  gives 0 fixed and 0 broken on held and on the five disclosed passes and cuts the pass by 69 to
+  84 percent (72.3 percent on held, the run 10.0 percent cheaper). The live pass with the key
+  spends exactly the replay's evaluations but its wrong voxels differ from the full pass: fixed
+  and broken 4 and 7 on mid, 15 and 12 on grad, 2 and 6 on big, 4 and 10 on held (75 wrong against
+  69). The plan's rule allows broken minus fixed of 2 on held, so the skip fails there; prediction
+  4 fails on all four samples. The cut is not tuned and the key stays off and not recommended.
+  Every flipped voxel is a kept voxel, none is skipped. Two causes are possible and untested: the
+  pass uses one random generator, so skipped tries shift the draws of the kept tries; or kept
+  tries start from neighbour ends that the full pass had changed. Added phase D, decided after
+  seeing this result and to be labelled so everywhere: with the key on, a skipped try consumes the
+  draw it would have made, so kept tries get the draws of the full pass; the off path stays
+  bit-identical. The four live passes run again with the same seed (no new random seed). If every
+  kept try then equals the stored full pass, the draw order was the whole cause, the key keeps
+  this behaviour, and the page reports both variants and the size of the draw noise of one pass
+  (the flips above). If not, the step stops and reports the first difference. held has now been
+  read once live; that is disclosed. The key for the N1 rule and the MC part of the seed step stay
+  as in N4. The owner may overrule. Where: report .claude/reports/20261112-1302-ar5g.md in
+  worktree agent-a331e7882919e74aa; PLAN.md section 'AR5 step 7: skip the boundary pass at voxels
+  that already fit'.
+
+### D-20261112-N6 · Track A / AR5 step 7 · AR5 step 7 review: fixes 1 to 11 accepted; the key keeps aligned draws and stays off; the page placement (fix 12) waits for the owner
+- 2026-11-12, owner. Recorded by Newt Agent. Supersedes: none.
+- The Opus review (.claude/reports/20261112-1345-review-ar5g.md) reproduced every headline number
+  of both variants from the raw files and asked for changes in labels, documents and one test.
+  Fixes 1 to 11 are accepted and go to a fresh Opus implementer. Fix 12 (place the page at
+  docs/autoresearch/findings_ar5_gate.md) is not done by an agent: the write of that file was
+  refused by a guard, so the owner places it or allows it; the fixed page text stays in the task's
+  report folder and MIGRATION_HISTORY says the page waits for the owner. The key
+  BoundaryPassSkipHitRatio keeps the aligned draws (variant 2: a skipped try consumes its random
+  draw) as its only behaviour and stays off by default. The record is: variant 1, the plan's
+  pre-set test, failed the rule on held (4 fixed, 10 broken); variant 2 passes on all four samples
+  with every kept try identical to the full pass, but held is not a clean test for it, because it
+  was decided after held was read live. Whether the documentation recommends the key is the
+  owner's choice. For later plans: a live test of a change that only removes work is compared with
+  aligned draws, because one shifted draw stream alone moved 4 to 15 voxels each way per sample
+  (one re-draw per sample). Where: icenine_py/docs/autoresearch/PLAN.md (AR5 step 7); review
+  report .claude/reports/20261112-1345-review-ar5g.md; branch feature/eval-reduction-ar5g.
+
+### D-20261112-N7 · Track A / AR5 step 8 (plan) · AR5 step 8 approved: CMA on every seed candidate before any MC refinement (sweep order), tested on held with aligned draws
+- 2026-11-12, owner. Recorded by Newt Agent. Supersedes: none.
+- The plan section 'AR5 step 8: fit every candidate with CMA before any MC refinement' (PLAN.md,
+  commit 334d2e2) is approved. It changes only the order of the seed step: CMA on every candidate
+  first, the MC refinement only if no CMA end reaches hit ratio 0.95. No new threshold, budget or
+  model. Reason: in the stored S11n runs 48.0% (mid) and 64.3% (grad) of the MC evaluations buy an
+  end that is then discarded, and a replay on stored seed steps cuts seed-step evaluations by
+  75.4% (big), 16.8% (grad), 42.1% (mid) with 0 fixed and 0 broken; those three samples are
+  disclosed, held is the test sample. Both orders are rerun as whole layers with aligned random
+  draws (lesson of step 7, D-20261112-N6), at most 4 heavy processes. Phase A has no library
+  change and ends at READY FOR KEY; phase B (the opt-in key SeedIndexCMASweep) needs a further
+  recorded decision. Phase A also records the MC traces for a later early-stop step. Not chosen
+  now: an early stop inside the MC run (needs a fitted predictor and a replay), a skip of MC from
+  the CMA end (needs a new cut). The timing runs (items 14 + 3, C++ time) keep priority if the
+  machine becomes quiet: they wait until these runs end, or the runs are started after them.
+  Where: icenine_py/docs/autoresearch/PLAN.md (AR5 step 8).
+
+### D-20261112-N8 · Track A / AR5 step 8 (plan) · AR5 step 8 arms run on S11 (merged keys), not S11n, so the step needs no unmerged code
+- 2026-11-12, owner. Recorded by Newt Agent. Supersedes: none.
+- Amends D-20261112-N7. Both arms of AR5 step 8 (interleaved order and sweep order) are the run
+  S11 with the merged keys SeedIndexCMAFirst 200 and BFSNeighborCMANoFallback 1, without the N1
+  seed-accept rule. Reason: the N1 code is on the unmerged branches of steps 4 and 6, which wait
+  for the owner to place their pages; stacking a third step on them would block it too. N1 acts
+  only on failed seeds after the seed step, so it does not touch the order under test. Predictions
+  and decision rules are unchanged. The sweep order together with N1 and the boundary-pass skip is
+  a later combined run, after those branches merge. Where: icenine_py/docs/autoresearch/PLAN.md
+  (AR5 step 8, paragraph Arms).
+
+### D-20261112-N9 · A / AR5 step 8 · AR5 step 8 fails its frozen rule: no key for the sweep order; review fixes 1 to 7 accepted; merge as a study
+- 2026-11-12, owner. Recorded by Newt Agent. Supersedes: none.
+- The review reproduced every headline number from the raw run files. The sweep order (arm Y: CMA
+  on every seed candidate before any MC refinement) passes rules 1 to 4 against the present order
+  (arm A) on all four samples and saves 22.6% (held), 38.8% (mid), 16.4% (grad) and 60.1% (big) of
+  the seed-step evaluations, 7.7%, 13.4%, 2.1% and 10.6% in total. It fails rule 5, the house rule
+  against S8, on held (broken minus fixed 8) and mid (7), limit 5; arm A passes there. By the rule
+  frozen before the runs the step fails: no key SeedIndexCMASweep, no phase B, nothing tuned. For
+  the record: the nets and the margin of rule 5 are within the draw noise seen before (step 7: 4
+  to 15 voxels; Yl against Y on big: 5 fixed, 12 broken), and the comparisons with S8 are not
+  draw-aligned; the page says so and does not claim the order loses accuracy. The planning replay
+  (0 fixed, 0 broken on seed steps) did not predict the whole-layer result, because a different
+  taken end changes which voxels are grown and seeded afterwards; later plans treat a seed-step
+  replay as a cost estimate only. Fixes 1 to 7 of the review are accepted; fix 6: the implementer
+  writes the findings page, and if its write is refused the text stays in .claude/reports and
+  waits for the owner. The step merges as a study with scripts only. Decided under the mandate
+  D-20261109-N1; the owner's to overrule. Where: review
+  .claude/reports/20261112-2200-review-ar5h.md; branch feature/eval-reduction-ar5h tip e601888.
+
+### D-20261112-N10 · A / AR5 step 9 (plan) · AR5 step 9 approved: rescue a failed seed with a wide CMA local optimization before the grid fallback (rule G1), with a cheap gate; tested on held
+- 2026-11-12, owner. Recorded by Newt Agent. Supersedes: none.
+- The plan in PLAN.md (4fad072) is approved. When a seed fails the seed test, rule G1 runs a CMA
+  local optimization (initial step 0.25 degree, 1,000 evaluations) from each kept seed end in
+  order of cost and takes the first end with hit ratio at least 0.95; if none, the grid fallback
+  runs as today. The reason: in arm A of step 8, in 22 of 23 fallbacks on grad and mid a kept seed
+  end lies within 0.6 degree of the end the grid search finds, and all 23 grid ends are right; the
+  grid fallback is the largest stage on held. The what-if saving (21.2% of the run on mid, 27.7%
+  on grad) is an upper estimate that assumes the CMA escapes where the seed refinements stopped; a
+  replay on the 23 disclosed cases is the gate (at least 12 rescued, no wrong rescued end) before
+  any whole-layer run. Values frozen before any run; held is the test sample and none of its seed
+  logs or fallback ends was opened; arm A is the stored step 8 run, arm G runs with aligned draws.
+  Phase A changes no library file; the key SeedRescueCMA needs a further decision. Not chosen now:
+  an early stop of an MC refinement after 2,000 evaluations without improvement (drafted; saves
+  12.6% mid, 8.0% big, 0.4% grad) and a library key for the N1 seed-accept rule (its code waits on
+  two unmerged branches). Correction to N9: the each-way draw noise of step 7 is 2 to 15 voxels
+  per sample, not 4 to 15, and 14 voxels flip on held and mid together (6 before the pass, 8 in
+  it), not 13. The step 8 fixes are applied (tip 493f9ec); its findings page waits for the owner
+  (the write was refused); it merges as a study. Decided under the mandate D-20261109-N1; the
+  owner's to overrule. Where: PLAN.md section AR5 step 9; scratchpad drafts plan_step9_draft.md
+  and plan_step9b_draft.md.
+
+### D-20261113-N1 · Track A / AR5 step 9 · AR5 step 9 passes its frozen rules; 8 review fixes accepted; phase B (opt-in key SeedRescueCMA, default off) approved
+- 2026-11-13, owner. Recorded by Newt Agent. Supersedes: none.
+- Arm G (rule G1: a wide CMA local optimization, 0.25 degree, 1,000 evaluations, at most 5 tries,
+  from the kept seed ends after a failed seed test, before the grid fallback) passes rules (1) to
+  (5) on held, mid, grad and big. The review (Opus) reproduced every number from the stored runs.
+  Totals A to G: held 46,516,396 to 30,768,867 (33.9% fewer), mid 15,645,472 to 13,004,457
+  (16.9%), grad 12,189,777 to 10,196,692 (16.4%), big identical. Grid fallbacks 65 to 19, 12 to 4,
+  11 to 5. Rescued 46 of 65, 8 of 12, 6 of 11, no wrong rescued seed. Fixed and broken against A
+  after the pass: 4 and 0 on held, 0 and 0 elsewhere. Predictions 2 (2.87 tries a case, at most
+  2.5 predicted) and 5 (held net -4, range -3 to 5) not met. Close margins: held is 22.4% under S8
+  (limit 20%); mid is 1 voxel inside the net limit. Accepted: all 8 required fixes of the review
+  (docs, tables, tests; no number changes). Approved: phase B as the plan writes it: one opt-in
+  key, SeedRescueCMA sigma evals, default off, off path bit-identical, no golden change, key-on
+  library run on mid equal to script arm Gl. The key is not recommended as a default; that choice
+  is the owner's. Shared library files change, so a ROADMAP heads-up goes out before the merge.
+  Made by Newt Agent under D-20261109-N1; the owner can overrule. Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR5 step 9); review
+  .claude/reports/20261113-0400-review-ar5i.md; branch feature/eval-reduction-ar5i a30c57d.
+
+### D-20261113-N2 · Track A / AR5 step 9 · AR5 step 9 phase B: the stop rule fired on the in-run boundary pass and was reported; the key SeedRescueCMA is accepted on the before-the-pass equality; 6 review fixes accepted
+- 2026-11-13, owner. Recorded by Newt Agent. Supersedes: none.
+- The key-on library run on mid equals script arm Gl before the boundary pass in every compared
+  item (map byte for byte, 10,064,185 evaluations, 13 rescues tried, 10 rescued). The pass made
+  inside the library run differs from the script's pass (3,051,586 against 3,051,647 evaluations;
+  8 voxels over 1 degree apart; 37 wrong voxels in both, 4 fixed and 4 broken). Read strictly, the
+  plan's stop rule (the key-on library run differs from the script arm) fires. The run stopped and
+  reported. The second review (Opus) found: the gap does not depend on the key (a key-off control
+  shows it; boundary_pass.py is untouched; the same gap is on record in AR3 step 10 and AR5 step
+  5); the in-run pass starts from the unrounded map in memory and the script from the rounded
+  stored map; the library's pass on the stored map matches the script exactly; the in-run pass is
+  the faithful one and this is not a library bug. Decision: accept the key on the same ground as
+  in AR3 step 10 and AR5 step 5, and say openly in the docs and the page that the stop rule fired.
+  Later stop rules say 'before the pass'. Accepted: all 6 required fixes of the second review.
+  Then merge task ar5i into feature/eval-reduction (key default off, off path bit-identical, suite
+  1842 passed with no golden change). The key is not recommended as a default; that and this
+  reading of the stop rule are the owner's to overrule. Made by Newt Agent under D-20261109-N1.
+  Where: review .claude/reports/20261113-0520-review-ar5i-B.md; branch feature/eval-reduction-ar5i
+  107db3c.
+
+### D-20261113-N3 · Track A / AR5 step 10 · AR5 step 10 approved: a level-0 cut of the grid search (quick MC on the first 1,000 listed candidates only), with a cheap gate; tested on held
+- 2026-11-13, owner. Recorded by Newt Agent. Supersedes: none.
+- After rule G1 the grid search still takes 21.3% of the run on held (19 searches), 10.3% on mid,
+  16.6% on grad. The per-level record of 23 stored searches on mid and grad shows a candidate
+  within 5 degrees of the end at place 165 or better of about 10,200 in all 23. Step 10 runs level
+  0's quick MC only on the first 1,000 candidates of the list sorted by the discrete score (arm C
+  = arm G plus the cut). N = 1,000 is frozen, chosen on mid and grad (disclosed); held is the test
+  sample. Gate before any whole-layer run: a replay on the 23 cases must be right in at least 22,
+  reach hit ratio 0.95 in at least 20, with at least 50% fewer evaluations. Predictions, rules,
+  stop rule (library against script compared before the pass) as in the plan section. Phase B
+  (opt-in key GridLevel0Top, default off) only after a recorded decision. Not chosen now: an early
+  stop of MC refinements, a learned ranking of level-0 candidates, a stronger local optimization
+  from G1's near ends. Made by Newt Agent under D-20261109-N1; the owner can overrule. Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR5 step 10).
+
+### D-20261113-N4 · Track A / AR5 step 10 · AR5 step 10 fails its replay gate: no whole-layer run, no key; 6 review fixes accepted; merge as a study with scripts only
+- 2026-11-13, owner. Recorded by Newt Agent. Supersedes: none.
+- The level-0 cut (quick MC on the first 1,000 listed candidates) was replayed on the 23 stored
+  grid searches of mid and grad. Right in 20 of 23 (gate: at least 22); hit ratio at least 0.95 in
+  15 (gate: at least 20; the full searches reach 21); 2,499,899 evaluations against 7,733,964,
+  67.7% fewer (gate met). Three cut searches end 24 to 50 degrees off where the full search was
+  right. The review (Opus) reproduced the numbers and found no replay bug; no held file was read.
+  By the rule fixed before the run: stop, no tuning, no other N, no whole-layer run, no key. Read
+  after the gate (post hoc, not a test): the near candidate is inside the first 1,000 and survives
+  the kept quarter in 7 of the 8 searches under 0.95; it is lost after level 0. The cut also
+  shrinks levels 1 to 3 (250 starts against about 2,540), which the plan's reading of the record
+  did not cover. Lesson: a claim about where the right candidate sits at one level does not show
+  that later levels keep it. Accepted: all 6 required fixes (docs, one docstring, the shared
+  Wilson function, two tests). No findings page for this step: the MIGRATION_HISTORY section is
+  its record. Then merge task ar5j as a study with scripts only. Made by Newt Agent under
+  D-20261109-N1; the owner can overrule. Where: review
+  .claude/reports/20261113-0625-review-ar5j.md; branch feature/eval-reduction-ar5j 9b4c3ad.
+
+### D-20261113-N5 · Track A / AR5 step 11 · AR5 step 11 approved: stop the seed step's MC refinement after 3,000 evaluations with no improvement (rule P(3000)), with a whole-path gate; tested on held
+- 2026-11-13, owner. Recorded by Newt Agent. Supersedes: none.
+- The seed step is arm G's largest stage on held (46.0%) and mid (41.7%); about 76% of its MC
+  refinements' evaluations on mid come after the last improvement. Step 11 tests rule P(3000): an
+  MC refinement in the seed step stops after 3,000 evaluations with no strict gain of the best
+  cost (arm S = arm G plus the rule). On stored traces (a cost estimate only) it saves 11.4% of
+  the run on mid, 6.1% on big, 0.2% on grad, and changes 24 of 1,607 taken seed ends on mid. k =
+  3000 is frozen, chosen on mid and grad (disclosed); held is the test sample. No cost-trace
+  number predicts at a stall whether a refinement will improve again (ranking score 0.38 to 0.71,
+  chance 0.5), so no learned predictor is used. Gate before any whole-layer run: a replay of every
+  seed step with an MC refinement along its whole changed path (the lesson of step 10).
+  Predictions, rules and stop rule as in the plan section. Said now: on mid arm G is at net 4 of
+  limit 5 against S8, so the house rule there is about even odds; the limit is not moved and a
+  fail on mid alone means no key. Phase B (opt-in key SeedIndexMCPatience, default off) only after
+  a recorded decision. Made by Newt Agent under D-20261109-N1; the owner can overrule. Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR5 step 11).
+
+### D-20261113-N6 · Track A / AR5 step 11 · AR5 step 11 fails rule 5 on mid by one voxel: no key; 6 fixes; merge as a study
+- 2026-11-13, owner. Recorded by Newt Agent. Supersedes: none.
+- Arm S (arm G with rule P(3000)) passes rules 1 to 5 on held, grad and big and rules 1 to 4 on
+  mid, and fails rule 5 on mid: against S8 it has 8 fixed and 14 broken (net 6, limit 5); G has
+  net 4, so the clause for a failing G does not apply. The plan said before the run that a fail on
+  mid alone means no key. So: no SeedIndexMCPatience key, no findings page, no tuning, no other k,
+  no rerun. Evaluations against G: held 5.71% fewer (seed step 14.92%), mid 10.60%, grad 0.14%,
+  big 5.01%; wrong voxels S/G 69/69, 37/35, 55/56, 21/21. The review reproduced the numbers and
+  the freeze (rule committed 07:08:21, before any held run). Apply the 6 fixes of the review
+  report (fix 6 included) and merge the branch as a study. The 597 of 1,181 cut refinements with a
+  best under 0.95 are kept as data for a later stop that reads the hit ratio. The owner can
+  overrule. Where: .claude/reports/20261113-1000-review-ar5k.md; PLAN.md AR5 step 11.
+
+### D-20261113-N7 · Track A / AR5 step 12 · AR5 step 12 approved: stop a stalled seed-step MC refinement only when its best is already at hit ratio 0.95 (rule PH(3000)); new test sample held2
+- 2026-11-13, owner. Recorded by Newt Agent. Supersedes: none.
+- The plan of AR5 step 12 (PLAN.md, task ar5l) is approved. Rule PH(3000): at a stall of 3,000
+  evaluations, a seed-step MC refinement stops only if its best is at a hit ratio of 0.95 or more;
+  else it goes on. From the stored record it saves 7.5% to 8.3% on mid with 7 to 11 changed taken
+  seed ends (step 11's rule: 20), 4.5% on big, 0.16% on grad. Gate first: a replay of the whole
+  changed path. held was run and read in step 11 and this rule's cuts are a subset of step 11's,
+  so held is disclosed; the test sample is a new sample held2, built exactly as held with
+  generator seed 2. This is a new sample for a carry-over test, as held was in AR3 step 11, not a
+  repeat of a comparison with another random seed; the owner may see this differently and can
+  overrule. Cost about 181 million evaluations, about 3.5 hours wall with 4 processes. Said before
+  the run: rule 5 on mid stays a risk (G is at net 4 of limit 5), judged at about one in three;
+  the limit is not moved; a fail on mid alone means no key. Not chosen now: a stronger local
+  optimization from the rescue's near ends (9 cases, no record of what reaches 0.95). Where:
+  icenine_py/docs/autoresearch/PLAN.md, AR5 step 12.
+
+### D-20261113-N8 · Track A / AR5 step 12 · AR5 step 12 passes its frozen rules on all five samples: 6 fixes; opt-in key SeedIndexMCStallHit approved (phase B)
+- 2026-11-13, owner. Recorded by Newt Agent. Supersedes: none.
+- Arm H (arm G with rule PH(3000)) passes rules 1 to 5 on held2 (the new test sample), held, mid,
+  grad and big. Against G with the pass it needs 4.33%, 3.84%, 8.11%, 0.16% and 4.53% fewer
+  evaluations (seed step on held2 9.21% fewer); wrong voxels are G's on every sample (67, 69, 35,
+  56, 21; 0 fixed, 0 broken); against S8 broken minus fixed is -4, -1, +4, -7, -3 (limit 5; S8 is
+  not draw-aligned). The review (APPROVE) recomputed the numbers from the raw maps and logs,
+  confirmed the freeze (9e315e2, before held2 existed) and that held2 is built as held except
+  generator seed 2. Apply the 6 fixes of the review. Phase B is approved: one opt-in key
+  SeedIndexMCStallHit k (default 0, off) in the seed step's MC refinement; off path bit-identical;
+  no default or golden change; key-on library run on mid equal to a script arm with the library's
+  draws before the pass, evaluation counts included. The key is not recommended as a default; that
+  is the owner's choice. The owner can overrule. Where:
+  .claude/reports/20261113-1600-review-ar5l.md; PLAN.md AR5 step 12.
+
+### D-20261113-N9 · Track A / AR5 step 13 · AR5 step 13 approved: arm H with the boundary-pass skip key (arm HK) as the best current recipe, and the skip's clean test on held2
+- 2026-11-13, owner. Recorded by Newt Agent. Supersedes: none.
+- The plan of AR5 step 13 (PLAN.md, task ar5m) is approved. Arm HK is arm H (rescue rule G1 plus
+  rule PH(3000)) with the step 7 key BoundaryPassSkipHitRatio 0.95. An exact replay on H's stored
+  passes gives 17.5% (mid), 29.9% (grad), 23.9% (big) and 12.8% (held) fewer evaluations than H
+  with 0 fixed and 0 broken voxels, and 57% to 67% fewer than S8. held2's pass tries were never
+  opened and 0.95 was fixed in step 7 before held2 existed, so held2 is an untouched test of the
+  skip; step 7's test on held was not clean. Gate first: the live pass on mid must equal the
+  replay try by try. No library change; about 15 million evaluations. Phase A may start before
+  step 12's merge (it needs only step 12's cache); phase B (one recipe run on mid with all three
+  keys) waits for that merge. Not chosen now: a local optimization from the rescue's ends to avoid
+  grid searches (needs a probe replay first; a candidate for the step after). Where:
+  icenine_py/docs/autoresearch/PLAN.md, AR5 step 13.
+
+### D-20261113-N10 · Track A / AR5 step 12 · AR5 step 12 key SeedIndexMCStallHit accepted: library run equals the script arm before the pass; 4 fixes; merge
+- 2026-11-13, owner. Recorded by Newt Agent. Supersedes: none.
+- The second review (APPROVE) rebuilt the key-on check on mid from the cache: the library run with
+  SeedIndexMCStallHit 3000 equals the script arm Hl before the boundary pass (map byte-identical,
+  8,713,457 evaluations, counters, 24,570 records, all 1,597 stall-check refinements). The pass
+  made inside the library run differs from the script's pass (49,963 against 49,971 tries; 36
+  against 38 wrong), reported apart as in step 9 and accepted on the same reading as
+  D-20261113-N2. The key is accepted, off by default, not recommended as a default (the owner's
+  choice). Apply the 4 fixes of the second review; for fix 1 the tracked part (run scripts refuse
+  to write when the output folder's real path is outside their own cache) is required, and no
+  agent modifies another worktree's cache. Then merge. The findings page text waits for the owner
+  to place it. During phase B the implementer's script pass wrote three new files into the stored
+  step 12 cache through a linked folder and moved them out again; the review confirmed the stored
+  cache is intact. The owner can overrule. Where: .claude/reports/20261113-1730-review-ar5l-B.md.

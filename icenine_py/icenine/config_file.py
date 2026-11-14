@@ -33,11 +33,13 @@ import numpy as np
 # Enumerations
 # ============================================================================
 
+
 class FileType(Enum):
     """Input/output file type.
 
     C++ Reference: ConfigFile.h EFileType
     """
+
     BIN = 0
     TIF = 1
     ASCII = 2
@@ -48,6 +50,7 @@ class SO3SearchMethod(Enum):
 
     C++ Reference: ConfigFile.h SO3SearchMethod
     """
+
     CONSTRAINED_EULER = 0
     UNIFORM_QUATERNION = 1
 
@@ -57,6 +60,7 @@ class SymmetryType(Enum):
 
     C++ Reference: Symmetry.h ESymmetryT
     """
+
     CUBIC = 0
     HEXAGONAL = 1
     TETRAGONAL = 2
@@ -68,6 +72,7 @@ class GridType(Enum):
 
     C++ Reference: MicIO.h GridType
     """
+
     TRIANGULAR = 0
     SQUARE = 1
 
@@ -75,6 +80,7 @@ class GridType(Enum):
 # ============================================================================
 # ConfigFile Class
 # ============================================================================
+
 
 @dataclass
 class ConfigFile:
@@ -109,27 +115,27 @@ class ConfigFile:
     # Enum mapping constants (for parser efficiency)
     # ========================================================================
     _SYMMETRY_MAP: ClassVar[Dict[str, SymmetryType]] = {
-        'Cubic': SymmetryType.CUBIC,
-        'Hexagonal': SymmetryType.HEXAGONAL,
-        'Tetragonal': SymmetryType.TETRAGONAL,
-        'None': SymmetryType.NONE
+        "Cubic": SymmetryType.CUBIC,
+        "Hexagonal": SymmetryType.HEXAGONAL,
+        "Tetragonal": SymmetryType.TETRAGONAL,
+        "None": SymmetryType.NONE,
     }
 
     _FILE_TYPE_MAP: ClassVar[Dict[str, FileType]] = {
-        'bin': FileType.BIN,
-        'tif': FileType.TIF,
-        'ascii': FileType.ASCII
+        "bin": FileType.BIN,
+        "tif": FileType.TIF,
+        "ascii": FileType.ASCII,
     }
 
     _SEARCH_METHOD_MAP: ClassVar[Dict[str, SO3SearchMethod]] = {
-        'ConstrainedEuler': SO3SearchMethod.CONSTRAINED_EULER,
-        'UniformSO3': SO3SearchMethod.UNIFORM_QUATERNION,
-        'UniformQuaternion': SO3SearchMethod.UNIFORM_QUATERNION,
+        "ConstrainedEuler": SO3SearchMethod.CONSTRAINED_EULER,
+        "UniformSO3": SO3SearchMethod.UNIFORM_QUATERNION,
+        "UniformQuaternion": SO3SearchMethod.UNIFORM_QUATERNION,
     }
 
     _GRID_TYPE_MAP: ClassVar[Dict[str, GridType]] = {
-        'Triangular': GridType.TRIANGULAR,
-        'Square': GridType.SQUARE
+        "Triangular": GridType.TRIANGULAR,
+        "Square": GridType.SQUARE,
     }
 
     # ========================================================================
@@ -150,11 +156,11 @@ class ConfigFile:
     # ========================================================================
     # Beam Information (5 parameters)
     # ========================================================================
-    beam_energy: float = 0.0              # keV
-    beam_energy_width: float = 0.0        # fraction (e.g., 0.05)
-    beam_height: float = 0.0              # mm
-    beam_direction: np.ndarray = None     # [x, y, z] unit vector
-    beam_deflection_chi_laue: float = 0.0 # radians
+    beam_energy: float = 0.0  # keV
+    beam_energy_width: float = 0.0  # fraction (e.g., 0.05)
+    beam_height: float = 0.0  # mm
+    beam_direction: np.ndarray = None  # [x, y, z] unit vector
+    beam_deflection_chi_laue: float = 0.0  # radians
 
     # ========================================================================
     # Detector (2 parameters)
@@ -165,10 +171,10 @@ class ConfigFile:
     # ========================================================================
     # Sample (9 parameters)
     # ========================================================================
-    sample_location: np.ndarray = None       # [x, y, z] meters
-    sample_radius: float = 0.0               # mm
-    sample_center: np.ndarray = None         # [x, y, z]
-    sample_orientation: np.ndarray = None    # Euler angles in radians (input as degrees)
+    sample_location: np.ndarray = None  # [x, y, z] meters
+    sample_radius: float = 0.0  # mm
+    sample_center: np.ndarray = None  # [x, y, z]
+    sample_orientation: np.ndarray = None  # Euler angles in radians (input as degrees)
     sample_filename: str = ""
     structure_filename: str = ""
     fundamental_zone_filename: str = ""
@@ -180,7 +186,7 @@ class ConfigFile:
     # Simulation (2 parameters)
     # ========================================================================
     min_amplitude_fraction: float = 0.0  # [0, 1]
-    max_q: float = 0.0                   # Å⁻¹
+    max_q: float = 0.0  # Å⁻¹
 
     # ========================================================================
     # Initialization Files (1 parameter)
@@ -218,6 +224,23 @@ class ConfigFile:
     bfs_reseed: bool = False  # one full no-start search per leftover REFIT cluster (opt-in)
     outward_search: bool = False  # BFS neighbours / reseeds start with the Task F policy (opt-in)
     seed_by_indexing: bool = False  # BFS seeds / reseeds indexed first (opt-in)
+    paint_grains: bool = False  # grain painting in place of the BFS (opt-in, needs SeedByIndexing)
+    # AR3 step 10 (opt-in, all off at these defaults; see SearchParameters)
+    bfs_neighbor_cma_first: bool = False  # CMA fit first in each BFS neighbour fit, MC if no gain
+    seed_index_n_cost: int = 5  # indexed seed step: candidates that get the strict cost
+    seed_index_n_refine: int = 2  # ... and candidates refined (the cheapest)
+    seed_index_stop_hit: float = 0.0  # indexed seed step stops at this hit ratio (0 = off)
+    boundary_pass: bool = False  # one boundary pass over the map before the .mic is written
+    # AR5 step 5 (opt-in, off at these defaults; see SearchParameters)
+    seed_index_cma_first: int = 0  # mixed seed refinement: CMA evaluations per candidate (0 = off)
+    bfs_neighbor_cma_no_fallback: bool = False  # the CMA end of a neighbour fit is returned
+    # AR5 step 7 (opt-in, off at 0): boundary pass skips voxels whose own hit ratio is >= this
+    boundary_pass_skip_hit: float = 0.0
+    # AR5 step 9 (opt-in, off at 0 0): SeedRescueCMA sigma evals (see SearchParameters)
+    seed_rescue_sigma_deg: float = 0.0  # degrees (kept in degrees, not converted)
+    seed_rescue_evals: int = 0
+    # AR5 step 12 (opt-in, off at 0): SeedIndexMCStallHit k (see SearchParameters)
+    seed_index_mc_stall_hit: int = 0
     cpp_overlap_rule: bool = False  # C++ CountQualifiedPeaks rule + centroid screen (opt-in)
     cpp_edge_rules: bool = False  # C++ conventions at the low edges (opt-in, see VoxelCostFunction)
     cpp_omega_interp: bool = False  # C++ omega interpolation in the level screen (opt-in)
@@ -257,7 +280,7 @@ class ConfigFile:
     # ========================================================================
     # Scattering Vector (2 parameters)
     # ========================================================================
-    consistency_error: float = 0.0       # radians (input as degrees)
+    consistency_error: float = 0.0  # radians (input as degrees)
     bragg_filter_tolerance: float = 0.0  # radians (input as degrees)
 
     # ========================================================================
@@ -315,7 +338,7 @@ class ConfigFile:
     # ========================================================================
 
     @classmethod
-    def from_file(cls, filename: str) -> 'ConfigFile':
+    def from_file(cls, filename: str) -> "ConfigFile":
         """
         Load configuration from .config file.
 
@@ -340,7 +363,7 @@ class ConfigFile:
 
         # Read file
         try:
-            with open(filename, 'r') as f:
+            with open(filename, "r") as f:
                 content = f.read()
         except FileNotFoundError:
             raise FileNotFoundError(f"Config file not found: {filename}")
@@ -369,11 +392,11 @@ class ConfigFile:
             List of (line_number, tokens) tuples
         """
         lines = []
-        for line_num, line in enumerate(content.split('\n'), 1):
+        for line_num, line in enumerate(content.split("\n"), 1):
             line = line.strip()
 
             # Skip comments and empty lines
-            if not line or line.startswith('#'):
+            if not line or line.startswith("#"):
                 continue
 
             # Split into tokens
@@ -393,144 +416,145 @@ class ConfigFile:
         # Maps config file keywords to parsing functions
         parsers = {
             # File I/O
-            'InfileBasename': self._parse_string('in_file_basename'),
-            'InfileExtension': self._parse_string('in_file_ext'),
-            'InFileType': self._parse_file_type,
-            'InfileSerialLength': self._parse_int('in_file_serial_length'),
-            'OutfileBasename': self._parse_string('out_file_basename'),
-            'OutfileExtension': self._parse_string('out_file_ext'),
-            'OutfileSerialLength': self._parse_int('out_file_serial_length'),
-            'OutStructureBasename': self._parse_string('out_structure_basename'),
-            'FileNumStart': self._parse_int('file_start_num'),
-            'FileNumEnd': self._parse_int('file_end_num'),
-            'BCPeakDetectorOffset': self._parse_int('bc_peak_detector_offset'),
-
+            "InfileBasename": self._parse_string("in_file_basename"),
+            "InfileExtension": self._parse_string("in_file_ext"),
+            "InFileType": self._parse_file_type,
+            "InfileSerialLength": self._parse_int("in_file_serial_length"),
+            "OutfileBasename": self._parse_string("out_file_basename"),
+            "OutfileExtension": self._parse_string("out_file_ext"),
+            "OutfileSerialLength": self._parse_int("out_file_serial_length"),
+            "OutStructureBasename": self._parse_string("out_structure_basename"),
+            "FileNumStart": self._parse_int("file_start_num"),
+            "FileNumEnd": self._parse_int("file_end_num"),
+            "BCPeakDetectorOffset": self._parse_int("bc_peak_detector_offset"),
             # Beam
-            'BeamEnergy': self._parse_float('beam_energy'),
-            'BeamEnergyWidth': self._parse_float('beam_energy_width'),
-            'BeamHeight': self._parse_float('beam_height'),
-            'BeamDirection': self._parse_vector3('beam_direction'),
-            'BeamDeflectionChiLaue': self._parse_float('beam_deflection_chi_laue'),
-
+            "BeamEnergy": self._parse_float("beam_energy"),
+            "BeamEnergyWidth": self._parse_float("beam_energy_width"),
+            "BeamHeight": self._parse_float("beam_height"),
+            "BeamDirection": self._parse_vector3("beam_direction"),
+            "BeamDeflectionChiLaue": self._parse_float("beam_deflection_chi_laue"),
             # Detector
-            'DetectorFilename': self._parse_string('detector_filename'),
-            'EtaLimit': self._parse_angle('eta_limit'),
-
+            "DetectorFilename": self._parse_string("detector_filename"),
+            "EtaLimit": self._parse_angle("eta_limit"),
             # Sample
-            'SampleLocation': self._parse_vector3('sample_location'),
-            'SampleRadius': self._parse_float('sample_radius'),
-            'SampleCenter': self._parse_vector3('sample_center'),
-            'SampleOrientation': self._parse_vector3('sample_orientation', convert_angles=True),
-            'SampleFilename': self._parse_string('sample_filename'),
-            'StructureFilename': self._parse_string('structure_filename'),
-            'FundamentalZoneFilename': self._parse_string('fundamental_zone_filename'),
-            'SampleSymmetry': self._parse_symmetry,
-            'MaxInitSideLength': self._parse_float('max_init_side_length'),
-            'MinSideLength': self._parse_float('min_side_length'),
-
+            "SampleLocation": self._parse_vector3("sample_location"),
+            "SampleRadius": self._parse_float("sample_radius"),
+            "SampleCenter": self._parse_vector3("sample_center"),
+            "SampleOrientation": self._parse_vector3("sample_orientation", convert_angles=True),
+            "SampleFilename": self._parse_string("sample_filename"),
+            "StructureFilename": self._parse_string("structure_filename"),
+            "FundamentalZoneFilename": self._parse_string("fundamental_zone_filename"),
+            "SampleSymmetry": self._parse_symmetry,
+            "MaxInitSideLength": self._parse_float("max_init_side_length"),
+            "MinSideLength": self._parse_float("min_side_length"),
             # Simulation
-            'MinAmplitudeFraction': self._parse_float('min_amplitude_fraction'),
-            'MaxQ': self._parse_float('max_q'),
-
+            "MinAmplitudeFraction": self._parse_float("min_amplitude_fraction"),
+            "MaxQ": self._parse_float("max_q"),
             # Initialization Files
-            'RotationRangeFilename': self._parse_string('rotation_range_filename'),
-
+            "RotationRangeFilename": self._parse_string("rotation_range_filename"),
             # Search Algorithm
-            'LocalOrientationGridRadius': self._parse_angle('local_orientation_grid_radius'),
-            'MinLocalResolution': self._parse_int('min_local_resolution'),
-            'MaxLocalResolution': self._parse_int('max_local_resolution'),
-            'MaxDiscreteCandidates': self._parse_int('max_discrete_candidates'),
-            'MaxAcceptedCost': self._parse_float('max_accepted_cost'),
-            'MaxConvergenceCost': self._parse_float('max_convergence_cost'),
-            'MaxDeepeningHitRatio': self._parse_float('max_deepening_hit_ratio'),
-            'MaxMCSteps': self._parse_int('max_mc_steps'),
-            'MCRadiusScaleFactor': self._parse_float('mc_radius_scale_factor'),
-            'SuccessiveRestarts': self._parse_int('successive_restarts'),
-            'MinAccelerationThreshold': self._parse_float('min_acceleration_threshold'),
-            'SecondsBetweenSave': self._parse_int('seconds_between_save'),
-
+            "LocalOrientationGridRadius": self._parse_angle("local_orientation_grid_radius"),
+            "MinLocalResolution": self._parse_int("min_local_resolution"),
+            "MaxLocalResolution": self._parse_int("max_local_resolution"),
+            "MaxDiscreteCandidates": self._parse_int("max_discrete_candidates"),
+            "MaxAcceptedCost": self._parse_float("max_accepted_cost"),
+            "MaxConvergenceCost": self._parse_float("max_convergence_cost"),
+            "MaxDeepeningHitRatio": self._parse_float("max_deepening_hit_ratio"),
+            "MaxMCSteps": self._parse_int("max_mc_steps"),
+            "MCRadiusScaleFactor": self._parse_float("mc_radius_scale_factor"),
+            "SuccessiveRestarts": self._parse_int("successive_restarts"),
+            "MinAccelerationThreshold": self._parse_float("min_acceleration_threshold"),
+            "SecondsBetweenSave": self._parse_int("seconds_between_save"),
             # Local refinement switch (Python-only, optional)
-            'LocalOptimizer': self._parse_local_optimizer,
-            'CMASigma0': self._make_parser(
-                'cma_sigma0_deg', converter=float, validator=self._positive_validator
+            "LocalOptimizer": self._parse_local_optimizer,
+            "CMASigma0": self._make_parser(
+                "cma_sigma0_deg", converter=float, validator=self._positive_validator
             ),
-            'CMAMaxEvals': self._make_parser(
-                'cma_max_evals', converter=int, validator=self._min2_validator
+            "CMAMaxEvals": self._make_parser(
+                "cma_max_evals", converter=int, validator=self._min2_validator
             ),
-            'CMAPopSize': self._make_parser(
-                'cma_popsize', converter=int, validator=self._popsize_validator
+            "CMAPopSize": self._make_parser(
+                "cma_popsize", converter=int, validator=self._popsize_validator
             ),
-            'CMANeighborMaxEvals': self._make_parser(
-                'cma_neighbor_max_evals', converter=int, validator=self._min2_validator
+            "CMANeighborMaxEvals": self._make_parser(
+                "cma_neighbor_max_evals", converter=int, validator=self._min2_validator
             ),
-            'CMARetrySigma0': self._make_parser(
-                'cma_retry_sigma0_deg', converter=float, validator=self._nonneg_validator
+            "CMARetrySigma0": self._make_parser(
+                "cma_retry_sigma0_deg", converter=float, validator=self._nonneg_validator
             ),
-            'BFSRevisitRefit': self._parse_bool('bfs_revisit_refit'),
-            'BFSRevisitMax': self._make_parser(
-                'bfs_revisit_max', converter=int, validator=self._min1_validator
+            "BFSRevisitRefit": self._parse_bool("bfs_revisit_refit"),
+            "BFSRevisitMax": self._make_parser(
+                "bfs_revisit_max", converter=int, validator=self._min1_validator
             ),
-            'BFSRestartPass': self._parse_bool('bfs_restart_pass'),
-            'BFSReseed': self._parse_bool('bfs_reseed'),
-            'OutwardSearch': self._parse_bool('outward_search'),
-            'SeedByIndexing': self._parse_bool('seed_by_indexing'),
-            'CppOverlapRule': self._parse_bool('cpp_overlap_rule'),
-            'CppEdgeRules': self._parse_bool('cpp_edge_rules'),
-            'CppOmegaInterp': self._parse_bool('cpp_omega_interp'),
-            'BatchedScreen': self._parse_bool('batched_screen'),
-            'BatchedQuickMC': self._parse_bool('batched_quick_mc'),
-            'FusedCost': self._parse_bool('fused_cost'),
-            'SearchDevice': self._parse_search_device,
-            'CandidateDedup': self._parse_candidate_dedup,
-            'SmoothCostRank': self._parse_smooth_rank,
-            'RayOverlapRule': self._parse_ray_overlap_rule,
-
+            "BFSRestartPass": self._parse_bool("bfs_restart_pass"),
+            "BFSReseed": self._parse_bool("bfs_reseed"),
+            "OutwardSearch": self._parse_bool("outward_search"),
+            "SeedByIndexing": self._parse_bool("seed_by_indexing"),
+            "PaintGrains": self._parse_bool("paint_grains"),
+            "BFSNeighborCMAFirst": self._parse_bool("bfs_neighbor_cma_first"),
+            "SeedIndexCandidates": self._parse_seed_index_candidates,
+            "SeedIndexStopHitRatio": self._parse_unit_interval("seed_index_stop_hit"),
+            "BoundaryPass": self._parse_bool("boundary_pass"),
+            "SeedIndexCMAFirst": self._parse_off_or_min2("seed_index_cma_first"),
+            "BFSNeighborCMANoFallback": self._parse_bool("bfs_neighbor_cma_no_fallback"),
+            "BoundaryPassSkipHitRatio": self._parse_unit_interval("boundary_pass_skip_hit"),
+            "SeedRescueCMA": self._parse_seed_rescue_cma,
+            "SeedIndexMCStallHit": self._parse_seed_index_mc_stall_hit,
+            "CppOverlapRule": self._parse_bool("cpp_overlap_rule"),
+            "CppEdgeRules": self._parse_bool("cpp_edge_rules"),
+            "CppOmegaInterp": self._parse_bool("cpp_omega_interp"),
+            "BatchedScreen": self._parse_bool("batched_screen"),
+            "BatchedQuickMC": self._parse_bool("batched_quick_mc"),
+            "FusedCost": self._parse_bool("fused_cost"),
+            "SearchDevice": self._parse_search_device,
+            "CandidateDedup": self._parse_candidate_dedup,
+            "SmoothCostRank": self._parse_smooth_rank,
+            "RayOverlapRule": self._parse_ray_overlap_rule,
             # Parameter Optimization
-            'OptimizationFilename': self._parse_string('optimization_filename'),
-            'OptimizationConstrainFilename': self._parse_string('optimization_constrain_filename'),
-            'DetectionLimitFilename': self._parse_string('detection_limit_filename'),
-            'NumParameterOptimizationSteps': self._parse_int('num_param_opt_steps'),
-            'NumElementToOptimizePerPE': self._parse_int('num_element_per_pe'),
-            'ParameterMCInitTemperature': self._parse_float('param_mc_temperature'),
-            'OrientationSearchMethod': self._parse_search_method,
-            'CoolingFraction': self._parse_float('cooling_fraction'),
-            'ThermalizeFraction': self._parse_float('thermalize_fraction'),
-            'ParameterRefinements': self._parse_int('parameter_refinements'),
-            'NumDetectors': self._parse_int('num_detectors'),
-            'DetectorSpacing': self._parse_detector_spacing,
-            'DetectorSpacingDeviation': self._parse_float('detector_dist_deviation'),
-            'DetectorOrientationDeviationInEuler': self._parse_vector3('detector_orient_deviation_euler', convert_angles=True),
-            'DetectorOrientationDeviationInSO3': self._parse_angle('detector_orient_deviation_so3'),
-            'ParamMCMaxLocalRestarts': self._parse_int('max_param_mc_local_restarts'),
-            'ParamMCMaxGlobalRestarts': self._parse_int('max_param_mc_global_restarts'),
-            'ParamMCNumGlobalSearchElements': self._parse_int('param_mc_global_search_elements'),
-            'ConstrainedOptimization': self._parse_bool('constrained_param_mc'),
-            'SearchVolumeReductionFactor': self._parse_float('search_vol_reduction_factor'),
-
+            "OptimizationFilename": self._parse_string("optimization_filename"),
+            "OptimizationConstrainFilename": self._parse_string("optimization_constrain_filename"),
+            "DetectionLimitFilename": self._parse_string("detection_limit_filename"),
+            "NumParameterOptimizationSteps": self._parse_int("num_param_opt_steps"),
+            "NumElementToOptimizePerPE": self._parse_int("num_element_per_pe"),
+            "ParameterMCInitTemperature": self._parse_float("param_mc_temperature"),
+            "OrientationSearchMethod": self._parse_search_method,
+            "CoolingFraction": self._parse_float("cooling_fraction"),
+            "ThermalizeFraction": self._parse_float("thermalize_fraction"),
+            "ParameterRefinements": self._parse_int("parameter_refinements"),
+            "NumDetectors": self._parse_int("num_detectors"),
+            "DetectorSpacing": self._parse_detector_spacing,
+            "DetectorSpacingDeviation": self._parse_float("detector_dist_deviation"),
+            "DetectorOrientationDeviationInEuler": self._parse_vector3(
+                "detector_orient_deviation_euler", convert_angles=True
+            ),
+            "DetectorOrientationDeviationInSO3": self._parse_angle("detector_orient_deviation_so3"),
+            "ParamMCMaxLocalRestarts": self._parse_int("max_param_mc_local_restarts"),
+            "ParamMCMaxGlobalRestarts": self._parse_int("max_param_mc_global_restarts"),
+            "ParamMCNumGlobalSearchElements": self._parse_int("param_mc_global_search_elements"),
+            "ConstrainedOptimization": self._parse_bool("constrained_param_mc"),
+            "SearchVolumeReductionFactor": self._parse_float("search_vol_reduction_factor"),
             # Scattering Vector
-            'ConsistencyError': self._parse_angle('consistency_error'),
-            'BraggFilterTolerance': self._parse_angle('bragg_filter_tolerance'),
-
+            "ConsistencyError": self._parse_angle("consistency_error"),
+            "BraggFilterTolerance": self._parse_angle("bragg_filter_tolerance"),
             # Pipeline Commands
-            'RunParameterOptimization': self._parse_flag('run_param_optimization'),
-            'RunReconstruction': self._parse_flag('run_reconstruction'),
-            'RunAdpReconstruction': self._parse_flag('run_adp_reconstruction'),
-            'SelectBoundaryVoxels': self._parse_boundary_voxels,
-            'IntensityDecomposition': self._parse_flag('intensity_decomposition'),
-            'LazyBFS': self._parse_flag('lazy_bfs'),
-            'LazyStrain': self._parse_flag('lazy_strain'),
-            'LocalOrientationOptimization': self._parse_flag('local_orientation_optimization'),
-
+            "RunParameterOptimization": self._parse_flag("run_param_optimization"),
+            "RunReconstruction": self._parse_flag("run_reconstruction"),
+            "RunAdpReconstruction": self._parse_flag("run_adp_reconstruction"),
+            "SelectBoundaryVoxels": self._parse_boundary_voxels,
+            "IntensityDecomposition": self._parse_flag("intensity_decomposition"),
+            "LazyBFS": self._parse_flag("lazy_bfs"),
+            "LazyStrain": self._parse_flag("lazy_strain"),
+            "LocalOrientationOptimization": self._parse_flag("local_orientation_optimization"),
             # Strain
-            'EnableStrain': self._parse_bool('strain_enabled'),
-            'StrainOptConfigFilename': self._parse_string('strain_opt_config_filename'),
-
+            "EnableStrain": self._parse_bool("strain_enabled"),
+            "StrainOptConfigFilename": self._parse_string("strain_opt_config_filename"),
             # Partial Results
-            'PartialResultFilename': self._parse_string('partial_result_filename'),
-            'PartialResultAcceptanceConfidence': self._parse_float('partial_result_acceptance_conf'),
-
+            "PartialResultFilename": self._parse_string("partial_result_filename"),
+            "PartialResultAcceptanceConfidence": self._parse_float(
+                "partial_result_acceptance_conf"
+            ),
             # Grid Type
-            'GridType': self._parse_grid_type,
+            "GridType": self._parse_grid_type,
         }
 
         for line_num, tokens in lines:
@@ -553,9 +577,14 @@ class ConfigFile:
     # Generic parser factory
     # ========================================================================
 
-    def _make_parser(self, attr_name: str, converter: Callable = None,
-                     min_tokens: int = 2, num_values: int = 1,
-                     validator: Callable = None) -> Callable:
+    def _make_parser(
+        self,
+        attr_name: str,
+        converter: Callable = None,
+        min_tokens: int = 2,
+        num_values: int = 1,
+        validator: Callable = None,
+    ) -> Callable:
         """
         Generic parser factory that eliminates repetitive parser code.
 
@@ -569,6 +598,7 @@ class ConfigFile:
         Returns:
             Parser function that takes token list
         """
+
         def parser(tokens):
             if len(tokens) < min_tokens:
                 raise ValueError(f"Missing value for {tokens[0]}")
@@ -581,7 +611,7 @@ class ConfigFile:
                 setattr(self, attr_name, value)
             else:
                 # Vector/multiple values
-                values = [converter(tokens[i+1]) for i in range(num_values)]
+                values = [converter(tokens[i + 1]) for i in range(num_values)]
                 value = np.array(values, dtype=np.float32) if converter == float else values
                 setattr(self, attr_name, value)
 
@@ -600,19 +630,92 @@ class ConfigFile:
         if len(tokens) < 2:
             raise ValueError(f"Missing value for {tokens[0]}")
         value = tokens[1]
-        ok = value.lower() in ('off', '0', 'a') or (
-            value[:1] in ('R', 'r') and value[1:].isdigit()
-        )
+        ok = value.lower() in ("off", "0", "a") or (value[:1] in ("R", "r") and value[1:].isdigit())
         if not ok:
             raise ValueError(f"RayOverlapRule must be off, R<n> or A, got {value!r}")
-        self.ray_overlap_rule = 'off' if value.lower() in ('off', '0') else value.upper()
+        self.ray_overlap_rule = "off" if value.lower() in ("off", "0") else value.upper()
+
+    def _parse_seed_index_candidates(self, tokens: List[str]) -> None:
+        """SeedIndexCandidates n_cost n_refine (Python-only, opt-in; needs SeedByIndexing 1): the
+        indexed seed step costs n_cost candidates and refines the n_refine cheapest.
+        1 <= n_refine <= n_cost <= ray_indexing.SEED_TOP_K."""
+        from .ray_indexing import SEED_TOP_K
+
+        if len(tokens) != 3:
+            raise ValueError(
+                f"{tokens[0]} needs exactly two integers: n_cost n_refine, got {tokens[1:]}"
+            )
+        n_cost, n_refine = int(tokens[1]), int(tokens[2])
+        if not 1 <= n_refine <= n_cost <= SEED_TOP_K:
+            raise ValueError(
+                f"{tokens[0]} needs 1 <= n_refine <= n_cost <= {SEED_TOP_K}, "
+                f"got {n_cost} {n_refine}"
+            )
+        self.seed_index_n_cost, self.seed_index_n_refine = n_cost, n_refine
+
+    def _parse_seed_rescue_cma(self, tokens: List[str]) -> None:
+        """SeedRescueCMA sigma evals (Python-only, opt-in, AR5 step 9): the rescue of a failed
+        indexed seed step with a CMA local optimization of first step ``sigma`` degrees and
+        ``evals`` evaluations. ``0 0`` is off; otherwise sigma > 0 and evals >= 2 (an integer).
+        Its key combinations are checked by ``reconstructor.check_bfs_keys``."""
+        from .orientation_search import check_seed_rescue
+
+        if len(tokens) != 3:
+            raise ValueError(
+                f"{tokens[0]} needs exactly two values: sigma (degrees) evals, got {tokens[1:]}"
+            )
+        sigma, evals = float(tokens[1]), int(tokens[2])
+        check_seed_rescue(sigma, evals)
+        self.seed_rescue_sigma_deg, self.seed_rescue_evals = sigma, evals
+
+    def _parse_seed_index_mc_stall_hit(self, tokens: List[str]) -> None:
+        """SeedIndexMCStallHit k (Python-only, opt-in, AR5 step 12): the stall check in the
+        indexed seed step's MC refinement after ``k`` evaluations with no strict gain. ``0`` is
+        off; otherwise an integer ``k >= 1``. Its key combinations are checked by
+        ``reconstructor.check_bfs_keys``."""
+        from .orientation_search import check_seed_index_mc_stall_hit
+
+        if len(tokens) != 2:
+            raise ValueError(f"{tokens[0]} needs exactly one integer k, got {tokens[1:]}")
+        try:
+            k = int(tokens[1])
+        except ValueError:
+            raise ValueError(f"{tokens[0]} needs an integer >= 0, got {tokens[1]!r}") from None
+        check_seed_index_mc_stall_hit(k)
+        self.seed_index_mc_stall_hit = k
+
+    def _parse_off_or_min2(self, attr_name: str) -> Callable[[List[str]], None]:
+        """Parser for an integer that is 0 (off) or at least 2."""
+
+        def parser(tokens: List[str]) -> None:
+            if len(tokens) < 2:
+                raise ValueError(f"Missing value for {tokens[0]}")
+            value = int(tokens[1])
+            if value != 0 and value < 2:
+                raise ValueError(f"{tokens[0]} must be 0 (off) or >= 2, got {value}")
+            setattr(self, attr_name, value)
+
+        return parser
+
+    def _parse_unit_interval(self, attr_name: str) -> Callable[[List[str]], None]:
+        """Parser for a float in [0, 1]."""
+
+        def parser(tokens: List[str]) -> None:
+            if len(tokens) < 2:
+                raise ValueError(f"Missing value for {tokens[0]}")
+            value = float(tokens[1])
+            if not 0.0 <= value <= 1.0:
+                raise ValueError(f"{tokens[0]} must be in [0, 1], got {value}")
+            setattr(self, attr_name, value)
+
+        return parser
 
     def _parse_local_optimizer(self, tokens: List[str]) -> None:
         """LocalOptimizer mc|cma (Python-only; selects the local refinement optimizer)."""
         if len(tokens) < 2:
             raise ValueError(f"Missing value for {tokens[0]}")
         value = tokens[1].lower()
-        if value not in ('mc', 'cma'):
+        if value not in ("mc", "cma"):
             raise ValueError(f"LocalOptimizer must be 'mc' or 'cma', got {tokens[1]!r}")
         self.local_optimizer = value
 
@@ -622,7 +725,7 @@ class ConfigFile:
         if len(tokens) < 2:
             raise ValueError(f"Missing value for {tokens[0]}")
         value = tokens[1].lower()
-        if value not in ('cpu', 'mps', 'cuda'):
+        if value not in ("cpu", "mps", "cuda"):
             raise ValueError(f"SearchDevice must be 'cpu', 'mps' or 'cuda', got {tokens[1]!r}")
         self.search_device = value
 
@@ -681,6 +784,7 @@ class ConfigFile:
 
     def _parse_bool(self, attr_name: str):
         """Create parser for bool parameter (0/1)."""
+
         def parser(tokens):
             if len(tokens) < 2:
                 raise ValueError(f"Missing value for {tokens[0]}")
@@ -688,12 +792,15 @@ class ConfigFile:
             if value not in (0, 1):
                 raise ValueError(f"{tokens[0]} must be 0 or 1, got {value}")
             setattr(self, attr_name, bool(value))
+
         return parser
 
     def _parse_flag(self, attr_name: str):
         """Create parser for boolean flag (presence = True)."""
+
         def parser(tokens):
             setattr(self, attr_name, True)
+
         return parser
 
     def _parse_angle(self, attr_name: str):
@@ -702,17 +809,25 @@ class ConfigFile:
 
     def _parse_vector3(self, attr_name: str, convert_angles: bool = False):
         """Create parser for 3D vector."""
+
         def parser(tokens):
             if len(tokens) < 4:
                 raise ValueError(f"Vector3 requires 3 values for {tokens[0]}")
             converter = lambda x: np.deg2rad(float(x)) if convert_angles else float(x)
-            vec = np.array([converter(tokens[1]), converter(tokens[2]), converter(tokens[3])],
-                          dtype=np.float32)
+            vec = np.array(
+                [converter(tokens[1]), converter(tokens[2]), converter(tokens[3])], dtype=np.float32
+            )
             setattr(self, attr_name, vec)
+
         return parser
 
-    def _make_enum_parser(self, attr_name: str, string_to_enum: Dict[str, Enum],
-                         case_sensitive: bool = True, error_prefix: str = None):
+    def _make_enum_parser(
+        self,
+        attr_name: str,
+        string_to_enum: Dict[str, Enum],
+        case_sensitive: bool = True,
+        error_prefix: str = None,
+    ):
         """
         Generic enum parser factory.
 
@@ -725,6 +840,7 @@ class ConfigFile:
         Returns:
             Parser function for the enum
         """
+
         def parser(tokens):
             if len(tokens) < 2:
                 raise ValueError(f"Missing value for {tokens[0]}")
@@ -732,7 +848,7 @@ class ConfigFile:
             value = tokens[1] if case_sensitive else tokens[1].lower()
 
             if value not in string_to_enum:
-                valid_values = ', '.join(string_to_enum.keys())
+                valid_values = ", ".join(string_to_enum.keys())
                 # Use custom error prefix if provided, otherwise use keyword name
                 prefix = error_prefix if error_prefix else tokens[0]
                 raise ValueError(f"Unknown {prefix}: {tokens[1]}. Must be one of: {valid_values}")
@@ -747,25 +863,30 @@ class ConfigFile:
 
     def _parse_symmetry(self, tokens):
         """Parse symmetry enum."""
-        parser = self._make_enum_parser('sample_symmetry', self._SYMMETRY_MAP, error_prefix='symmetry')
+        parser = self._make_enum_parser(
+            "sample_symmetry", self._SYMMETRY_MAP, error_prefix="symmetry"
+        )
         parser(tokens)
 
     def _parse_file_type(self, tokens):
         """Parse file type enum."""
-        parser = self._make_enum_parser('in_file_type', self._FILE_TYPE_MAP,
-                                       case_sensitive=False, error_prefix='file type')
+        parser = self._make_enum_parser(
+            "in_file_type", self._FILE_TYPE_MAP, case_sensitive=False, error_prefix="file type"
+        )
         parser(tokens)
 
     def _parse_search_method(self, tokens):
         """Parse search method enum."""
-        parser = self._make_enum_parser('orientation_search_method', self._SEARCH_METHOD_MAP,
-                                       error_prefix='search method')
+        parser = self._make_enum_parser(
+            "orientation_search_method", self._SEARCH_METHOD_MAP, error_prefix="search method"
+        )
         parser(tokens)
 
     def _parse_grid_type(self, tokens):
         """Parse grid type enum."""
-        parser = self._make_enum_parser('mic_grid_type', self._GRID_TYPE_MAP,
-                                       error_prefix='grid type')
+        parser = self._make_enum_parser(
+            "mic_grid_type", self._GRID_TYPE_MAP, error_prefix="grid type"
+        )
         parser(tokens)
 
     def _parse_detector_spacing(self, tokens):
@@ -814,57 +935,82 @@ class ConfigFile:
         # Required keywords (from C++ ConfigFile.cpp lines 299-313)
         required = {
             # File I/O
-            'InfileBasename', 'InfileExtension', 'InFileType',
-            'InfileSerialLength', 'OutfileBasename', 'OutfileExtension',
-            'OutfileSerialLength', 'OutStructureBasename',
-            'FileNumStart', 'FileNumEnd',  # Obsolete but still required
-
+            "InfileBasename",
+            "InfileExtension",
+            "InFileType",
+            "InfileSerialLength",
+            "OutfileBasename",
+            "OutfileExtension",
+            "OutfileSerialLength",
+            "OutStructureBasename",
+            "FileNumStart",
+            "FileNumEnd",  # Obsolete but still required
             # Beam
-            'BeamEnergy', 'BeamEnergyWidth', 'BeamHeight',
-            'BeamDirection', 'BeamDeflectionChiLaue',
-
+            "BeamEnergy",
+            "BeamEnergyWidth",
+            "BeamHeight",
+            "BeamDirection",
+            "BeamDeflectionChiLaue",
             # Detector
-            'DetectorFilename', 'EtaLimit',
-
+            "DetectorFilename",
+            "EtaLimit",
             # Sample
-            'SampleLocation', 'SampleRadius', 'SampleCenter',
-            'SampleOrientation', 'SampleFilename', 'StructureFilename',
-            'FundamentalZoneFilename', 'SampleSymmetry',
-            'MaxInitSideLength', 'MinSideLength',
-
+            "SampleLocation",
+            "SampleRadius",
+            "SampleCenter",
+            "SampleOrientation",
+            "SampleFilename",
+            "StructureFilename",
+            "FundamentalZoneFilename",
+            "SampleSymmetry",
+            "MaxInitSideLength",
+            "MinSideLength",
             # Simulation
-            'MinAmplitudeFraction', 'MaxQ',
-
+            "MinAmplitudeFraction",
+            "MaxQ",
             # Initialization
-            'RotationRangeFilename',
-
+            "RotationRangeFilename",
             # Search
-            'LocalOrientationGridRadius', 'MinLocalResolution',
-            'MaxLocalResolution', 'MaxDiscreteCandidates',
-            'MaxAcceptedCost', 'MaxConvergenceCost',
-            'MaxDeepeningHitRatio', 'MaxMCSteps',
-            'MCRadiusScaleFactor', 'SuccessiveRestarts',
-            'MinAccelerationThreshold', 'SecondsBetweenSave',
-
+            "LocalOrientationGridRadius",
+            "MinLocalResolution",
+            "MaxLocalResolution",
+            "MaxDiscreteCandidates",
+            "MaxAcceptedCost",
+            "MaxConvergenceCost",
+            "MaxDeepeningHitRatio",
+            "MaxMCSteps",
+            "MCRadiusScaleFactor",
+            "SuccessiveRestarts",
+            "MinAccelerationThreshold",
+            "SecondsBetweenSave",
             # Parameter Optimization
-            'OptimizationFilename', 'OptimizationConstrainFilename',
-            'DetectionLimitFilename', 'NumParameterOptimizationSteps',
-            'NumElementToOptimizePerPE', 'ParameterMCInitTemperature',
-            'OrientationSearchMethod', 'CoolingFraction',
-            'ThermalizeFraction', 'ParameterRefinements',
-            'NumDetectors', 'DetectorSpacingDeviation',
-            'DetectorOrientationDeviationInEuler', 'DetectorOrientationDeviationInSO3',
-            'ParamMCMaxLocalRestarts', 'ParamMCMaxGlobalRestarts',
-            'ParamMCNumGlobalSearchElements', 'ConstrainedOptimization',
-            'SearchVolumeReductionFactor',
-
+            "OptimizationFilename",
+            "OptimizationConstrainFilename",
+            "DetectionLimitFilename",
+            "NumParameterOptimizationSteps",
+            "NumElementToOptimizePerPE",
+            "ParameterMCInitTemperature",
+            "OrientationSearchMethod",
+            "CoolingFraction",
+            "ThermalizeFraction",
+            "ParameterRefinements",
+            "NumDetectors",
+            "DetectorSpacingDeviation",
+            "DetectorOrientationDeviationInEuler",
+            "DetectorOrientationDeviationInSO3",
+            "ParamMCMaxLocalRestarts",
+            "ParamMCMaxGlobalRestarts",
+            "ParamMCNumGlobalSearchElements",
+            "ConstrainedOptimization",
+            "SearchVolumeReductionFactor",
             # Scattering Vector
-            'ConsistencyError', 'BraggFilterTolerance',
+            "ConsistencyError",
+            "BraggFilterTolerance",
         }
 
         missing = required - self._initialized
         if missing:
-            raise ValueError(f"Missing required parameters:\n  " + '\n  '.join(sorted(missing)))
+            raise ValueError(f"Missing required parameters:\n  " + "\n  ".join(sorted(missing)))
 
         # Cross-parameter validation
         self._validate_ranges()
@@ -893,7 +1039,7 @@ class ConfigFile:
     def _validate_consistency(self):
         """Validate cross-parameter consistency."""
         # Detector spacing must have num_detectors - 1 entries
-        if 'DetectorSpacing' in self._initialized:
+        if "DetectorSpacing" in self._initialized:
             expected = self.num_detectors - 1
             if len(self.detector_spacing) != expected:
                 raise ValueError(

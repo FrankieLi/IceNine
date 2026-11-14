@@ -1,0 +1,10 @@
+{
+  "run": "B",
+  "n_voxels": 2000,
+  "n_orientation_differ": 0,
+  "max_abs_diff": 0.0,
+  "evals_total": 2816897,
+  "evals_expected": 2816897,
+  "evals_match": true,
+  "passes": true
+}

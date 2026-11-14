@@ -1,0 +1,122 @@
+<section id="frontier">
+  <h2>Cost against accuracy, all methods</h2>
+  <p>You asked for the frontier of cost against accuracy for every method tried so far. Each point below is one method run on one sample. Left is cheaper. Down is more accurate. A method is <em>on the frontier</em> when no other method on the same sample is both cheaper and more accurate. A line joins those methods, and each has a ring.</p>
+  <ul>
+    <li><strong>Cost</strong> is the number of evaluations of the whole run divided by the number of voxels. An evaluation is one call of the cost function for one voxel and one orientation. The axis is logarithmic.</li>
+    <li><strong>Accuracy</strong> is the share of voxels that end more than 1 degree from the true orientation, after crystal symmetry. All samples are simulated, so the truth is known.</li>
+    <li><strong>One panel per sample.</strong> The methods were run on eight different samples. Two points can be compared only inside one panel.</li>
+  </ul>
+  <p><strong>Terms.</strong> <em>BFS</em> is the breadth-first search: a voxel starts its local optimization from a finished neighbour, and a <em>seed</em> is a voxel that needs a global search. <em>Indexed seeds</em> means the seed comes from ray indexing, with the grid search only as a fallback. <em>Stock</em> is the local optimization the search uses by default. <em>CMA</em> is the other local optimization in the code, with a first step of 0.05 degrees; "library CMA" is the same one switched on by the keys the code already has. <em>Paint grains</em> gives each voxel the orientation of a grain already found, with one evaluation. A <em>boundary pass</em> comes after a run: each voxel at a grain boundary gets one short try from each neighbouring grain's orientation.</p>
+  <p><strong>Grid search.</strong> On this page, <em>grid search</em> always means the adaptive grid search that the code runs by default for a voxel with no starting guess. It is not one full grid at a fixed resolution. It starts with a coarse grid over all orientations, keeps the best quarter of the candidates, and then searches a finer grid only around those, level after level. A local optimization of the best candidates ends it. In C++ it is <code>DiscreteAdaptive::ReconstructVoxel</code>, and in Python <code>AdaptiveVoxelReconstructor.reconstruct_voxel</code>, a port of it. No study here used a different grid search. Its cost is not a fixed number: about 48,700 evaluations per voxel on the 200 voxels that are reconstructed alone, and about 332,000 on the pilot's full images. The reason for that difference was not checked again for this page.</p>
+  {{LEGEND}}
+  <h3>Whole-layer runs</h3>
+  <figure>
+    <div class="chartwrap">
+{{SVG:gradient_24570}}
+    </div>
+    <figcaption>Reading the picture: whole-layer runs on the sample whose grains hold orientation gradients. This is the sample closest to real data. Step 6 changed the seed step, and its runs are now the cheap end of the frontier. The frontier starts at run S (the new seed step, with tries from the neighbours): 508 evaluations per voxel, 265 voxels wrong. One boundary pass brings S to 657 with 100 wrong. Run S5 (the new seed step without those tries) with one pass is at 840 with 62 wrong. Run S8 of step 8 is S5 with a seed step that stops early. With one pass it is at 733 with 63 wrong. Its stop test was chosen after results; step 9 counted one run on a new sample as its confirmation. Run S9 (S8 plus a start test for the neighbour local optimizations) is cheaper again: 595 with 70 wrong. It is on the frontier only as a cheaper, less accurate point. The base run (BFS with indexed seeds and the stock local optimization) is at 4,817 with 203 wrong. Five frontier runs beat it on both axes. The last two frontier points (57 wrong at 1,730 and 56 at 4,005) are a few voxels better than 62 at two to five times the cost. A few voxels are no real difference.</figcaption>
+  </figure>
+  <figure>
+    <div class="chartwrap">
+{{SVG:big_24570}}
+    </div>
+    <figcaption>Reading the picture: whole-layer runs on the sample of step 7. It has 32 larger grains on the same grid, and gradients of up to 4 degrees across a grain. Before step 8 the frontier here was the old seed step. Run D4 is at 440 evaluations per voxel with 68 wrong, and D4 with one boundary pass at 486 with 21 wrong. The new seed step (S5) with the pass is at 529 with 30 wrong. That is 8.8% more evaluations than D4. The intervals of 21 and 30 overlap, so the wrong counts show no real difference. In the panel above, S5 was the cheaper of the two. Step 8 added run S8: S5 with a seed step that stops at the first refinement whose hit ratio is at least 0.95. S8 is at 293 with 67 wrong, and with the pass at 339 with 24. That is 30% fewer evaluations than D4 with the pass, and the intervals of 21, 24 and 30 overlap. The value 0.95 was chosen after results, so step 9 tested S8 on a new sample (next picture). Run S9 with the pass is at 229 with 29 wrong: cheaper than S8 and 5 voxels worse. Paint with the pass is at 812 with 31 wrong, and the base run with the pass at 2,681 with 26. The two samples differ in grain size, in gradient levels and in orientations, so the pictures do not say which of these changed the order.</figcaption>
+  </figure>
+  <figure>
+    <div class="chartwrap">
+{{SVG:mid_24570}}
+    </div>
+    <figcaption>Reading the picture: whole-layer runs on the new sample <code>mid</code> of step 9, with 120 grains on the same grid and gradients of up to 4 degrees. Each point is one run; left is cheaper and down has fewer wrong voxels. No setting of any method was chosen on this sample. The frontier is S9 (798 evaluations per voxel, 76 wrong), S9 with the pass (923, 40 wrong) and S8 with the pass (1,076, 31 wrong). S8 with the pass needs 26.44 million evaluations and leaves 31 wrong. S5 with the pass needs 39.09 million and leaves 34, and D4 with the pass 40.56 million and leaves 48. The intervals of 31, 34 and 48 overlap. S9 with the pass needs 22.67 million and leaves 40 wrong.</figcaption>
+  </figure>
+  <figure>
+    <div class="chartwrap">
+{{SVG:layer_24570}}
+    </div>
+    <figcaption>Reading the picture: whole-layer runs on the sample with one orientation per grain. Painting needs 53.6 evaluations per voxel and leaves 14 of 24,570 wrong. The cheapest run with fewer wrong is the BFS with indexed seeds, the library CMA and a boundary pass, with 0 wrong at 344 per voxel. The base run is at 1,345 with 153 wrong. Painting is this cheap only because each grain here has a single orientation.</figcaption>
+  </figure>
+  <figure>
+    <div class="chartwrap">
+{{SVG:pilot_2000}}
+    </div>
+    <figcaption>Reading the picture: whole runs on the 2,000-voxel pilot region, also with one orientation per grain. This is the only whole-run panel with a grid-search baseline: the BFS that runs a grid search for every seed needs 12,774 evaluations per voxel. Indexed seeds bring that to 1,410, and painting to 78 with 0 wrong. The two grey points are the same run with and without <code>FusedCost</code>; why their wrong counts differ (37 and 24) is not tested.</figcaption>
+  </figure>
+  <h3>One global search per voxel</h3>
+  <figure>
+    <div class="chartwrap">
+{{SVG:pilot_full_searches_69}}
+    </div>
+    <figcaption>Reading the picture: one global search per voxel, on the 69 pilot voxels where the BFS needed one. The grid search needs 332,380 evaluations per voxel and leaves 4 wrong. Ray indexing with a local optimization on its best 2 candidates needs 1,926 and leaves 0. The points at 1, 5 and 20 take a ray-indexing candidate with no local optimization. Their cost is only the strict cost evaluations on the candidates. The indexing vote itself is not an evaluation and is not counted; it takes about as long as 400 evaluations per voxel.</figcaption>
+  </figure>
+  <figure>
+    <div class="chartwrap">
+{{SVG:e0_200}}
+    </div>
+    <figcaption>Reading the picture: 200 voxels, each reconstructed alone with no starting guess. The images hold only each voxel's own spots, which is an easy case for indexing. The grid search leaves 41 of 200 wrong at 48,700 evaluations per voxel. Every ray-indexing arm leaves 0 wrong, so the first candidate alone is the frontier here. The indexing vote is not counted, as above.</figcaption>
+  </figure>
+  <figure>
+    <div class="chartwrap">
+{{SVG:holdout_300}}
+    </div>
+    <figcaption>Reading the picture: 300 voxels outside the pilot, fixed before any run. No grid search was stored for them. A local optimization on the best 2 candidates leaves 1 wrong at 2,046 evaluations per voxel, against 5 wrong at 1,302 for the best 1. The best 3 costs more and changes nothing.</figcaption>
+  </figure>
+  <h3>What the frontiers say</h3>
+  <ul>
+    <li><strong>Global search.</strong> Ray indexing with a local optimization on the best 2 candidates is on the frontier on the pilot's 69 voxels and on the holdout. On the 200 easy voxels the first candidate alone is already right. On the pilot's 69 voxels the best-2 rule needs about 170 times fewer evaluations than the grid search (1,926 against 332,380), with 0 against 4 wrong. The two intervals overlap, so read that as "not worse".</li>
+    <li><strong>Whole run, grains with gradients.</strong> On the first gradient sample, the best trade is run S5 of step 6 with one boundary pass. It is the BFS with indexed seeds, where each seed refines the best 5 of 20 candidates, and the CMA local optimization. It needs 840 evaluations per voxel and leaves 62 wrong (0.25%). The base run needs 4,817 and leaves 203 wrong (0.83%). That is almost 6 times fewer evaluations and fewer wrong voxels. Run S is cheaper still (657) but leaves 100 wrong. Of the 602 voxels that S settles by a try from a neighbour, 59 are wrong before the pass. In step 4's run, with the old seed step, 27 of the same voxels are wrong.</li>
+    <li><strong>Whole run, larger grains (step 7).</strong> On the sample with 32 larger grains, S5 is not the cheaper run. With the pass, S5 needs 529 evaluations per voxel and the old seed step (D4) 486, with 30 and 21 wrong. S5 needs no grid search at all there, but it starts 349 seeds, and each seed costs more than an old one. Of those 349, 267 fall in the 6 grains whose gradient is 4 degrees. So which seed step is the better trade depends on the sample. That choice is yours.</li>
+    <li><strong>An early stop in the seed step (step 8).</strong> Run S8 is S5 with a seed step that stops at the first refinement whose hit ratio is at least 0.95. With the pass it needs 339 evaluations per voxel on the sample with larger grains (24 wrong) and 733 on the first gradient sample (63 wrong). On both samples that is fewer evaluations than S5 and than D4 with the pass, and the intervals of the wrong counts overlap. The plan's own value (0.80) failed on stored cases, and 0.95 was chosen after that result. Step 9 ran it on a new sample, <code>mid</code> (120 grains, nothing chosen on it): with the pass it costs 26.44 million evaluations and leaves 31 wrong, against 39.09 million and 34 for S5 and 40.56 million and 48 for D4. The intervals overlap. That is one run of each arm on one new sample. It is counted as the confirmation of the stop test (D-20261111-N7); you can overrule that.</li>
+    <li><strong>A start test for the neighbour local optimizations (step 9, run S9).</strong> Run S9 is S8 plus one evaluation of the start of each neighbour local optimization: if its hit ratio is at least 0.90, the start is kept and the local optimization is skipped. S9 is cheaper again (22.67 million evaluations on <code>mid</code>, 5.63 million on the sample with larger grains, 14.63 million on the first gradient sample). But it ends with more wrong voxels than S8 on all three samples (40 against 31, 29 against 24, 70 against 63) and a higher median error. So it is on the frontier only as a cheaper, less accurate point. With the pass it breaks more voxels than it fixes against S8 (10 fixed and 15 broken on the larger grains, 31 and 38 on the first gradient sample, 9 and 18 on <code>mid</code>). It is not a candidate for a key (D-20261111-N7).</li>
+    <li><strong>The boundary pass moves a run down.</strong> In all twenty runs that have it, the run with the pass has fewer wrong voxels than the same run without it. One pass costs about 125 to 150 evaluations per voxel on the first two samples, about 124 on <code>mid</code>, and about 46 to 48 on the sample with larger grains.</li>
+    <li><strong>Whole run, one orientation per grain.</strong> Painting is the cheapest by far, at 54 to 78 evaluations per voxel. This holds only when each grain has a single orientation, which real grains do not.</li>
+    <li><strong>What is left to cut.</strong> Run S5 with the pass spends its 840 evaluations per voxel like this: 244 in the seed step, 208 in 15 grid searches where the seed step failed, 238 in the local optimizations and 150 in the boundary pass. A seed and a grid search happen once per grain or piece of a grain. Step 7 repeated the runs on larger grains: there the seed step alone is 57.5% of S5's evaluations. Step 8 cut the seed step (run S8). In S8 with the pass on the larger grains, the largest part is now the local optimizations started from a neighbour: 3.49 of 8.34 million evaluations. Step 9 tested a way to skip those whose start is already good (run S9). It saved evaluations but cost accuracy.</li>
+    <li><strong>No whole-layer run uses a grid search for every seed.</strong> On the pilot that run needs 9 times the evaluations of the run with indexed seeds. So the three whole-layer panels start from a baseline that is already reduced.</li>
+  </ul>
+
+  <h3>Local optimizations compared on the same starts</h3>
+  <p>Step 4 ran each local optimization alone from the same 19,013 painted starts on the gradient sample. These are not whole runs, so they are not in a plot: the cost of the paint run that made the starts is left out. All four end with the same number of wrong voxels, so here only the cost differs.</p>
+  <p class="reading">Reading the table: one row per local optimization, cheapest first. "Evaluations" is the mean for one voxel. "Wrong" counts voxels more than 1 degree from the truth after the local optimization. The last two rows were run on the first 600 starts only.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Local optimization</th><th class="num">Evaluations per voxel</th><th class="num">Wrong</th></tr></thead>
+      <tbody>
+        <tr><td>CMA, first step 0.05 degrees</td><td class="num">61</td><td class="num">87 of 19,013</td></tr>
+        <tr><td>Stock, box of 5/8 degree</td><td class="num">412</td><td class="num">87 of 19,013</td></tr>
+        <tr><td>Stock, box of 5 degrees (the default)</td><td class="num">675</td><td class="num">87 of 19,013</td></tr>
+        <tr><td>Stock, box of 5/16 degree</td><td class="num">1,455</td><td class="num">87 of 19,013</td></tr>
+        <tr><td>Stock, box of 5/32 degree (600 starts)</td><td class="num">31,860</td><td class="num">4 of 600</td></tr>
+        <tr><td>Ladder: 5/32, then 5/8, then 5 degrees (600 starts)</td><td class="num">31,990</td><td class="num">4 of 600</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="small">On those 600 starts the other four also end with 4 wrong.</p>
+
+  <h3>Limits of these plots</h3>
+  <ul>
+    <li><strong>One run per point.</strong> A difference of a few voxels, such as 57 against 56, is inside the intervals. The table below gives a 95% interval for each share.</li>
+    <li><strong>Evaluations, not time.</strong> The cost axis counts calls of the cost function. Pairing the spots (once, 17 s) and the indexing vote (about 0.17 s per voxel) are not evaluations and are not on the axis. Wall time is not shown.</li>
+    <li><strong>Not drawn.</strong> Two other keep rules of the boundary pass cost the same as the drawn one and leave more voxels wrong. They are in the table.</li>
+    <li><strong>Left out, because cost and accuracy are not both known for a complete map:</strong>
+      <ul>
+        <li>the stop rules of AR0 (the page gives only the share of evaluations saved, at most 1.26%);</li>
+        <li>the skip and stop rules of steps 3, 4 and 5 (saved evaluations only);</li>
+        <li>run <code>K</code> of step 5 (stopped by its time cap with no finished map);</li>
+        <li>three BFS variants of AR0 on the pilot (wrong counts, but no evaluation total);</li>
+        <li>splits of a run by voxel group or by gradient level (no evaluations per group).</li>
+      </ul>
+    </li>
+  </ul>
+
+  <details class="more">
+    <summary>All points as a table</summary>
+    <p class="reading">Reading the table: one block per panel, cheapest method first. "Evaluations per voxel" is the cost axis of the plot. "Wrong" counts voxels more than 1 degree from the truth. "Share wrong" is that count as a percentage, with a 95% interval. "(frontier)" marks a method on the frontier.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Method</th><th>Step</th><th class="num">Evaluations per voxel</th><th class="num">Wrong</th><th class="num">Share wrong (95% interval)</th><th>Note</th></tr></thead>
+        <tbody>
+{{TABLE}}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+

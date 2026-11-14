@@ -1,0 +1,92 @@
+{
+ "sample": "big",
+ "steps_A": 317,
+ "steps_Y": 319,
+ "matched": 217,
+ "only_A": 100,
+ "only_Y": 102,
+ "taken_differs_matched": 22,
+ "differing_wrong": [
+  0,
+  0
+ ],
+ "wrong_ends_all": [
+  0,
+  0
+ ],
+ "wrong_ends_one_arm": [
+  0,
+  0
+ ],
+ "same_voxel_prefix": 28,
+ "first_taken_difference_index0": 21,
+ "first_taken_difference_step": 22,
+ "diff_before_voxels": 1175,
+ "diff_after_voxels": 1237,
+ "changed_regions": 22,
+ "largest_changed_region": 498,
+ "neighbour_radius": 0.009561365832821871,
+ "flips_fixed": 3,
+ "flips_broken": 0,
+ "flips_made_before": 0,
+ "flips_made_in_pass": 3,
+ "flips": [
+  {
+   "voxel": 18631,
+   "kind": "fixed",
+   "made": "in the pass",
+   "source_A": "revisit",
+   "source_Y": "revisit",
+   "err_before": [
+    32.287,
+    32.287
+   ],
+   "err_after": [
+    32.287,
+    0.021
+   ],
+   "region": "identical before the pass",
+   "region_size": 0,
+   "seed_steps_A": [],
+   "seed_steps_Y": []
+  },
+  {
+   "voxel": 20022,
+   "kind": "fixed",
+   "made": "in the pass",
+   "source_A": "neighbor",
+   "source_Y": "neighbor",
+   "err_before": [
+    40.601,
+    40.601
+   ],
+   "err_after": [
+    40.601,
+    0.021
+   ],
+   "region": "identical before the pass",
+   "region_size": 0,
+   "seed_steps_A": [],
+   "seed_steps_Y": []
+  },
+  {
+   "voxel": 22612,
+   "kind": "fixed",
+   "made": "in the pass",
+   "source_A": "revisit",
+   "source_Y": "revisit",
+   "err_before": [
+    31.04,
+    31.04
+   ],
+   "err_after": [
+    31.04,
+    0.049
+   ],
+   "region": "identical before the pass",
+   "region_size": 0,
+   "seed_steps_A": [],
+   "seed_steps_Y": []
+  }
+ ]
+}
