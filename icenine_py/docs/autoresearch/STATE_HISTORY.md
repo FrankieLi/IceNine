@@ -1068,3 +1068,24 @@ R4b), D-20261114-N2 (review: 14 fixes, no rerun, merge as a study).
   agreed to 0.3%, so rule R4b was written (N1) and the runs were repeated.
 - The findings page waits for the owner: `.claude/reports/20261114-item14-findings_page_draft-v2.md`
   goes to `icenine_py/docs/autoresearch/findings_item14.md`. Worktree `agent-a012b8f461d1630a1` kept.
+
+## C++ time (`cpptime`), merged at 003cc5d, 14 Nov
+
+A timing study of the C++ code (MPI mode, two busy processes) on the pilot region. Suite after the
+merge: 2030 passed, 47 skipped, 1 deselected. Decisions: D-20261114-N1 (quiet rule R4b),
+D-20261114-N3 (review: times stand with labels; 16 fixes).
+
+- Walls: C0 (untimed) 1,247.03 s, C1 1,236.87 s, C2 1,231.87 s (0.41% apart). User plus system time
+  is 2.00 times the wall: two busy processes. Not a speed comparison to Python (item 14 arm A:
+  1,621.02 s, one worker).
+- Work: 85 global searches, 1,921 local optimizations. The C++ run left 416 of 2,000 pilot voxels
+  wrong (Python 24). 393 of them are refit voxels never fitted again; 23 passed the 0.9 test with a
+  neighbour grain's orientation. All 1,921 local optimizations left the orientation unchanged.
+- N3: the two runs are different jobs; no ratio as a headline. Flagged for the owner.
+- Deviation: the identity check compares the header and the first 12 columns of `.mic.LBFS`
+  (column 12, fitting time, is never set in the C++ source).
+- One shared `quiet.py` with item 14; its median test is at most 2.5. At 2.5 the limit is the
+  assumed idle load, not a measured one.
+- Unexplained: 85 global searches against 79 voxels with no record of a search.
+- The page waits for the owner: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md` goes to
+  `icenine_py/docs/autoresearch/findings_cpp_time.md`.
