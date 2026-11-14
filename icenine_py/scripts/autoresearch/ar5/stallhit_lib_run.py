@@ -37,6 +37,7 @@ import ar3_common as C  # noqa: E402
 import gradient_common as G  # noqa: E402
 import numpy as np  # noqa: E402
 import rescue_lib_run as RLR  # noqa: E402
+import stallhit_cache_guard as SCG  # noqa: E402
 
 KEYS = RLR.S11L + ["SeedRescueCMA 0.25 1000", "SeedIndexMCStallHit 3000"]
 NAME = "LibH"
@@ -159,6 +160,7 @@ def main() -> None:
     a = ap.parse_args()
     assert RC.SAMPLE in ("mid", "grad", "big"), "held and held2 are not run in phase B"
     out = CACHE / f"{NAME}_{RC.SAMPLE}"
+    SCG.require_inside(CACHE, [out])  # review fix 1: no write through a link out of the cache
     if out.exists():
         raise SystemExit(f"refusing to start: {out} exists")
     out.mkdir(parents=True)

@@ -10,20 +10,26 @@
 # Resumable: a job whose <job>_mid.done marker reads exit=0 is not rerun; a job whose run folder
 # exists without that marker is refused (move the folder away to rerun it).
 # Logs and markers in <cache>/logs: <job>_mid.log, <job>_mid.done ("exit=<code> ..."). Caps 240
-# minutes per run. Wall times are contended, not timing results. Plain bash 3.2.
+# minutes per run. Wall times are contended, not timing results. Refuses (exit 2, nothing written)
+# when an output's real path lies outside the cache (stallhit_cache_guard.py). Plain bash 3.2.
 set -u
 cd "$(dirname "$0")/../../.." || exit 2
 job="${1:-}"
 cache="${STALLHIT_CACHE:-$PWD/benchmarks/autoresearch/ar5/stallhit/cache}"
 logs="$cache/logs"
-mkdir -p "$logs"
 export STALLHIT_CACHE="$cache" RESCUE_CACHE="$cache" ORDER_CACHE="$cache" RESEED_SAMPLE=mid
 unset VIRTUAL_ENV
 A5=scripts/autoresearch/ar5
 case "$job" in
-  Hl|LibH) ;;
+  Hl) outs="Hl_mid passes_mid passes_mid/D4_Hl passes_mid/before_Hl.npy passes_mid/after_Hl.npy" ;;
+  LibH) outs="LibH_mid" ;;
   *) echo "usage: $0 Hl|LibH" >&2; exit 2 ;;
 esac
+# review fix 1 (second review): refuse before any write when the real path of an output (run
+# folder, pass folder and files, logs) lies outside this cache, e.g. through a whole-folder link
+# into another worktree's cache. Nothing is written on a refusal; the reason goes to stderr.
+uv run python $A5/stallhit_cache_guard.py --cache "$cache" logs $outs || exit 2
+mkdir -p "$logs"
 if grep -q "^exit=0" "$logs/${job}_mid.done" 2>/dev/null; then
   echo "kept: $job finished before" >> "$logs/phase_b.resume"; exit 0
 fi

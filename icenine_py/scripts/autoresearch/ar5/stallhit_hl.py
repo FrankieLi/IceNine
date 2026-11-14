@@ -24,6 +24,7 @@ import fit_common as FC  # noqa: E402
 import order_run as ORUN  # noqa: E402
 import reseed_common as RC  # noqa: E402
 import rescue_run as RRUN  # noqa: E402
+import stallhit_cache_guard as SCG  # noqa: E402
 import stallhit_rules as SR  # noqa: E402
 import stallhit_run as SRUN  # noqa: E402
 
@@ -33,6 +34,8 @@ def main() -> None:
     assert "--smoke" not in args, "no smoke run: a truncated map does not end quickly on mid"
     assert FC.SAMPLE in ("mid", "grad", "big"), "phase B runs mid, grad or big only"
     SRUN.STALLHIT["k"] = SR.K
+    # review fix 1: the run folder must really lie in this step's own cache (no link out of it)
+    SCG.require_inside(SC.SCACHE, [FC.CACHE / f"Hl_{FC.SAMPLE}"])
     sys.argv = ["order_run.py", "--arm", "Al", "--name", "Hl"] + args
     ORUN.OrderPick = SRUN.StallHitPick  # type: ignore[misc]
     ORUN.OrderWrap = RRUN.RescueWrap  # type: ignore[misc]

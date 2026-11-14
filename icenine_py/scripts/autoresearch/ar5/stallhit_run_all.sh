@@ -28,6 +28,8 @@
 # cap writes capped.json and exits 3; its pass is skipped; after a held2 run hits its cap no new job
 # is started and the marker says so (stop rule of the plan).
 #
+# Guard 0 (exit 2, nothing written, reason on stderr): the real path of an output (logs, run folder,
+# pass folder or file) lies outside the cache (stallhit_cache_guard.py; review fix 1, second review).
 # Guards (exit 2, nothing started; a note logs/stallhit_run_all.refused.<time> holds the reason): an
 # output of a job (run folder, pass files, log, marker) or the final marker exists; the freeze
 # check fails (stallhit_freeze.py --check: stallhit/frozen.json is committed, clean, and the hashes
@@ -124,6 +126,19 @@ job_finished() { # job_finished <sample> <arm> <name>
 }
 kept=""   # names of the jobs kept by --resume
 redo=""   # names of the jobs run (again) with leftovers moved
+
+# ---- guard 0 (review fix 1 of the second review): every output (logs, run folders, pass folders
+# and files) must really lie in this cache, not behind a link into another worktree's cache. Runs
+# first, also in a dry run; on a refusal it writes no note (the logs folder may be the link).
+outs="logs"
+for j in $joblist; do
+  s="${j%%:*}"; rest="${j#*:}"; a="${rest%%:*}"; n="$(jname "$s" "$a")"
+  outs="$outs passes_$s $(jfiles "$s" "$a" "$n")"
+done
+if ! uv run python scripts/autoresearch/ar5/stallhit_cache_guard.py --cache "$cache" $outs; then
+  echo "refusing to start: an output's real path lies outside the cache $cache" >&2
+  exit 2
+fi
 
 # ---- guard 1: no output exists (--resume: finished jobs are kept, leftovers are moved later)
 if [ -e "$marker" ]; then refuse "the marker $marker already exists"; fi
