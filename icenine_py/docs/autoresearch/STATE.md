@@ -33,10 +33,10 @@ before its fixes round (shared files conflict).
 2. AR5 step 6 (`ar5f`; N3): fixed, waits. Steps 9 to 12: merged (10, 11 failed studies, no key).
    Step 12 (`ar5l`; key `SeedIndexMCStallHit`, off): merged at fe3d277, 13 Nov; page waits.
    Step 13 (`ar5m`): BLOCKED FOR THE OWNER (Queue). Nothing else is ready for an agent.
-3. Items 14 + 3 (task `item14`; N25): timing run 3 done, exit 0 (04:59, 14 Nov) under R4b
-   (D-20261114-N1; all four timed runs carry the label; pairs agree to 0.39% and 0.07%).
-   Phase B done (ec1e834; R3 not met; page draft refused, 7th page for the owner). Opus review
-   runs (report `20261114-0700-review-item14.md`). C++ time run started 07:02 (below).
+3. Items 14 + 3 (task `item14`; N25, 14-N1, 14-N2): run 3 done under R4b; R3 not met (smooth
+   key not recommended). Reviewed; 14 fixes done (07d308f), hand-back check 0 FAIL. NEXT, only
+   after the C++ time run ends: copy reports, set branch parent, `finish_task.sh` in worktree
+   `agent-a012b8f461d1630a1`, close, page v50 (page draft v2 is the 7th page for the owner).
 
 ## Running jobs
 - C++ time: `caffeinate -i bash scripts/autoresearch/cpptime/run_cpp_time.sh` in `icenine_py/`
@@ -113,7 +113,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 ## Bookkeeping
 
-- Next decision ID: D-20261114-N2 (first of a day is N1).
+- Next decision ID: D-20261114-N3 (first of a day is N1).
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
