@@ -37,11 +37,11 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    refit voxels were never fitted again, all 1,921 local optimizations changed nothing.
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
    goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. Eight pages wait now.
-   All timing work is done. NEXT for an agent: draft the plan of the next step (runbook: plan
-   drafted by an Opus agent). Candidates: (a) probe replay of a local optimization from every
-   rescue end on the 28 failed rescues (PLAN, AR5 step 13 "Not chosen"); (b) trace why the C++
-   local optimization changes nothing on the pilot (D-20261114-N3 follow-up); (c) a recording
-   run for neighbour and revisit traces. AR5 step 13 stays blocked for the owner (Queue).
+   All timing work is done. AR5 step 14 (`ar5n`; D-20261114-N4; PLAN): rule G2, a second local
+   optimization before the grid search. Implementer started 11:10, 14 Nov (phase A to gate 2;
+   brief `SP/brief_ar5n.md`). On its report: hand-back check; if both gates pass, start the
+   whole-layer runs detached with its command (max 4 processes); else decision, study merge.
+   Never open `passes_held2/` (step 13 test). AR5 step 13 stays blocked for the owner (Queue).
 
 ## Running jobs
 - Nothing runs. Branch `ar5d`: worktree `agent-a8a1ac8e80f8913cf` (tip fac79f9) is kept.
@@ -112,7 +112,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 
 ## Bookkeeping
 
-- Next decision ID: D-20261114-N4 (first of a day is N1).
+- Next decision ID: D-20261114-N5 (first of a day is N1).
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
