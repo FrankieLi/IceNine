@@ -35,12 +35,12 @@ before its fixes round (shared files conflict).
    Step 13 (`ar5m`): BLOCKED FOR THE OWNER (Queue). Nothing else is ready for an agent.
 3. Items 14 + 3 (task `item14`; N25): timing run 3 done, exit 0 (04:59, 14 Nov) under R4b
    (D-20261114-N1; all four timed runs carry the label; pairs agree to 0.39% and 0.07%).
-   Phase B runs in agent `a012b8f461d1630a1` (07:00). Agent `ad44bb90c441eca35` puts R4b into
-   the `cpptime` script. On both reports: review item 14 (Opus); start the C++ time run detached.
+   Phase B done (ec1e834; R3 not met; page draft refused, 7th page for the owner). Opus review
+   runs (report `20261114-0700-review-item14.md`). C++ time run started 07:02 (below).
 
 ## Running jobs
-- Items 14 + 3: `caffeinate -i bash scripts/autoresearch/item14/run_item14.sh` in `icenine_py/`
-  of worktree `agent-a012b8f461d1630a1` (run 3 done 04:59, 14 Nov); marker `item14.done`.
+- C++ time: `caffeinate -i bash scripts/autoresearch/cpptime/run_cpp_time.sh` in `icenine_py/`
+  of worktree `agent-ad44bb90c441eca35` (2359185; started 07:02, 14 Nov); marker `cpptime.done`.
   Branch `ar5d` is held by worktree `agent-a8a1ac8e80f8913cf` (tip fac79f9).
 - Page v49 live (17:38, 13 Nov; v50 after the next finished step). Step 13: blocked (Queue).
 
