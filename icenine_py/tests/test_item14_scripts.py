@@ -5,6 +5,7 @@ tests pin: the identity check of two runs (same_run), the E0 arm bookkeeping (e0
 quiet verdict of the load sampler (quiet), the section shares of split, and the config file.
 """
 
+import importlib.util
 import json
 import subprocess
 import sys
@@ -16,13 +17,24 @@ import pytest
 
 ICE = Path(__file__).resolve().parents[1]
 SCRIPTS = ICE / "scripts" / "autoresearch" / "item14"
-sys.path.insert(0, str(SCRIPTS))
 
-import e0_arms as E  # noqa: E402
-import quiet as Q  # noqa: E402
-import same_run as S  # noqa: E402
-import split as SP  # noqa: E402
-import summary as SM  # noqa: E402
+
+def _load(name: str) -> Any:
+    """Load scripts/autoresearch/item14/<name>.py by path under a unique module name, so that
+    another script folder's module of the same name (summary, split, ...) cannot be used."""
+    spec = importlib.util.spec_from_file_location(f"item14_{name}", SCRIPTS / f"{name}.py")
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+E = _load("e0_arms")
+Q = _load("quiet")
+S = _load("same_run")
+SP = _load("split")
+SM = _load("summary")
 
 RECORD: Dict[str, Any] = dict(voxel_idx=3, n_evals=10, wall_s=1.5, hit_ratio=0.9)
 
