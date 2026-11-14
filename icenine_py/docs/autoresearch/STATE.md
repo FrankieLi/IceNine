@@ -33,14 +33,14 @@ before its fixes round (shared files conflict).
 2. AR5 step 6 (`ar5f`; N3): fixed, waits. Steps 9 to 12: merged (10, 11 failed studies, no key).
    Step 12 (`ar5l`; key `SeedIndexMCStallHit`, off): merged at fe3d277, 13 Nov; page waits.
    Step 13 (`ar5m`): BLOCKED FOR THE OWNER (Queue). Nothing else is ready for an agent.
-3. Items 14 + 3 (task `item14`; N25): runs 1 and 2 (13 Nov) stopped with exit 5: B1 not quiet
-   (macOS indexing daemon). Rule amended (D-20261114-N1, R4b; scripts changed, 3495feb on
-   `item14`). Run 3 started detached 00:58, 14 Nov: check marker `item14.done`. Exit 3 (preflight
-   refused): rerun when load is under 1.5. After exit 0: phase B by `SendMessage`, then `cpptime`.
+3. Items 14 + 3 (task `item14`; N25): timing run 3 done, exit 0 (04:59, 14 Nov) under R4b
+   (D-20261114-N1; all four timed runs carry the label; pairs agree to 0.39% and 0.07%).
+   Phase B runs in agent `a012b8f461d1630a1` (07:00). Agent `ad44bb90c441eca35` puts R4b into
+   the `cpptime` script. On both reports: review item 14 (Opus); start the C++ time run detached.
 
 ## Running jobs
 - Items 14 + 3: `caffeinate -i bash scripts/autoresearch/item14/run_item14.sh` in `icenine_py/`
-  of worktree `agent-a012b8f461d1630a1` (run 3, detached 00:58, 14 Nov); marker `item14.done`.
+  of worktree `agent-a012b8f461d1630a1` (run 3 done 04:59, 14 Nov); marker `item14.done`.
   Branch `ar5d` is held by worktree `agent-a8a1ac8e80f8913cf` (tip fac79f9).
 - Page v49 live (17:38, 13 Nov; v50 after the next finished step). Step 13: blocked (Queue).
 
