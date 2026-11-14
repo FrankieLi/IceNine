@@ -145,3 +145,49 @@ def test_both_keys_config_is_arm_a_plus_one_line() -> None:
 def test_run_script_parses() -> None:
     r = subprocess.run(["bash", "-n", str(SCRIPTS / "run_item14.sh")], capture_output=True)
     assert r.returncode == 0
+
+
+def _proc(path: str, cpu: float = 99.0) -> Dict[str, Any]:
+    return dict(pid=7, cpu=cpu, command=path)
+
+
+def test_verdict_strict_has_empty_label() -> None:
+    v = Q.verdict([dict(t=0, load=1.0)], [], limit=2.5)
+    assert v["quiet"] is True and v["relaxed_ok"] is True and v["label"] == ""
+    assert Q.exit_code(v) == 0
+
+
+def test_verdict_relaxed_daemon_and_load_spike() -> None:
+    loads = [dict(t=0, load=1.2), dict(t=30, load=3.1), dict(t=60, load=1.3)]
+    procs = [dict(t=0, procs=[_proc("/usr/libexec/spotlightknowledged")])]
+    v = Q.verdict(loads, procs, limit=2.5)
+    assert v["quiet"] is False and v["relaxed_ok"] is True
+    assert v["label"] == "strict quiet check failed (spotlightknowledged)"
+    assert Q.exit_code(v) == 3
+
+
+def test_verdict_system_prefixes() -> None:
+    for path in ("/usr/libexec/x", "/System/Library/y/z", "/sbin/w"):
+        v = Q.verdict([dict(t=0, load=1.0)], [dict(procs=[_proc(path)])], limit=2.5)
+        assert v["relaxed_ok"] is True, path
+
+
+def test_verdict_neither_non_daemon_or_median_over() -> None:
+    v = Q.verdict([dict(t=0, load=1.0)], [dict(procs=[_proc("/opt/app/cpptools")])], limit=2.5)
+    assert v["relaxed_ok"] is False and Q.exit_code(v) == 1
+    mixed = [dict(procs=[_proc("/usr/libexec/d"), _proc("/Applications/App")])]
+    assert Q.verdict([dict(t=0, load=1.0)], mixed, limit=2.5)["relaxed_ok"] is False
+    high = [dict(t=i, load=3.0) for i in range(3)]
+    v = Q.verdict(high, [dict(procs=[_proc("/usr/libexec/d")])], limit=2.5)
+    assert v["relaxed_ok"] is False and Q.exit_code(v) == 1
+
+
+def test_pair_check() -> None:
+    p = Q.pair_report("A", 1000.0, 1010.0, "", "")
+    assert p["reported"] is True and p["labels"] == []
+    p = Q.pair_report("B", 4494.29, 4480.81, "strict quiet check failed (d)", "")
+    assert p["reported"] is True and p["labels"] == ["strict quiet check failed (d)"]
+    p = Q.pair_report("B", 1000.0, 1030.0, "", "strict quiet check failed (d)")
+    assert p["reported"] is False and p["note"] == "no time reported for arm B"
+    p = Q.pair_report("A", 1000.0, 1030.0, "", "")  # unlabelled pair: no check needed
+    assert p["reported"] is True

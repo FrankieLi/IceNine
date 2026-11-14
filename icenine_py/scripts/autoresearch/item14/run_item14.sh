@@ -12,8 +12,12 @@
 # benchmarks/autoresearch/item14/cache/logs/; the marker cache/item14.done is written when the script
 # ends, with its exit code and reason; cache/exit_codes.txt has one line per step.
 #   exit 0 all done; 2 a step failed (E0 check, a repeat not identical, a run fell back from the
-#   fused path, ...); 3 a preflight refused; 4 passed 6 hours; 5 a run was not quiet (R4).
-# In every non-zero case the script stops and no wall time is to be reported for the step.
+#   fused path, ...); 3 a preflight refused; 4 passed 6 hours; 5 a run was neither strictly quiet
+#   nor relaxed-ok (R4b); 6 (at the very end, after all arms ran) a labelled run's repeat differs
+#   by more than 2% in real time: no time is reported for that arm (cache/pair_<arm>.json).
+# R4b (D-20261114-N1): quiet.py verdict exit 3 (strict check failed, median load within the limit,
+# every busy process a macOS daemon) does not stop the script; the label is logged and kept in
+# cache/quiet/<run>.json and cache/pair_<arm>.json. Exits 2-5 stop at once and no time is reported.
 set -u
 cd "$(dirname "$0")/../../.." || exit 99   # icenine_py/
 
@@ -105,6 +109,10 @@ timed() { # name cmd...   (gated, sampled, time -p; not quiet or failing stops t
     --out "$C/quiet/$n.json" >> "$MAIN" 2>&1
   local q=$?
   echo "quiet_$n rc=$q" >> "$CODES"
+  if [ $q -eq 3 ]; then  # R4b: strict check failed, relaxed check passed; go on, with the label
+    say "LABEL $n: $(grep -o '"label": "[^"]*"' "$C/quiet/$n.json" | cut -d'"' -f4)"
+    q=0
+  fi
   if [ $q -ne 0 ] && [ "$DRY" = 1 ]; then say "DRY: run $n was not quiet; a real run would stop here (exit 5)"; q=0; fi
   if [ $q -ne 0 ]; then finish 5 "run $n was not quiet (limit $LIMIT, see $C/quiet/$n.json); no time is reported"; fi
   check_time
@@ -117,6 +125,16 @@ same() { # name dirA dirB   (identity check, also in the dry run; a difference s
   echo "same_$1 rc=$rc" >> "$CODES"
   say "END same_$1 rc=$rc: $(tail -n 1 "$C/logs/same_$1.log")"
   [ $rc -ne 0 ] && finish 2 "identity check same_$1 failed (stop rule): $(tail -n 1 "$C/logs/same_$1.log")"
+  return 0
+}
+
+PAIR_FAIL=""
+pair() { # arm run1 run2   (R4b: a labelled run needs its repeat within 2% in real time)
+  uv run python $IT/quiet.py pair --arm "$1" --runs "$2" "$3" --cache "$C" > "$C/logs/pair_$1.log" 2>&1
+  local rc=$?
+  echo "pair_$1 rc=$rc" >> "$CODES"
+  say "PAIR $1: $(tail -n 1 "$C/logs/pair_$1.log")"
+  [ $rc -ne 0 ] && PAIR_FAIL="$PAIR_FAIL $1"
   return 0
 }
 
@@ -146,8 +164,10 @@ if [ "$DRY" = 1 ]; then same A1_stored "$STORED_A" "$STORED_A"; else same A1_sto
 pilot B1 $CFG_B; timed B1 "${PC[@]}"
 pilot A2 $CFG_A; timed A2 "${PC[@]}"
 if [ "$DRY" = 1 ]; then same A2_A1 "$STORED_A" "$STORED_A"; else same A2_A1 "$C/runs/A2" "$C/runs/A1"; fi
+pair A A1 A2
 pilot B2 $CFG_B; timed B2 "${PC[@]}"
 if [ "$DRY" = 1 ]; then same B2_B1 "$STORED_A" "$STORED_A"; else same B2_B1 "$C/runs/B2" "$C/runs/B1"; fi
+pair B B1 B2
 
 # --- split of a full search by section (alone, gated)
 timed split uv run python $IT/split.py --voxels 15901,17034 --out "$C/split" --label "single-worker"
@@ -156,4 +176,7 @@ timed split uv run python $IT/split.py --voxels 15901,17034 --out "$C/split" --l
 uv run python ../scripts/dev/timing_preflight.py --json "$C/preflight_final.json" \
   > "$C/logs/preflight_final.log" 2>&1
 say "closing preflight written"
+if [ -n "$PAIR_FAIL" ]; then
+  finish 6 "no time reported for arm(s):$PAIR_FAIL (labelled run, repeat differs by more than 2%; see $C/pair_*.json)"
+fi
 finish 0 "all steps done"
