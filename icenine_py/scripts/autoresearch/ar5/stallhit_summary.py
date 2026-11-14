@@ -29,7 +29,11 @@ import stats as ST  # noqa: E402
 
 SAMPLES = SJ.SAMPLES
 N = 24570
-STATUS_PENDING = "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+# phase B (D-20261113-N8) added the key; the status says so (the rows themselves are unchanged)
+STATUS_PENDING = (
+    "study result of step 12 (rule PH(3000), passed); library key SeedIndexMCStallHit 3000 "
+    "(opt-in, off by default, not recommended as a default); not a default arm"
+)
 # review fix 4: the comparisons with S8 pair voxels only
 S8_NOTE = (
     "Note: G and H share their random draws (aligned draws). S8 does not: the counts against S8 "

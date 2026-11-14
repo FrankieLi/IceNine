@@ -13,7 +13,7 @@
    0.48
   ],
   "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_held2.json",
-  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+  "status": "study result of step 12 (rule PH(3000), passed); library key SeedIndexMCStallHit 3000 (opt-in, off by default, not recommended as a default); not a default arm"
  },
  {
   "sample": "held2",
@@ -29,7 +29,7 @@
    0.35
   ],
   "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_held2.json",
-  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+  "status": "study result of step 12 (rule PH(3000), passed); library key SeedIndexMCStallHit 3000 (opt-in, off by default, not recommended as a default); not a default arm"
  },
  {
   "sample": "held2",
@@ -45,7 +45,7 @@
    0.48
   ],
   "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_held2.json",
-  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+  "status": "study result of step 12 (rule PH(3000), passed); library key SeedIndexMCStallHit 3000 (opt-in, off by default, not recommended as a default); not a default arm"
  },
  {
   "sample": "held2",
@@ -61,7 +61,7 @@
    0.53
   ],
   "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_held2.json",
-  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+  "status": "study result of step 12 (rule PH(3000), passed); library key SeedIndexMCStallHit 3000 (opt-in, off by default, not recommended as a default); not a default arm"
  },
  {
   "sample": "held2",
@@ -77,7 +77,7 @@
    0.35
   ],
   "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_held2.json",
-  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+  "status": "study result of step 12 (rule PH(3000), passed); library key SeedIndexMCStallHit 3000 (opt-in, off by default, not recommended as a default); not a default arm"
  },
  {
   "sample": "held2",
@@ -93,7 +93,7 @@
    0.36
   ],
   "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_held2.json",
-  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+  "status": "study result of step 12 (rule PH(3000), passed); library key SeedIndexMCStallHit 3000 (opt-in, off by default, not recommended as a default); not a default arm"
  },
  {
   "sample": "held",
@@ -109,7 +109,7 @@
    0.5
   ],
   "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_held.json",
-  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+  "status": "study result of step 12 (rule PH(3000), passed); library key SeedIndexMCStallHit 3000 (opt-in, off by default, not recommended as a default); not a default arm"
  },
  {
   "sample": "held",
@@ -125,7 +125,7 @@
    0.36
   ],
   "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_held.json",
-  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+  "status": "study result of step 12 (rule PH(3000), passed); library key SeedIndexMCStallHit 3000 (opt-in, off by default, not recommended as a default); not a default arm"
  },
  {
   "sample": "mid",
@@ -141,7 +141,7 @@
    0.38
   ],
   "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_mid.json",
-  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+  "status": "study result of step 12 (rule PH(3000), passed); library key SeedIndexMCStallHit 3000 (opt-in, off by default, not recommended as a default); not a default arm"
  },
  {
   "sample": "mid",
@@ -157,7 +157,7 @@
    0.2
   ],
   "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_mid.json",
-  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+  "status": "study result of step 12 (rule PH(3000), passed); library key SeedIndexMCStallHit 3000 (opt-in, off by default, not recommended as a default); not a default arm"
  },
  {
   "sample": "grad",
@@ -173,7 +173,7 @@
    0.96
   ],
   "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_grad.json",
-  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+  "status": "study result of step 12 (rule PH(3000), passed); library key SeedIndexMCStallHit 3000 (opt-in, off by default, not recommended as a default); not a default arm"
  },
  {
   "sample": "grad",
@@ -189,7 +189,7 @@
    0.3
   ],
   "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_grad.json",
-  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+  "status": "study result of step 12 (rule PH(3000), passed); library key SeedIndexMCStallHit 3000 (opt-in, off by default, not recommended as a default); not a default arm"
  },
  {
   "sample": "big",
@@ -205,7 +205,7 @@
    0.38
   ],
   "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_big.json",
-  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+  "status": "study result of step 12 (rule PH(3000), passed); library key SeedIndexMCStallHit 3000 (opt-in, off by default, not recommended as a default); not a default arm"
  },
  {
   "sample": "big",
@@ -221,6 +221,6 @@
    0.13
   ],
   "source": "icenine_py/benchmarks/autoresearch/ar5/stallhit/stats_big.json",
-  "status": "study result of step 12 (rule PH(3000)); no key yet; not a candidate arm"
+  "status": "study result of step 12 (rule PH(3000), passed); library key SeedIndexMCStallHit 3000 (opt-in, off by default, not recommended as a default); not a default arm"
  }
 ]
