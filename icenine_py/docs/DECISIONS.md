@@ -1814,3 +1814,20 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   to place it. During phase B the implementer's script pass wrote three new files into the stored
   step 12 cache through a linked folder and moved them out again; the review confirmed the stored
   cache is intact. The owner can overrule. Where: .claude/reports/20261113-1730-review-ar5l-B.md.
+
+### D-20261114-N1 · Track A / items 14 + 3 timing · Quiet rule R4 amended after two stops on OS daemons: a run that fails the strict check is reported with a label if its repeat agrees within 2%
+- 2026-11-14, owner. Recorded by Newt Agent. Supersedes: none.
+- Two timing runs (13 Nov 17:40 and 21:53) stopped with exit 5 at arm B1: one load sample over 2.5
+  (3.07, then 2.67; median 1.30 both times) while a macOS indexing daemon (textunderstandingd,
+  then spotlightknowledged) used one core. The agents may not stop such processes. The two
+  unreported B1 times agree to 0.3% (real 4494.29 s and 4480.81 s), so the disturbance does not
+  move a single-worker time. Amendment R4b, made after seeing these two stops and disclosed as
+  such: the strict verdict of R4 is still computed and stored for every run. A run that fails it
+  does not stop the script and its time is reported with the label 'strict quiet check failed
+  (<process>)' if (i) its median load is at most 2.5, (ii) every busy process is a macOS system
+  daemon, named in the report, and (iii) its repeat (A1 with A2, B1 with B2) agrees within 2% in
+  real time. If (i) or (ii) fails the script stops as before; if (iii) fails no time is reported
+  for that arm. Preflight, the 120 s pause and all other rules are unchanged. The same amendment
+  applies to the C++ time run (cpptime), which uses R4. Decided by Newt Agent under D-20261109-N1;
+  the owner may overrule and ask for strictly quiet runs. Where: PLAN.md item 14 rule R4;
+  scripts/autoresearch/item14/quiet.py, run_item14.sh on branch item14.
