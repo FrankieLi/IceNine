@@ -48,8 +48,9 @@ def verdict(
     max_load = max(loads) if loads else float("nan")
     median = sorted(loads)[len(loads) // 2] if loads else float("nan")  # upper median, n even
     quiet = bool(loads) and max_load <= limit and not busy
-    # R4b (D-20261114-N1): median load within the limit and every busy process a macOS daemon
-    relaxed_ok = bool(loads) and median <= limit and all(_is_daemon(p) for p in busy)
+    # R4b (D-20261114-N1): median load at most 2.5 (PRESET_LIMIT, whatever the strict limit is)
+    # and every busy process a macOS daemon
+    relaxed_ok = bool(loads) and median <= PRESET_LIMIT and all(_is_daemon(p) for p in busy)
     names = sorted({os.path.basename(p["command"]) for p in busy})
     n_over = sum(x > limit for x in loads)
     parts = []

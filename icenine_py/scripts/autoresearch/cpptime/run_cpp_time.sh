@@ -29,6 +29,7 @@ cd "$(dirname "$0")/../../.." || exit 99   # icenine_py/
 DRY=0
 [ "${1:-}" = "--dry-run" ] && DRY=1
 CT=scripts/autoresearch/cpptime
+QUIET=scripts/autoresearch/item14/quiet.py   # the one shared quiet.py (R4, R4b)
 C=benchmarks/autoresearch/cpptime/cache
 [ "$DRY" = 1 ] && C=$C/dry
 LIMIT=$(cat $CT/r4_limit.txt)      # R4 load limit, fixed in phase A before any timed run
@@ -120,7 +121,7 @@ run_cpp() { # name timed(0|1)  (one C++ run; a stop-rule trip or a failed check 
     /usr/bin/time -p -o "$RA/time.txt" mpirun -n 2 "$BIN" p "$CFG" \
     > "$C/logs/$n.log" 2>&1 &
   pid=$!
-  uv run python $CT/quiet.py sample --out "$C/quiet/$n.jsonl" --watch-pid $pid --period \
+  uv run python $QUIET sample --out "$C/quiet/$n.jsonl" --watch-pid $pid --period \
     "$([ "$DRY" = 1 ] && echo 5 || echo 30)" > "$C/logs/$n.sampler.log" 2>&1 &
   spid=$!
   wait $pid
@@ -147,7 +148,7 @@ run_cpp() { # name timed(0|1)  (one C++ run; a stop-rule trip or a failed check 
   echo "$n score rc=$rc" >> "$CODES"
   [ $rc -ne 0 ] && finish 2 "scoring of $n failed (rc $rc); see $C/logs/$n.score.log"
   if [ "$timed" = 1 ]; then
-    uv run python $CT/quiet.py verdict --samples "$C/quiet/$n.jsonl" --limit "$LIMIT" \
+    uv run python $QUIET verdict --samples "$C/quiet/$n.jsonl" --limit "$LIMIT" \
       --out "$C/quiet/$n.json" >> "$MAIN" 2>&1
     q=$?
     echo "quiet_$n rc=$q" >> "$CODES"
@@ -176,7 +177,7 @@ same() { # name dirA dirB   (identity check; a difference stops the script)
 
 PAIR_FAIL=""
 pair() { # arm run1 run2   (R4b: a labelled run needs its repeat within 2% in real time)
-  uv run python $CT/quiet.py pair --arm "$1" --runs "$2" "$3" --cache "$C" > "$C/logs/pair_$1.log" 2>&1
+  uv run python $QUIET pair --arm "$1" --runs "$2" "$3" --cache "$C" > "$C/logs/pair_$1.log" 2>&1
   local rc=$?
   echo "pair_$1 rc=$rc" >> "$CODES"
   say "PAIR $1: $(tail -n 1 "$C/logs/pair_$1.log")"

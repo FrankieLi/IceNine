@@ -86,6 +86,16 @@ def _errors(mic_path: Path, truth_q: np.ndarray, rows: np.ndarray) -> np.ndarray
     return pair_misorientation_deg(q, truth_q[rows], sym)
 
 
+def truth_quats() -> np.ndarray:
+    """Truth quaternions (N, 4) of the pilot rows, in pilot-grid row order."""
+    from icenine.mic_file import MicFile
+    from score_bfs import mats_to_quats
+
+    truth_idx = np.load(BENCH / "region_index.npy")
+    truth = MicFile.read(str(TRUTH / "rand_500grains_1mm_neworient_s0.mic"))
+    return mats_to_quats(np.array([truth.voxels[i].orientation for i in truth_idx]))
+
+
 def score_run(
     run: Path,
     python_run: Optional[Path] = None,

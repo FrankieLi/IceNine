@@ -2,10 +2,11 @@
 
   uv run python scripts/autoresearch/cpptime/same_cpp_run.py RUN_A RUN_B
 
-Equal means: ``cpp_pilot.mic.LBFS`` equal in its first 12 columns per row
-(columns 12 and up are uninitialised memory in the C++ writer: two dry runs differed there only),
-and the client log
-(``ParallelReconLog_1.log``) equal once its time fields are dropped. Exit 0 if equal, 1 with the
+Equal means: ``cpp_pilot.mic.LBFS`` equal in every column except index 12 (``fFittingTime``,
+written at ``MicIO.h:423``, declared at ``Voxel.h:61`` and never assigned in the C++ source, so it
+holds leftover memory; the dry runs differed there only; columns 13 to 18 are the deformation
+tensor and stay checked), and the client log (``ParallelReconLog_1.log``) equal once its time
+fields are dropped. Exit 0 if equal, 1 with the
 first difference named.
 """
 
@@ -37,20 +38,19 @@ def strip_time(text: str) -> List[str]:
     return text.splitlines()
 
 
-STABLE_COLS = 12  # columns 12+ of the C++ .mic.LBFS are uninitialised memory (differ run to run)
+UNSET_COL = 12  # fFittingTime: never assigned in the C++ source, differs run to run
 
 
 def mic_stable(text: str) -> List[List[str]]:
-    """The header and, per voxel row, the first STABLE_COLS tokens (position, direction,
-    generation, phase, Euler angles, confidence, cost, overlap)."""
-    return [ln.split()[:STABLE_COLS] for ln in text.splitlines()]
+    """The header and, per voxel row, every token except the one at UNSET_COL."""
+    return [[t for i, t in enumerate(ln.split()) if i != UNSET_COL] for ln in text.splitlines()]
 
 
 def diff_runs(a: Path, b: Path) -> Optional[str]:
     """First difference between two run folders, or None if they are identical."""
     ma, mb = mic_stable((a / MIC).read_text()), mic_stable((b / MIC).read_text())
     if ma != mb:
-        return f"{MIC} differs in its first {STABLE_COLS} columns ({len(ma)} vs {len(mb)} lines)"
+        return f"{MIC} differs outside column {UNSET_COL} ({len(ma)} vs {len(mb)} lines)"
     la, lb = strip_time((a / CLIENT_LOG).read_text()), strip_time((b / CLIENT_LOG).read_text())
     if len(la) != len(lb):
         return f"client log length {len(la)} vs {len(lb)} lines"

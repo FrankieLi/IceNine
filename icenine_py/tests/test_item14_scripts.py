@@ -196,6 +196,12 @@ def test_verdict_neither_non_daemon_or_median_over() -> None:
     high = [dict(t=i, load=3.0) for i in range(3)]
     v = Q.verdict(high, [dict(procs=[_proc("/usr/libexec/d")])], limit=2.5)
     assert v["relaxed_ok"] is False and Q.exit_code(v) == 1
+    # R4b (i) is a median of at most 2.5 even when the strict limit is larger (cpptime: 3.5)
+    mid = [dict(t=i, load=3.0) for i in range(3)]
+    v = Q.verdict(mid, [dict(procs=[_proc("/usr/libexec/d")])], limit=3.5)
+    assert v["median_load"] == 3.0 and v["relaxed_ok"] is False
+    v = Q.verdict([dict(t=i, load=2.4) for i in range(3)], [], limit=3.5)
+    assert v["relaxed_ok"] is True
 
 
 def test_pair_check() -> None:

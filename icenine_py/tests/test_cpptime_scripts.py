@@ -5,23 +5,44 @@ rules of the guard, the log parsing (parse_logs), the voxel matching and scoring
 identity check of two C++ runs (same_cpp_run) and the quiet-limit choice.
 """
 
+import importlib.util
 import json
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
 
 ICE = Path(__file__).resolve().parents[1]
 SCRIPTS = ICE / "scripts" / "autoresearch" / "cpptime"
-sys.path.insert(0, str(SCRIPTS))
+ITEM14 = ICE / "scripts" / "autoresearch" / "item14"
 
-import guard as G  # noqa: E402
-import make_config as MC  # noqa: E402
-import parse_logs as PL  # noqa: E402
-import same_cpp_run as SC  # noqa: E402
-import score_cpp as SCORE  # noqa: E402
+
+def _load(folder: Path, name: str, as_name: str) -> Any:
+    """Load folder/name.py by path under a unique module name, so that another script folder's
+    module of the same name (summary, quiet, ...) cannot be picked up in the full suite."""
+    spec = importlib.util.spec_from_file_location(as_name, folder / f"{name}.py")
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+# the scripts import each other by bare name (score_cpp, make_region, ...): this folder first
+sys.path.insert(0, str(SCRIPTS))
+G = _load(SCRIPTS, "guard", "cpptime_guard")
+MC = _load(SCRIPTS, "make_config", "cpptime_make_config")
+PL = _load(SCRIPTS, "parse_logs", "cpptime_parse_logs")
+SC = _load(SCRIPTS, "same_cpp_run", "cpptime_same_cpp_run")
+SCORE = _load(SCRIPTS, "score_cpp", "cpptime_score_cpp")
+MS = _load(SCRIPTS, "make_subgrid", "cpptime_make_subgrid")
+SK = _load(SCRIPTS, "stacks_check", "cpptime_stacks_check")
+TR = _load(SCRIPTS, "trace_cpp_log", "cpptime_trace_cpp_log")
+SM = _load(SCRIPTS, "summary", "cpptime_summary")
+Q = _load(ITEM14, "quiet", "cpptime_item14_quiet")  # the one shared quiet.py
 
 PY_CONFIG = """InfileBasename \t ScatteringData_PhaseD/full/clean/500Grains.sim
 OutStructureBasename \t PhaseD_mc_clean
@@ -189,7 +210,6 @@ def test_match_voxels_rejects_unmatched_output() -> None:
 
 
 def test_subgrid_takes_nearest_rows_in_grid_order(tmp_path: Path) -> None:
-    import make_subgrid as MS
 
     pts = np.array([[0.0, 0.0], [5.0, 5.0], [0.1, 0.0], [0.0, 0.2], [9.0, 9.0]])
     g = _grid(tmp_path, pts)
@@ -201,7 +221,6 @@ def test_subgrid_takes_nearest_rows_in_grid_order(tmp_path: Path) -> None:
 
 
 def test_stack_vs_ascii_pixels(tmp_path: Path) -> None:
-    import stacks_check as SK
 
     f = tmp_path / "frame"
     f.write_text("3, 1, 100\n4, 1, 0\n5, 2, 7\n")
@@ -247,14 +266,63 @@ def test_same_cpp_run_flags_mic_and_log(tmp_path: Path) -> None:
     assert "log" in str(SC.diff_runs(a, c))
 
 
-def test_same_cpp_run_ignores_uninitialised_tail_columns(tmp_path: Path) -> None:
+def test_same_cpp_run_ignores_only_the_fitting_time_column(tmp_path: Path) -> None:
     head = "0.6\n"
-    row = "0.1 0.2 0 1 6 1 10 20 30 1 0.125 1 {}\n"
-    a = _cpp_run(tmp_path / "a", (head + row.format("0 1 1")).encode(), CLIENT)
-    b = _cpp_run(tmp_path / "b", (head + row.format("1.4e-45 1 0")).encode(), CLIENT)
+    row = "0.1 0.2 0 1 6 1 10 20 30 1 0.125 1 {} 1 1 1 0 0 0\n"  # index 12 is fFittingTime
+    a = _cpp_run(tmp_path / "a", (head + row.format("0")).encode(), CLIENT)
+    b = _cpp_run(tmp_path / "b", (head + row.format("1.4e-45")).encode(), CLIENT)
     assert SC.diff_runs(a, b) is None
     c = _cpp_run(tmp_path / "c", (head + row.format("0").replace(" 30 ", " 31 ")).encode(), CLIENT)
     assert "LBFS" in str(SC.diff_runs(a, c))
+    d = _cpp_run(
+        tmp_path / "d", (head + row.format("0").replace(" 1 0 0 0", " 1 0 0 1")).encode(), CLIENT
+    )
+    assert "LBFS" in str(SC.diff_runs(a, d))  # a deformation column is still checked
+
+
+LOG_RECORDS = """First Voxel Required: 13 Sec
+Fitting neighbors via Breadth First Search
+QueueSize 4 Fitted 2 continuous voxels
+  [ Cost ] 0.05 |=| 1 1    Original : 1 2 3    Optimized: 1 2 3 VoxelLocation 0.18 -0.08 0
+QueueSize 5 Fitted 3 continuous voxels
+  [ Cost ] 0.29 |=| 1 0.7    Original : 1 2 3    Optimized: 1 2 4 VoxelLocation 0.19 -0.08 0
+First Voxel Required: 14 Sec
+QueueSize 4 Fitted 2 continuous voxels
+  [ Cost ] 0.05 |=| 0.95 0.9    Original : 5 6 7    Optimized: 5 6 7 VoxelLocation 0.1 0.2 0
+"""
+
+
+def test_trace_parse_records() -> None:
+    recs = TR.parse_records(LOG_RECORDS)
+    assert [r["seed"] for r in recs] == [0, 0, 1]
+    assert [r["refit"] for r in recs] == [False, True, False]  # 0.7/1 <= 0.9; 0.9/0.95 > 0.9
+    assert (
+        recs[1]["original"] != recs[1]["optimized"] and recs[0]["original"] == recs[0]["optimized"]
+    )
+    assert (recs[0]["x"], recs[0]["y"]) == (0.18, -0.08)
+    s = TR.summarize(recs, {0: False, 1: True, 2: False}, [0, 1, 2])
+    assert s["refit"] == 1 and s["refit_wrong"] == 1 and s["accepted_wrong"] == 0
+    assert s["unchanged"] == 2
+
+
+def test_summary_timing_label_wording() -> None:
+    base = dict(
+        busy=[],
+        samples=dict(
+            n_over_2_5=7,
+            n_load=43,
+            n_over_limit=3,
+            max_load=6.2,
+            proc_period_s=300,
+            load_period_s=30,
+        ),
+    )
+    failed = SM.timing_label(dict(base, strict_quiet=False))
+    assert "no process over 20% CPU caught by the sampler" in failed
+    assert "load samples above 2.5 (7 of 43" in failed and "sampled every 300 s" in failed
+    assert "condition (ii) of N1 held only because nothing was caught" in failed
+    strict = SM.timing_label(dict(base, strict_quiet=True))
+    assert "assumed idle load of 1.5" in strict and "limit 3.5 only" in strict
 
 
 def test_cli_same_cpp_run_exit_code(tmp_path: Path) -> None:
@@ -265,7 +333,6 @@ def test_cli_same_cpp_run_exit_code(tmp_path: Path) -> None:
 
 
 def test_quiet_verdict_load_and_busy() -> None:
-    import quiet as Q
 
     ok = [dict(t=0, load=1.2), dict(t=30, load=2.4)]
     assert Q.verdict(ok, [], limit=2.5)["quiet"] is True
@@ -282,7 +349,6 @@ def _proc(path: str, cpu: float = 99.0) -> dict:
 
 
 def test_r4b_verdict_strict_has_empty_label() -> None:
-    import quiet as Q
 
     v = Q.verdict([dict(t=0, load=1.0)], [], limit=2.5)
     assert v["quiet"] is True and v["relaxed_ok"] is True and v["label"] == ""
@@ -290,25 +356,25 @@ def test_r4b_verdict_strict_has_empty_label() -> None:
 
 
 def test_r4b_verdict_relaxed_daemon_and_load_spike() -> None:
-    import quiet as Q
 
     loads = [dict(t=0, load=1.2), dict(t=30, load=3.1), dict(t=60, load=1.3)]
     procs = [dict(t=0, procs=[_proc("/usr/libexec/spotlightknowledged")])]
     v = Q.verdict(loads, procs, limit=2.5)
     assert v["quiet"] is False and v["relaxed_ok"] is True
-    assert v["label"] == "strict quiet check failed (spotlightknowledged)"
+    assert (
+        v["label"] == "strict quiet check failed (load max 3.10 > 2.5 in 1 of 3 samples; "
+        "busy: spotlightknowledged)"
+    )
     assert Q.exit_code(v) == 3
 
 
 def test_r4b_verdict_neither() -> None:
-    import quiet as Q
 
     v = Q.verdict([dict(t=0, load=1.0)], [dict(procs=[_proc("/opt/app/cpptools")])], limit=2.5)
     assert v["relaxed_ok"] is False and Q.exit_code(v) == 1
 
 
 def test_r4b_pair_check() -> None:
-    import quiet as Q
 
     assert Q.pair_report("C", 1000.0, 1010.0, "", "")["reported"] is True
     p = Q.pair_report("C", 1000.0, 1030.0, "", "strict quiet check failed (d)")
@@ -324,7 +390,6 @@ def test_run_script_parses_and_has_r4b() -> None:
 
 
 def test_quiet_limit_rule() -> None:
-    import quiet as Q
 
     assert Q.choose_limit(idle=1.0, own=1.1) == 2.5
     assert Q.choose_limit(idle=1.4, own=1.3) == pytest.approx(1.5 + 1.3)

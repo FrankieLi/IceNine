@@ -11992,19 +11992,28 @@ round 1,724 passed, 47 skipped, 1 deselected (`suite_counts.json`). Not tested: 
 Stored C++ binary, mode `p`, `mpirun -n 2` (one server that fits nothing, one fitting client), on
 the 2,000-voxel pilot, clean images, Q-max 8. No change under `Src/` or `icenine/`. Scripts in
 `scripts/autoresearch/cpptime/`, results in `benchmarks/autoresearch/cpptime/` (`summary.json`,
-`tables.md`, `cpp_time.png`). Whole process: C0 (untimed) 1,247.03 s, C1 1,236.87 s (strictly
-quiet), C2 1,231.87 s (strict check failed: 3 of 43 load samples over the limit 3.5, no process
-over 20% CPU caught, sampled every 300 s; reported under R4b), pair 0.41% apart. User plus system
-time is 2.00 times the whole process (two busy ranks; the server spins), so it is not a
-single-worker timing. Work: 85 global searches, 1,921 local optimizations, 416 of 2,000 wrong
-(Wilson 19.1% to 22.6%); Python arm A of item 14 (single-worker label, whole process 1,621.02 s):
-69 global searches, 24 wrong; the rules differ. Wrong in both 12, only C++ 404, only Python 12.
+`tables.md`, `cpp_time.png`). Whole process: C0 (not gated: no preflight or quiet check; load up to
+33.6) 1,247.03 s, C1 1,236.87 s (strictly quiet at the limit 3.5 only; the limit came from an
+assumed idle load of 1.5, and at 2.5 one sample, 2.52, is over), C2 1,231.87 s (strict check
+failed: load samples above 2.5 in 7 of 43, above 3.5 in 3, and no process over 20% CPU caught,
+processes sampled every 300 s and load every 30 s; condition (ii) of N1 held only because nothing
+was caught; reported under R4b, D-20261114-N1 and N2), pair 0.41% apart. (User plus system) over
+the whole process is 2.00 for C++ (two ranks, one of which uses about one core while it waits) and
+1.00 for Python A1, so the C++ timing is not single-worker. Work: 85 global searches, 1,921 local optimizations, 416 of 2,000 wrong
+(Wilson 19.1% to 22.6%); Python arm A of item 14 (label: single-worker, strict quiet check failed
+(busy: mediaanalysisd, searchpartyd), whole process 1,621.02 s): 69 global searches, 24 wrong
+(Wilson 0.8% to 1.8%). These are different jobs, so no speed ratio is a result: the whole-process
+ratio 1.31 and the BFS ratio 1.33 each carry both labels above and this caveat. Traced in the C++
+client log for this run: 393 voxels marked for a refit that one client never fits again, all
+wrong; 23 more accepted at the 0.9 test with another grain's orientation; all 1,921 local
+optimizations leave the orientation they started from (`trace_C1.json`). Wrong in both 12, only
+C++ 404, only Python 12.
 Evaluations not measured: `lldb` cannot launch the binary (developer mode off). The identity check
-of the repeats compares the header and the first 12 columns of `.mic.LBFS` (column 13, the fitting
-time, is never assigned in the C++ source); C0, C1, C2 were also equal byte for byte. Predictions:
-start-up, local optimizations and the pair were right; wrong voxels, global searches, BFS time and
-the Python-over-C++ ratio (1.33, not 2.5 to 15) were wrong. Page text:
-`.claude/reports/20261114-cpptime-findings_cpp_time.md` (the write to `docs/` was refused).
+of the repeats compares every column of `.mic.LBFS` except index 12 (the fitting time, never
+assigned in the C++ source); C0, C1, C2 were also equal byte for byte. Predictions: start-up, local
+optimizations and the pair were right; wrong voxels, global searches, BFS time and the BFS time
+ratio (Python over C++ 1.33 with the labels and caveat above, predicted 2.5 to 15) were wrong. Page:
+`docs/autoresearch/findings_cpp_time.md` (pending placement by the owner).
 
 ## Autoresearch items 14 and 3: both speed keys together, with a timing A/B (done 2026-11-14, task item14)
 
