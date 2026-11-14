@@ -29,7 +29,15 @@ import polish_freeze as PF  # noqa: E402
 PF.check_or_exit()
 os.environ["STALLHIT_CACHE"] = str(PC.PCACHE)  # stallhit_common must not point back at step 12's
 
-import stallhit_common as SC  # noqa: E402,F401  (its freeze guard on held and held2 stays on)
+import polish_replace_freeze as PRF  # noqa: E402
+import stallhit_freeze as _SF  # noqa: E402
+
+# Step 12's freeze hashed the library before its phase B (919c55e, key SeedIndexMCStallHit), so its
+# check cannot agree any more; as stallhit_common did for steps 8, 9 and 11, step 14's own freeze
+# (checked first, for held and held2) replaces it. No hash is re-recorded.
+PRF.install(os.environ.get("RESEED_SAMPLE", ""), PF.problems, _SF)
+
+import stallhit_common as SC  # noqa: E402,F401  (its freeze guard is now step 14's, see above)
 
 import fit_common as FC  # noqa: E402
 import order_draws as OD  # noqa: E402

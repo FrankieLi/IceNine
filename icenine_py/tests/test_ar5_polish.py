@@ -371,3 +371,31 @@ def test_gate2_rules() -> None:
         [_row(True, grid=200_000, evals=1000)] * 7 + [_row(False, grid=300_000, evals=15_005)] * 14
     )
     assert not PGT.gate2(low)["t3"]
+
+
+# ---- step 14's freeze check replaces step 12's for held and held2 ----
+import polish_replace_freeze as PRF  # noqa: E402
+
+
+class _SF:
+    @staticmethod
+    def problems() -> str:
+        return "icenine/config_file.py differs from the frozen hash"
+
+
+def test_held_and_held2_are_refused_when_step_14s_freeze_fails() -> None:
+    for s in ("held", "held2"):
+        sf = _SF()
+        with pytest.raises(SystemExit):
+            PRF.install(s, lambda: "polish frozen.json is not committed", sf)
+        assert sf.problems() != ""  # step 12's check was not switched off
+
+
+def test_held_and_held2_are_read_when_step_14s_freeze_passes_and_others_untouched() -> None:
+    for s in ("held", "held2"):
+        sf = _SF()
+        PRF.install(s, lambda: "", sf)
+        assert sf.problems() == ""
+    sf = _SF()
+    PRF.install("mid", lambda: "any", sf)  # not a held sample: nothing happens
+    assert sf.problems() != ""
