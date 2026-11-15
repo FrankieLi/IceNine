@@ -1999,3 +1999,18 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   fixed after two looks at the disclosed samples (a 17th feature was dropped), and mid's odds are
   about 1 in 2. No new runtime dependency (trees exported to JSON). The owner may overrule. Where:
   PLAN.md AR5 step 18.
+
+### D-20261115-N5 · Track A / AR5 step 18 · AR5 step 18 stops at its gate (live mid run: 4 broken, 0 fixed against J5; net 8 against S8, limit 5); no tuning, no key, study merge
+- 2026-11-15, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. The leave-one-sample-out table reproduces the plan
+  (g0, g1 met). The live run of the learned skip on mid with the gate model needs 9,990,663
+  evaluations, 5.65% fewer than J5, but breaks 4 voxels and fixes none against J5, so broken minus
+  fixed against S8 is 8 (limit 5): g3 fails. g2 also fails: the live run departs from the replay
+  at fit 1016 because feature 13 (the voxel's own kept hit ratio) differs once a fit has been
+  skipped; the recording holds an end that a live run with skips never makes (a train-and-run
+  mismatch in the plan's feature). As frozen: no tuning, no other feature set or threshold, no
+  final model, held4 not built, no whole layer, no key. The step merges as a study after an Opus
+  review, which must also judge the implementer's two edits of frozen files after the freeze.
+  Lesson recorded: the replay cannot see what wrong skips do to growth; on mid about 46 predicted
+  wrong skips cost 4 voxels. The owner may overrule. Where: PLAN.md AR5 step 18;
+  .claude/reports/20261115-0817-ar5r-gate.md.
