@@ -46,9 +46,10 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   Step 16 MERGED 4a1cfb42 (J5 passes on 5 samples). Step 17 (gate failed, N3) MERGED a3a4f1d8;
   `J5r` in `agent-aeba15b7c3850b007`. Step 18 (gate failed on mid, N5) MERGED 8b456ac5 (suite 2194
   passed). v55 live. Step 19 (gate failed on cost, N8) MERGED b53e927d. Step 20 (`ar5t`, N9):
-  gate PASSED; held4 runs since 10:04, 15 Nov, in `agent-a8b2d0066621fd0f8`: marker `…/cmarepair/
   gate PASSED; held4 runs since 10:06, 15 Nov, in `agent-a8b2d0066621fd0f8` (script fix bf9716ac):
   marker `…/cmarepair/cache/logs/cmarepair_runs.done`; dead: run-all `--resume`. Then stats.
+
+
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
 7, 18, 22, 23, AR0 to AR2, AR3 1 to 11, AR5 1 to 3, 5, 7 to 12, AR4 1): `STATE_HISTORY.md`.
