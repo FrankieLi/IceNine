@@ -1932,3 +1932,18 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   only) are applied; fix 5 by disclosure, the untracked ar3 files are not deleted. The held3 shim
   and band_run_all.sh stay, marked untested end to end. Then the branch is merged as a study with
   scripts only. Where: PLAN.md AR5 step 15; branch feature/eval-reduction-ar5o.
+
+### D-20261114-N8 · A/AR5 step 16 · AR5 step 16 approved: the high stop alone at a 500-evaluation stall (rule PH(500), arm J5); clean test on held3
+- 2026-11-14, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. AR5 step 16 (task ar5p) is approved as written in
+  PLAN.md: rule PH(500), step 12's high stop (hit ratio at least 0.95) after 500 evaluations with
+  no gain in place of 3,000; no low side; arm J5 is arm J with PH(500). A gate on the four
+  disclosed samples first, then whole layers, with the new sample held3 (built as held, generator
+  seed 3) as the clean test; held2 is not used. The form was chosen after step 15's stall data on
+  held, mid, grad, big were seen, so those four samples only check it; held3 tests it. Drafter's
+  walk: about 6.5% fewer evaluations on held and mid. The step 15 review gave 5.34% for the high
+  side at k = 500 on held under a different accounting; the implementer reconciles the two numbers
+  at the gate, and gate condition g3 (5.5%) decides. Other candidates looked at and not chosen: a
+  learned stop on the stall summary (about 1 point more on held, loses 2 to 4 later 0.95 ends; an
+  exploratory look only), a start test for revisits (needs a recording run), a stop at the first
+  gain that reaches 0.95 (moves hundreds of seed ends). Where: PLAN.md AR5 step 16.
