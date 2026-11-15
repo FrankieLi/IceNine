@@ -1,0 +1,10 @@
+{
+ "only_j5_n": 0,
+ "only_j_n": 0,
+ "only_j5_wrong": 0,
+ "only_j_wrong": 0,
+ "only_j5_wrong_where_j_map_right": 0,
+ "only_j_wrong_where_j5_map_right": 0,
+ "only_j5": [],
+ "only_j": []
+}

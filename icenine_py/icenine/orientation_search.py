@@ -222,7 +222,8 @@ class SearchParameters:
     #   ends there with that orientation and cost, else it goes on and checks again k evaluations
     #   after the next strict gain. Rule PH(k) of scripts/autoresearch/ar5/stallhit_rules.py.
     #   Needs seed_by_indexing and seed_index_stop_hit > 0. Off by default and not recommended as
-    #   a default (MIGRATION_HISTORY.md, "Autoresearch AR5 step 12").
+    #   a default (MIGRATION_HISTORY.md, "Autoresearch AR5 step 12"). k = 500 (rule PH(500)) is
+    #   tested: tests/test_ar5_high500_key.py, MIGRATION_HISTORY.md "Autoresearch AR5 step 16".
     seed_index_mc_stall_hit: int = 0
     # paint_grains: opt-in (config key PaintGrains, default off; AR3 step 2). With the key on,
     #   ``BFSReconstruction.reconstruct_sample`` runs ``grain_paint.paint_grains`` in place of the

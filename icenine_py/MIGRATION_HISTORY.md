@@ -13004,3 +13004,58 @@ form, no whole layer; `held3` was not built; no form was chosen (no `chosen.json
   `band_run_all.sh`, and `band_run.py` / `band_launch.py` on `held` (they need a chosen form).
   Smoke runs on `big` of `band_run.py`, `polish_run.py` and `fit_run.py` through the launcher
   passed.
+
+## Autoresearch AR5 step 16: stop a stalled seed refinement after 500 evaluations, high stop only (phases A and B) (2026-11-15, task ar5p)
+
+Plan: `docs/autoresearch/PLAN.md`, "AR5 step 16" (D-20261114-N8; phase B D-20261115-N1). Rule
+`PH(500)`: in the seed step's MC refinement, after 500 evaluations with no gain look once at the hit
+ratio of the best orientation; at 0.95 or more stop and keep it; else go on. No low side. Arm `J5`
+is step 14's arm `J` with this rule in place of `PH(3000)`. The findings page
+`docs/autoresearch/findings_ar5_high500.md` is not placed yet (see Deviations).
+
+**What was done.** Phase A (script layer, `scripts/autoresearch/ar5/high500_*.py`): step 14's
+stored arm-`J` files and step 15's recording rows were linked read only (four samples, no `held2`);
+stored counts reproduce. Tests first, then the freeze (75849b4). Gate on `held`, `mid`, `grad`,
+`big`: the walk over step 15's recorded 500-stalls equals the plan's table to the evaluation
+(net saving 6.48%, 6.56%, 1.47%, 2.42%; moved steps 8, 6, 1, 1; one path change, `mid` step 466);
+all 16 moved steps were replayed live, none broken, no extra failed seed test or grid search (net
+saving with the live step 6.60% on `mid`). The new clean sample `held3` (`held` with generator
+seed 3) was built, then `S8`, `J` and `J5` were run on it, and `J5` on the four disclosed samples,
+each with the boundary pass (4 heavy processes at most; no run hit its cap).
+
+**Result.** `J5` against `J`, evaluations with the pass: 5.37% fewer on `held3` (23,503,385 against
+24,836,167), 6.21% on `held`, 6.25% on `mid`, 1.46% on `grad`, 1.87% on `big`. Wrong voxels after
+the pass `J` to `J5`: 55 to 54, 68 to 67, 35 to 35, 56 to 56, 21 to 21 (fixed / broken against `J`:
+1/0, 1/0, 0/0, 0/0, 0/0); extra wrong seeds 0; grid searches equal (9, 4, 2, 2, 0). Median error
+`J5` minus `J` between -0.000022 and +0.000006 degree. Rule 5 against `S8` holds everywhere (49.8%
+to 65.1% fewer; `mid` net +4, limit 5, same as `J`). Rules 1 to 5 pass on all five samples. A review
+(`.claude/reports/20261115-0105-review-ar5p.md`) approved phase A; its two fixes were applied: the
+failed-seed-test counts (92, 65, 12, 11, 0) were relabelled and rule 4 now uses the real grid-search
+counts, and the `held3` reads in `high500_stats.py` are guarded.
+
+**Phase B.** No new library code: step 12's key `SeedIndexMCStallHit k` takes k = 500. A comment
+line in `icenine/orientation_search.py` says so. Tests `tests/test_ar5_high500_key.py`: k = 500
+parses, absent or 0 is off (default stays 0), and on random cost sequences the library refinement
+equals the script rule. Key-off suite: 2,124 passed, 47 skipped, 1 deselected, no golden change (the
+one failure in that run was a script test refused because a job of this step was running; it now
+skips once the docstring change has moved the freeze). Key-on library run on `mid`
+(`high500_lib_run.py`, keys of step 12's key-on run plus `SeedIndexMCStallHit 500`, no `G2b`: it has
+no library key) equals the script arm `J5l` (`high500_hl.py`) before the boundary pass: map,
+evaluations (8,135,786), 36 counters, 24,570 records, 11 rescues, 1,689 refinements with 1,922
+checks, 402 stops. After the pass they differ as in step 12 (39 and 37 wrong voxels; the library
+pass reads the unrounded map).
+
+**Deviations and caveats.**
+- The findings page could not be written to `docs/` (a write was refused). The page text waits
+  for the owner in `.claude/reports/` (the file `20261115-0143-ar5p-phaseB-findings_ar5_high500.md`,
+  untracked). The doc tables are in `tables.md`, `gate_tables.md` and `tables_lib.md`.
+- The library key was checked against script arm `J5l` (`J5` without `G2b`, which has no
+  library key), so the library cannot yet run arm `J5` itself: with the pass `J5l` costs
+  11,189,507 evaluations on `mid` against 10,589,493 for `J5`.
+- `held`, `mid`, `grad` and `big` are a carry-over check, not a test; `held3` is the clean test and
+  its counts (54 against 55 wrong, Wilson 0.17 to 0.29% for both) are too small to show a change.
+- The key was tested on `mid` only. Three freezes moved with the docstring change (steps 14, 15 and 16),
+  so `high500_common` now refuses `held` and `held3` at HEAD: the `held` and `held3` stats can be
+  regenerated only at b192e1e. No `held` run is planned.
+- The `S8` and `J` runs on `held3` stay as stored baselines on clean images; `held3` is disclosed
+  after step 16 (it was the clean test for step 16 only).
