@@ -12967,12 +12967,40 @@ of `mid` were also run live under `PB(1000)` and all 12 evaluation counts agree 
 **Result.** Both forms fail the gate (`band_gate.py`, rules frozen in `band_rules.GATE`): see
 `benchmarks/autoresearch/ar5/band/gate_tables.md`. Net saving (every extra evaluation counted)
 against `J`'s run with the pass: `PB(1000)` 3.77% on `held`, 7.64% on `mid`; `PB(500)` 5.59% and
-13.09%. A stall best under 0.80 is not a reliable sign of a failing refinement: 45.1% (k = 1,000)
-and 63.1% (k = 500) of the bracketed refinements have one, and stopping them loses later 0.95 ends
-(`PB(1000)`: failed seed tests among changed steps 9 to 36 on `held`, grid searches 4 to 7;
-`PB(500)`: 30 to 111 and 4 to 11). Broken (end right under `J`, wrong under `PB`): 2, 1, 1, 0 for
-`PB(1000)` on `held`, `mid`, `grad`, `big`; 4, 2, 1, 0 for `PB(500)`; fixed 0. Rule: no tuning, no
-third form, no whole layer; `held3` was not built; no form was chosen (no `chosen.json`). The
-run-all script `band_run_all.sh` (build `held3`; `S8`, `J`, `JB` on it; `JB` on the four others)
-is written but waits for a chosen form. `held3` is made by a run-time shim (`band_samples.py`)
-because older steps' scripts may not be edited.
+13.09%. Pooled over the four samples, 45.1% (k = 1,000) and 63.1% (k = 500) of the bracketed
+refinements have a stall best under 0.80 (`held` dominates: at k = 1,000 `held` 330 of 651, 50.7%;
+`mid` 58 of 193, 30.1%; `grad` 6 of 19; `big` 4 of 20). Of the 398 pooled bracketed refinements
+under 0.80 at k = 1,000, `J`'s own end was at 0.95 or more in 76 and under 0.80 in 80, so a stall
+best under 0.80 does not tell a failing refinement from a later success. Stopping them loses later
+0.95 ends: 68, 5, 2, 1 (`PB(1000)`) and 161, 24, 4, 2 (`PB(500)`) on `held`, `mid`, `grad`, `big`.
+Separate effects: failed seed tests among changed steps on `held` 9 to 36 (`PB(1000)`), 30 to 111
+(`PB(500)`); grid searches on `held` 4 to 7 and 4 to 11. Broken (end right under `J`, wrong under
+`PB`) out of changed ends, Wilson 95%: `PB(1000)` `held` 2 of 126 [0.4%, 5.6%], `mid` 1 of 22
+[0.8%, 21.8%], `grad` 1 of 4 [4.6%, 69.9%], `big` 0 of 2; `PB(500)` `held` 4 of 294 [0.5%, 3.4%],
+`mid` 2 of 53 [1.0%, 12.8%], `grad` 1 of 9 [2.0%, 43.5%], `big` 0 of 3; fixed 0 everywhere (paired
+by voxel). An observation from the reviewer's post-hoc split, not a tested rule: every broken voxel,
+extra grid search, extra failed seed test and lost 0.95 end falls in steps whose end moved through
+a low stop, and the high side alone saves 4.28% (`PB(1000)`) and 5.34% (`PB(500)`) on `held`. A
+high-only rule was not run (a third form is not allowed by the plan). Rule: no tuning, no third
+form, no whole layer; `held3` was not built; no form was chosen (no `chosen.json`) (D-20261114-N7).
+
+**Deviations and what is untested.**
+- Cost: the changed-path replays evaluated 13.07 million (4,554,258 for `PB(1000)`, 8,513,483 for
+  `PB(500)`), against "under 3 million" per form in the plan (more moved steps than estimated, and
+  extra grid searches of about 355,000 each).
+- Pilots with `--force-steps` before the freeze (`big` steps 22, 27, 35, 45; `mid` 401, 1091, 1544,
+  935; `PB(500)`): their path, taken_same and evaluation lines were seen; no stall hit ratio was
+  printed. Their rows were deleted before the full recording.
+- A name-only listing of step 14's tracked `polish/` folder showed `held2` file names; nothing of
+  `held2` was opened.
+- For `held` and `held3` the older freeze checks (steps 8, 9, 12 and 14) are switched off in the
+  process after this step's own freeze has passed. Step 14's `polish_freeze` check still passes
+  now (only the checks of steps 8, 9 and 12 cannot), so switching it off was not needed.
+- Untracked files written outside this step's cache: `benchmarks/autoresearch/ar3/big/boundary/`
+  (written by the `grad` path replays) and the linked `gradient_grid.mic` / `gradient_truth.mic`
+  files of `big`, `mid`, `held` (made by `order_link_inputs.sh`). They are untracked and were never
+  staged.
+- UNTESTED end to end: the `held3` shim (`band_samples.py`), `band_make_held3.py`,
+  `band_run_all.sh`, and `band_run.py` / `band_launch.py` on `held` (they need a chosen form).
+  Smoke runs on `big` of `band_run.py`, `polish_run.py` and `fit_run.py` through the launcher
+  passed.

@@ -1,4 +1,6 @@
 #!/bin/bash
+# UNTESTED end to end: the gate failed, no form was chosen, so the guards stop it before any job
+# (D-20261114-N7: no held3, no whole layer). Only its guard and its parts on big were tried.
 # AR5 step 15, phase A steps 6 and 7: build held3, then the whole-layer runs of arms S8, J and JB on
 # held3 and of arm JB (the form the gate chose) on held, mid, grad and big, each followed by its
 # boundary pass in the same slot.

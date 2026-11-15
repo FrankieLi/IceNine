@@ -891,7 +891,8 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   least 0.95 or under 0.80; forms `PB(1000)` and `PB(500)`): scripts
   `scripts/autoresearch/ar5/band_*.py` (script layer, no library change; `band_samples.py` makes the
   new test sample `held3` at run time without editing older scripts; `band_run_all.sh` is the
-  run-all script, not started), tests `tests/test_ar5_band.py`, results
+  run-all script, not started; the `held3` shim, `band_make_held3.py`, `band_run_all.sh` and
+  `band_run.py` on `held` are UNTESTED end to end), tests `tests/test_ar5_band.py`, results
   `benchmarks/autoresearch/ar5/band/` (`frozen.json`, `gate.json`, `gate_tables.md`; the cache is
   untracked). Both forms fail the frozen gate (broken ends, extra grid searches on `held`, too many
   changed ends, net saving under 6% on `held`), so no whole layer was run and no key was added.

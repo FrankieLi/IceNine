@@ -1,4 +1,6 @@
-"""AR5 step 15, phase A step 6: build and render the new clean test sample ``held3`` (``held`` with
+"""UNTESTED end to end (held3 was never built: the gate failed, D-20261114-N7).
+
+AR5 step 15, phase A step 6: build and render the new clean test sample ``held3`` (``held`` with
 generator seed 3).
 
   uv run python scripts/autoresearch/ar5/band_make_held3.py [--dry-run] [--resume]
