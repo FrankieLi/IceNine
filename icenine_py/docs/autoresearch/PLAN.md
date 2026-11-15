@@ -3951,6 +3951,157 @@ wall time than others; pointer only). Another random seed. `held2`.
 - Runner-up (d1), stop at the first gain that reaches 0.95: at least 8.4% / 8.2% on `held` /
   `mid`, but it moves most seed ends at 0.95 (hundreds); try it once `mid` has margin.
 
+### AR5 step 17: record the BFS local optimizations of arm `J5`, then an early skip chosen on it
+
+Task `ar5q`. Approved: D-20261115-N2. Starts after step 16's merge (its review approved `J5`
+unchanged, D-20261115-N1). Reuses step 8's aligned draws (`order_draws.py`),
+step 16's `high500_*` and cache (read only). Phase A ends at "READY FOR KEY" or at a gate; phase B
+only after a recorded decision. The pass skip (step 13's idea) stays an owner option.
+
+**Why.** The owner asks for fewer evaluations and for general early stops. Under arm `J5` the BFS
+local optimizations (neighbour fits and revisits, 61 evaluations each) are 18.8% of the run on
+`held3`, 20.5% on `held`, 30.0% on `mid`, 36.0% on `grad`, 55.6% on `big`. Of them 56% to 73% are
+rejected (25% on `big`), and a rejected fit almost never decides a final answer. Nothing stored
+says which fits will lose before they run. This step records that, then tests one rule.
+
+**What was read.** PLAN steps 14 to 16; `STATE.md`; `reconstructor.py` (`_expand`, reseed);
+step 16's `J5_<s>/run.json`, `records.json.gz` (worktree `agent-a8d3953c88c593c42`); AR3 step
+9's `ar3/start/feat_{grad,big}.npz` (`S8`-era fit records, worktree `agent-a9c88b610fb10e1b6`).
+Scripts `s17c_rec.py`, `s17c_feat.py` (scratchpad). Nothing of `held2` was opened or listed.
+
+**What the stored record says.** Reading line: per sample, `J5`'s run with the pass; rejected
+revisits and neighbour fits not accepted at their first fit (counts); their evaluations as a share
+of `J5` (the ceiling: every losing fit skipped at no cost); and revisits spent on voxels that in
+the end were fitted by a reseed (a full search), as a share of `J5`.
+
+| sample | `J5` total | rejected revisits | first-rejected neighbour fits | ceiling | revisits on reseeded voxels |
+|---|---|---|---|---|---|
+| held3 | 23,503,385 | 38,314 of 48,181 | 12,953 of 24,277 | 13.30% | 25,735 (6.68%) |
+| held | 22,939,812 | 42,756 of 52,638 | 13,295 of 24,273 | 14.91% | 28,904 (7.69%) |
+| mid | 10,589,493 | 18,778 of 27,618 | 10,297 of 24,409 | 16.75% | 9,923 (5.72%) |
+| grad | 9,041,686 | 15,416 of 29,176 | 14,693 of 24,222 | 20.31% | 3,617 (2.44%) |
+| big | 3,567,098 | 2,873 of 8,010 | 5,424 of 24,533 | 14.19% | 1,058 (1.81%) |
+
+A rejected end is the final answer only at voxels that end unresolved (5 / 3 / 0 / 0 / 0); all
+others are later replaced. `S8`-era records (other arm): a start test (skip if the start's hit
+ratio is under t times the best) skips 26.2% of fits on `grad` at t = 0.3 with 14 of them
+accepted, 35.0% with 119 at 0.4; `big` 7.4% with 7, 10.9% with 48. At 61 evaluations a fit and
+one check per fit, t = 0.3 saves about 8.8% of `J5` on `grad`, 3.2% on `big`; others: no record.
+
+**Terms.** **Hit ratio**: the share of simulated peaks that land on lit pixels. **Fit**: one BFS
+local optimization (CMA, 60 evaluations plus one final hit evaluation) from an inherited start: a
+**neighbour fit** (a voxel's first) or a **revisit** (a refit of a rejected voxel from a later
+neighbour). **Best**: the expansion's running best hit ratio; a fit is accepted if its hit ratio
+is over 0.9 times the best. **Wrong skip**: a skipped or stopped fit that `J5` accepted (it changes
+growth). **Arm `J5`**: arm `J` with `PH(500)` (step 16). **Arm `J5C`**: `J5` with the chosen rule.
+**Right**/**wrong**: at most / over 1 degree from the truth (symmetry-reduced). **Aligned draws**:
+as step 8; a skipped fit still takes and discards its draw, so no other draw moves.
+
+**Recording run (`J5r`).** `J5` re-run on the five disclosed samples, aligned draws, the pass
+unchanged. Per fit it stores: voxel, kind, expanding voxel, order, the best, start orientation,
+start hit ratio and cost, the running best's cost at every evaluation and its hit ratio after 20
+evaluations, evaluations, end orientation, hit ratio and cost, accepted or not, kept by the push
+rule or not, and whether the end is the voxel's final answer before and after the pass. The two
+hit evaluations per fit are recording-only and listed apart; `J5r`'s counted run must equal `J5`.
+
+**Rule family, frozen now, before any recording is read.** A skipped or stopped fit is a rejected
+fit (the voxel becomes or stays a refit voxel; a skipped neighbour fit holds its start, a skipped
+revisit keeps the old end). Every check is one counted evaluation.
+- `S(t, scope)`: before the fit, check the start; skip if its hit ratio is under t times the best.
+- `C(t, scope)`: after 20 evaluations, check the running best; stop if under t times the best.
+- `D(d)`: skip a revisit whose start lies within d degrees of a start already rejected at that
+  voxel since its last reset (no evaluation).
+t in {0.3, 0.4, 0.5, 0.6}; scope revisits, neighbour fits, or both; d in {0.1, 0.25, 0.5}. 27 rules.
+**Selection, frozen now.** A rule is admissible if on each of the five samples (a) wrong skips are
+at most 0.1% of that sample's fits and (b) at most 2 final answers before the pass change. Among
+admissible rules take the largest sum over the five samples of the net saving as a share of `J5`
+(saved evaluations of skipped fits that `J5` rejected, minus every check; wrong skips earn nothing).
+Ties: fewer wrong skips in all, then `D` before `S` before `C`, then the smaller t or d.
+
+**Samples, and what has touched them.** `held3`, `held`, `mid`, `grad`, `big`: disclosed; the rule
+is chosen on them. `held2`: not used, not opened. Clean test: a new sample `held4`, built by
+`held_make_sample.py` exactly as `held` (250 Voronoi grains on the 24,570-voxel grid, gradients
+0 to 4 degrees) with generator seed 4, as step 16 built `held3`: a new sample for a carry-over
+test, not an extra random seed. Nobody reads its logs or maps before its runs end. Clean, Q-max 8.
+
+**Predictions, written before any run.**
+1. `J5r` gives `J5`'s map before the pass at every voxel, its fit counts (table) and evaluations.
+2. The chosen rule is `S(0.3, both)` or a `D` rule (about even odds); no `C` rule is chosen.
+3. Net saving of the chosen rule on the recording: `held` 5% to 8%, `held3` 4.5% to 7.5%, `mid`
+   5% to 9%, `grad` 7% to 10%, `big` 2% to 4% of `J5`; wrong skips 5 to 40 per sample.
+4. `J5C` against `J5`, with the pass: `held4` 4% to 9% fewer; the disclosed samples within 1.5
+   points of their recording saving; broken minus fixed -2 to 3; median error up at most 0.0005.
+5. `mid` passes rule 5 (about 3 in 5; see the margin paragraph).
+
+**Decision rules, fixed now.** Gate, on the disclosed samples, before `held4` is built: (g0)
+prediction 1; (g1) at least one admissible rule; (g2) the chosen rule's net saving at least 4% of
+`J5` on `held` and `mid`, at least 3% on `held3` and `grad`, at least 1% on `big`; (g3) exact
+replay: on `mid` the live `J5C` run, up to its first wrong skip in run order, equals the replay
+fit by fit (skips, ends, evaluations), and over the whole run if it has none. The replay is exact
+for skips of fits that `J5` rejected: such a skip leaves the best, the refit set, the revisit
+counts and the reseed choice (geometry only) as they were. Gate fails: stop, report, no tuning, no
+second pick, no whole layer. Then `J5C` passes on a sample if, against `J5` (aligned draws):
+(1) total with the pass at least 3% fewer on `held4`, `held3`, `held`, `mid`, `grad`, at least 1%
+on `big`; (2) broken minus fixed at most 5; (3) median error at most 0.001 degree higher; (4) at
+most 1 more wrong seed (matched or unmatched), grid searches within 1, reseeds at most 2% more;
+(5) the house rule against `S8` with the pass: at least 20% fewer evaluations, broken minus fixed
+at most 5, median error at most 0.005 degree higher. If `J5` fails (5) on a sample, `J5C` is
+judged there by (1) to (4). The step passes if `J5C` passes on `held4` and on the five disclosed
+samples. Fails on `held4`: no key value; study merge.
+
+**The margin on `mid`, said plainly.** `J5` is at net +4 of limit 5 against `S8` there (13 broken,
+9 fixed). `J5C` changes growth only through wrong skips; a skipped voxel can still be fitted by a
+later revisit or a reseed, but each can also cost a voxel. So `J5C` can afford at most one more
+net broken voxel on `mid` than `J5`. My judgement: about 3 in 5 (not a measurement). No limit is
+moved, `mid` is not dropped, no rerun: a fail on `mid` alone means no key value.
+
+**Machine.** `J5r`: `J5` before the pass is about 18.6, 17.7, 7.5, 5.4, 2.4 million (`held3`,
+`held`, `mid`, `grad`, `big`) plus 0.6 million recording evaluations, about 52 million, 2.6
+process-hours at 20 million an hour, about 1.7 hours wall on 4 processes (`J5` took 5,780 s on
+`held3`, contended). Gate: arithmetic (minutes), then `J5C` on `mid` with its pass (about 10
+million, 0.7 hours). Then `held4` built (about 15 minutes); `J5C` on `held3`, `held`, `grad`,
+`big` (about 56 million); on `held4` `S8`, `J5`, `J5C` (about 67, 23.5, 22 million). In all about
+230 million, about 11.5 process-hours, about 6 hours wall with at most 4 heavy processes. Caps:
+480 minutes for `S8`, 300 the rest. `S8` and `J5` on `held4` stay as clean baselines.
+
+**Stop rule:** stop and report if a stored count does not reproduce (`J5` totals 23,503,385,
+22,939,812, 10,589,493, 9,041,686, 3,567,098; fit counts in the table), if prediction 1 fails,
+if the gate fails, if anyone reads the recording before `ar5/fitskip/frozen.json` is committed,
+if `held4`'s logs or maps are read before its runs end, if anything of `held2` is opened or
+listed, if a run hits its cap, or if step 16's review changes `J5`.
+
+**Phase A (script layer).** 1. Merge step 16; link its caches read only; check the counts above;
+write only into this step's cache. 2. Tests first: `tests/test_ar5_fitskip.py` (each form skips
+or stops only below its line; checks counted; a skipped fit is rejected and keeps the stated end;
+discarded draws leave other fits unchanged; recording evaluations kept apart; guards on `held2`
+and on `held4`). 3. Commit `ar5/fitskip/frozen.json` (family, selection, gate, rules, hashes).
+4. `J5r` on the five samples; prediction 1. 5. Selection; commit the pick. 6. Gate. 7. Build
+`held4` (pilot first), then the runs and passes, 4 at a time. Stats; the plot first (run
+evaluations against wrong voxels after the pass: `S8`, `J5`, `J5C`, six panels); tables;
+predictions. "READY FOR KEY".
+
+**Phase B (key).** One opt-in key for the chosen rule (default off), read in `_expand`; parsed in
+`config_file.py`, `orientation_search.py`. Unit tests; key-off suite with no golden change; key on,
+a library run on `mid` equal to a script arm `J5Cl` (library draws) before the pass. Page
+`findings_ar5_fitskip.md` (plot first), history, pareto rows with a status field.
+**Files:** `ar5/fitskip_*.py`, `tests/test_ar5_fitskip.py`, `benchmarks/autoresearch/ar5/fitskip/`
+(under 3 MB tracked; the recording stays in the cache). **Library changes:** none in phase A;
+phase B the key, only if the step passes.
+
+**Not in this step.** Two rules together. Accepting a start without a fit (AR3 step 9's `F1`
+broke voxels through growth). Other fit budgets. The pass skip. Seed-step MC stops. A learned
+rule (the recording can train one later). Realistic images. Other crystals. A timing. Another
+random seed. `held2`.
+
+**Choices made.**
+- This idea: a ceiling of 13% to 20% of `J5`, never recorded on `held` or `mid`. The rule only
+  rejects, so it cannot grow a wrong orientation; its risk is a missed accept. Weak side: no size
+  on `held`, `held3`, `mid` before the recording; the `S8`-era numbers are another arm's; about
+  11.5 process-hours, twice step 16. The family and selection are fixed first, so the pick is a
+  procedure, not a look; `held4` tests it once.
+- Not chosen: the pass skip (owner option, step 13); a seed MC stop at the first gain at 0.95
+  (about 1.6 to 1.9 points over `PH(500)` on `held`, `mid`; moves hundreds of seed ends).
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
