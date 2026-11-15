@@ -3652,6 +3652,157 @@ revisit stops. Realistic images. Other crystals. A timing. Another random seed. 
   does what the grid search's finer levels do (short starts close by), out to 0.75 degree.
 - `held2` as the test, with its disclosed limit, not a new sample: its rescue logs are unread.
 
+### AR5 step 15: a two-sided stall check in the seed step's MC refinement
+
+Task `ar5o`. Approved: D-20261114-N6. Starts from `feature/eval-reduction` after the merge of
+step 14's phase A (scripts only; its key still waits). Reuses `stallhit_rules.py`,
+`stallhit_replay.py`, `polish_*` and step 14's cache (read only). Phase A ends at "READY FOR KEY"
+or at a gate; phase B only after a recorded decision.
+
+**Why.** The owner asks for fewer evaluations and for general early stops. Under arm `J` the seed
+step's MC refinements are the largest part left: 46.5% of the run on `held`, 33.6% on `mid`, 11.8%
+on `grad`. Of their evaluations, 67.6%, 71.1% and 81.4% come after the refinement's last gain. Rule
+`PH(3000)` stops only at 3,000 evaluations with no gain and only at hit ratio 0.95. But the median
+tail after the last gain is 1,058, 1,363 and 753 evaluations, so most refinements end on their own
+budget first. Most MC evaluations (75%, 67%, 78%) go to refinements that end under 0.95.
+
+**What was read.** PLAN steps 12 to 14; `STATE.md`; step 14's `ar5/polish/stats_*.json`,
+`tables.md`; its cache (worktree `agent-a1bd2e7a7dbfe1efd`): `J_<s>/` `e1_log`, `mc_traces`,
+`run`, `records` of `held`, `mid`, `grad`, `big`. Nothing of `held2`, no `passes_held2/`.
+
+**What the stored record says.** Reading line: one row per sample; the parts of `J`'s run with the
+pass. Full table and checks: `plan_step15_breakdown.md`.
+
+| sample | J total | MC (share) | MC after the last gain | revisits | boundary pass | grid left |
+|---|---|---|---|---|---|---|
+| held | 24,457,773 | 11,381,609 (46.5%) | 7,694,387 (31.5%) | 13.1% | 21.3% | 5.7% |
+| mid | 11,295,158 | 3,795,130 (33.6%) | 2,699,510 (23.9%) | 14.9% | 27.0% | 5.9% |
+| grad | 9,175,867 | 1,078,188 (11.8%) | 877,460 (9.6%) | 19.4% | 40.1% | 7.4% |
+
+The pass is step 13's (blocked). So the MC tail is the largest open part. What-if from traces.
+"Exact": the first k-stall comes after the last gain, so the running best at the check is the
+stored end, its hit ratio known; a stop there keeps the end. "Unsure": a gain comes after the
+first k-stall; the hit ratio at that check is not stored. Reading line: per k, the exact saving of
+rule `PB(k)` (below) as a share of `J`'s run; then the unsure ones (taken at 0.95 in brackets).
+
+| k | held exact | mid exact | grad exact | big exact | unsure held; mid |
+|---|---|---|---|---|---|
+| 500 | 2,443,984 (9.99%) | 1,048,943 (9.29%) | 294,038 (3.20%) | 149,731 (4.12%) | 1,173 (250); 312 (83) |
+| 1000 | 1,467,261 (6.00%) | 696,861 (6.17%) | 104,873 (1.14%) | 104,350 (2.87%) | 651 (138); 193 (58) |
+
+Unsure ones hold 14.4% more on `held` (k = 500); the bracketed ones are the risk (a lost 0.95 end).
+
+**Terms.** **Hit ratio**: the share of simulated peaks that land on lit pixels. **Seed step**:
+index the voxel, cost 20 candidates, then for the best 5 in turn a CMA fit and, under 0.95, an MC
+refinement; the step ends at the first end with 0.95 or more; else the lowest-cost end is taken.
+**Seed test**: the taken end passes at 0.80; else rescue `G1`, then `G2b`, then the grid search
+(the global search, about 345,000 evaluations). **Gain**: a strict drop of the running best cost.
+**Stall**: k evaluations with no gain. **Stall check**: one evaluation (counted) of the running
+best's hit ratio. **Rule `PB(k)`, frozen now**: in the seed step's MC refinement, at each stall
+check, stop if the hit ratio is at least 0.95 or under 0.80; keep the first lowest-cost
+orientation as the end; else go on and check again k evaluations after the next gain. 0.95 is the
+step's stop value and 0.80 the seed test value: no new number. It replaces `PH(3000)`; a stopped
+end is a kept end like any other. Two forms, both frozen now: `PB(1000)` and `PB(500)`. CMA fits,
+5 candidates, 0.80, 0.95, `G1`, `G2b` and the grid search stay as in `J`. **Arm `JB`**: arm `J`
+with the chosen form. **Right**/**wrong**: at most / over 1 degree from the truth
+(symmetry-reduced). **Aligned draws**: as step 8. **Changed taken end**: a seed step whose taken
+end differs from `J`'s. **Lost 0.95 end**: `J` took this candidate's MC end at 0.95; `JB` stopped
+it earlier under 0.80 and went on.
+
+**Samples, and what has touched them.** `held`, `mid`, `grad`, `big`: traces read by this draft;
+the forms and gate are set on them; disclosed. `held2`: not used. Step 12's review opened its seed
+logs, so it is not clean for a seed-step rule, and its pass waits for step 13. Clean test: a new
+sample `held3`, built by `held_make_sample.py` exactly as `held` (250 Voronoi grains, gradients 0
+to 4 degrees) with generator seed 3. It is a new sample for a carry-over test (step 12's reasoning),
+not an extra random seed for a comparison. Nobody reads its logs before its runs end. Clean
+images, Q-max 8.
+
+**Measured.** Probe: the running best's hit ratio, cost and orientation at every 500 and 1000
+stall of every seed-step MC refinement; per form, stops, changed taken ends (error, angle to `J`'s,
+hit ratio), lost 0.95 ends, failed seed tests, rescues, `G2b`, grid searches, net saving. Whole
+layer: evaluations by stage; stall checks, stops high and low; wrong voxels (Wilson 95%); fixed and
+broken against `J` and `S8`; median error; wrong seeds, matched and unmatched.
+
+**Predictions, written before any run.**
+1. The recording replay gives every `J` refinement's evaluations and end cost (to 1e-9), and the
+   stored `PH(3000)` check hit ratios.
+2. Probe: of the bracketed refinements, under a third have a stall best under 0.80 at k = 1000,
+   under half at k = 500. Net saving `PB(1000)`: `mid` 6% to 9%, `held` 6% to 10%; `PB(500)`:
+   `mid` 8% to 13%, `held` 9% to 15%. Changed taken ends on `mid` 5 to 20 (`PB(1000)`), 10 to 35
+   (`PB(500)`); none wrong where `J` is right; no extra grid search on `mid`, `grad`, `big`.
+3. `JB` against `J`, with the pass: `held3` 6% to 14% fewer; `held` 6% to 15%; `mid` 5% to 12%;
+   `grad` 1% to 4%; `big` 2% to 5%.
+4. Broken minus fixed against `J` in -3 to 4; median error moves at most 0.0005 degree.
+5. `mid` passes rule 5 (about even odds; see the margin paragraph).
+
+**Decision rules, fixed now.** Gate, for each form, on the four disclosed samples: (g0) prediction
+1; (g1) no changed taken end wrong where `J`'s is right; (g2) grid searches equal to `J`'s on
+`mid`, `grad`, `big`, at most 1 more on `held`; (g3) changed taken ends at most 30 on `mid`, 80 on
+`held`, 5 on `grad`, 5 on `big`; (g4) net saving, every extra evaluation counted (checks, extra
+candidates, rescues, `G2b`, grid searches), at least 6% of `J`'s run on `mid` and on `held`. If
+both pass, take the larger summed net saving on `mid` and `held`; a tie goes to `PB(1000)`. If
+neither passes: stop, report, no tuning, no third form, no whole layer. Then `JB` passes on a
+sample if, against `J` (aligned draws): (1) total with the pass at least 5% fewer on `held3` and
+`held`, at least 4% fewer on `mid`, at least 1% fewer on `big`, at most 0.5% more on `grad`;
+(2) broken minus fixed at most 5; (3) median error at most 0.001 degree higher; (4) at most 1 more
+wrong seed (matched or unmatched), grid searches within 1; (5) the house rule against `S8` with
+the pass: at least 20% fewer evaluations, broken minus fixed at most 5, median error at most
+0.005 degree higher. If `J` fails (5) on a sample, `JB` is judged there by (1) to (4). The step
+passes if `JB` passes on `held3` and on `held`, `mid`, `grad`, `big`. Fails on `held3`: no key.
+
+**The margin on `mid`, said plainly.** `J` is at net +4 of limit 5 against `S8` there (13 broken,
+9 fixed). `JB` changes more taken ends than `H` did (step 12: 8 on `mid`); step 11 changed 20 and
+missed rule 5 by one voxel through changed growth. So rule 5 on `mid` is about even odds (a
+judgement, not a measurement). The limit is not moved, `mid` is not dropped, no rerun: a fail on
+`mid` alone means no key and a study merge.
+
+**Machine.** Probe: the recording replay re-runs every seed step's CMA fits and MC refinements on
+the four samples, about 19 million evaluations, about 1 process-hour, 4 processes (`held` the
+longest, about 40 minutes). Changed paths per form, under 3 million. Whole layers with the pass:
+`JB` on `held`, `mid`, `grad`, `big` (about 21, 10, 9, 3.5 million); `held3` built (about 15
+minutes), then `S8`, `J`, `JB` on it (about 60, 25, 22 million). In all about 172 million, about
+8.6 process-hours at 20 million an hour, about 3.5 hours wall with at most 4 heavy processes (`S8`
+on `held3` the long pole). Caps: 480 minutes for `S8` on `held3`, 300 the rest. Phase B: one `mid`
+run, about 10 million.
+
+**Stop rule:** stop and report if a stored count does not reproduce (`J` totals 24,457,773,
+11,295,158, 9,175,867, 3,635,256; MC 11,381,609, 3,795,130, 1,078,188, 424,450), if prediction 1
+fails, if the gate fails, if `held3`'s logs are read before its runs end, if anything of `held2`
+is opened, if a run hits its cap, or if the key-on run differs from the script arm before the pass.
+
+**Phase A (script layer).** 1. Link step 14's cache read only; check the counts above; write only
+into step 15's own cache. 2. Tests first: `tests/test_ar5_band.py` (stop at 0.95 and under 0.80,
+go on between, re-check after a gain, first lowest cost kept, one evaluation per check, stopped
+end kept, whole-step walk, other draws untouched, guards on `held2`). 3. Recording replay;
+prediction 1. 4. Commit `ar5/band/frozen.json` (both forms, hashes) before reading the stall hit
+ratios. 5. Gate; choose the form; commit it. 6. Build `held3`. 7. Runs (4 at a time), passes.
+Stats; the plot first (run evaluations against wrong voxels after the pass: `S8`, `J`, `JB`, a
+panel per sample); tables; predictions. "READY FOR KEY".
+
+**Phase B (key).** One opt-in key, `SeedIndexMCStallLow h` (default 0, off), read beside
+`SeedIndexMCStallHit k`: at a stall check, also stop under h. Used only in `index_seed`'s MC
+refinement; parsed in `config_file.py`, `orientation_search.py`. Unit tests; key-off suite with
+no golden change; key on, a library run on `mid` equal to a script arm `JBl` (library draws)
+before the pass. Page `findings_ar5_band.md` (plot first), history, pareto rows with a status
+field. **Files:** `ar5/band_*.py`, `tests/test_ar5_band.py`, `benchmarks/autoresearch/ar5/band/`
+(under 3 MB tracked). **Library changes:** phase A none; phase B the key, only if the step passes.
+
+**Not in this step.** Other k or low values. The pass skip (step 13). A learned stop. Revisit or
+neighbour stops. CMA, candidates, 0.80, 0.95. Realistic images. Other crystals. A timing. Another
+random seed. `held2`.
+
+**Choices made.**
+- This idea: it attacks the largest open part (MC, 36.2% of `held`+`mid`+`grad`), its exact part
+  alone saves 6% to 10% on `held` and `mid`, and a 1-process-hour probe decides it before any
+  whole layer. Its weak side: little on `grad` (MC 11.8%) and `big`.
+- Two-sided, not low only: step 12's gated-low at k = 3000 lost 11 later 0.95 ends on `mid`;
+  this check stops low only under 0.80, and the high side at k under 3000 keeps the step's path.
+- Runner-up (a), a learned stop: a small model on the trace so far, the CMA end and the stall hit
+  ratio predicts a later gain to 0.95. It needs this step's recorded stall hit ratios to train.
+- Runner-up (b), a revisit start test: skip a revisit whose start is near one already rejected
+  there. Revisits are 13% to 19% of the run, 53% to 81% rejected; needs a recording run first.
+- `held3`, not `held2`: `held2`'s seed logs were opened by step 12's review.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
