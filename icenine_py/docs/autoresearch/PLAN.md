@@ -4102,6 +4102,157 @@ random seed. `held2`.
 - Not chosen: the pass skip (owner option, step 13); a seed MC stop at the first gain at 0.95
   (about 1.6 to 1.9 points over `PH(500)` on `held`, `mid`; moves hundreds of seed ends).
 
+### AR5 step 18: a learned skip of BFS local optimizations, trained on the `J5r` recording
+
+Task `ar5r`. Approved: D-20261115-N4. Starts from `feature/eval-reduction` after step 17's study merge
+(D-20261115-N3). Reuses step 8's aligned draws, step 17's `fitskip_*` (its live skip mode and its
+`held4` guards exist but are untested) and the recording `J5r` (worktree `agent-aeba15b7c3850b007`;
+manifest `ar5/fitskip/manifest.json`), read only. Phase A ends at "READY FOR KEY" or at a gate;
+phase B only after a recorded decision. Rule `F95` (below) stays an option.
+
+**Why.** The owner asks for fewer evaluations, learned approximations of a repetitive search, and
+early stops. BFS local optimizations are 18.8% to 55.6% of `J5`'s run; 56% to 73% are rejected (25%
+on `big`); skipping every loser free would save 13.3% to 20.3%. Step 17's hand rule `S(0.3, both)`
+saved 3.20% to 8.74% and failed on `mid`. This step trains a model to predict a rejection first.
+
+**What was read.** PLAN steps 16, 17; step 17's reports; `J5r`'s rows. Scripts `s18_*.py` (scratch).
+
+**What the stored record says.** Leave one sample out: train on four disclosed samples, score the
+fifth; the threshold comes from the four only (procedure below). Reading line: per held-out sample,
+net saving as a share of `J5` with the pass; wrong skips (limit: 0.1% of the sample's fits);
+changed final answers (limit 2). Each check is one counted evaluation.
+
+| sample | fits | `S(0.3, both)` | learned skip (this plan's form) | ceiling |
+|---|---|---|---|---|
+| held3 | 72,458 | 3.98%, 21, 1 | 5.46%, 30 of 72 allowed, 1 | 13.31% |
+| held | 76,911 | 4.21%, 34, 0 | 6.16%, 70 of 76, 0 | 14.90% |
+| mid | 52,027 | 3.62%, 26, 0 | 5.79%, 46 of 52, 0 | 16.75% |
+| grad | 53,398 | 8.74%, 24, 0 | 11.83%, 43 of 53, 0 | 20.31% |
+| big | 32,543 | 3.20%, 6, 0 | 5.38%, 17 of 32, 0 | 14.19% |
+
+All five are inside the limits. Said plainly: the first sizing had a 17th feature (fit index over
+the run's fit count), not known during a run; the table is without it. One other variant was seen
+and not chosen (candidates, section 4). Seen before this plan: the gate checks; it does not test.
+
+**Terms.** **Hit ratio**: the share of simulated peaks that land on lit pixels. **Fit**: one BFS
+local optimization (CMA, 60 evaluations plus one final hit evaluation): a **neighbour fit** (a
+voxel's first) or a **revisit** (a refit of a rejected voxel from a later neighbour). **Best**: the
+expansion's running best hit ratio; a fit is accepted if its hit ratio is over 0.9 times the best.
+**Kept end**: the end the push rule stores at the voxel. **Wrong skip**: a skipped fit that `J5`
+accepted. **Changed final answer** (step 17's review): a skipped fit that `J5` rejected and whose
+end was the voxel's final answer before the pass. It is narrow: rejected ends are final only at
+unresolved voxels. Wrong skips, counted apart, hit fits whose end is final; the replay cannot tell
+if a later revisit or reseed recovers them. **Arm `J5L`**: `J5` with the learned skip. **Right** /
+**wrong**: at most / over 1 degree from the truth. **Aligned draws**: as step 8; a skipped fit
+takes and discards its draw.
+
+**Model, frozen now.** Label: `J5` accepted the fit. One row per fit of `J5r`, unweighted. Library:
+scikit-learn 1.6.1 (already in the `dev` extra and `uv.lock`; training only).
+`HistGradientBoostingClassifier(max_iter=300, learning_rate=0.1, random_state=0)`, all else at the
+1.6.1 defaults: 31 leaves, 20 rows a leaf, no L2 term, 255 bins, early stopping on (over 10,000
+rows: a 10% validation split drawn with seed 0, stop after 10 rounds with no loss gain). The trees
+are exported to JSON (feature, threshold, children, leaf value, the baseline) and evaluated in plain
+Python at run time: no new runtime dependency. Score: the predicted chance that the fit is accepted.
+
+**The 16 features, frozen now** (all from before the fit; 4 to 6 come from the check):
+1. kind: 1 for a revisit, 0 for a neighbour fit. 2. revisit count of the voxel (0 for a neighbour
+fit). 3. best. 4. start hit ratio. 5. start cost. 6. start confidence. 7. start hit ratio over best.
+8. distance to rejected starts: smallest misorientation (degrees, crystal symmetry from the config)
+from the start to starts rejected at this voxel since its last reset (a revisit count that did not
+go up); capped at 10, and 10 if none. 9. parent unknown: 1 if the expanding voxel has no kept fit
+end yet (a seed, say). 10. parent hit: the hit ratio of that kept end (best if unknown). 11. parent
+cost: its cost (-1 if unknown). 12. start hit ratio over parent hit (1 if unknown). 13. own hit:
+the hit ratio of this voxel's kept fit end (-1 if none). 14. fits so far at the voxel. 15.
+rejected fits so far at the voxel. 16. place in the expansion (the fit's index in it, from 0).
+Only fit ends count as kept ends; seed, reseed and pass ends do not.
+
+**Threshold procedure, frozen now.** Skip a fit if its score is under the threshold. Each training
+sample is scored by a model trained on the other training samples (out of fold). Candidate
+thresholds: the quantiles at 0, 0.1%, ..., 80% of all out-of-fold scores. Take the one with the
+largest sum of net shares over the training samples among those where every training sample has
+wrong skips at most 0.1% of its fits and changed final answers at most 2; none: no skip. The gate
+model for `mid` is trained on `held3`, `held`, `grad`, `big` (threshold 0.00957 in the sizing). The
+final model for `held4` is trained on all five (246 rounds, threshold 0.01112, 0.63 MB of JSON).
+
+**Accounting.** Every fit is checked: one counted evaluation of the start gives its hit ratio,
+confidence and cost (as rule `S`). A skipped fit costs no further evaluation. Features 1 to 3 and
+7 to 16 need none. Net saving: evaluations of skipped fits that `J5` rejected, minus all checks.
+A model call is not a cost-function evaluation: counted as zero, its wall time and the feature
+time apart in `run.json`. Sized: 0.08 ms a fit, about 6 s a run; a cost evaluation is about 0.3 ms.
+
+**Samples.** `held3`, `held`, `mid`, `grad`, `big`: disclosed, trained on; their whole layers are
+in-sample consistency checks. `held2`: not used. Clean test, the only out-of-sample whole layer:
+`held4`, built by `held_make_sample.py` exactly as `held` with generator seed 4 (a new sample, not
+an extra random seed), unread until its runs end. Clean images, Q-max 8.
+
+**Predictions, written before any run.**
+1. The tracked script reproduces the table above to the evaluation.
+2. Live `mid` (gate model): matches its replay to its first wrong skip; 4.5% to 7% under `J5`.
+3. `J5L` (final model) against `J5`, with the pass: `held4` 4% to 7% fewer; `held3`, `held`,
+   `mid`, `big` 5% to 7.5%; `grad` 10% to 13.5%; broken minus fixed -2 to 4; median error up at
+   most 0.0005 degree; reseeds at most 2% more.
+4. `mid` passes rule 5 (about 1 in 2; see the margin paragraph).
+
+**Decision rules, fixed now.** Gate, before `held4` is built: (g0) prediction 1, and `J5r` has
+72,458 / 76,911 / 52,027 / 53,398 / 32,543 fits; (g1) on each held-out sample, wrong skips at most
+0.1% of its fits, changed final answers at most 2, net saving at least 4.5% (9% on `grad`); (g2)
+the live `J5L` run on `mid` with the gate model, up to its first wrong skip in run order, equals
+the replay fit by fit (features to 1e-9, scores, skips, ends, evaluations), and over the whole run
+if it has none; (g3) that run's whole `mid` layer with its pass passes rules (1) to (5) below.
+Gate fails: stop, report, no tuning, no other model or threshold, no whole layer. Then `J5L`
+passes on a sample if, against `J5` (aligned draws): (1) total with the pass at least 3% fewer;
+(2) broken minus fixed at most 5; (3) median error at most 0.001 degree higher; (4) at most 1 more
+wrong seed (matched or unmatched), grid searches within 1, reseeds at most 2% more; (5) the house
+rule against `S8` with the pass: at least 20% fewer evaluations, broken minus fixed at most 5,
+median error at most 0.005 degree higher. If `J5` fails (5) on a sample, `J5L` is judged there by
+(1) to (4). The step passes if `J5L` passes on `held4` and on the five disclosed samples. Fails on
+`held4`: no key value; study merge.
+
+**The margin on `mid`, said plainly.** `J5` is at net +4 of limit 5 against `S8` there (13 broken,
+9 fixed). `J5L` can afford at most one more net broken voxel on `mid` than `J5`; two fail the step.
+It makes about 46 wrong skips on `mid` (`S(0.3, both)`: 26), and the final threshold sits at
+`mid`'s wrong-skip limit out of fold (52 of 52). My judgement: about 1 in 2 (not a measurement).
+No limit is moved, `mid` is not dropped, no rerun: a fail on `mid` alone means no key value.
+
+**Machine.** Training: about 31 tree fits, about 10 CPU-minutes on 2 processes. Gate: the live
+`mid` run with its pass (about 10 million, 0.6 hours). Then `held4` built (about 15 minutes);
+`J5L` on `held3`, `held`, `grad`, `big` (about 55 million); on `held4` `S8`, `J5`, `J5L` (about 67,
+23.5, 22 million). In all about 178 million, about 9 process-hours at 20 million an hour, about 4.5
+hours wall, at most 4 heavy processes. No new recording. Caps: 480 minutes for `S8`, 300 the rest.
+
+**Stop rule:** stop and report if a stored count does not reproduce (`J5` totals 23,503,385,
+22,939,812, 10,589,493, 9,041,686, 3,567,098; the fit counts above), if prediction 1 fails, if the
+gate fails, if training runs before `ar5/learnskip/frozen.json` is committed, if `held4` is read
+before its runs end, if anything of `held2` is opened or listed, or if a run hits its cap.
+
+**Phase A (script layer).** 1. Merge step 17; link `J5r` read only by its manifest; check counts.
+2. Tests first, `tests/test_ar5_learnskip.py`: each feature on hand-made rows; JSON evaluator equals
+scikit-learn; skip only under the threshold; one counted check a fit; a skipped fit is rejected and
+keeps the stated end; discarded draws; the `held2`, `held4` guards. 3. Commit `frozen.json`. 4.
+Leave-one-out table (g0, g1). 5. Live `mid` (g2, g3). 6. Final model and JSON. 7. `held4` (pilot
+first), runs, passes, 4 at a time. Plot first (evaluations against wrong voxels after the pass,
+`S8`, `J5`, `J5L`, six panels); tables; predictions. "READY FOR KEY".
+
+**Phase B (key).** One opt-in key `BFSLearnedSkip <weights file>` (default empty, off), read in
+`_expand`; parsed in `config_file.py`, `orientation_search.py`. Weights: the final JSON (trees,
+threshold, features, training hash), tracked, under 3 MB (0.63 MB sized), and a plain-Python
+evaluator. Unit tests; key-off suite with no golden change; key on, a library run on `mid` equal
+to a script arm `J5Ll` (library draws) before the pass. Page `findings_ar5_learnskip.md`, history,
+pareto rows. **Files:** `ar5/learnskip_*.py`, `tests/test_ar5_learnskip.py`,
+`benchmarks/autoresearch/ar5/learnskip/` (under 3 MB). **Library changes:** none in phase A.
+
+**Not in this step.** A stop at 20 evaluations (needs a CMA stop hook); `F95`; rules `S`, `D`;
+retraining on `held4`; other models, features; realistic images; other crystals; a timing; seeds.
+
+**Choices made.**
+- This idea: exact and out of sample on all five samples, inside the limits, 5.4% to 6.2% (11.8%
+  on `grad`), larger than `F95`'s upper bound everywhere. Weak side: `mid`'s margin and its tight
+  threshold; whole layers on disclosed samples are in-sample; wrong skips' effect on growth is not
+  in the replay. A small MLP sized about the same but broke the wrong-skip limit on `held`.
+- Runners-up: `F95` (seed MC stop at the first gain reaching 0.95), 1.34-3.31 / 1.73-4.59 /
+  1.63-4.54 / 0.58-0.90 / 0.65-2.72%; `S(0.3, both)`, failed step 17's gate (3.62% on `mid`); a
+  stop from the 20-evaluation trace, 5.61 / 5.66 / 4.65 / 9.48 / 4.05%, no live form.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
