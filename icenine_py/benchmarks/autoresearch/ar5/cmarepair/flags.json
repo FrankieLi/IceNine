@@ -1,0 +1,107 @@
+{
+ "g0_ok": true,
+ "rows": {
+  "held3": {
+   "flagged": 194,
+   "fits": 1214,
+   "wrong": 54,
+   "total_with_pass": 23503385,
+   "expected": {
+    "flagged": 194,
+    "fits": 1214,
+    "wrong": 54,
+    "total": 23503385
+   },
+   "stored_stats_wrong": 54,
+   "wrong_caught": 28,
+   "after_map_max_abs_diff": 0.0,
+   "ok": true,
+   "grid_nbrs_equal_truth_nbrs": true
+  },
+  "held": {
+   "flagged": 183,
+   "fits": 1026,
+   "wrong": 67,
+   "total_with_pass": 22939812,
+   "expected": {
+    "flagged": 183,
+    "fits": 1026,
+    "wrong": 67,
+    "total": 22939812
+   },
+   "stored_stats_wrong": 67,
+   "wrong_caught": 30,
+   "after_map_max_abs_diff": 0.0,
+   "ok": true,
+   "grid_nbrs_equal_truth_nbrs": true
+  },
+  "mid": {
+   "flagged": 142,
+   "fits": 635,
+   "wrong": 35,
+   "total_with_pass": 10589493,
+   "expected": {
+    "flagged": 142,
+    "fits": 635,
+    "wrong": 35,
+    "total": 10589493
+   },
+   "stored_stats_wrong": 35,
+   "wrong_caught": 22,
+   "after_map_max_abs_diff": 0.0,
+   "ok": true,
+   "grid_nbrs_equal_truth_nbrs": true
+  },
+  "grad": {
+   "flagged": 238,
+   "fits": 965,
+   "wrong": 56,
+   "total_with_pass": 9041686,
+   "expected": {
+    "flagged": 238,
+    "fits": 965,
+    "wrong": 56,
+    "total": 9041686
+   },
+   "stored_stats_wrong": 56,
+   "wrong_caught": 47,
+   "after_map_max_abs_diff": 0.0,
+   "ok": true,
+   "grid_nbrs_equal_truth_nbrs": true
+  },
+  "big": {
+   "flagged": 56,
+   "fits": 162,
+   "wrong": 21,
+   "total_with_pass": 3567098,
+   "expected": {
+    "flagged": 56,
+    "fits": 162,
+    "wrong": 21,
+    "total": 3567098
+   },
+   "stored_stats_wrong": 21,
+   "wrong_caught": 18,
+   "after_map_max_abs_diff": 0.0,
+   "ok": true,
+   "grid_nbrs_equal_truth_nbrs": true
+  },
+  "mid_J5L": {
+   "flagged": 145,
+   "fits": 650,
+   "wrong": 39,
+   "total_with_pass": 9990663,
+   "expected": {
+    "flagged": 145,
+    "fits": 650,
+    "wrong": 39,
+    "total": 9990663
+   },
+   "stored_stats_wrong": 39,
+   "wrong_caught": 26,
+   "after_map_max_abs_diff": 0.0,
+   "ok": true,
+   "grid_nbrs_equal_truth_nbrs": true
+  }
+ }
+}
