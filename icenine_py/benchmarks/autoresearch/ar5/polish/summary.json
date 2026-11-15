@@ -141,5 +141,6 @@
   "grad": 0,
   "big": 0
  },
- "status": "study result of step 14 (rule G2b: a second local optimization from a failed rescue's ends before the grid search); phase A only, held2 after the pass waits for step 13; library key not written; not a default arm"
+ "status": "study result of step 14 (rule G2b: a second local optimization from a failed rescue's ends before the grid search); phase A only, held2 after the pass waits for step 13; library key not written; not a default arm",
+ "plot_deviation": "the plan asks for a panel per sample; ar5_polish_evals_wrong.png has two panels (before and after the pass), all samples in each; a panel per sample is for phase B"
 }

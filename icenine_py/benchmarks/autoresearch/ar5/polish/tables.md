@@ -1,11 +1,12 @@
 <!-- table:polish_ends -->
-| sample | G2 accepted (of failed rescues) | accepted ends wrong | largest error of an accepted end (degree) | median angle to H's map | largest angle to H's map (degree) | G2 evaluations |
+| sample | G2 accepted (of failed rescues; Wilson 95%) | accepted ends wrong | largest error of an accepted end (degree) | median angle to H's map (degree) | largest angle to H's map (degree) | G2 evaluations |
 |---|---|---|---|---|---|---|
-| held2 | 12 of 21 | 0 | 0.01553 | 0.0051 | 42.585 | 60,517 |
-| held | 15 of 19 | 0 | 0.00915 | 0.0076 | 0.722 | 42,960 |
-| mid | 2 of 4 | 0 | 0.00303 | 0.0238 | 0.024 | 12,856 |
-| grad | 3 of 5 | 0 | 0.00235 | 0.0050 | 0.552 | 12,856 |
+| held2 | 12 of 21 (37% to 76%) | 0 | 0.01553 | 0.0042 | 42.585 | 60,517 |
+| held | 15 of 19 (57% to 91%) | 0 | 0.00915 | 0.0076 | 0.722 | 42,960 |
+| mid | 2 of 4 (15% to 85%) | 0 | 0.00303 | 0.0193 | 0.024 | 12,856 |
+| grad | 3 of 5 (23% to 88%) | 0 | 0.00235 | 0.0050 | 0.552 | 12,856 |
 | big | 0 of 0 | 0 | n/a | n/a | n/a | 0 |
+| all five | 32 of 49 (51% to 77%) | 0 | 0.01553 | 0.0064 | 42.585 | 129,189 |
 <!-- /table:polish_ends -->
 
 <!-- table:polish_evals -->
@@ -29,7 +30,7 @@
 | wrong voxels before the pass, J | 95 (0.32% to 0.47%) | before the pass only |
 | wrong voxels before the pass, H | 97 (0.32% to 0.48%) | before the pass only |
 | fixed / broken by J vs H, before the pass | 2 / 0 | before the pass only |
-| extra wrong seeds (matched + unmatched) | 0 | final |
+| extra wrong seeds (matched + unmatched; the seed step's own end) | 0 | final |
 | total with the pass, wrong after the pass, rules 1, 2, 3, 5, predictions 4 and 5 | not computed | waits for step 13's held2 result |
 <!-- /table:polish_held2_now -->
 
@@ -43,13 +44,13 @@
 <!-- /table:polish_house -->
 
 <!-- table:polish_rules -->
-| sample | (1) total with the pass | (2) broken minus fixed at most 5 | (3) median error | (4) wrong seeds | (5) house rule against S8 | J passes |
-|---|---|---|---|---|---|---|
-| held2 | waits | waits | waits | True (seeds only) | waits | waits for step 13 |
-| held | True (17.34% fewer) | True | True | True | True | True |
-| mid | True (5.48% fewer) | True | True | True | True | True |
-| grad | True (9.87% fewer) | True | True | True | True | True |
-| big | True (0.00% fewer) | True | True | True | True | True |
+| sample | (1) total with the pass | (2) broken minus fixed at most 5 | (3) median error | (4) wrong seeds (the seed step's own end, before the fallback; G2 cannot change it) | G2 ends accepted, wrong, largest error (degree) | (5) house rule against S8 | J passes |
+|---|---|---|---|---|---|---|---|
+| held2 | waits | waits | waits | True (seeds only) | 12 accepted, 0 wrong, largest 0.01553 | waits | waits for step 13 |
+| held | True (17.34% fewer) | True | True | True | 15 accepted, 0 wrong, largest 0.00915 | True | True |
+| mid | True (5.48% fewer) | True | True | True | 2 accepted, 0 wrong, largest 0.00303 | True | True |
+| grad | True (9.87% fewer) | True | True | True | 3 accepted, 0 wrong, largest 0.00235 | True | True |
+| big | True (0.00% fewer) | True | True | True | 0 accepted, 0 wrong, largest n/a | True | True |
 <!-- /table:polish_rules -->
 
 <!-- table:polish_validity -->
@@ -63,7 +64,7 @@
 <!-- /table:polish_validity -->
 
 <!-- table:polish_wrong -->
-| sample | wrong after the pass, J (Wilson 95%) | wrong, H | wrong, S8 | fixed by J vs H | broken by J vs H | wrong in both | median error J (degree) | median error H | extra wrong seeds (matched + unmatched) |
+| sample | wrong after the pass, J (Wilson 95%) | wrong, H | wrong, S8 | fixed by J vs H | broken by J vs H | wrong in both | median error J (degree) | median error H | extra wrong seeds (matched + unmatched; the seed step's own end) |
 |---|---|---|---|---|---|---|---|---|---|
 | held | 68 (0.22% to 0.35%) | 69 (0.22% to 0.36%) | 70 (0.23% to 0.36%) | 1 | 0 | 68 | 0.02597 | 0.02600 | 0 |
 | mid | 35 (0.10% to 0.20%) | 35 (0.10% to 0.20%) | 31 (0.09% to 0.18%) | 0 | 0 | 35 | 0.02861 | 0.02861 | 0 |

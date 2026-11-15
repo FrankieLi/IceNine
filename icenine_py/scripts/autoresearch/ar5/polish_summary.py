@@ -18,6 +18,8 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import numpy as np
+
 HERE = Path(__file__).resolve().parent
 ICE = HERE.parents[2]
 PO = ICE / "benchmarks" / "autoresearch" / "ar5" / "polish"
@@ -50,6 +52,22 @@ def n(x: int) -> str:
 
 def pct(x: float, d: int = 2) -> str:
     return f"{x:.{d}f}"
+
+
+def acc_cell(k: int, total: int) -> str:
+    """k of total, with its Wilson 95% interval in percent."""
+    if total == 0:
+        return "0 of 0"
+    lo, hi = ST.wilson(int(k), int(total))
+    return f"{k} of {total} ({100 * lo:.0f}% to {100 * hi:.0f}%)"
+
+
+def g2_cell(d: Dict[str, Any]) -> str:
+    """The check that rule 4 does not make: the G2 ends taken (count, wrong, largest error)."""
+    acc = [r for r in d["g2_cases"] if r["polished"]]
+    errs = [r["err_deg"] for r in acc]
+    big = f"{max(errs):.5f}" if errs else "n/a"
+    return f"{len(acc)} accepted, {sum(1 for e in errs if e > 1.0)} wrong, largest {big}"
 
 
 def left_cell(d: Dict[str, Any]) -> str:
@@ -387,7 +405,7 @@ def tables(st: Dict[str, Any], pred: Dict[str, Any], g1: Dict[str, Any]) -> Dict
         "| sample | wj | wh | ws | fixed | broken | both | mj | mh | seeds |",
         "| sample | wrong after the pass, J (Wilson 95%) | wrong, H | wrong, S8 | "
         "fixed by J vs H | broken by J vs H | wrong in both | median error J (degree) | "
-        "median error H | extra wrong seeds (matched + unmatched) |",
+        "median error H | extra wrong seeds (matched + unmatched; the seed step's own end) |",
     )
     # rules
     rows = []
@@ -400,6 +418,7 @@ def tables(st: Dict[str, Any], pred: Dict[str, Any], g1: Dict[str, Any]) -> Dict
                     r2="waits",
                     r3="waits",
                     r4=str(st[s]["seed_steps"]["wrong_seeds"]["broad"] <= 1) + " (seeds only)",
+                    g2=g2_cell(st[s]),
                     r5="waits",
                     passes="waits for step 13",
                 )
@@ -413,16 +432,19 @@ def tables(st: Dict[str, Any], pred: Dict[str, Any], g1: Dict[str, Any]) -> Dict
                 r2=r["r2"],
                 r3=r["r3"],
                 r4=r["r4"],
+                g2=g2_cell(st[s]),
                 r5=("n/a: H fails it" if r["h_fails_5"] and not r["r5"] else r["r5"]),
                 passes=r["passes"],
             )
         )
     out["polish_rules"] = DT.markdown_table(
-        rows, ["sample", "r1", "r2", "r3", "r4", "r5", "passes"]
+        rows, ["sample", "r1", "r2", "r3", "r4", "g2", "r5", "passes"]
     ).replace(
-        "| sample | r1 | r2 | r3 | r4 | r5 | passes |",
+        "| sample | r1 | r2 | r3 | r4 | g2 | r5 | passes |",
         "| sample | (1) total with the pass | (2) broken minus fixed at most 5 | "
-        "(3) median error | (4) wrong seeds | (5) house rule against S8 | J passes |",
+        "(3) median error | (4) wrong seeds (the seed step's own end, before the fallback; G2 "
+        "cannot change it) | G2 ends accepted, wrong, largest error (degree) | "
+        "(5) house rule against S8 | J passes |",
     )
     # house rule numbers against S8
     rows = []
@@ -445,29 +467,47 @@ def tables(st: Dict[str, Any], pred: Dict[str, Any], g1: Dict[str, Any]) -> Dict
         "| sample | % fewer evaluations than S8 (with the pass) | fixed vs S8 | broken vs S8 | "
         "median error minus S8's (degree) |",
     )
-    # G2 ends taken
+    # G2 ends taken (review fixes 1 and 3: the median is np.median; Wilson 95% on the counts)
     rows = []
+    all_acc = all_fail = 0
+    all_errs: List[float] = []
+    all_angs: List[float] = []
     for s in SAMPLES:
         acc = [r for r in st[s]["g2_cases"] if r["polished"]]
-        errs = sorted(r["err_deg"] for r in acc)
-        angs = sorted(r["angle_to_h_map_deg"] for r in acc)
+        errs = [r["err_deg"] for r in acc]
+        angs = [r["angle_to_h_map_deg"] for r in acc]
+        k, tot = len(acc), int(st[s]["g2_failed_rescues"])
+        all_acc, all_fail = all_acc + k, all_fail + tot
+        all_errs += errs
+        all_angs += angs
         rows.append(
             dict(
                 sample=s,
-                acc=f"{len(acc)} of {st[s]['g2_failed_rescues']}",
+                acc=acc_cell(k, tot),
                 wrong=sum(1 for e in errs if e > 1.0),
                 emax=f"{max(errs):.5f}" if errs else "n/a",
-                amed=f"{angs[len(angs) // 2]:.4f}" if angs else "n/a",
+                amed=f"{float(np.median(angs)):.4f}" if angs else "n/a",
                 amax=f"{max(angs):.3f}" if angs else "n/a",
                 evals=n(sum(r["polish_evals"] for r in st[s]["g2_cases"])),
             )
         )
+    rows.append(
+        dict(
+            sample="all five",
+            acc=acc_cell(all_acc, all_fail),
+            wrong=sum(1 for e in all_errs if e > 1.0),
+            emax=f"{max(all_errs):.5f}",
+            amed=f"{float(np.median(all_angs)):.4f}",
+            amax=f"{max(all_angs):.3f}",
+            evals=n(sum(r["polish_evals"] for s in SAMPLES for r in st[s]["g2_cases"])),
+        )
+    )
     out["polish_ends"] = DT.markdown_table(
         rows, ["sample", "acc", "wrong", "emax", "amed", "amax", "evals"]
     ).replace(
         "| sample | acc | wrong | emax | amed | amax | evals |",
-        "| sample | G2 accepted (of failed rescues) | accepted ends wrong | "
-        "largest error of an accepted end (degree) | median angle to H's map | "
+        "| sample | G2 accepted (of failed rescues; Wilson 95%) | accepted ends wrong | "
+        "largest error of an accepted end (degree) | median angle to H's map (degree) | "
         "largest angle to H's map (degree) | G2 evaluations |",
     )
     # validity
@@ -533,7 +573,7 @@ def tables(st: Dict[str, Any], pred: Dict[str, Any], g1: Dict[str, Any]) -> Dict
             status="before the pass only",
         ),
         dict(
-            item="extra wrong seeds (matched + unmatched)",
+            item="extra wrong seeds (matched + unmatched; the seed step's own end)",
             value=d["seed_steps"]["wrong_seeds"]["broad"],
             status="final",
         ),
@@ -582,6 +622,10 @@ def main() -> None:
         predictions=pred,
         wrong_seeds_broad={s: st[s]["seed_steps"]["wrong_seeds"]["broad"] for s in SAMPLES},
         status=STATUS,
+        plot_deviation=(
+            "the plan asks for a panel per sample; ar5_polish_evals_wrong.png has two panels "
+            "(before and after the pass), all samples in each; a panel per sample is for phase B"
+        ),
     )
     (PO / "summary.json").write_text(json.dumps(out, indent=1, default=float) + "\n")
     print(
