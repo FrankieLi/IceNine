@@ -1891,3 +1891,17 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   before-pass and other-sample results are reported. Phase B (key SeedRescuePolish) only after a
   further decision. Cost about 90 million evaluations, 4.6 process-hours. Decided by Newt Agent
   under D-20261109-N1; the owner may overrule. Where: PLAN.md section AR5 step 14; task ar5n.
+
+### D-20261114-N5 · A/AR5 step 14 · AR5 step 14 phase A reviewed: 4 fixes; library key waits for the held2 after-pass judgement
+- 2026-11-14, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. The Opus review
+  (.claude/reports/20261114-1605-review-ar5n.md) approves phase A: arm J (H + rule G2b) meets
+  rules 1 to 5 against H on held (17.34% fewer evaluations), mid (5.48%), grad (9.87%) and big
+  (identical); no leak of held2 found; the guard swap 1d34368 leaves nothing unguarded (step 14's
+  frozen list holds all 70 of step 12's entries, no hash re-recorded). Required fixes 1 to 4 are
+  applied now on the branch. Phase B (library key SeedRescuePolish) is NOT started: the plan says
+  key only if the step passes, and held2's after-pass judgement waits for step 13's held2 result,
+  which waits for the owner (freeze script and gate g2). A library change now would also make step
+  14's own freeze check disagree before held2 is judged. The owner may instead decide that held2's
+  after-pass numbers of arm J are read now. Where: PLAN.md AR5 step 14; branch
+  feature/eval-reduction-ar5n.
