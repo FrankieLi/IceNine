@@ -44,9 +44,9 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    `SendMessage` a1bd2e7a7dbfe1efd for stats (never open step 13 `passes_held2/`), then review.
 
 ## Running jobs
-- AR5 step 14: all five arm J runs and passes finished (exit 0, 14:55, 14 Nov). Implementer
-  a1bd2e7a (worktree `agent-a1bd2e7a7dbfe1efd`) computes stats since 15:54; on its hand-back:
-  hand-back check, Opus review (must check guard swap 1d34368), decision N5, then phase B.
+- AR5 step 14 stats in (1838af4): J vs H fewer evaluations held 17.34%, mid 5.48%, grad 9.87%,
+  big equal; rules met on all four; held2 after the pass waits for step 13. Opus review runs
+  since 16:03, 14 Nov (report `20261114-1605-review-ar5n.md`); then decision N5, fixes, phase B.
 - Page v50 live (10:40, 14 Nov); v51 after the next finished step. Step 13: blocked.
 
 ## Queue
