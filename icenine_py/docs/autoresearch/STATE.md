@@ -36,19 +36,19 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    Not a speed comparison: the C++ run left 416 of 2,000 pilot voxels wrong, Python 24; 393
    refit voxels were never fitted again, all 1,921 local optimizations changed nothing.
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
-   goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. Eight pages wait now.
-   All timing work is done. AR5 step 14 (`ar5n`; D-20261114-N4; PLAN): rule G2, a second local
-   optimization before the grid search. Gates passed (form G2b: 20 of 28, then 12 of 21 on
-   held2, none wrong; freeze 84a51a4). Whole-layer runs of arm J started detached 11:24, 14 Nov,
-   worktree `agent-a1bd2e7a7dbfe1efd`: marker `polish_runs.done` (Running jobs). After exit 0:
-   `SendMessage` a1bd2e7a7dbfe1efd for stats (never open step 13 `passes_held2/`), then review.
+   goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. Twelve pages wait now.
+   All timing work is done. NOW: AR5 step 20 (`ar5t`; D-20261115-N9; PLAN): the repair of contested
+   voxels with a 120-evaluation CMA fit. After the gate hand-back: start the held4 runs detached
+   (command in the hand-back), then stats, Opus review, phase B, merge, page. See Running jobs.
 
 ## Running jobs
 - AR5 step 14 phase A MERGED f68ab69 (suite 2055 passed, 47 skipped, 1 deselected); J vs H fewer:
   held 17.34%, mid 5.48%, grad 9.87%. Key WAITS (held2: step 13 or owner). Step 15 failed, merged.
   Step 16 MERGED 4a1cfb42 (J5 passes on 5 samples). Step 17 (gate failed, N3) MERGED a3a4f1d8;
   `J5r` in `agent-aeba15b7c3850b007`. Step 18 (gate failed on mid, N5) MERGED 8b456ac5 (suite 2194
-  passed). v54 live. Step 19 (gate failed on repair cost, N8) MERGED b53e927d. Step 20 draft on.
+  passed). v54 live. Step 19 (gate failed on cost, N8) MERGED b53e927d. Step 20 (`ar5t`, N9) on:
+  implementer a8b2d0066621fd0f8 (gate, then hands back for the held4 runs).
+
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
 7, 18, 22, 23, AR0 to AR2, AR3 1 to 11, AR5 1 to 3, 5, 7 to 12, AR4 1): `STATE_HISTORY.md`.
