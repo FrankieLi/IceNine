@@ -1,3 +1,15 @@
+<!-- table:pick -->
+Reading line: the pick on each sample's recording, against the share the gate needs.
+
+| sample | fits | skipped | wrong skips | changed final answers | net saving % | gate needs % | met |
+|---|---|---|---|---|---|---|---|
+| held3 | 72458 | 16525 | 21 | 1 | 3.98 | 3 | yes |
+| held | 76911 | 17116 | 34 | 0 | 4.21 | 4 | yes |
+| mid | 52027 | 7160 | 26 | 0 | 3.62 | 4 | NO |
+| grad | 53398 | 13857 | 24 | 0 | 8.74 | 3 | yes |
+| big | 32543 | 2408 | 6 | 0 | 3.20 | 1 | yes |
+<!-- /table:pick -->
+
 <!-- table:rules -->
 Reading line: each row is one rule replayed on the recording of the five samples; a wrong skip is a skipped fit that J5 accepted; net share is the saved evaluations of skipped fits that J5 rejected, minus every check, as a share of J5's total with the pass; admissible means at most 0.1% wrong skips and at most 2 changed final answers on every sample; rank is by the sum of net shares among the admissible rules.
 

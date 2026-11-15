@@ -908,14 +908,20 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   with the pass, no detectable change in wrong voxels. No new library code: step 12's key
   `SeedIndexMCStallHit` takes k = 500 (tested on `mid`: equal to script arm `J5l` before the pass, which is arm `J5` without `G2b` (no library key); the library cannot run `J5` itself); the
   key stays off by default. MIGRATION_HISTORY, "Autoresearch AR5 step 16".
-- Autoresearch AR5 step 17 (phase A so far: an early skip of the BFS local optimizations of arm
-  `J5`, chosen by a procedure fixed before any recording is read): scripts
-  `scripts/autoresearch/ar5/fitskip_*.py` (script layer: `fitskip_rules.py` the 27 rules, their
-  replay and the selection; `fitskip_hook.py` the hook on the BFS instance, recording or acting;
-  `fitskip_record_all.sh` the recording run `J5r` on the five disclosed samples), tests
-  `tests/test_ar5_fitskip.py`, results `benchmarks/autoresearch/ar5/fitskip/` (`frozen.json`; the
-  recording stays in the untracked cache). No library change. MIGRATION_HISTORY, "Autoresearch AR5
-  step 17".
+- Autoresearch AR5 step 17 (an early skip of the BFS local optimizations of arm `J5`, chosen by a
+  procedure fixed before any recording row was read; D-20261115-N2): scripts
+  `scripts/autoresearch/ar5/fitskip_*.py` (script layer: the 27 rules and their replay in
+  `fitskip_rules.py`, the hook in `fitskip_hook.py`, the recording run-all
+  `fitskip_record_all.sh`, `fitskip_select.py`, `fitskip_plot.py`), tests
+  `tests/test_ar5_fitskip.py`, results `benchmarks/autoresearch/ar5/fitskip/` (`frozen.json`,
+  `select.json`, `pick.json`, `gate_fail.json`, `tables.md` with all 27 rules, the plot; the
+  recording stays in the untracked cache for a later learned rule). The recording `J5r` reproduces
+  `J5`; the pick `S(0.3, both)` fails gate g2 on `mid` (3.62% against 4%), so the step stopped
+  (D-20261115-N3): no key, no library change, no whole layer, no pareto rows. The live skipping
+  mode of the hook and the `held4` support are untested beyond a short smoke on `big` (`held4` was
+  not built). Findings page text: `.claude/reports/20261115-1245-ar5q-findings_ar5_fitskip.md`
+  (writing `docs/autoresearch/findings_ar5_fitskip.md` was refused). MIGRATION_HISTORY,
+  "Autoresearch AR5 step 17".
 
 See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and
 current results of this work, and [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy

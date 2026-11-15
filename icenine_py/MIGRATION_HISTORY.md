@@ -13060,12 +13060,20 @@ pass reads the unrounded map).
 - The `S8` and `J` runs on `held3` stay as stored baselines on clean images; `held3` is disclosed
   after step 16 (it was the clean test for step 16 only).
 
-## Autoresearch AR5 step 17: an early skip of the BFS local optimizations of arm `J5`, phase A (2026-11-15, task ar5q)
+## Autoresearch AR5 step 17: an early skip of the BFS local optimizations of arm `J5`, stopped at the gate (2026-11-15, task ar5q)
 
-Approved: D-20261115-N2. Script layer only; no library change. Status: the rule family, the
-selection, the gate and the hashes are frozen (`benchmarks/autoresearch/ar5/fitskip/frozen.json`,
-committed before any row of the recording was read); the recording run `J5r` is waiting to be
-started by the main session (`scripts/autoresearch/ar5/fitskip_record_all.sh`).
+Approved: D-20261115-N2; stopped by D-20261115-N3. Script layer only; no library change.
+Outcome: the rule family, selection, gate and hashes were frozen (`benchmarks/autoresearch/ar5/
+fitskip/frozen.json`) before any row of the recording was read. The recording `J5r` reproduces
+`J5` on all five samples (maps before and after the pass, integer counts, counted evaluations).
+The frozen selection picked `S(0.3, both)` (12 of 27 rules admissible); its net saving is 3.98%
+(`held3`), 4.21% (`held`), 3.62% (`mid`), 8.74% (`grad`), 3.20% (`big`) of `J5` with the pass.
+Gate g2 asked 4% on `mid`: failed, so no tuning, no second pick, no live `J5C`, no `held4`, no
+whole layer, no key and no pareto rows. The 27-rule table is in `benchmarks/autoresearch/ar5/
+fitskip/tables.md`; the recording stays in the untracked cache for a later learned rule.
+UNTESTED: the live acting mode of the hook beyond one short smoke on `big`, and everything about
+`held4` (not built). Findings page text: `.claude/reports/20261115-1245-ar5q-findings_ar5_fitskip.md`
+(writing the page under `docs/` was refused by the tool).
 
 - `fitskip_rules.py` (pure): the 27 rules (`S(t, scope)`, `C(t, scope)`, `D(d)`), their replay on
   a recording, the admissibility test, the exact selection and the plan's gate and pass rules.
