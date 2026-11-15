@@ -46,8 +46,8 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
 ## Running jobs
 - AR5 step 14 phase A MERGED f68ab69 (suite 2055 passed, 47 skipped, 1 deselected); J vs H fewer:
   held 17.34%, mid 5.48%, grad 9.87%. Key WAITS (held2: step 13 or owner). Step 15 failed, merged.
-  v52 live. Step 16 (`ar5p`, N8): gate PASSED (25f56e7); runs since 20:02, 14 Nov, worktree
-  `agent-a8d3953c88c593c42`: marker `…/high500/cache/logs/high500_runs.done`; dead: `--resume`.
+  v52 live. Step 16 (`ar5p`, N8): gate PASSED; runs ended exit=0 at 22:36, 14 Nov, worktree
+  `agent-a8d3953c88c593c42`; implementer (same id) on stats since 00:55, 15 Nov; then review.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
