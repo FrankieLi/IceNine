@@ -47,7 +47,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   `J5r` in `agent-aeba15b7c3850b007`. Step 18 (gate failed on mid, N5) MERGED 8b456ac5 (suite 2194
   passed). v55 live. Step 19 (gate failed on cost, N8) MERGED b53e927d. Step 20 (`ar5t`, N9):
   gate PASSED; held4 runs ended exit=0 at 13:04, 15 Nov (`agent-a8b2d0066621fd0f8`); implementer
-  a8b2d0066621fd0f8 asked for stats at 15:55 (report `…-ar5t-held4.md`). Then review, N10, key.
+  reports all rules pass on held4 (2e91ff54; unreviewed). Opus review a8bd475e6d1878455 since 16:00.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
