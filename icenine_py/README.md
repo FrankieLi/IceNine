@@ -937,7 +937,7 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   (gate model): 9,990,663 evaluations, 5.65% under `J5`, 4 broken / 0 fixed against `J5`, net 8
   against `S8` (limit 5): gate g3 failed. Gate g2 failed too: the recording and a live run with skips
   differ in feature 13 (the voxel's own kept fit end; first difference at fit 1016, 240 of the first
-  7,232 fits). Lesson: the replay cannot see what wrong skips do to growth. No key, no library change.
+  7,232 fits) and in one skip decision (fit 1127). Lesson: the replay cannot see what wrong skips do to growth. No key, no library change.
   The final model, `held4`, the run-all script and the whole layers were not built; the scripts planned
   for them are untested. Findings text waits in
   `.claude/reports/20261115-0840-ar5r-findings_ar5_learnskip.md` (its write under `docs/` was

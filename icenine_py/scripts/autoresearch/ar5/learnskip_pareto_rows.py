@@ -45,7 +45,8 @@ def main() -> None:
         "one counted check of the start for each of the 52,075 local optimizations; a model call "
         "counts zero",
         source_json="icenine_py/benchmarks/autoresearch/ar5/learnskip/stats_mid.json :: arms.J5L",
-        source_page="icenine_py/docs/autoresearch/findings_ar5_learnskip.md",
+        source_page="icenine_py/MIGRATION_HISTORY.md :: Autoresearch AR5 step 18 (the findings "
+        "page text waits for the owner in .claude/reports/; no page under docs/ yet)",
         flag="FAILED GATE: the step stopped at its gate (D-20261115-N5). Gate model, not the final "
         "model; one run on mid, the sample the gate model was checked on; broken minus fixed "
         "against S8 is 8 (limit 5). Not a result to build on.",
