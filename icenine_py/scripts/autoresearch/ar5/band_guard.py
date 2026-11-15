@@ -11,6 +11,7 @@ result is not on record). Two guards:
    step goes through it.
 """
 
+import sys
 from pathlib import Path
 from typing import Union
 
@@ -20,12 +21,18 @@ SAMPLES = ("big", "grad", "mid", "held", "held3")
 HELD_SAMPLES = ("held", "held3")  # the ones behind this step's own freeze check
 
 
+def refuse(msg: str) -> None:
+    """Say why on stderr and exit with code 2 (``SystemExit(2)``)."""
+    print(msg, file=sys.stderr)
+    raise SystemExit(2)
+
+
 def refuse_sample(name: str) -> None:
     """``SystemExit(2)`` unless ``name`` is a sample of step 15 (``held2`` in particular)."""
     if "held2" in name:
-        raise SystemExit("band rule: held2 is not used by step 15 (RESEED_SAMPLE=held2 refused)")
+        refuse("band rule: held2 is not used by step 15 (RESEED_SAMPLE=held2 refused)")
     if name and name not in SAMPLES:
-        raise SystemExit(f"band rule: sample {name!r} is not one of {', '.join(SAMPLES)}")
+        refuse(f"band rule: sample {name!r} is not one of {', '.join(SAMPLES)}")
 
 
 def _parts(p: PathLike) -> list:
@@ -45,5 +52,5 @@ def mentions_held2(p: PathLike) -> bool:
 def guarded(p: PathLike) -> Path:
     """The path as a ``Path``, or ``SystemExit(2)`` when any part of it mentions ``held2``."""
     if mentions_held2(p):
-        raise SystemExit(f"band guard: nothing of held2 is opened by step 15 ({p})")
+        refuse(f"band guard: nothing of held2 is opened by step 15 ({p})")
     return Path(p)

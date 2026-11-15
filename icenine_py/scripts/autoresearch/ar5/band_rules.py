@@ -163,3 +163,49 @@ def cut_entry(w: Dict[str, Any], final_cost: float, tol: float = 1e-12) -> Dict[
         cost=float(w["cost"]),
         hit=float(w["hit"]),
     )
+
+
+def refine_cuts(refs: List[Dict[str, Any]], k: int) -> Dict[int, Dict[str, Any]]:
+    """``PB(k)`` on every recorded MC refinement of one seed step: ``refs`` are the ``refinements``
+    of a recording row (``pos``, ``evals`` as J ran it, ``cont_j`` J's own checks that went on,
+    ``final_cost`` the refinement's last gain, ``events`` by stall size). Returns, per position, a
+    ``cut_entry`` plus ``base`` (J's evaluations) and ``w`` (the walk)."""
+    out: Dict[int, Dict[str, Any]] = {}
+    for r in refs:
+        w = walk_events(r["events"].get(str(k), []), int(r["evals"]) - int(r["cont_j"]))
+        c = cut_entry(w, float(r["final_cost"]))
+        c["base"] = int(r["evals"])
+        c["w"] = w
+        out[int(r["pos"])] = c
+    return out
+
+
+def step_delta(cuts: Dict[int, Dict[str, Any]]) -> int:
+    """Evaluations saved in one step whose path is unchanged (no ``moved`` cut): J's minus PB's,
+    summed over its MC refinements (negative when only checks were added)."""
+    return int(sum(int(c["base"]) - int(c["evals"]) for c in cuts.values()))
+
+
+# ---- the decision rules of the plan, fixed before any run (the gate on the four disclosed samples)
+GATE: Dict[str, Any] = dict(
+    samples=("held", "mid", "grad", "big"),
+    g0="prediction 1: every J refinement's evaluations and end cost to 1e-9, stored checks equal",
+    g1="no changed taken end is wrong where J's is right (wrong: over 1 degree, symmetry-reduced)",
+    g2_grid_equal=("mid", "grad", "big"),  # grid searches equal to J's
+    g2_grid_extra_held=1,  # at most this many more on held
+    g3_changed_max=dict(mid=30, held=80, grad=5, big=5),  # changed taken ends, at most
+    g4_saving_min=0.06,  # net saving, every extra evaluation counted, share of J's run with the
+    g4_samples=("mid", "held"),  # pass, at least this on both of these samples
+    choice="both pass: the larger summed net saving on mid and held; a tie goes to PB1000",
+    neither="stop and report: no tuning, no third form, no whole layer",
+)
+# the pass rules of the whole layers (judged later, not by the gate)
+JUDGE: Dict[str, Any] = dict(
+    r1_total_fewer=dict(held3=0.05, held=0.05, mid=0.04, big=0.01),  # at least this share fewer
+    r1_grad_more_max=0.005,  # grad: at most this share more
+    r2_broken_minus_fixed_max=5,
+    r3_median_error_higher_max_deg=0.001,
+    r4_wrong_seeds_more_max=1,
+    r4_grid_within=1,
+    r5_vs_s8=dict(fewer=0.20, broken_minus_fixed_max=5, median_error_higher_max_deg=0.005),
+)

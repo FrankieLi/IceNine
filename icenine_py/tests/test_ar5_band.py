@@ -4,6 +4,7 @@ re-check after a gain, the first lowest cost kept, one evaluation per check, the
 the walk of a whole seed step, other draws untouched, guards on ``held2``.
 """
 
+import os
 import sys
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence
@@ -284,6 +285,147 @@ def test_guard_refuses_any_path_that_mentions_held2(tmp_path: Path) -> None:
         BG.guarded(link / "x.json")  # a link into held2 is refused as well
     assert BG.guarded(tmp_path / "J_held3" / "run.json") == tmp_path / "J_held3" / "run.json"
     assert BG.guarded(tmp_path / "J_held" / "run.json").name == "run.json"
+
+
+def _refs() -> List[Dict[str, Any]]:
+    return [
+        dict(
+            pos=0,
+            evals=5000,
+            cont_j=1,
+            final_cost=0.30,
+            events={"500": [[1500, 0.38, 0.5]], "1000": [[2000, 0.38, 0.5]]},
+        ),
+        dict(
+            pos=1,
+            evals=4000,
+            cont_j=0,
+            final_cost=0.35,
+            events={"500": [[1500, 0.35, 0.9]], "1000": []},
+        ),
+    ]
+
+
+def test_refine_cuts_prices_each_refinement_and_step_delta_sums_them() -> None:
+    c = BR.refine_cuts(_refs(), 500)
+    assert c[0]["kind"] == "moved" and c[0]["evals"] == 1501 and c[0]["base"] == 5000
+    # goes on at 0.9: no stop; J's 4,000 evaluations plus the one counted check
+    assert c[1]["kind"] == "none" and c[1]["evals"] == 4001 and c[1]["base"] == 4000
+    assert BR.step_delta(c) == (5000 - 1501) + (4000 - 4001)
+    d = BR.refine_cuts(_refs(), 1000)
+    assert d[1]["kind"] == "none" and d[1]["evals"] == 4000  # no 1,000 stall: no check, no cost
+    # J's own PH checks that went on are not paid again: n_base = evals - cont_j
+    assert d[0]["w"]["kind"] == "low" and d[0]["evals"] == 2001
+
+
+def test_gate_constants_are_the_plans() -> None:
+    g = BR.GATE
+    assert g["g3_changed_max"] == dict(mid=30, held=80, grad=5, big=5)
+    assert g["g4_saving_min"] == 0.06 and g["g2_grid_extra_held"] == 1
+    assert BR.JUDGE["r1_total_fewer"]["held3"] == 0.05 and BR.JUDGE["r1_grad_more_max"] == 0.005
+
+
+def test_held3_support_changes_no_older_script_and_patches_exact_lines() -> None:
+    import band_samples as BS
+
+    assert (
+        "SEED = 3" in BS.patched_source("make")
+        and "{" not in BS.patched_source("make").split("SEED = 3")[1].splitlines()[0]
+    )
+    assert 'K = "held3"' in BS.patched_source("stack")
+    # only the two named lines differ from the older scripts
+    for which, name in BS.SCRIPTS.items():
+        old = (BS.AR3 / name).read_text().splitlines()
+        new = BS.patched_source(which).splitlines()
+        assert len(old) == len(new) and sum(1 for a, b in zip(old, new) if a != b) == 1
+
+
+def test_freeze_lists_every_own_script_and_reports_a_problem_without_a_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import band_freeze as BF
+
+    cur = BF.current()
+    for s in BF.OWN:
+        assert f"scripts/autoresearch/ar5/{s}" in cur["files"]
+    assert "icenine/reconstructor.py" in cur["library"] and "uv.lock" in cur["library"]
+    monkeypatch.setattr(BF, "FROZEN", tmp_path / "frozen.json")
+    assert "does not exist" in BF.problems()
+
+
+def test_link_script_links_only_the_four_disclosed_samples() -> None:
+    import subprocess
+
+    sh = str(ROOT / "scripts" / "autoresearch" / "ar5" / "band_link_cache.sh")
+    for name in ("held2", "held3", "other"):
+        r = subprocess.run([sh, "--dry-run", name], capture_output=True, text=True)
+        assert r.returncode == 2 and "refused" in r.stderr
+    src = Path(sh).read_text()
+    assert '*held2*) echo "refusing held2' in src  # a source or destination with held2
+
+
+def test_importing_the_common_module_with_held2_exits_before_anything_else() -> None:
+    import subprocess
+
+    env = dict(os.environ, RESEED_SAMPLE="held2")
+    code = "import sys; sys.path.insert(0, %r); import band_common" % str(
+        ROOT / "scripts" / "autoresearch" / "ar5"
+    )
+    r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=env)
+    assert r.returncode == 2 and "held2" in r.stderr
+    env = dict(os.environ, RESEED_SAMPLE="weird")
+    r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=env)
+    assert r.returncode == 2
+
+
+def test_gate_judges_and_chooses_by_the_fixed_rule_in_a_subprocess() -> None:
+    """``band_gate.judge`` and ``choose`` on synthetic results (run in a subprocess: importing the
+    gate imports the study's common module, which sets environment variables)."""
+    import json
+    import subprocess
+
+    code = """
+import json, sys
+sys.path.insert(0, %r)
+import band_gate as BG
+def mk(share, changed=0, broken=0, grid=0, grid_new=0, saving=1):
+    return dict(net_saving_share=share, changed=changed, broken=broken, grid_j=grid,
+                grid_new=grid_new, net_saving=saving)
+def forms(held, mid, grad, big):
+    return dict(held=held, mid=mid, grad=grad, big=big)
+good = forms(mk(0.08, 10, saving=80), mk(0.07, 5, saving=70), mk(0.01), mk(0.02))
+j = BG.judge(good)
+out = dict(good=j["passes"], saving=j["summed_saving_mid_held"])
+bad = forms(mk(0.08), mk(0.059), mk(0.01), mk(0.02))        # mid under 6 percent: g4
+out["g4"] = BG.judge(bad)["g4"]
+out["g1"] = BG.judge(forms(mk(.08), mk(.07), mk(.01, broken=1), mk(.02)))["g1"]
+out["g2_big"] = BG.judge(forms(mk(.08), mk(.07), mk(.01), mk(.02, grid=0, grid_new=1)))["g2"]
+out["g2_held_plus1"] = BG.judge(forms(mk(.08, grid=3, grid_new=4), mk(.07), mk(.01), mk(.02)))["g2"]
+out["g2_held_plus2"] = BG.judge(forms(mk(.08, grid=3, grid_new=5), mk(.07), mk(.01), mk(.02)))["g2"]
+out["g3_mid31"] = BG.judge(forms(mk(.08), mk(.07, changed=31), mk(.01), mk(.02)))["g3"]
+out["g3_held80"] = BG.judge(forms(mk(.08, changed=80), mk(.07, changed=30), mk(.01), mk(.02)))["g3"]
+p = dict(passes=True, summed_saving_mid_held=100)
+q = dict(passes=True, summed_saving_mid_held=100)
+out["tie"] = BG.choose(dict(PB1000=p, PB500=q))
+q2 = dict(passes=True, summed_saving_mid_held=101)
+out["larger"] = BG.choose(dict(PB1000=p, PB500=q2))
+out["only500"] = BG.choose(dict(PB1000=dict(passes=False, summed_saving_mid_held=0), PB500=q2))
+out["none"] = BG.choose(dict(PB1000=dict(passes=False, summed_saving_mid_held=0),
+                             PB500=dict(passes=False, summed_saving_mid_held=0)))
+print(json.dumps(out))
+""" % str(
+        ROOT / "scripts" / "autoresearch" / "ar5"
+    )
+    env = dict(os.environ, RESEED_SAMPLE="big")
+    r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=env)
+    assert r.returncode == 0, r.stderr[-500:]
+    o = json.loads(r.stdout.strip().splitlines()[-1])
+    assert o["good"] is True and o["saving"] == 150
+    assert o["g4"] is False and o["g1"] is False and o["g2_big"] is False
+    assert o["g2_held_plus1"] is True and o["g2_held_plus2"] is False
+    assert o["g3_mid31"] is False and o["g3_held80"] is True
+    assert o["tie"] == "PB1000" and o["larger"] == "PB500" and o["only500"] == "PB500"
+    assert o["none"] == ""
 
 
 def test_other_random_draws_are_untouched_by_a_stop() -> None:
