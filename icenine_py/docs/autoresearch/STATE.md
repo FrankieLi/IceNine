@@ -47,7 +47,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
 - AR5 step 14 phase A MERGED f68ab69 (suite 2055 passed, 47 skipped, 1 deselected); J vs H fewer:
   held 17.34%, mid 5.48%, grad 9.87%, big equal. Key WAITS (held2 after the pass: step 13 or owner).
   Cache kept in worktree `agent-a1bd2e7a7dbfe1efd`. Step 15 (`ar5o`, N6): implementer a3870150
-  runs since 16:50, 14 Nov (replay + gate, then hands back; I start runs). v51 live. Step 13 blocked.
+  runs since 16:50, 14 Nov (replay + gate, then hands back). v51 live. Step 13 blocked.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
