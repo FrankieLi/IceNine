@@ -369,3 +369,53 @@ def test_other_random_draws_are_untouched_by_a_stop() -> None:
     for mod in (HR, BR):
         src = open(mod.__file__).read()
         assert "np.random" not in src and "default_rng" not in src
+
+
+def test_run_all_script_refuses_bad_arguments_and_names_its_markers() -> None:
+    sh = ROOT / "scripts" / "autoresearch" / "ar5" / "high500_run_all.sh"
+    for args in (["--bogus"], ["--jobs", "5"], ["--jobs", "0"]):
+        r = subprocess.run([str(sh)] + args, capture_output=True, text=True)
+        assert r.returncode == 2, args
+    src = sh.read_text()
+    # no setsid (not on macOS), the marker, the held3 marker, a resume that moves old markers aside
+    assert "setsid scripts" not in src.replace("#   (macOS has no setsid", "")
+    assert "high500_runs.done" in src and "held3_runs_done.json" in src
+    assert 'mv "$f" "$idir/' in src and "held2" in src
+    # at most four heavy processes; the stop rule on a cap; the pilot gates the held3 runs
+    assert '"$jobs" -gt 4' in src and "STOP RULE" in src and "pilot_held3.done" in src
+
+
+def test_run_all_dry_run_resume_lists_an_old_failed_marker_to_move(tmp_path: Path) -> None:
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    (logs / "high500_runs.done").write_text("exit=1\nreason=a run failed\n")
+    sh = ROOT / "scripts" / "autoresearch" / "ar5" / "high500_run_all.sh"
+    env = dict(os.environ)
+    env.pop("VIRTUAL_ENV", None)
+    r = subprocess.run(
+        [str(sh), "--smoke", "--resume", "--dry-run", "--cache", str(tmp_path)],
+        capture_output=True,
+        text=True,
+        cwd=str(ROOT),
+        env=env,
+    )
+    assert r.returncode == 0, r.stderr[-600:]
+    assert "would move" in r.stdout and "old marker: exit=1" in r.stdout
+    # without --resume the same old marker is a refusal
+    r = subprocess.run(
+        [str(sh), "--smoke", "--dry-run", "--cache", str(tmp_path)],
+        capture_output=True,
+        text=True,
+        cwd=str(ROOT),
+        env=env,
+    )
+    assert r.returncode == 2 and "marker" in r.stderr
+
+
+def test_make_held3_refuses_without_a_committed_freeze_and_lists_three_stages() -> None:
+    import high500_make_held3 as MH
+
+    assert [s["name"] for s in MH.stages()] == ["build", "render", "stack"]
+    src = Path(MH.__file__).read_text()
+    assert "check_or_exit" in src and "shutil.move" in src and "build_state.json" in src
+    assert "--workers" in src and '"held3"' in src
