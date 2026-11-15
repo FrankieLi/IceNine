@@ -1147,3 +1147,20 @@ main `.claude/reports/`: `20261115-0705-review-ar5q.md`. No shared library file 
   3.20% big. Gate g2 needed 4% on mid, so the gate failed.
 - No tuning, no live run, held4 not built, no library key. Review fixes were doc only. The
   findings page text waits for the owner (`20261115-1245-ar5q-findings_ar5_fitskip.md`).
+
+### AR5 step 18 (learned skip; task `ar5r`), merged as a study at 8b456ac5 on 2026-11-15
+
+Suite after the merge: 2194 passed, 48 skipped, 1 deselected. Decision D-20261115-N5. Review in the
+main `.claude/reports/`: `20261115-0850-review-ar5r.md`. No shared library file changed.
+
+- Trained gradient-boosted trees on 16 features known before a fit, using step 17's recording J5r.
+  The leave-one-sample-out saving against J5 with the pass: 5.46% held3, 6.16% held, 5.79% mid,
+  11.83% grad, 5.38% big.
+- Live run on mid with the gate model: 9,990,663 evaluations, 5.65% fewer than J5. It broke 4
+  voxels and fixed none against J5 (17 broken, 9 fixed against S8, net 8, limit 5). Gate g3 failed.
+- Gate g2 failed too: feature 13 (the voxel's own kept hit ratio) differs between the recording
+  and a live run with skips. The first difference is at fit 1016.
+- No tuning, no final model, held4 not built, no library key. Review fixes were wording only. The
+  findings page text waits for the owner (`20261115-0840-ar5r-findings_ar5_learnskip.md`).
+- D-20261115-N6 approves step 19: after the boundary pass, refit contested voxels with the MC local
+  optimization, to win back margin on mid. The implementer has started.
