@@ -46,8 +46,8 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
 ## Running jobs
 - AR5 step 14 phase A MERGED f68ab69 (suite 2055 passed, 47 skipped, 1 deselected); J vs H fewer:
   held 17.34%, mid 5.48%, grad 9.87%. Key WAITS (held2: step 13 or owner). Step 15 failed, merged.
-  v52 live. Step 16 (`ar5p`): J5 PASSES all 5 samples, review APPROVE, D-20261115-N1; worktree
-  `agent-a8d3953c88c593c42`: implementer on 2 fixes + phase B. Step 17 (`ar5q`, N2) after merge.
+  Step 16 (`ar5p`) MERGED 4a1cfb42 (suite 2125 passed, 48 skipped, 1 deselected): J5 passes on
+  5 samples. v53 live. Step 17 (`ar5q`, N2): implementer aeba15b7c3850b007 on phase A setup.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
