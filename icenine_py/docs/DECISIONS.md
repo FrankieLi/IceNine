@@ -1960,3 +1960,15 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   starts: unit test of key SeedIndexMCStallHit at k = 500, key-off suite, key-on library run on
   mid, page, history. The key default stays 0 (off). The owner may overrule. Where: PLAN.md AR5
   step 16; .claude/reports/20261115-0105-review-ar5p.md.
+
+### D-20261115-N2 · Track A / AR5 step 17 · AR5 step 17 approved: record arm J5's BFS local optimizations, then one early skip chosen by a fixed procedure; clean test held4
+- 2026-11-15, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Step 17 (task ar5q) records every neighbour fit and
+  revisit of arm J5 on the five disclosed samples, picks one rule from a family of 27 (skip on a
+  low start, stop at a check after 20 evaluations, skip a repeated rejected start) by a selection
+  fixed before the recording is read, gates it by exact replay, and tests it on the new sample
+  held4. It starts after step 16 merges. The drafter's first pick, the boundary-pass skip at own
+  hit ratio 0.95 (replay on stored J5 passes: 15% to 34% fewer evaluations, 0 fixed and 0 broken
+  on five samples, unreviewed), is NOT approved by me: it is step 13's idea, whose freeze was
+  refused by a permission check and waits for the owner. The owner may say that it may run as a
+  new step, or overrule this choice. Where: PLAN.md AR5 step 17.
