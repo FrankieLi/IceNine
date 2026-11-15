@@ -1,0 +1,371 @@
+{
+ "sample": "grad",
+ "arms": {
+  "H": {
+   "run": "H",
+   "sample": "grad",
+   "unfinished": false,
+   "seed_arm": "X200",
+   "no_mc_fallback": true,
+   "seed_steps": 1280,
+   "stopped_early": 1182,
+   "stages": {
+    "seed_step": 1511783,
+    "grid_fallback": 1731732,
+    "neighbour": 1477542,
+    "revisit": 1779614,
+    "pass_": 3679520,
+    "before_pass": 6500671,
+    "total": 10180191
+   },
+   "stages_s8": {
+    "seed_step": 3008757,
+    "grid_fallback": 5449501,
+    "neighbour": 2798001,
+    "revisit": 3060730,
+    "pass_": 3683241,
+    "before_pass": 14316989,
+    "total": 18000230
+   },
+   "grid_fallbacks": 11,
+   "grid_fallbacks_s8": 16,
+   "wrapper": {
+    "wrapper_calls": 53396,
+    "picked_fell": 48692,
+    "fallback_runs": 0,
+    "fallback_won": 0,
+    "evals_picked": 3257156,
+    "evals_fallback": 0,
+    "cma_calls_total": 55466,
+    "vmo_calls_total": 996,
+    "vmo_calls_in_wrapper": 0,
+    "vmo_calls_outside_wrapper": 996,
+    "cma_not_fell": 4704,
+    "mc_fallback_off": true
+   },
+   "before": {
+    "wrong": 206,
+    "wilson_lo": 0.007318428795258394,
+    "wilson_hi": 0.009603695419947744,
+    "median_err_deg": 0.021579868596107853
+   },
+   "after": {
+    "wrong": 56,
+    "wilson_lo": 0.0017557225686594684,
+    "wilson_hi": 0.002958298213504277,
+    "median_err_deg": 0.02134489609446111
+   },
+   "s8_before": {
+    "wrong": 210,
+    "wilson_lo": 0.007470309001022389,
+    "wilson_hi": 0.00977736463906488,
+    "median_err_deg": 0.02285236562148693
+   },
+   "s8_after": {
+    "wrong": 63,
+    "wilson_lo": 0.002004792724438049,
+    "wilson_hi": 0.003278939551267675,
+    "median_err_deg": 0.022638749845755476
+   },
+   "wall_s": 1224.6472382545471,
+   "wall_label": "contended (other jobs on the machine); not a timing result",
+   "wall_pass_s": 379.67654609680176,
+   "paired_before": {
+    "fixed": 63,
+    "broken": 59,
+    "both_wrong": 147
+   },
+   "paired_after": {
+    "fixed": 31,
+    "broken": 24,
+    "both_wrong": 32
+   },
+   "rule": {
+    "fewer": 0.43444105991978993,
+    "a": true,
+    "b": true,
+    "c": true,
+    "net_broken": -7,
+    "med_diff": -0.0012938537512943646,
+    "passes": true
+   },
+   "stages_split": {
+    "seed_step": 1511783,
+    "grid_fallback": 1697698,
+    "neighbour": 1477542,
+    "revisit": 1779614,
+    "pass_": 3679520,
+    "before_pass": 6500671,
+    "total": 10180191,
+    "rescue": 34034
+   }
+  },
+  "J": {
+   "run": "J",
+   "sample": "grad",
+   "unfinished": false,
+   "seed_arm": "X200",
+   "no_mc_fallback": true,
+   "seed_steps": 1281,
+   "stopped_early": 1183,
+   "stages": {
+    "seed_step": 1513446,
+    "grid_fallback": 724281,
+    "neighbour": 1477542,
+    "revisit": 1779736,
+    "pass_": 3680862,
+    "before_pass": 5495005,
+    "total": 9175867
+   },
+   "stages_s8": {
+    "seed_step": 3008757,
+    "grid_fallback": 5449501,
+    "neighbour": 2798001,
+    "revisit": 3060730,
+    "pass_": 3683241,
+    "before_pass": 14316989,
+    "total": 18000230
+   },
+   "grid_fallbacks": 11,
+   "grid_fallbacks_s8": 16,
+   "wrapper": {
+    "wrapper_calls": 53398,
+    "picked_fell": 48692,
+    "fallback_runs": 0,
+    "fallback_won": 0,
+    "evals_picked": 3257278,
+    "evals_fallback": 0,
+    "cma_calls_total": 55494,
+    "vmo_calls_total": 994,
+    "vmo_calls_in_wrapper": 0,
+    "vmo_calls_outside_wrapper": 994,
+    "cma_not_fell": 4706,
+    "mc_fallback_off": true
+   },
+   "before": {
+    "wrong": 206,
+    "wilson_lo": 0.007318428795258394,
+    "wilson_hi": 0.009603695419947744,
+    "median_err_deg": 0.021573516075032502
+   },
+   "after": {
+    "wrong": 56,
+    "wilson_lo": 0.0017557225686594684,
+    "wilson_hi": 0.002958298213504277,
+    "median_err_deg": 0.021341743611106745
+   },
+   "s8_before": {
+    "wrong": 210,
+    "wilson_lo": 0.007470309001022389,
+    "wilson_hi": 0.00977736463906488,
+    "median_err_deg": 0.02285236562148693
+   },
+   "s8_after": {
+    "wrong": 63,
+    "wilson_lo": 0.002004792724438049,
+    "wilson_hi": 0.003278939551267675,
+    "median_err_deg": 0.022638749845755476
+   },
+   "wall_s": 1125.652251958847,
+   "wall_label": "contended (other jobs on the machine); not a timing result",
+   "wall_pass_s": 385.3328619003296,
+   "paired_before": {
+    "fixed": 63,
+    "broken": 59,
+    "both_wrong": 147
+   },
+   "paired_after": {
+    "fixed": 31,
+    "broken": 24,
+    "both_wrong": 32
+   },
+   "rule": {
+    "fewer": 0.49023612476062806,
+    "a": true,
+    "b": true,
+    "c": true,
+    "net_broken": -7,
+    "med_diff": -0.0012970062346487309,
+    "passes": true
+   },
+   "stages_split": {
+    "seed_step": 1513446,
+    "grid_fallback": 677391,
+    "neighbour": 1477542,
+    "revisit": 1779736,
+    "pass_": 3680862,
+    "before_pass": 5495005,
+    "total": 9175867,
+    "rescue": 34034,
+    "polish": 12856
+   }
+  }
+ },
+ "rescue": {
+  "H": {
+   "fallback_calls": 11,
+   "rescues_attempted": 11,
+   "rescued": 6,
+   "tries": 34,
+   "rescue_evals": 34034,
+   "grid_fallbacks_left": 5,
+   "grid_evals": 1697698
+  },
+  "J": {
+   "form": "G2b",
+   "fallback_calls": 11,
+   "rescues_attempted": 11,
+   "rescued": 6,
+   "polished": 3,
+   "g1_tries": 34,
+   "g2_tries": 13,
+   "rescue_evals": 34034,
+   "polish_evals": 12856,
+   "grid_fallbacks_left": 2,
+   "grid_evals": 677391
+  }
+ },
+ "g2_cases": [
+  {
+   "voxel": 19058,
+   "polished": false,
+   "rescue_evals": 5005,
+   "polish_evals": 5330,
+   "grid_evals": 341304,
+   "n_polish_tries": 5
+  },
+  {
+   "voxel": 18267,
+   "polished": false,
+   "rescue_evals": 5005,
+   "polish_evals": 5330,
+   "grid_evals": 336087,
+   "n_polish_tries": 5
+  },
+  {
+   "voxel": 3494,
+   "polished": true,
+   "rescue_evals": 5005,
+   "polish_evals": 1066,
+   "grid_evals": 0,
+   "n_polish_tries": 1,
+   "hit": 1.0,
+   "err_deg": 0.002351157259310153,
+   "angle_to_h_map_deg": 0.5521788418333832
+  },
+  {
+   "voxel": 3957,
+   "polished": true,
+   "rescue_evals": 5005,
+   "polish_evals": 565,
+   "grid_evals": 0,
+   "n_polish_tries": 1,
+   "hit": 1.0,
+   "err_deg": 0.0021277642604324055,
+   "angle_to_h_map_deg": 0.00504219786606911
+  },
+  {
+   "voxel": 24194,
+   "polished": true,
+   "rescue_evals": 5005,
+   "polish_evals": 565,
+   "grid_evals": 0,
+   "n_polish_tries": 1,
+   "hit": 1.0,
+   "err_deg": 0.0006448038708124344,
+   "angle_to_h_map_deg": 0.0028512097398162143
+  }
+ ],
+ "g2_accepted": 3,
+ "g2_failed_rescues": 5,
+ "seed_steps": {
+  "matched_steps": 1280,
+  "fits_compared": 3027,
+  "fits_differ": 0,
+  "taken_changed": 0,
+  "wrong_seeds": {
+   "h": 19,
+   "j": 19,
+   "j_wrong_where_h_right": 0,
+   "unmatched_j_wrong_where_h_map_right": 0,
+   "broad": 0
+  },
+  "unmatched": {
+   "only_j_n": 1,
+   "only_h_n": 0,
+   "only_j_wrong": 0,
+   "only_h_wrong": 0,
+   "only_j_wrong_where_h_map_right": 0,
+   "only_h_wrong_where_j_map_right": 0,
+   "only_j_wrong_where_h_map_right_voxels": [],
+   "only_j": [
+    {
+     "voxel": 8146,
+     "occurrence": 0,
+     "reseed": true,
+     "has_fits": true,
+     "hit": 0.9866548042704626,
+     "cost": 0.09172648150169171,
+     "passes_seed_test": true,
+     "err_deg": 0.007347613860397199,
+     "wrong": false,
+     "other_map_err_before_deg": 0.025262463837862015,
+     "other_map_wrong_before": false,
+     "other_map_err_after_deg": 0.025262463837862015,
+     "other_map_wrong_after": false
+    }
+   ],
+   "only_h": []
+  }
+ },
+ "j_vs_h": {
+  "voxels": {
+   "before": {
+    "fixed": 0,
+    "broken": 0,
+    "both_wrong": 206
+   },
+   "after": {
+    "fixed": 0,
+    "broken": 0,
+    "both_wrong": 56
+   }
+  }
+ },
+ "validity": {
+  "j_finished": true,
+  "n_processed": 24570,
+  "aligned_draws": true,
+  "seed_steps_h": 1280,
+  "seed_steps_j": 1281,
+  "matched_steps": 1280,
+  "fits_compared": 3027,
+  "fits_differ": 0,
+  "grid_searches_both_ran": 2,
+  "grid_searches_same_evals": 2,
+  "big_map_identical_to_h": null,
+  "big_evals_identical_to_h": false
+ },
+ "house_j": {
+  "a": true,
+  "b": true,
+  "c": true,
+  "passes": true
+ },
+ "house_h": {
+  "a": true,
+  "b": true,
+  "c": true,
+  "passes": true
+ },
+ "rules": {
+  "r1": true,
+  "r2": true,
+  "r3": true,
+  "r4": true,
+  "r5": true,
+  "h_fails_5": false,
+  "total_cut_pct": 9.865473054483948,
+  "passes": true
+ }
+}
