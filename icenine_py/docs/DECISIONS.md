@@ -2042,3 +2042,16 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   was decided; the thresholds 0.95 and 0.15 and every decision rule stay as planned. The owner may
   overrule. Where: PLAN.md AR5 step 19 (amendment paragraph);
   .claude/reports/20261115-0902-ar5s-gate.md.
+
+### D-20261115-N8 · Track A / AR5 step 19 · AR5 step 19 stops at its gate on repair cost alone (3.14% to 7.09% of J5 against a cap of 2.5%); accuracy as hoped; study merge; a cheaper repair is planned as a new step
+- 2026-11-15, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. The repair of contested voxels after the boundary
+  pass fixes voxels and breaks almost none against J5: held3 3/0, held 9/0, mid 6/0, grad 8/0, big
+  5/1 (fixed/broken); mid moves from net +4 to -2 against S8; step 18's map on mid goes from 39 to
+  31 wrong. But the MC local optimization takes a median of 662 evaluations a fit, not the assumed
+  160, so the repair costs 3.14% to 7.09% of J5's run, over the frozen cap of 2.5% (3.5% on grad).
+  As frozen the gate fails: no tuning, no other form in this step, held4 not built, no key. The
+  cap is not loosened by me. The step merges as a study after an Opus review. A cheaper repair fit
+  (an early stop or a budget for the repair's MC fit) is to be planned as a new step with held4
+  still unread as its clean test. The owner may overrule, for example by accepting the higher
+  cost. Where: PLAN.md AR5 step 19; .claude/reports/20261115-0902-ar5s-gate.md.
