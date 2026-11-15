@@ -47,8 +47,8 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
 - AR5 step 14 phase A MERGED f68ab69 (suite 2055 passed, 47 skipped, 1 deselected); J vs H fewer:
   held 17.34%, mid 5.48%, grad 9.87%. Key WAITS (held2: step 13 or owner). Step 15 failed, merged.
   Step 16 (`ar5p`) MERGED 4a1cfb42 (suite 2125 passed, 48 skipped, 1 deselected): J5 passes on
-  5 samples. v53 live. Step 17 (`ar5q`, N2): recording `J5r` ended exit=0 at 04:37, 15 Nov;
-  implementer aeba15b7c3850b007 on selection + gate since 06:55 (live `mid` run, 1 process).
+  5 samples. v53 live. Step 17 (`ar5q`): gate FAILED (g2 on mid, 3.62% vs 4%), N3: study merge;
+  implementer aeba15b7c3850b007 on docs, then review, merge. Step 18 drafter afb4f5f49f384f11b.
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
 7, 18, 22, 23, AR0 to AR2, AR3 1 to 11, AR5 1 to 3, 5, 7 to 12, AR4 1): `STATE_HISTORY.md`.
@@ -113,7 +113,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   Step 5's result files add about 50 MB to git; say so if you want them pruned.
 
 ## Bookkeeping
-- Next decision ID: D-20261115-N3 (first of a day is N1).
+- Next decision ID: D-20261115-N4 (first of a day is N1).
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
