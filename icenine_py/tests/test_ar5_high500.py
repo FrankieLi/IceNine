@@ -419,3 +419,31 @@ def test_make_held3_refuses_without_a_committed_freeze_and_lists_three_stages() 
     src = Path(MH.__file__).read_text()
     assert "check_or_exit" in src and "shutil.move" in src and "build_state.json" in src
     assert "--workers" in src and '"held3"' in src
+
+
+def test_judge_rules_match_the_frozen_pass_rules() -> None:
+    import high500_judge as HJ
+
+    j = HR.JUDGE
+    assert {k: v / 100 for k, v in HJ.FEWER_MIN.items()} == j["r1_total_fewer"]
+    assert HJ.MORE_MAX["grad"] / 100 == j["r1_grad_more_max"]
+    assert (
+        HJ.NET == j["r2_broken_minus_fixed_max"] and HJ.MED == j["r3_median_error_higher_max_deg"]
+    )
+    assert HJ.HOUSE_MED == j["r5_vs_s8"]["median_error_higher_max_deg"]
+    h = HJ.house(100, 200, 5, 0, 0.01, 0.01)
+    assert h["passes"] and HJ.house(81, 100, 5, 0, 0.01, 0.01)["a"] is False
+    ok = dict(a=True, b=True, c=True, passes=True)
+    bad = dict(a=False, b=True, c=True, passes=False)
+    r = HJ.rules("mid", 95, 100, 5, 0.02, 0.02, 1, 3, 4, ok, ok)
+    assert r["passes"] and r["r1"]
+    assert not HJ.rules("mid", 96, 100, 0, 0.02, 0.02, 0, 3, 3, ok, ok)["r1"]  # 4% < 5% on mid
+    assert not HJ.rules("mid", 90, 100, 6, 0.02, 0.02, 0, 3, 3, ok, ok)["r2"]
+    assert not HJ.rules("mid", 90, 100, 0, 0.0211, 0.02, 0, 3, 3, ok, ok)["r3"]
+    assert not HJ.rules("mid", 90, 100, 0, 0.02, 0.02, 2, 3, 3, ok, ok)["r4"]
+    assert not HJ.rules("mid", 90, 100, 0, 0.02, 0.02, 0, 3, 5, ok, ok)["r4"]
+    # J failing rule 5 means J5 is judged by 1 to 4 only
+    assert HJ.rules("mid", 90, 100, 0, 0.02, 0.02, 0, 3, 3, bad, bad)["passes"]
+    assert not HJ.rules("mid", 90, 100, 0, 0.02, 0.02, 0, 3, 3, bad, ok)["passes"]
+    assert HJ.rules("grad", 100, 100, 0, 0.02, 0.02, 0, 1, 1, ok, ok)["r1"]
+    assert not HJ.rules("grad", 101, 100, 0, 0.02, 0.02, 0, 1, 1, ok, ok)["r1"]
