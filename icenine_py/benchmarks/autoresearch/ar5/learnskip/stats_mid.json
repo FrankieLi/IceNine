@@ -1,0 +1,207 @@
+{
+ "sample": "mid",
+ "arms": {
+  "S8": {
+   "stages": {
+    "seed_step": 12007352,
+    "grid_fallback": 5002750,
+    "neighbour": 3859661,
+    "revisit": 2517272,
+    "pass_": 3056039,
+    "before_pass": 23387035,
+    "total": 26443074
+   },
+   "failed_seed_tests": 15,
+   "before": {
+    "wrong": 84,
+    "wilson_lo": 0.0027625009856155278,
+    "wilson_hi": 0.004230365770716132,
+    "median_err_deg": 0.030239472968499957
+   },
+   "after": {
+    "wrong": 31,
+    "wilson_lo": 0.0008890352069823217,
+    "wilson_hi": 0.0017903016696743583,
+    "median_err_deg": 0.029722923795110812
+   },
+   "n_processed": 24570,
+   "grid_searches": 15
+  },
+  "J5": {
+   "stages": {
+    "seed_step": 3653212,
+    "grid_fallback": 710865,
+    "neighbour": 1488949,
+    "revisit": 1684698,
+    "pass_": 3051769,
+    "before_pass": 7537724,
+    "total": 10589493
+   },
+   "failed_seed_tests": 12,
+   "before": {
+    "wrong": 76,
+    "wilson_lo": 0.002472245700047164,
+    "wilson_hi": 0.0038695222065222344,
+    "median_err_deg": 0.0291933623031747
+   },
+   "after": {
+    "wrong": 35,
+    "wilson_lo": 0.001024480457633824,
+    "wilson_hi": 0.001980405843903987,
+    "median_err_deg": 0.028598981966716383
+   },
+   "n_processed": 24570,
+   "grid_searches": 2
+  },
+  "J5L": {
+   "stages": {
+    "seed_step": 3658728,
+    "grid_fallback": 710865,
+    "neighbour": 1180174,
+    "revisit": 1387480,
+    "pass_": 3053416,
+    "before_pass": 6937247,
+    "total": 9990663
+   },
+   "failed_seed_tests": 12,
+   "before": {
+    "wrong": 79,
+    "wilson_lo": 0.0025808836733503793,
+    "wilson_hi": 0.004005046301879867,
+    "median_err_deg": 0.029120697716501307
+   },
+   "after": {
+    "wrong": 39,
+    "wilson_lo": 0.0011614142531444016,
+    "wilson_hi": 0.0021690214732745395,
+    "median_err_deg": 0.02856604898041645
+   },
+   "n_processed": 24570,
+   "grid_searches": 2
+  }
+ },
+ "j5l_vs_j5": {
+  "before": {
+   "fixed": 0,
+   "broken": 3,
+   "both_wrong": 76
+  },
+  "after": {
+   "fixed": 0,
+   "broken": 4,
+   "both_wrong": 35
+  }
+ },
+ "j5l_vs_s8": {
+  "before": {
+   "fixed": 22,
+   "broken": 17,
+   "both_wrong": 62
+  },
+  "after": {
+   "fixed": 9,
+   "broken": 17,
+   "both_wrong": 22
+  }
+ },
+ "j5_vs_s8": {
+  "before": {
+   "fixed": 22,
+   "broken": 14,
+   "both_wrong": 62
+  },
+  "after": {
+   "fixed": 9,
+   "broken": 13,
+   "both_wrong": 22
+  }
+ },
+ "seed_steps": {
+  "matched_steps": 1483,
+  "fits_compared": 3981,
+  "fits_differ": 0,
+  "mc_fits_differ": 0,
+  "taken_changed": 0,
+  "wrong_seeds": {
+   "j": 14,
+   "j5": 14,
+   "j5_wrong_where_j_right": 0,
+   "unmatched_j5_wrong_where_j_map_right": 0,
+   "broad": 0
+  },
+  "unmatched": null
+ },
+ "learnskip": {
+  "rule": "L",
+  "threshold": 0.00957237190549021,
+  "n_rounds": 244,
+  "counts": {
+   "fits": 52075,
+   "neighbour": 24407,
+   "revisit": 27668,
+   "restart": 0,
+   "rec_evals": 0,
+   "checks": 52075,
+   "skipped": 10836,
+   "scored": 52075,
+   "kept_fit_ends": 33848,
+   "skipped_start_passes_test": 0
+  },
+  "expansions": 1631,
+  "model_wall_s": 4.386013858004468,
+  "feature_wall_s": 0.44024357399533187,
+  "time": "2026-11-15T08:11:12-0800"
+ },
+ "summary": {
+  "j5l": {
+   "total": 9990663,
+   "median": 0.02856604898041645,
+   "reseeds": 1468,
+   "grid": 2,
+   "wrong_seeds": 0,
+   "vs_j5": {
+    "fixed": 0,
+    "broken": 4,
+    "both_wrong": 35
+   },
+   "vs_s8": {
+    "fixed": 9,
+    "broken": 17,
+    "both_wrong": 22
+   }
+  },
+  "j5": {
+   "total": 10589493,
+   "median": 0.028598981966716383,
+   "reseeds": 1457,
+   "grid": 2,
+   "wrong_seeds": 0,
+   "vs_s8": {
+    "fixed": 9,
+    "broken": 13,
+    "both_wrong": 22
+   }
+  },
+  "s8": {
+   "total": 26443074,
+   "median": 0.029722923795110812,
+   "reseeds": 1455,
+   "grid": 15
+  }
+ },
+ "rules": {
+  "r1": true,
+  "r1_fewer": 0.056549449534552765,
+  "r2": true,
+  "r3": true,
+  "r4": true,
+  "r5": false,
+  "j5_passes_r5": true,
+  "passes": false
+ },
+ "validity": {
+  "finished": true,
+  "none_capped": true,
+  "aligned_draws": true
+ }
+}

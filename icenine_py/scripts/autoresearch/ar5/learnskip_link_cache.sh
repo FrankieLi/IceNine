@@ -45,7 +45,7 @@ link() { # link <dest> <source>
 ex="$here/../Examples/Example2.ManyGrains/ScatteringData_PhaseD/stacks"
 ar3="$here/benchmarks/autoresearch/ar3"
 for s in $samples; do
-  for f in run.json recon.mic.gz polish.json high500.json; do
+  for f in run.json recon.mic.gz polish.json high500.json e1_log.json.gz order.json; do
     link "$cache/J5_$s/$f" "$src16/J5_$s/$f"
   done
   for f in D4_J5/pass.json before_J5.npy after_J5.npy; do

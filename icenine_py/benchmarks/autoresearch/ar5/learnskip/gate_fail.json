@@ -1,0 +1,37 @@
+{
+ "step": "AR5 step 18 (task ar5r), phase A",
+ "verdict": "GATE FAILED: g2 and g3 on mid. Stopped as the plan says: no tuning, no other model or threshold, no whole layer, no held4.",
+ "g0_prediction_1": "met: the tracked script reproduces the plan's table (loso.json): shares, wrong skips, allowed, changed final answers, S(0.3, both), ceilings; net savings and thresholds equal the drafter's v3 run to the evaluation; J5r fit counts 72,458 / 76,911 / 52,027 / 53,398 / 32,543; stored J5 totals 23,503,385 / 22,939,812 / 10,589,493 / 9,041,686 / 3,567,098 reproduce (step 17's p1 check).",
+ "g1": "met on all five held-out samples (limits and net share at least 4.5%, 9% on grad).",
+ "g2": {
+  "met": false,
+  "what_the_plan_asks": "the live J5L run on mid with the gate model, up to its first wrong skip in run order, equals the replay fit by fit (features to 1e-9, scores, skips, ends, evaluations)",
+  "replay_first_wrong_skip_fit": 7231,
+  "fits_compared": 7232,
+  "fits_equal": 6992,
+  "fits_with_a_difference": 240,
+  "first_difference_fit": 1016,
+  "only_feature_that_differs": "own_hit (feature 13: the hit ratio of this voxel's kept fit end)",
+  "cause": "a skipped fit has no fit end, so a later revisit of that voxel sees own_hit = -1 live, while the recording (and so the replay and the training rows) holds the end that J5 made and kept (a rejected neighbour fit's end is stored at the voxel). The replay feature reads a counterfactual end that no live run can know. The same fits, features and scores were predicted exactly by walking the recording with the live convention before the run (learnskip_gate.py predict: 240 fits, first at 1016, only own_hit, 1 changed decision in the range). Every other feature, the visiting order, the ends and evaluations of fits that ran, and the accepted flags are equal to 1e-9 in the compared range (worst end hit and cost difference 0.0).",
+  "consistent_with_but_not_tested": "making the live and the replay agree would need a different definition of feature 13 (or a model without it); no variant was tried (no tuning)"
+ },
+ "g3": {
+  "met": false,
+  "mid_total_with_pass": {"J5L": 9990663, "J5": 10589493, "S8": 26443074},
+  "fewer_than_J5": "5.65% (rule 1 met; prediction 2: 4.5% to 7%)",
+  "J5L_vs_J5": {"fixed": 0, "broken": 4, "both_wrong": 35},
+  "J5L_vs_S8": {"fixed": 9, "broken": 17, "both_wrong": 22},
+  "J5_vs_S8": {"fixed": 9, "broken": 13, "both_wrong": 22},
+  "rule_1": true,
+  "rule_2": "met (broken minus fixed against J5 = 4)",
+  "rule_3": "met (median 0.02857 against 0.02860 degree)",
+  "rule_4": "met (0 more wrong seeds, grid 2 against 2, reseeds 1,468 against 1,457)",
+  "rule_5": "NOT met: against S8, broken minus fixed = 8 (limit 5); J5 is at 4; J5 passes rule 5, so J5L is judged by it",
+  "note": "this is the margin paragraph of the plan: J5L could afford one more net broken voxel on mid than J5; it has four"
+ },
+ "live_counts": {"fits": 52075, "replay_fits": 52027, "skipped": 10836, "checks": 52075, "replay_skipped_whole_run": 10949, "model_wall_s": 4.4, "feature_wall_s": 0.4},
+ "post_freeze_edits_not_yet_refrozen": [
+  "learnskip_rules.judge: the grid-search comparison is now |difference| at most 1 (it was one-sided); no run, training or table used judge before this edit except the mid stats",
+  "learnskip_link_cache.sh: links J5's e1_log.json.gz and order.json (the stats script reads them)"
+ ]
+}
