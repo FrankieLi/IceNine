@@ -321,6 +321,44 @@ def test_held4_is_refused_before_the_gate_and_its_files_before_its_runs_end(
     assert RG.guarded(p, cache=cache) == p  # marker: held4's runs ended
 
 
+def test_the_freeze_hashes_this_steps_files_and_the_library() -> None:
+    import repair_freeze as RF
+
+    cur = RF.current()
+    for name in RF.OWN:
+        assert f"scripts/autoresearch/ar5/{name}" in cur["files"]
+    assert "icenine/boundary_pass.py" in cur["library"]
+    assert "uv.lock" in cur["library"]
+    # the scripts that only apply the frozen rule are not in the list
+    for name in ("repair_run.py", "repair_gate.py", "repair_flags.py", "repair_run_all.sh"):
+        assert f"scripts/autoresearch/ar5/{name}" not in cur["files"]
+    consts = RF.CONSTANTS
+    assert consts["ratio_max"] == 0.95 and consts["margin_max"] == 0.15
+    assert consts["repair_optimizer"] == "mc" and consts["repair_seed"] == 0
+
+
+def test_the_link_script_refuses_held2_and_held4_and_unknown_names(tmp_path: Path) -> None:
+    import subprocess
+
+    script = ROOT / "scripts" / "autoresearch" / "ar5" / "repair_link_cache.sh"
+    for bad in ("held2", "held4", "nosuch"):
+        r = subprocess.run(
+            ["bash", str(script), "--dry-run", "--cache", str(tmp_path), bad],
+            capture_output=True,
+            text=True,
+        )
+        assert r.returncode == 2 and "refused argument" in r.stderr
+    assert not list(tmp_path.iterdir())
+
+
+def test_the_launcher_only_accepts_four_scripts() -> None:
+    src = (ROOT / "scripts" / "autoresearch" / "ar5" / "repair_launch.py").read_text()
+    for name in ("fit_run.py", "fit_pass.py", "high500_run.py", "high500_pass.py"):
+        assert f'"{name}",' in src
+    allowed = src.split("ALLOWED = (")[1].split(")")[0]
+    assert allowed.count(".py") == 4
+
+
 def test_the_guard_module_names_step_19s_gate_and_marker() -> None:
     assert RG.gate_file().parts[-3:] == ("ar5", "repair", "gate.json")
     assert RG.H4_MARKER == "held4_runs_done.json"
