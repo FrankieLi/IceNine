@@ -47,7 +47,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
 - AR5 step 14 phase A MERGED f68ab69 (suite 2055 passed, 47 skipped, 1 deselected); J vs H fewer:
   held 17.34%, mid 5.48%, grad 9.87%, big equal. Key WAITS (held2 after the pass: step 13 or owner).
   Step 14 cache: worktree `agent-a1bd2e7a7dbfe1efd`. Step 15 (`ar5o`) failed its gate (N7), merged
-  053fd66. v52 live. Step 16 (`ar5p`, N8): implementer a8d3953c since 19:15 (gate, then I start runs).
+  053fd66. v52 live. Step 16 (`ar5p`, N8): implementer a8d3953c since 19:15 (gate; I start runs).
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
