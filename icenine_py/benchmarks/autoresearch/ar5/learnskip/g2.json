@@ -1,0 +1,22 @@
+{
+ "replay_fits": 52027,
+ "live_fits": 52075,
+ "first_wrong_skip": 7231,
+ "compared": 7232,
+ "equal": 6992,
+ "first_difference": {
+  "fit": 1016,
+  "why": [
+   "features (max abs 1.26)",
+   "score (0.00254)"
+  ]
+ },
+ "worst": {
+  "feature": 1.7333994053518333,
+  "score": 0.2746639811530871,
+  "end_hit": 0.0,
+  "end_cost": 0.0
+ },
+ "tol": 1e-09,
+ "g2": false
+}

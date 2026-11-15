@@ -13108,3 +13108,57 @@ refused by the tool).
 - Tests: `tests/test_ar5_fitskip.py`, 34 tests.
 - Short smoke (`--smoke 30`, `big`): the recording run equals the unhooked `J5` run in every
   integer count and in the map at all 24,570 voxels (so the hook adds no counted evaluation).
+
+## Autoresearch AR5 step 18: a learned skip of BFS local optimizations, stopped at the gate (2026-11-15, task ar5r)
+
+Approved: D-20261115-N4; stopped by D-20261115-N5. Script layer only; no library change, no key.
+Model: boosted trees (scikit-learn 1.6.1, training only; exported to JSON, evaluated in plain Python)
+on 16 features known before a fit, label "`J5` accepted the fit", trained on the recording `J5r`.
+Every fit is checked with one counted evaluation; a model call counts zero. Branch
+`feature/eval-reduction-ar5r`; `frozen.json` committed (e6e7a856) before any training.
+
+- Leave one sample out (gate g0, g1: met): the plan's table reproduced to the evaluation (net saving
+  5.46% `held3`, 6.16% `held`, 5.79% `mid`, 11.83% `grad`, 5.38% `big`; all inside the limits).
+- Live `mid` with the gate model (244 rounds, threshold 0.009572), whole layer with the pass:
+  9,990,663 evaluations, 5.65% under `J5` (10,589,493); 4 broken / 0 fixed against `J5`; 17 broken /
+  9 fixed against `S8` (net 8, limit 5; `J5` is at 4). Rules 1 to 4 pass, rule 5 fails: gate g3 failed.
+- Gate g2 failed: in the first 7,232 fits (up to the replay's first wrong skip, fit 7231) the live
+  run and the replay agree on the route, the other 15 features, the ends and the evaluations to 1e-9;
+  they differ in feature 13 (the hit ratio of the voxel's own kept fit end) at 240 fits, the first at
+  fit 1016, and in one skip decision (fit 1127: live skipped it, the replay ran it; `J5` rejected it).
+  A skipped fit has no fit end, while the recording holds the end `J5` made. A walk of the recording
+  with the live convention gives the same 240 fits; the script was finished while the live run was
+  running and its output was not saved, so this is a check after the fact, not a prediction. Model
+  4.4 s, features 0.4 s in the whole run (contended, one worker; the leave-one-out run took 55 s,
+  contended, one worker).
+- The four broken voxels (stored outputs only): 3 of the 4 differ before the pass; 1426 (30.269
+  degrees in both arms before the pass) differs only in the pass; at 1091 and 3324 the `J5` answer is
+  not from a BFS fit (`J5` accepted none of the BFS fits there). Consistent with changed growth,
+  reseeds or pass draws after the first wrong skip; not tested. Live wrong skips: 1 exact (in the
+  first 7,232 fits). After the route diverges (fit 7262), a match by (voxel, kind, occurrence) gives
+  102, of which 31 share the start of the `J5` fit they are matched to; 197 live skips have no
+  counterpart. The 0.1% limit (52) is a replay limit (g1), not a rule for the live run, so the
+  102 is not compared with it. Counts of wrong voxels after the pass: 39 in `J5L` (Wilson 95%
+  0.12% to 0.22%), 35 in `J5` (0.10% to 0.20%); the plan's rules are count thresholds.
+- Lesson: the replay cannot see what wrong skips do to growth, and a feature that reads a state a skip
+  removes differs between the replay and a live run.
+- Two edits of frozen files after the freeze, not re-frozen: (1) `learnskip_rules.judge` compared
+  grid searches one-sided; the plan says "within 1", so it became |difference| at most 1. Made while
+  the live `mid` run was running, after the leave-one-out table (which does not use `judge`). On `mid`
+  (grid 2 against 2) the verdicts are identical under both versions (rules 1 to 4 pass, rule 5 fails;
+  `tables.md`, block `judge_edit`). (2) `learnskip_link_cache.sh` also links `J5`'s `e1_log.json.gz`
+  and `order.json` (the stats script reads them); made after the live run; changes no number.
+  `frozen.json` is stale for these two files, so `learnskip_freeze.problems()` is non-empty and
+  `learnskip_common` refuses `held`, `held3` and `held4`: the `held4` and run-all path cannot run
+  without a recorded re-freeze. `learnskip_common` also switches off the freeze checks of steps 8, 9,
+  12, 14, 15 and 16 in-process, so for `mid`, `grad` and `big` no freeze is checked at all (every
+  frozen file still matched at the start of the live run). The gate and stats scripts are not in the
+  freeze; they were committed (eb59444b) before the live run ended.
+- Not built, scripts untested: the final model, `held4` (the build driver
+  `learnskip_build_held4.py` and `learnskip_samples.py` exist, unrun), the run-all script, the whole
+  layers.
+- Results: `benchmarks/autoresearch/ar5/learnskip/` (`loso.json`, `g2.json`, `stats_mid.json`,
+  `broken_mid.json`, `gate_fail.json`, `tables.md`, `ar5_learnskip_gate.png`). One pareto row (live
+  `mid`, with the pass), flagged "FAILED GATE" in its `flag` field (the format has no status field).
+  Findings page text waits in `.claude/reports/20261115-0840-ar5r-findings_ar5_learnskip.md` (its
+  write under `docs/` was refused). Tests: `tests/test_ar5_learnskip.py`, 35 tests.

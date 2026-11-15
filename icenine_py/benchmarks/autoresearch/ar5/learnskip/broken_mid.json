@@ -1,0 +1,45 @@
+{
+ "n_voxels": 24570,
+ "broken_voxels": [
+  1091,
+  1426,
+  2078,
+  3324
+ ],
+ "fixed_voxels": [],
+ "broken_detail": {
+  "1091": {
+   "err_J5_deg": 0.010172216297052636,
+   "err_J5L_deg": 44.866370164933926,
+   "skipped": 2,
+   "ran": 8,
+   "wrong_skip": 0
+  },
+  "1426": {
+   "err_J5_deg": 0.07528628914367527,
+   "err_J5L_deg": 30.269026848887613,
+   "skipped": 0,
+   "ran": 1,
+   "wrong_skip": 0
+  },
+  "2078": {
+   "err_J5_deg": 0.022334097640883503,
+   "err_J5L_deg": 24.15249912740085,
+   "skipped": 0,
+   "ran": 1,
+   "wrong_skip": 0
+  },
+  "3324": {
+   "err_J5_deg": 0.06832750694345163,
+   "err_J5L_deg": 43.69068014799925,
+   "skipped": 0,
+   "ran": 5,
+   "wrong_skip": 0
+  }
+ },
+ "live_skips": 10836,
+ "live_wrong_skips_matched_by_occurrence": 102,
+ "live_wrong_skips_in_first_7232_fits": 1,
+ "live_skips_without_a_matched_recording_fit": 197,
+ "note": "the match by (voxel, kind, occurrence) is exact up to the first wrong skip (fit 7231) and an approximation after it, because the live run's route differs from J5's there"
+}
