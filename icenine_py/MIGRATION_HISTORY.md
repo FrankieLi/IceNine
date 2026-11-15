@@ -13066,14 +13066,26 @@ Approved: D-20261115-N2; stopped by D-20261115-N3. Script layer only; no library
 Outcome: the rule family, selection, gate and hashes were frozen (`benchmarks/autoresearch/ar5/
 fitskip/frozen.json`) before any row of the recording was read. The recording `J5r` reproduces
 `J5` on all five samples (maps before and after the pass, integer counts, counted evaluations).
-The frozen selection picked `S(0.3, both)` (12 of 27 rules admissible); its net saving is 3.98%
+The frozen selection picked `S(0.3, both)` (12 of 27 rules admissible); replayed on the recording of the five samples it was chosen on (no live run, no new sample), its net saving is 3.98%
 (`held3`), 4.21% (`held`), 3.62% (`mid`), 8.74% (`grad`), 3.20% (`big`) of `J5` with the pass.
 Gate g2 asked 4% on `mid`: failed, so no tuning, no second pick, no live `J5C`, no `held4`, no
-whole layer, no key and no pareto rows. The 27-rule table is in `benchmarks/autoresearch/ar5/
+whole layer, no key and no pareto rows.
+"Changed final answers" (admissibility test b) counts only skipped fits that `J5` rejected whose end
+was the voxel's final answer before the pass; rejected ends are final only at unresolved voxels, so
+the test can bind on `held3` and `held` only (the pick: 1 on `held3`, 0 elsewhere). All 111 wrong
+skips of the pick (21, 34, 26, 24, 6) skip a fit whose end is final; the replay cannot say whether a
+later revisit or reseed recovers them. The gate fails under either reading (no admissible rule
+reaches 4% on `mid`; the highest is the pick's 3.62%). The hashed `fitskip_rules.py` docstring of
+`replay` says "final answer" for the skipped fits more broadly than its code; the code was frozen
+and is not edited. Tracked manifest of the recording: `benchmarks/autoresearch/ar5/fitskip/
+manifest.json` (fields, units, recording-only fields, row counts, sha256; the rows stay in the
+untracked cache of the worktree that ran it). The 27-rule table is in `benchmarks/autoresearch/ar5/
 fitskip/tables.md`; the recording stays in the untracked cache for a later learned rule.
-UNTESTED: the live acting mode of the hook beyond one short smoke on `big`, and everything about
-`held4` (not built). Findings page text: `.claude/reports/20261115-1245-ar5q-findings_ar5_fitskip.md`
-(writing the page under `docs/` was refused by the tool).
+UNTESTED: the live acting mode of the hook had one full live run of the pick on `big` (after the
+freeze, before the selection; not a g3 test); acting mode writes no rows and no g3 script exists;
+`held4` has only its guards (unit-tested) and no build or run code. The findings page text waits for the owner in
+`.claude/reports/20261115-1245-ar5q-findings_ar5_fitskip.md` (writing the page under `docs/` was
+refused by the tool).
 
 - `fitskip_rules.py` (pure): the 27 rules (`S(t, scope)`, `C(t, scope)`, `D(d)`), their replay on
   a recording, the admissibility test, the exact selection and the plan's gate and pass rules.
