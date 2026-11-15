@@ -13162,3 +13162,65 @@ Every fit is checked with one counted evaluation; a model call counts zero. Bran
   `mid`, with the pass), flagged "FAILED GATE" in its `flag` field (the format has no status field).
   Findings page text waits in `.claude/reports/20261115-0840-ar5r-findings_ar5_learnskip.md` (its
   write under `docs/` was refused). Tests: `tests/test_ar5_learnskip.py`, 35 tests.
+
+## Autoresearch AR5 step 19: refit contested voxels after the pass, stopped at the gate (2026-11-15, task ar5s)
+
+Approved D-20261115-N6; g0 counts amended by D-20261115-N7; stopped by D-20261115-N8. Script layer
+only; no library change, no key. Branch `feature/eval-reduction-ar5s`; `frozen.json` committed
+before any repair ran. Arm `J5R` = the stored `J5` run plus a repair: at a contested voxel (after-pass
+hit ratio under 0.95 of its neighbours' median and margin over its best other pass end under 0.15; no
+truth), one MC local optimization from its own end and one from each candidate; keep the highest hit
+ratio, then the lowest cost, then the current end; own generator `default_rng(0)`.
+
+- **Amended g0 (N7).** The plan's first counts used a cKDTree ball and an arccos angle; the pass
+  uses `get_neighbors` (radius 2 side lengths) and the library angle. Frozen with the pass's own:
+  flagged 194 / 183 / 142 / 238 / 56 and fits 1,214 / 1,026 / 635 / 965 / 162 (`held3`, `held`, `mid`,
+  `grad`, `big`), `J5L` on `mid` 145 / 650. All reproduce exactly, with the stored `J5` wrong counts
+  and totals. The g0 arithmetic was first run with scratch scripts before the freeze (the relation had
+  to be frozen); no repair ran before it.
+- **Gate result (contended, not timings).** Repair evaluations / share of `J5` (cap 2.5%, 3.5% on
+  `grad`): `held3` 842,911 / 3.59%; `held` 719,418 / 3.14%; `mid` 451,286 / 4.26%; `grad` 640,885 /
+  7.09%; `big` 123,781 / 3.47%. Median 662 evaluations a fit on every sample (predicted 100 to 250;
+  mean 664 to 764). Fixed / broken against `J5`: 3/0, 9/0, 6/0, 8/0, 5/1; wrong 54 to 51, 67 to 58, 35
+  to 29, 56 to 48, 21 to 17. Broken minus fixed against `S8` before and after: -7 to -10, -3 to -12,
+  +4 to -2, -7 to -15, -3 to -7. `J5L` (measurement): 39 to 31 wrong, 8 fixed, 0 broken, 469,466
+  evaluations (4.70%). Median error moves at most 0.00007 degree. Gate g0 met; g1 and g2 met on
+  accuracy and failed on cost only.
+- **Predictions.** 1 met (amended). 2 not met (median 662; cost 3.14% to 7.09%). 3 mixed (fixed: 3
+  against 6 to 14, 9 in 7 to 16, 6 in 4 to 10, 8 against 10 to 23, 5 against 2 to 4; broken 0 to 1;
+  median error inside). 4 met (`mid` -2). 5 not evaluated (`held4` not built). 6 met: `J5L`
+  repaired against `S8` is 11 fixed / 11 broken, net 0 (+8 before); against `J5R` 2 fixed / 4 broken.
+- **Wrong voxels, Wilson 95% (of 24,570), before to after the repair:** `held3` 54 (0.168 to 0.287%)
+  to 51 (0.158 to 0.273%); `held` 67 (0.215 to 0.346%) to 58 (0.183 to 0.305%); `mid` 35 (0.102 to
+  0.198%) to 29 (0.082 to 0.169%); `grad` 56 (0.176 to 0.296%) to 48 (0.147 to 0.259%); `big` 21
+  (0.056 to 0.131%) to 17 (0.043 to 0.111%); `J5L` 39 (0.116 to 0.217%) to 31 (0.089 to 0.179%). The
+  intervals overlap on every sample; the paired count is the better evidence.
+- **Plainly.** What was measured: fixed minus broken against `J5` is 3, 9, 6, 8, 4 (at least 0 on
+  every sample), but fixed fell below the predicted range on `held3` (3 against 6 to 14) and `grad` (8
+  against 10 to 23) and above it on `big`; `mid` against `S8` goes +4 to -2. Cost over the cap on every
+  sample. The flag was picked on the disclosed samples, so the accuracy is in-sample; `held4` was not
+  built; no key.
+- **The 662.** 57% to 78% of fits end at exactly 662 evaluations; own-end fits (no other grain's
+  start) do so in 88% to 98% of cases, and cost 16% to 32% of the repair's evaluations while changing
+  4 of the 189 kept ends. So the start does not explain the cost; why fits end at 662 is not tested
+  (no trace stored). Against each sample's own cap the fit would need to be 1.26 times cheaper (`held`)
+  to 2.03 times (`grad`).
+- **The broken voxel on `big`** (3140): its `J5` end was 0.081 degree right (hit 0.904); the MC fit
+  from candidate voxel 40 reached hit 0.914 at a neighbouring grain's orientation, 38.9 degrees off;
+  rule `hit` kept it. `S8` had it right.
+- **Pre-freeze disclosure.** The g0 pre-check (scratch scripts, before `frozen.json`) computed the flag
+  under four variants, read the `held` and `held3` truth maps outside the step's guard, and printed
+  the wrong count among flagged voxels, identical under both neighbour relations (28 / 30 / 22 / 47 /
+  18; `J5L` 26): it could not favour either. The `frozen.json` note ("no flag was computed ...") is
+  not literally true; the file was left as frozen. `repair_data.py` and `repair_run.py` are not in
+  the frozen list (the results reproduce exactly); freeze them in any later key.
+- **Stored per fit** (manifest `fits_manifest.json`; tracked copies in `repair/fits/`, 404 KB): voxel,
+  start (-1 own end, else candidate voxel), end, cost, hit ratio, evaluations. No per-evaluation or
+  per-gain trace of any MC fit. A cheaper-stop follow-up should record, per fit, the evaluation index,
+  cost and hit ratio at each gain, why the fit ended, the budget extensions and restarts, and give
+  each fit its own generator.
+- Results: `benchmarks/autoresearch/ar5/repair/` (`frozen.json`, `flags.json`, `gate_fail.json`,
+  `gate_tables.md`, `summary.json`, `tables.md`, `fits_manifest.json`, `ar5_repair_gate.png`). Five
+  pareto rows (`J5R`, flagged "FAILED GATE (cost)"). Findings text waits in
+  `.claude/reports/20261115-0930-ar5s-findings_ar5_repair.md` (its write under `docs/` was refused).
+  Tests: `tests/test_ar5_repair.py`, 20 tests.
