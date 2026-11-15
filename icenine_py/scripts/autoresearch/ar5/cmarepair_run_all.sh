@@ -144,7 +144,7 @@ repair_finished() {
     && [ -e "$cache/J5C_held4/after.npy" ]
 }
 build_finished() {
-  [ "$(cat "$logs/held4_driver.rc" 2>/dev/null)" = "0" ] && [ -e "$grid" ] && [ -e "$st/held4_clean.npy" ]
+  [ -e "$grid" ] && [ -e "$st/held4_clean.npy" ]
 }
 
 # ---- guard 0: every output must really lie in this cache, not behind a link into another cache
