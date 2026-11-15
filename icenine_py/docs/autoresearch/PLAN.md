@@ -4253,6 +4253,157 @@ retraining on `held4`; other models, features; realistic images; other crystals;
   1.63-4.54 / 0.58-0.90 / 0.65-2.72%; `S(0.3, both)`, failed step 17's gate (3.62% on `mid`); a
   stop from the 20-evaluation trace, 5.61 / 5.66 / 4.65 / 9.48 / 4.05%, no live form.
 
+### AR5 step 19: after the pass, refit contested voxels with the MC local optimization
+
+Task `ar5s`. Approved: D-20261115-N6. Starts from `feature/eval-reduction` after step 18's study merge
+(D-20261115-N5). Reuses step 16's cache (worktree `agent-a8d3953c88c593c42`, `ar5/high500/cache`:
+`J5` runs, maps, pass tries), the stored `S8` runs, step 18's live `J5L` run of `mid` (worktree
+`agent-adedc789a656fa5ed`), all read only. Phase A ends at "READY FOR KEY" or at a gate; phase B
+only after a recorded decision.
+
+**Why.** The owner asks for fewer evaluations; a cheaper approximation followed by a final
+optimization is welcome. Arm `J5` uses about 60% fewer evaluations than `S8`, but on `mid` it sits
+at broken minus fixed +4 against `S8` (limit 5). Step 17 fell short of its saving on `mid`; step
+18's learned skip saved 5.65% there and broke 4 voxels (a replay cannot see what a wrong skip does
+to BFS growth). This step saves no evaluations itself. It asks: can a cheap final repair after the
+pass fix the kind of voxel that `J5` and step 18 get wrong, and so give `mid` room for savings?
+
+**What was read.** PLAN steps 16 to 18; both gate reports; `J5`'s maps before and after the pass,
+its pass tries and `stats_<s>.json`; `S8`'s maps and pass tries; the truths (scoring only); `J5L`'s
+map, pass tries and `broken_mid.json`. Scripts `s19_*.py` (scratch). Nothing of `held2` opened.
+
+**What the stored record says.** Every wrong voxel of `J5` after the pass (233 on five samples) is a
+boundary voxel holding a neighbouring grain's orientation. The pass tried a start within 1 degree
+of the truth at 219 of them, and at 218 a try ended right, but always at a lower hit ratio than the
+wrong end, so the pass kept the wrong one. Where `S8` is right and `J5` wrong (82 voxels), `S8`'s
+end has the higher hit at 79. `S8` fits with the MC local optimization (about 92 to 158 evaluations
+a fit on `mid`); `J5`'s fits and pass tries are 60-evaluation CMA runs. Step 18's breaks: alike.
+Reading line: per sample, the flag below: voxels flagged; wrong ones among them; repair fits; cost
+as a share of `J5` (160 evaluations a fit, assumed); a proxy result (at a flagged voxel, `S8`'s end
+if its hit is higher): fixed / broken against `J5`, and broken minus fixed against `S8`.
+
+| sample | flagged | wrong caught | fits | cost | proxy vs `J5` | vs `S8`: `J5`, proxy |
+|---|---|---|---|---|---|---|
+| held3 | 193 | 28 of 54 | 1,217 | 0.83% | 14 / 0 | -7, -21 |
+| held | 183 | 30 of 67 | 1,035 | 0.72% | 16 / 0 | -3, -19 |
+| mid | 143 | 22 of 35 | 643 | 0.97% | 10 / 0 | +4, -6 |
+| grad | 238 | 47 of 56 | 967 | 1.71% | 23 / 0 | -7, -30 |
+| big | 56 | 18 of 21 | 161 | 0.72% | 4 / 0 | -3, -7 |
+| mid, `J5L` | 146 | 26 of 39 | 658 | 1.05% | 15 / 0 | +8, -7 |
+
+The proxy is another arm's ends, not a replay: it cannot show a new break, and a live MC fit may
+fall short of `S8`'s end. The flag was chosen among 12 forms looking at these samples: seen before
+this plan. The flag catches all four of step 18's extra breaks.
+
+**Terms.** **Hit ratio**: the share of simulated peaks that land on lit pixels. **Boundary pass**:
+step 5's pass in `J5` (a voxel with a neighbour more than 0.5 degree away gets one 60-evaluation
+CMA try from each candidate; rule `hit` keeps the highest hit ratio). **Candidates**: a voxel's
+neighbour orientations (radius 2 side lengths) more than 0.5 degree from its own, merged within
+0.5 degree. **Ratio**: a voxel's hit ratio after the pass over the median of its neighbours'.
+**Margin**: its hit ratio minus the best hit among its other pass ends (the old end and try ends
+more than 1 degree from the kept end); a voxel with none is never flagged. **Contested voxel**:
+flagged by `M(0.95, 0.15)`: ratio under 0.95 and margin under 0.15. No truth is used. **MC local
+optimization**: the run's classic variance-minimizing MC fit (`optimizer="mc"`), as `S8`'s BFS
+fits. **Arm `J5R`**: `J5` with the repair. **Right**/**wrong**: at most / over 1 degree from the
+truth (symmetry-reduced). **Fixed**/**broken**: wrong in the older arm and right in the newer / the
+reverse, counted by voxel.
+
+**The repair, frozen now.** After the pass, on a snapshot of the map: flag the contested voxels.
+For each, in index order: one MC local optimization from its own end and one from each candidate
+of the snapshot; keep, among the current end and these ends, the highest hit ratio, then the lowest
+cost, then the current end. Its own generator, `default_rng(0)`; no other draw moves. A voxel's hit
+ratio is the one the pass or the BFS record stores; a missing one costs one counted evaluation (the
+sizing used the stored score of every voxel). Every evaluation is counted. BFS, seeds and the pass
+are untouched, so `J5R`'s run is `J5`'s stored run plus the repair: exact, no rerun.
+
+**Samples, and what has touched them.** `held3`, `held`, `mid`, `grad`, `big`: disclosed; the flag
+was chosen on them. `J5L` (`mid`): seen. `held2`: not used, not opened. Clean test: a new sample
+`held4`, built by `held_make_sample.py` exactly as `held` (250 Voronoi grains, 24,570 voxels,
+gradients 0 to 4 degrees) with generator seed 4, as step 16 built `held3`: a new sample, not an
+extra random seed. Nobody reads its logs or maps before its runs and repair end. Clean, Q-max 8.
+
+**Measured.** Flagged voxels, fits, evaluations (and per fit), voxels changed; wrong voxels (Wilson
+95%), fixed and broken against `J5` and `S8`, median error; `J5L` the same, and against `J5R`.
+
+**Predictions, written before any run.**
+1. The scripts reproduce the table's flagged voxels and fits, and the stored counts.
+2. MC fits at contested voxels take 100 to 250 evaluations (median); repair cost 0.5% to 2% of
+   `J5` on `held3`, `held`, `mid`, `big`, 1% to 3.5% on `grad`.
+3. Fixed against `J5`: `held3` 6 to 14, `held` 7 to 16, `mid` 4 to 10, `grad` 10 to 23, `big` 2
+   to 4; broken 0 to 2 per sample; median error moves at most 0.0005 degree.
+4. `mid` after the repair: broken minus fixed against `S8` from -6 to +1.
+5. `held4`: repair cost under 2% of `J5`; fixed minus broken against `J5` at least 3.
+6. `J5L` repaired, on `mid`: -7 to +2 against `S8`.
+
+**Decision rules, fixed now.** Gate, on the disclosed samples, before `held4` is built: (g0)
+prediction 1 (flagged 193 / 183 / 143 / 238 / 56, fits 1,217 / 1,035 / 643 / 967 / 161; `J5`
+wrong 54 / 67 / 35 / 56 / 21); (g1) `J5R` on `mid`: fixed minus broken against `J5` at least 3,
+repair evaluations at most 2.5% of `J5`; (g2) `J5R` on `held3`, `held`, `grad`, `big`: broken
+minus fixed against `J5` at most 0, repair evaluations at most 2.5% (3.5% on `grad`). Gate fails:
+stop, report, no tuning, no other form, no `held4`. Then `J5R` passes on a sample if, against `J5`
+(the same run, so draws align by construction): (1) repair evaluations at most 2.5% of `J5`'s run
+with the pass (3.5% on `grad`); (2) broken minus fixed at most 0; (3) median error at most 0.001
+degree higher; (4) the house rule against `S8` with the pass: at least 20% fewer evaluations,
+broken minus fixed at most 5, median error at most 0.005 degree higher. The step passes if `J5R`
+passes on `held4` and on the five disclosed samples, and on `mid` broken minus fixed against `S8`
+is at most +1. Fails on `held4`: no key value; study merge. `J5L` repaired is a measurement only:
+it informs the owner; it does not reopen step 18.
+
+**The margin on `mid`, said plainly.** `J5` is at +4 of limit 5 against `S8` there (13 broken, 9
+fixed). This step aims to move that to +1 or lower, so a later step may cost up to 4 voxels there.
+The repair can also break a voxel (an MC fit from a neighbour's orientation may beat a right end);
+rule (2) catches that. My judgement: `mid` reaches +1 or lower about 3 in 4 (not a measurement).
+
+**Machine.** Gate: the repair on five stored maps and `J5L`, about 0.75 million evaluations plus
+setup, under 1 process-hour, 2 processes. Then `held4` built (about 15 minutes); `S8` and `J5` on
+it with their passes (about 67 and 23.5 million); the repair (about 0.2 million). In all about 92
+million, about 4.6 process-hours at 20 million an hour, about 3.6 hours wall (`S8` the long pole),
+at most 4 heavy processes. Caps: 480 minutes for `S8`, 300 the rest. `S8` and `J5` on `held4` stay
+as clean baselines for later steps.
+
+**Stop rule:** stop and report if a stored count does not reproduce (`J5` totals 23,503,385,
+22,939,812, 10,589,493, 9,041,686, 3,567,098; flagged and fits above), if prediction 1 fails, if
+the gate fails, if the repair runs before `ar5/repair/frozen.json` is committed, if `held4`'s logs
+or maps are read before its runs and repair end, if anything of `held2` is opened or listed, or if
+a run hits its cap.
+
+**Phase A (script layer).** 1. Link step 16's cache, the `S8` dirs and `J5L` read only; check the
+counts; write only into this step's cache. 2. Tests first, `tests/test_ar5_repair.py`: ratio and
+margin on hand-made maps; a voxel with no other pass end is never flagged; candidates as the pass;
+rule `hit` with the current end first on ties; one MC fit per start; every evaluation counted; its
+own generator leaves other draws alone; guards on `held2` and `held4`. 3. Commit `frozen.json`
+(rule, gate, decision rules, hashes). 4. Flags (g0) by arithmetic. 5. Repair on the five maps and
+`J5L` (g1, g2). 6. Build `held4` (pilot first), `S8` and `J5` with passes, the repair, 4 at a time.
+Plot first (run evaluations against wrong voxels after the pass: `S8`, `J5`, `J5R`, six panels;
+`mid` with `J5L` and `J5L` repaired); tables; predictions. "READY FOR KEY".
+
+**Phase B (key).** One opt-in key `BoundaryPassRepair` (default 0, off), run at the end of
+`run_boundary_pass`; its settings (0.95, 0.15, MC, generator) are module constants, as the pass's
+are; parsed in `config_file.py`. Unit tests; key-off suite with no golden change; key on, a library
+run on `mid` equal to `J5R`. Page `findings_ar5_repair.md` (plot first), history, pareto rows.
+**Files:** `ar5/repair_*.py`, `tests/test_ar5_repair.py`, `benchmarks/autoresearch/ar5/repair/`
+(under 3 MB tracked). **Library changes:** none in phase A; phase B the key, if the step passes.
+
+**Not in this step.** Retrying steps 17 or 18, or `F95`, on `J5R` (each needs its own plan and, for
+step 18, an owner decision). Other flag forms; two fits a voxel; a second repair round; a longer
+CMA in place of MC; any change to the pass or to its skip (step 13's idea stays blocked); a change
+to the house rule; realistic images; other crystals; a timing; another random seed; `held2`.
+
+**Choices made.**
+- This idea: it targets the one kind of voxel that costs `mid` its margin, with a test that needs
+  no truth and the run's own MC fit; it leaves BFS growth alone, so the whole layer is exact and
+  cheap. Sized by proxy at 0.7% to 1.7% of `J5`, 4 to 23 fixes a sample, `mid` from +4 to -6.
+  Weak side: the proxy uses `S8`'s ends; the MC cost at contested voxels is assumed; the flag was
+  picked looking at disclosed data; it saves no evaluations itself.
+- `M(0.95, 0.15)` over `M(0.94, 0.10)` (0.32% to 1.10%, `mid` to -5): the wider form catches all
+  four of step 18's breaks, the narrower catches one. Ratio alone costs 4.0% to 6.7%.
+- Runner-up `F95` (seed MC stop at the first gain reaching 0.95): 1.34-3.31 / 1.73-4.59 / 1.63-4.54
+  / 0.58-0.90 / 0.65-2.72%, but it moves hundreds of seed ends; best tried once `mid` has room.
+  Inside the pass, an early stop of a try needs traces not stored; nothing else sizable.
+- Owner option, not proposed: the house limit of 5 voxels is the same on every sample; `mid`'s 13
+  broken and 9 fixed are 0.05% and 0.04% of its voxels. Keeping it means every step that touches
+  growth must hold `mid` within one voxel; this step works around it instead.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
