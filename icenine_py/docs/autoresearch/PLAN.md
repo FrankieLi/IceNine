@@ -4404,6 +4404,12 @@ to the house rule; realistic images; other crystals; a timing; another random se
   broken and 9 fixed are 0.05% and 0.04% of its voxels. Keeping it means every step that touches
   growth must hold `mid` within one voxel; this step works around it instead.
 
+**Amendment (D-20261115-N7), before the freeze and before any repair ran.** The sizing script
+used its own neighbour relation and angle, not the pass's. The flag is frozen with the pass's own
+`get_neighbors` and angle ("candidates as the pass"). The numbers of g0 and prediction 1 become:
+flagged 194 / 183 / 142 / 238 / 56, fits 1,214 / 1,026 / 635 / 965 / 162 (`held3`, `held`, `mid`,
+`grad`, `big`); `J5L` on `mid` 145 / 650. Nothing else changes.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing

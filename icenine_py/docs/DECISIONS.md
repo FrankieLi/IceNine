@@ -2029,3 +2029,16 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   itself; it buys room for the saving steps. The flag was picked among 12 forms on disclosed
   samples; held4 is the clean test. The house rule is not changed. The owner may overrule. Where:
   PLAN.md AR5 step 19.
+
+### D-20261115-N7 · Track A / AR5 step 19 · AR5 step 19: the flag is frozen with the boundary pass's own neighbour relation and angle; g0 counts amended before the freeze
+- 2026-11-15, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. The implementer stopped before the freeze: the plan's
+  flagged and fit counts came from a sizing script whose neighbour relation (a ball of radius 2
+  sides) and arccos angle differ from the pass's at exactly-2-side pairs and near the 0.5 degree
+  merge distance. Choice B: freeze the flag with the pass's own get_neighbors and angle, as the
+  plan's terms say (candidates as the pass) and as a library key must do. g0 and prediction 1
+  become flagged 194 / 183 / 142 / 238 / 56 and fits 1,214 / 1,026 / 635 / 965 / 162 on held3,
+  held, mid, grad, big; J5L on mid 145 / 650. No repair had run and no result was seen when this
+  was decided; the thresholds 0.95 and 0.15 and every decision rule stay as planned. The owner may
+  overrule. Where: PLAN.md AR5 step 19 (amendment paragraph);
+  .claude/reports/20261115-0902-ar5s-gate.md.
