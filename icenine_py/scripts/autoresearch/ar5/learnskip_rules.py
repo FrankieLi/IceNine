@@ -235,7 +235,7 @@ def judge(
     r["r3"] = bool(j5l["median"] - j5["median"] <= JUDGE["r3_median_error_higher_max_deg"])
     r["r4"] = bool(
         j5l["wrong_seeds"] - j5["wrong_seeds"] <= JUDGE["r4_wrong_seeds_more_max"]
-        and j5l["grid"] <= j5["grid"] + JUDGE["r4_grid_within"]
+        and abs(j5l["grid"] - j5["grid"]) <= JUDGE["r4_grid_within"]
         and j5l["reseeds"] <= j5["reseeds"] * (1 + JUDGE["r4_reseeds_more_max_share"])
     )
     if s8 is not None:

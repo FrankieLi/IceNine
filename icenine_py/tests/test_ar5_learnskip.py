@@ -344,6 +344,9 @@ def test_judge_rules() -> None:
     assert not LR.judge(dict(ok, vs_j5=dict(broken=7, fixed=1)), j5, s8)["passes"]  # rule 2
     assert not LR.judge(dict(ok, median=0.0111), j5, s8)["passes"]  # rule 3
     assert not LR.judge(dict(ok, wrong_seeds=5), j5, s8)["passes"]  # rule 4
+    assert not LR.judge(dict(ok, grid=7), j5, s8)["passes"]  # grid searches within 1, both ways
+    assert not LR.judge(dict(ok, grid=3), j5, s8)["passes"]
+    assert LR.judge(dict(ok, grid=4), j5, s8)["passes"]
     # J5 itself failing rule 5: judged by 1 to 4 only
     j5_bad = dict(j5, vs_s8=dict(broken=20, fixed=0))
     bad5 = dict(ok, vs_s8=dict(broken=21, fixed=0))
