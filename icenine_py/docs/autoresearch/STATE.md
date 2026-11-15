@@ -49,7 +49,6 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   gate PASSED; held4 runs since 10:06, 15 Nov, in `agent-a8b2d0066621fd0f8` (script fix bf9716ac):
   marker `…/cmarepair/cache/logs/cmarepair_runs.done`; dead: run-all `--resume`. Then stats.
 
-
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
 7, 18, 22, 23, AR0 to AR2, AR3 1 to 11, AR5 1 to 3, 5, 7 to 12, AR4 1): `STATE_HISTORY.md`.
