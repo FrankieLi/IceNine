@@ -2055,3 +2055,16 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   (an early stop or a budget for the repair's MC fit) is to be planned as a new step with held4
   still unread as its clean test. The owner may overrule, for example by accepting the higher
   cost. Where: PLAN.md AR5 step 19; .claude/reports/20261115-0902-ar5s-gate.md.
+
+### D-20261115-N9 · Track A / AR5 step 20 · AR5 step 20 approved: the repair of contested voxels with a 120-evaluation CMA fit in place of the MC fit; clean test held4
+- 2026-11-15, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Step 19's repair failed on cost alone. The drafter
+  re-ran its fits in scratch with traces (unreviewed; the gate must reproduce it exactly): only
+  33% of the MC fits beat their start; a 120-evaluation CMA fit (first step 0.05 degree, one
+  generator per fit) costs 0.54% to 1.29% of J5 and gives fixed/broken against J5 of 14/0 held3,
+  18/0 held, 15/0 mid, 31/0 grad, 14/0 big; mid moves from net +4 to -11 against S8. Step 20 (task
+  ar5t) freezes that form with step 19's flag, gates it on the disclosed samples, and tests it on
+  the new sample held4 with S8 and J5 runs. Said plainly: the form was picked among about 50
+  looking at the disclosed samples, by a rule written after the first table, so held4 is the only
+  clean test. It saves no evaluations itself; it reduces wrong voxels and buys room on mid. The
+  house rule is not changed. The owner may overrule. Where: PLAN.md AR5 step 20.
