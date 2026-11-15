@@ -1164,3 +1164,21 @@ main `.claude/reports/`: `20261115-0850-review-ar5r.md`. No shared library file 
   findings page text waits for the owner (`20261115-0840-ar5r-findings_ar5_learnskip.md`).
 - D-20261115-N6 approves step 19: after the boundary pass, refit contested voxels with the MC local
   optimization, to win back margin on mid. The implementer has started.
+
+### AR5 step 19 (repair of contested voxels; task `ar5s`), merged as a study at b53e927d on 2026-11-15
+
+Suite after the merge: 2214 passed, 48 skipped, 1 deselected. Decisions D-20261115-N7 (g0 counts
+amended before the freeze) and D-20261115-N8 (gate result). Review in the main `.claude/reports/`:
+`20261115-0940-review-ar5s.md`. No shared library file changed.
+
+- After the boundary pass, a voxel is contested when its hit ratio is under 0.95 times the
+  neighbours' median and within 0.15 of the best other pass end. No truth is used. Contested
+  voxels are refitted with the MC local optimization from their own end and from each pass
+  candidate.
+- Fixed and broken against arm J5: held3 3/0, held 9/0, mid 6/0, grad 8/0, big 5/1. Mid's net
+  against S8 moves from +4 to -2. Step 18's map on mid goes from 39 to 31 wrong (net 0 against S8).
+- The repair costs 3.14% to 7.09% of J5's run against a frozen cap of 2.5% (3.5% on grad). One MC
+  fit takes a median of 662 evaluations, so the gate failed on cost. The cap was not loosened.
+- Held4 not built, no library key. Review fixes were doc only. The findings page text waits for
+  the owner (`20261115-0930-ar5s-findings_ar5_repair.md`).
+- A cheaper repair is being planned as step 20.
