@@ -108,6 +108,8 @@ class SampleData:
         self.evals = np.asarray(evals, np.int64)
         self.final_before = np.asarray(final_before, bool)
         self.total = EXPECT[name]["total"]
+        self.g0: Dict[str, Any] = {}  # the recording's count check (set by the replay)
+        self.rows_hash = ""  # a hash of the features and labels (the training hash)
 
 
 def account(skip: np.ndarray, d: SampleData) -> Dict[str, Any]:

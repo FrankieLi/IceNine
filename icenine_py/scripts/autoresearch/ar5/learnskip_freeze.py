@@ -58,6 +58,7 @@ OWN = [
     "learnskip_run.py",
     "learnskip_pass.py",
     "learnskip_launch.py",
+    "learnskip_link_cache.sh",
 ]
 CONSTANTS = dict(
     model=LR.MODEL_SPEC,
