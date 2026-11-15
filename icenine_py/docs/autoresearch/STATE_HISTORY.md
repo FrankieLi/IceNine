@@ -1132,3 +1132,18 @@ Reports in the main `.claude/reports/`: `20261115-0105-review-ar5p.md`,
 - D-20261115-N2 approves step 17: record J5's neighbour local optimizations and revisits, then
   one early skip from a fixed family of 27 (clean test held4). The boundary-pass skip is not
   approved; it waits for the owner. The findings page text waits for the owner (not placed).
+
+### AR5 step 17 (early skip; task `ar5q`), merged as a study at a3a4f1d8 on 2026-11-15
+
+Suite after the merge: 2159 passed, 48 skipped, 1 deselected. Decision D-20261115-N3. Review in the
+main `.claude/reports/`: `20261115-0705-review-ar5q.md`. No shared library file changed.
+
+- Recorded every neighbour local optimization and revisit of arm J5 on five disclosed samples.
+  Recording J5r reproduces J5 exactly. It stays in worktree agent-aeba15b7c3850b007's cache,
+  with a tracked manifest.
+- A frozen selection over 27 hand-made early-skip rules picked S(0.3, both): skip when the start
+  hit ratio is under 0.3 times the best.
+- Replay saving against J5 with the pass: 3.98% held3, 4.21% held, 3.62% mid, 8.74% grad,
+  3.20% big. Gate g2 needed 4% on mid, so the gate failed.
+- No tuning, no live run, held4 not built, no library key. Review fixes were doc only. The
+  findings page text waits for the owner (`20261115-1245-ar5q-findings_ar5_fitskip.md`).
