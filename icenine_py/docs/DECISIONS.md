@@ -2014,3 +2014,18 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   Lesson recorded: the replay cannot see what wrong skips do to growth; on mid about 46 predicted
   wrong skips cost 4 voxels. The owner may overrule. Where: PLAN.md AR5 step 18;
   .claude/reports/20261115-0817-ar5r-gate.md.
+
+### D-20261115-N6 · Track A / AR5 step 19 · AR5 step 19 approved: after the boundary pass, refit contested voxels with the MC local optimization (a repair that buys margin on mid); clean test held4
+- 2026-11-15, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Steps 17 and 18 failed on mid, where arm J5 sits at
+  net +4 of limit 5 against S8. The drafter found on stored data (unreviewed; the gate re-checks
+  it) that all 233 wrong voxels of J5 on five samples are boundary voxels holding a neighbouring
+  grain's orientation, and that at 218 a pass try from the right start ended right but at a lower
+  hit ratio than the wrong end. Step 19 (task ar5s) flags contested voxels without the truth (hit
+  ratio under 0.95 times the neighbours' median and within 0.15 of the best other pass end) and
+  refits them with the MC local optimization from their own end and each pass candidate. BFS
+  growth is untouched, so a whole layer is the stored J5 run plus the repair. Proxy sizing: cost
+  0.72% to 1.71% of J5, 4 to 23 voxels fixed a sample, mid from +4 to -6. It saves no evaluations
+  itself; it buys room for the saving steps. The flag was picked among 12 forms on disclosed
+  samples; held4 is the clean test. The house rule is not changed. The owner may overrule. Where:
+  PLAN.md AR5 step 19.
