@@ -886,6 +886,17 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   "Autoresearch AR5 step 12". The findings page `docs/autoresearch/findings_ar5_stallhit.md` waits
   for the owner (the guard refused its write).
 
+- Autoresearch AR5 step 15, phase A (rule `PB(k)`: at a stall of k evaluations with no gain, the
+  seed step's MC refinement checks the hit ratio of its running best once and stops if it is at
+  least 0.95 or under 0.80; forms `PB(1000)` and `PB(500)`): scripts
+  `scripts/autoresearch/ar5/band_*.py` (script layer, no library change; `band_samples.py` makes the
+  new test sample `held3` at run time without editing older scripts; `band_run_all.sh` is the
+  run-all script, not started), tests `tests/test_ar5_band.py`, results
+  `benchmarks/autoresearch/ar5/band/` (`frozen.json`, `gate.json`, `gate_tables.md`; the cache is
+  untracked). Both forms fail the frozen gate (broken ends, extra grid searches on `held`, too many
+  changed ends, net saving under 6% on `held`), so no whole layer was run and no key was added.
+  MIGRATION_HISTORY, "Autoresearch AR5 step 15, phase A".
+
 See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and
 current results of this work, and [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy
 Orientation NN — Theory Phase" onward) for the step-by-step record.

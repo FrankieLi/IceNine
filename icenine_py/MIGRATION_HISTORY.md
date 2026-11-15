@@ -12939,3 +12939,40 @@ one, so it could not be rerun after phase B's library change).
 (fix 1, above); the tested scope of the key (fix 2) and the agreement of the two stop costs and
 the missing key-off control run (fix 3), both under phase B; the page wording "In these runs,
 every changed end stayed at the same candidate" (fix 4).
+
+## Autoresearch AR5 step 15, phase A: a two-sided stall check in the seed step's MC refinement (gate not passed) (2026-11-14, task ar5o)
+
+Plan: `docs/autoresearch/PLAN.md`, "AR5 step 15" (D-20261114-N6). Rule `PB(k)`: at a stall of k
+evaluations with no gain, the seed step's MC refinement checks the hit ratio of its running best
+once and stops if it is at least 0.95 or under 0.80; else it goes on. Forms `PB(1000)` and
+`PB(500)`. Script layer only (no library change, no new dependency); the opt-in key of phase B was
+not built.
+
+**What was done.** Step 14's stored arm-`J` files were linked read only
+(`band_link_cache.sh`; four samples, no `held2`). Stored counts reproduce (`J` totals 24,457,773,
+11,295,158, 9,175,867, 3,635,256; MC evaluations 11,381,609, 3,795,130, 1,078,188, 424,450).
+Tests first (`tests/test_ar5_band.py`). The rule and the gate were frozen
+(`benchmarks/autoresearch/ar5/band/frozen.json`, 010facd) before any stall hit ratio was read.
+Recording replay (`band_record.py`): every seed step of `J` with an MC refinement was run live
+(2,228 steps on `held`, 772 on `mid`, 479 on `grad`, 99 on `big`; 5,443, 1,606, 992 and 153
+refinements) with `PH(3000)` as `J` ran it, and the hit ratio of the running best was recorded at
+every 500 and 1,000 stall. Prediction 1 holds: every fit equals the stored one (hit ratio, cost,
+orientation, evaluations, gain trace, stored `PH(3000)` checks), worst difference 0. The recorded
+counts of bracketed refinements (first stall before a later gain) equal the plan's "unsure" counts
+(held 1,173 and 651; mid 312 and 193). Changed paths (`band_paths.py`): every step with a
+refinement that `PB(k)` stops before a later gain was run live along the whole path (seed test,
+rescue, `G2b`, grid search). Steps whose path is unchanged are priced by arithmetic; 12 such steps
+of `mid` were also run live under `PB(1000)` and all 12 evaluation counts agree with the arithmetic.
+
+**Result.** Both forms fail the gate (`band_gate.py`, rules frozen in `band_rules.GATE`): see
+`benchmarks/autoresearch/ar5/band/gate_tables.md`. Net saving (every extra evaluation counted)
+against `J`'s run with the pass: `PB(1000)` 3.77% on `held`, 7.64% on `mid`; `PB(500)` 5.59% and
+13.09%. A stall best under 0.80 is not a reliable sign of a failing refinement: 45.1% (k = 1,000)
+and 63.1% (k = 500) of the bracketed refinements have one, and stopping them loses later 0.95 ends
+(`PB(1000)`: failed seed tests among changed steps 9 to 36 on `held`, grid searches 4 to 7;
+`PB(500)`: 30 to 111 and 4 to 11). Broken (end right under `J`, wrong under `PB`): 2, 1, 1, 0 for
+`PB(1000)` on `held`, `mid`, `grad`, `big`; 4, 2, 1, 0 for `PB(500)`; fixed 0. Rule: no tuning, no
+third form, no whole layer; `held3` was not built; no form was chosen (no `chosen.json`). The
+run-all script `band_run_all.sh` (build `held3`; `S8`, `J`, `JB` on it; `JB` on the four others)
+is written but waits for a chosen form. `held3` is made by a run-time shim (`band_samples.py`)
+because older steps' scripts may not be edited.
