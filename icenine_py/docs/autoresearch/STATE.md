@@ -45,9 +45,9 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
 
 ## Running jobs
 - AR5 step 14 stats in (1838af4): J vs H fewer evaluations held 17.34%, mid 5.48%, grad 9.87%,
-  big equal; rules met on all four; held2 after the pass waits for step 13. Review approved
-  (N5, 650cb90); a1bd2e7a applies fixes 1-4 since 16:15. Phase B waits (held2). Then page v51.
-- Page v50 live (10:40, 14 Nov); v51 after the next finished step. Step 13: blocked.
+  big equal; rules met on all four; review approved (N5, 650cb90), fixes 1-4 in (8fbc6d4).
+  Phase B (key) WAITS: held2 after-pass judgement needs step 13 or the owner. No job runs.
+- Page v51 live (16:18, 14 Nov); v52 after the next finished step. Step 13: blocked.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
