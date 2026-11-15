@@ -1089,3 +1089,16 @@ D-20261114-N3 (review: times stand with labels; 16 fixes).
 - Unexplained: 85 global searches against 79 voxels with no record of a search.
 - The page waits for the owner: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md` goes to
   `icenine_py/docs/autoresearch/findings_cpp_time.md`.
+
+### AR5 step 14 phase A (rule G2b; task `ar5n`), merged as scripts at f68ab69 on 2026-11-14
+
+Scripts only: no library change, no key. Suite after the merge: 2055 passed, 47 skipped, 1 deselected.
+Decisions D-20261114-N4, N5 and N6. Reports in the main `.claude/reports/`: `20261114-1559-ar5n-stats.md`,
+`20261114-1605-review-ar5n.md`, `20261114-1640-ar5n-review-fixes.md`.
+
+- Rule G2b: after a failed rescue, run a second local optimization from the rescue's ends before the
+  grid search. Arm J is arm H plus G2b; it is compared with arm H, both with the boundary pass.
+- Arm J against arm H: held 17.34% fewer evaluations, mid 5.48%, first gradient sample 9.87%, big
+  identical. Rules 1 to 5 are met on those four samples.
+- held2 (the test sample) was run only before the pass: 15.75% fewer. Its judgement after the pass,
+  and the library key, wait for step 13 or the owner. Guard swap 1d34368 was reviewed.
