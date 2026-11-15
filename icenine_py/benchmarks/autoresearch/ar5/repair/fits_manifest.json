@@ -1,0 +1,57 @@
+{
+ "what": "What the repair (arm J5R, step 19) stored per fit. Written after the gate failed; no new run.",
+ "per_fit_file": "<folder>/fits.npz (untracked cache; one row per MC fit, in the order made)",
+ "columns": {
+  "voxel": "the contested voxel (int32)",
+  "start": "-1 for the fit from the voxel's own end, else the candidate voxel whose snapshot orientation was the start (int32)",
+  "end": "the end orientation, 3x3 float64",
+  "cost": "strict cost of the end (final overlap evaluation)",
+  "hit": "hit ratio of the end",
+  "evals": "evaluations of the whole fit, final overlap evaluation included (Reconstructor.last_local_optimization_evals)"
+ },
+ "also": {
+  "repair_json": "<folder>/repair.json: counts, changed voxels, wall (contended), median evaluations per fit",
+  "after_npy": "<folder>/after.npy: the map after the repair"
+ },
+ "trace_stored": false,
+ "trace_note": "No per-evaluation trace and no per-gain trace of any MC fit is stored: only the end and the total evaluations of each fit. A later step that wants to replay a cheaper stop on these fits would have to re-run them, with one generator default_rng(0) over the voxels in index order (a fit's draws depend on every earlier fit, so a replay must keep that order).",
+ "samples": {
+  "held3": {
+   "folder": "benchmarks/autoresearch/ar5/repair/cache/J5R_held3/",
+   "n_fits": 1214,
+   "n_flagged": 194,
+   "n_evals": 842911
+  },
+  "held": {
+   "folder": "benchmarks/autoresearch/ar5/repair/cache/J5R_held/",
+   "n_fits": 1026,
+   "n_flagged": 183,
+   "n_evals": 719418
+  },
+  "mid": {
+   "folder": "benchmarks/autoresearch/ar5/repair/cache/J5R_mid/",
+   "n_fits": 635,
+   "n_flagged": 142,
+   "n_evals": 451286
+  },
+  "grad": {
+   "folder": "benchmarks/autoresearch/ar5/repair/cache/J5R_grad/",
+   "n_fits": 965,
+   "n_flagged": 238,
+   "n_evals": 640885
+  },
+  "big": {
+   "folder": "benchmarks/autoresearch/ar5/repair/cache/J5R_big/",
+   "n_fits": 162,
+   "n_flagged": 56,
+   "n_evals": 123781
+  },
+  "mid_J5L": {
+   "folder": "benchmarks/autoresearch/ar5/repair/cache/J5LR_mid/",
+   "n_fits": 650,
+   "n_flagged": 145,
+   "n_evals": 469466
+  }
+ },
+ "not_stored": "the list of flagged voxels (it is recomputed by repair_rules from the stored pass tries; flags.json holds only the counts) and the candidates per voxel"
+}

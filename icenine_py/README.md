@@ -942,6 +942,16 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   for them are untested. Findings text waits in
   `.claude/reports/20261115-0840-ar5r-findings_ar5_learnskip.md` (its write under `docs/` was
   refused); one pareto row flagged "failed gate". MIGRATION_HISTORY, "Autoresearch AR5 step 18".
+- Autoresearch AR5 step 19 (refit contested voxels after the boundary pass with the MC local
+  optimization; D-20261115-N6, g0 counts amended N7, stopped at its gate by N8): scripts
+  `scripts/autoresearch/ar5/repair_*.py` (pure rules, guards, freeze, set-up, data loader, flags,
+  runner, gate, summary, pareto rows), tests `tests/test_ar5_repair.py` (20), results
+  `benchmarks/autoresearch/ar5/repair/`. Accuracy as hoped (fixed against `J5`: 3, 9, 6, 8, 5; broken
+  0 to 1; `mid` against `S8` from +4 to -2), cost over the cap: 3.14% to 7.09% of the run against 2.5%
+  (3.5% on `grad`), median 662 evaluations a fit. In-sample (flag chosen on these samples); `held4`
+  not built; no key, no library change. Five pareto rows flagged "failed gate (cost)". Findings text
+  in `.claude/reports/20261115-0930-ar5s-findings_ar5_repair.md` (its write under `docs/` was
+  refused). MIGRATION_HISTORY, "Autoresearch AR5 step 19".
 
 See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and
 current results of this work, and [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy

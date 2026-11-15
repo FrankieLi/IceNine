@@ -2930,6 +2930,111 @@
    "source_json": "icenine_py/benchmarks/autoresearch/ar5/learnskip/stats_mid.json :: arms.J5L",
    "source_page": "icenine_py/MIGRATION_HISTORY.md :: Autoresearch AR5 step 18 (the findings page text waits for the owner in .claude/reports/; no page under docs/ yet)",
    "flag": "FAILED GATE: the step stopped at its gate (D-20261115-N5). Gate model, not the final model; one run on mid, the sample the gate model was checked on; broken minus fixed against S8 is 8 (limit 5). Not a result to build on."
+  },
+  {
+   "sample": "held3_24570",
+   "step": "AR5 step 19",
+   "method": "BFS indexed, arm J5 + boundary pass + repair of contested voxels (MC local optimization from the own end and each neighbour candidate; arm J5R)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 24346296,
+   "evals_per_voxel": 990.9,
+   "per_voxel_derived": true,
+   "wrong": 51,
+   "n": 24570,
+   "interval_pct": [
+    0.16,
+    0.27
+   ],
+   "estimated": false,
+   "what_evals_include": "the stored J5 run with its boundary pass plus every counted evaluation of the repair (842,911)",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar5/repair/summary.json :: held3",
+   "source_page": "icenine_py/MIGRATION_HISTORY.md :: Autoresearch AR5 step 19 (the findings page text waits in .claude/reports/; no page under docs/ yet)",
+   "flag": "FAILED GATE (cost): the repair's evaluations are 3.59% of the J5 run, over the cap of 2.5% (D-20261115-N8). Accuracy as hoped but in-sample: the flag was chosen on these samples; held4 was not built. Not a result to build on."
+  },
+  {
+   "sample": "held_24570",
+   "step": "AR5 step 19",
+   "method": "BFS indexed, arm J5 + boundary pass + repair of contested voxels (MC local optimization from the own end and each neighbour candidate; arm J5R)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 23659230,
+   "evals_per_voxel": 962.93,
+   "per_voxel_derived": true,
+   "wrong": 58,
+   "n": 24570,
+   "interval_pct": [
+    0.18,
+    0.31
+   ],
+   "estimated": false,
+   "what_evals_include": "the stored J5 run with its boundary pass plus every counted evaluation of the repair (719,418)",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar5/repair/summary.json :: held",
+   "source_page": "icenine_py/MIGRATION_HISTORY.md :: Autoresearch AR5 step 19 (the findings page text waits in .claude/reports/; no page under docs/ yet)",
+   "flag": "FAILED GATE (cost): the repair's evaluations are 3.14% of the J5 run, over the cap of 2.5% (D-20261115-N8). Accuracy as hoped but in-sample: the flag was chosen on these samples; held4 was not built. Not a result to build on."
+  },
+  {
+   "sample": "mid_24570",
+   "step": "AR5 step 19",
+   "method": "BFS indexed, arm J5 + boundary pass + repair of contested voxels (MC local optimization from the own end and each neighbour candidate; arm J5R)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 11040779,
+   "evals_per_voxel": 449.36,
+   "per_voxel_derived": true,
+   "wrong": 29,
+   "n": 24570,
+   "interval_pct": [
+    0.08,
+    0.17
+   ],
+   "estimated": false,
+   "what_evals_include": "the stored J5 run with its boundary pass plus every counted evaluation of the repair (451,286)",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar5/repair/summary.json :: mid",
+   "source_page": "icenine_py/MIGRATION_HISTORY.md :: Autoresearch AR5 step 19 (the findings page text waits in .claude/reports/; no page under docs/ yet)",
+   "flag": "FAILED GATE (cost): the repair's evaluations are 4.26% of the J5 run, over the cap of 2.5% (D-20261115-N8). Accuracy as hoped but in-sample: the flag was chosen on these samples; held4 was not built. Not a result to build on."
+  },
+  {
+   "sample": "gradient_24570",
+   "step": "AR5 step 19",
+   "method": "BFS indexed, arm J5 + boundary pass + repair of contested voxels (MC local optimization from the own end and each neighbour candidate; arm J5R)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 9682571,
+   "evals_per_voxel": 394.08,
+   "per_voxel_derived": true,
+   "wrong": 48,
+   "n": 24570,
+   "interval_pct": [
+    0.15,
+    0.26
+   ],
+   "estimated": false,
+   "what_evals_include": "the stored J5 run with its boundary pass plus every counted evaluation of the repair (640,885)",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar5/repair/summary.json :: grad",
+   "source_page": "icenine_py/MIGRATION_HISTORY.md :: Autoresearch AR5 step 19 (the findings page text waits in .claude/reports/; no page under docs/ yet)",
+   "flag": "FAILED GATE (cost): the repair's evaluations are 7.09% of the J5 run, over the cap of 3.5% (D-20261115-N8). Accuracy as hoped but in-sample: the flag was chosen on these samples; held4 was not built. Not a result to build on."
+  },
+  {
+   "sample": "big_24570",
+   "step": "AR5 step 19",
+   "method": "BFS indexed, arm J5 + boundary pass + repair of contested voxels (MC local optimization from the own end and each neighbour candidate; arm J5R)",
+   "family": "BFS with indexed seeds",
+   "boundary_pass": true,
+   "evals_total": 3690879,
+   "evals_per_voxel": 150.22,
+   "per_voxel_derived": true,
+   "wrong": 17,
+   "n": 24570,
+   "interval_pct": [
+    0.04,
+    0.11
+   ],
+   "estimated": false,
+   "what_evals_include": "the stored J5 run with its boundary pass plus every counted evaluation of the repair (123,781)",
+   "source_json": "icenine_py/benchmarks/autoresearch/ar5/repair/summary.json :: big",
+   "source_page": "icenine_py/MIGRATION_HISTORY.md :: Autoresearch AR5 step 19 (the findings page text waits in .claude/reports/; no page under docs/ yet)",
+   "flag": "FAILED GATE (cost): the repair's evaluations are 3.47% of the J5 run, over the cap of 2.5% (D-20261115-N8). Accuracy as hoped but in-sample: the flag was chosen on these samples; held4 was not built. Not a result to build on."
   }
  ],
  "excluded": [
