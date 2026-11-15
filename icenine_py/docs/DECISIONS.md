@@ -1972,3 +1972,15 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   on five samples, unreviewed), is NOT approved by me: it is step 13's idea, whose freeze was
   refused by a permission check and waits for the owner. The owner may say that it may run as a
   new step, or overrule this choice. Where: PLAN.md AR5 step 17.
+
+### D-20261115-N3 · Track A / AR5 step 17 · AR5 step 17 stops at its gate (g2 fails on mid: 3.62% against 4%); no tuning, no key, study merge
+- 2026-11-15, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. The recording run J5r reproduces arm J5 on all five
+  samples. The frozen selection picks rule S(0.3, both) (skip a neighbour local optimization or
+  revisit whose start hit ratio is under 0.3 times the best) from 12 admissible rules of 27. Its
+  net saving on the recording is 3.98% on held3, 4.21% on held, 3.62% on mid, 8.74% on grad, 3.20%
+  on big of J5 with the pass; wrong skips 21, 34, 26, 24, 6; no final answer changes. Gate g2
+  needs 4% on mid, so the gate fails. As frozen: no tuning, no second pick, no live run, held4 not
+  built, no whole layer, no key. The scripts, the recording tooling and the result merge as a
+  study after an Opus review. The recording stays in the cache for a later learned rule. The owner
+  may overrule. Where: PLAN.md AR5 step 17; .claude/reports/20261115-1130-ar5q-gate.md.
