@@ -48,7 +48,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   held 17.34%, mid 5.48%, grad 9.87%. Key WAITS (held2: step 13 or owner). Step 15 failed, merged.
   Step 16 MERGED 4a1cfb42 (J5 passes on 5 samples). Step 17 (gate failed, N3) MERGED a3a4f1d8;
   `J5r` in `agent-aeba15b7c3850b007`. Step 18 (gate failed on mid, N5) MERGED 8b456ac5 (suite 2194
-  passed). v54 live. Step 19 (`ar5s`): gate FAILED on repair cost only (N8); study wrap-up running.
+  passed). v54 live. Step 19 (gate failed on repair cost, N8) MERGED b53e927d. Step 20 draft running.
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
 7, 18, 22, 23, AR0 to AR2, AR3 1 to 11, AR5 1 to 3, 5, 7 to 12, AR4 1): `STATE_HISTORY.md`.
