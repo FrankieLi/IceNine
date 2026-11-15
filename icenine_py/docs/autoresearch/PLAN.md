@@ -4410,6 +4410,156 @@ used its own neighbour relation and angle, not the pass's. The flag is frozen wi
 flagged 194 / 183 / 142 / 238 / 56, fits 1,214 / 1,026 / 635 / 965 / 162 (`held3`, `held`, `mid`,
 `grad`, `big`); `J5L` on `mid` 145 / 650. Nothing else changes.
 
+### AR5 step 20: a cheaper repair: a 120-evaluation CMA fit in place of the MC fit
+
+Task `ar5t`. Approved: D-20261115-N9. Starts from `feature/eval-reduction` after step 19's study merge
+(D-20261115-N8). Reuses step 19's cache (worktree `agent-af5e5060b23027220`, `ar5/repair/cache`:
+links to step 16's `J5` maps and pass tries, the `S8` maps, step 18's `J5L`), all read only.
+Phase A ends at "READY FOR KEY" or at a gate; phase B only after a recorded decision.
+
+**Why.** Step 19's repair worked on accuracy (fixed / broken against `J5`: 3/0, 9/0, 6/0, 8/0,
+5/1; `mid` from +4 to -2 against `S8`) but failed its gate on cost: 3.14% to 7.09% of `J5`
+against a cap of 2.5% (3.5% on `grad`), because an MC fit took a median of 662 evaluations, not
+160. This step asks for the same repair at a fraction of the cost, keeping its fixes, so that
+`mid` gains room against `S8` for later savings. It saves no evaluations itself.
+
+**What was read and run.** PLAN step 19 with its amendment (D-20261115-N7); the gate report; step
+19's repair scripts and cache (read only); the library's MC and CMA local optimizations. Run in
+scratch: step 19's fits again with a trace of every gain, on the five `J5` maps and `J5L`, with
+step 19's generator, with one generator per fit, and as 240-evaluation CMA runs; about 8 million
+evaluations, under 10 minutes, 2 processes. Nothing of `held2` opened; `held4` not built.
+
+**What the record says.** The trace reproduces step 19's fits exactly (evaluations, cost, hit
+ratio per fit). Every MC fit runs its schedule to the end (its stop needs a cost under 0.0001,
+never reached here). Only 33% of the 4,002 MC fits beat their start at all, and 96% make their
+last gain by evaluation 100. A CMA fit beats its start in 99% to 100% of fits. MC draws its random
+numbers from the one generator of the repair, three per trial step, so a fit stopped early shifts
+every later fit's draws; CMA draws one seed per fit. The generator alone moves step 19's fixed
+counts by up to 3 a sample. Reading line: per sample, `J5` wrong after the pass; the repair's cost
+as a share of `J5` and fixed / broken against `J5`, for step 19 as run, for full MC with one
+generator per fit, for the cheapest MC stop (stall 50) and for the chosen form; broken minus fixed
+against `S8` for `J5`, step 19 and the chosen form.
+
+| sample | `J5` wrong | step 19 | MC, own generators | MC stall 50 | CMA 120 | vs `S8`: `J5`, 19, CMA 120 |
+|---|---|---|---|---|---|---|
+| held3 | 54 | 3.59%, 3/0 | 3.63%, 5/0 | 0.35%, 5/0 | 0.62%, 14/0 | -7, -10, -21 |
+| held | 67 | 3.14%, 9/0 | 3.17%, 6/0 | 0.30%, 6/0 | 0.54%, 18/0 | -3, -12, -21 |
+| mid | 35 | 4.26%, 6/0 | 4.19%, 7/0 | 0.40%, 7/0 | 0.73%, 15/0 | +4, -2, -11 |
+| grad | 56 | 7.09%, 8/0 | 7.08%, 6/0 | 0.63%, 5/0 | 1.29%, 31/0 | -7, -15, -38 |
+| big | 21 | 3.47%, 5/1 | 3.39%, 5/0 | 0.29%, 5/0 | 0.55%, 14/0 | -3, -7, -17 |
+| mid, `J5L` | 39 | 4.70%, 8/0 | 4.57%, 8/0 | 0.43%, 8/0 | 0.79%, 18/0 | +8, +0, -10 |
+
+The chosen form was picked among about 50 forms (budgets, stall stops, win and lose stops, fewer
+fits, longer CMA, tighter flags) looking at these samples, by a rule written after the first
+table: see "Choices made". Median error falls by 0.00009 to 0.00037 degree with it.
+
+**Terms.** **Hit ratio**: the share of simulated peaks that land on lit pixels. **Boundary pass**,
+**candidates**, **ratio**, **margin**, **contested voxel** (`M(0.95, 0.15)`): as step 19, with the
+pass's own `get_neighbors` (radius 2 side lengths) and angle (D-20261115-N7). **CMA fit**: one
+local CMA run of the library (`optimizer="cma"`), first step 0.05 degree (the pass's try step), at
+most 120 evaluations with the start's own, plus the final evaluation (121 in all). **Per-fit
+generator**: `default_rng([0, v, c + 1])` for the fit at voxel `v` from start voxel `c` (-1 for
+the voxel's own end). **Arm `J5C`**: `J5` with this repair. **Right**/**wrong**: at most / over 1
+degree from the truth (symmetry-reduced). **Fixed**/**broken**: wrong in the older arm and right
+in the newer / the reverse, counted by voxel.
+
+**The repair, frozen now.** After the pass, on a snapshot of the map: flag the contested voxels
+exactly as step 19's frozen `repair_rules` does (imported, not copied). For each, in index order:
+one CMA fit from its own end and one from each candidate of the snapshot, each with its per-fit
+generator; keep, among the current end and these ends, the highest hit ratio, then the lowest
+cost, then the current end. A voxel's hit ratio is the stored one; a missing one costs one counted
+evaluation. Every evaluation is counted. No stop, budget or fit depends on another fit, so no
+draw moves when a fit is added, dropped or cut. BFS, seeds and the pass are untouched, so `J5C`'s
+run is `J5`'s stored run plus the repair: exact, no rerun.
+
+**Samples, and what has touched them.** `held3`, `held`, `mid`, `grad`, `big`: disclosed; step 19's
+flag and this form were chosen on them. `J5L` (`mid`): seen. `held2`: not used, not opened. Clean
+test: a new sample `held4`, built by `held_make_sample.py` exactly as `held` (250 Voronoi grains,
+24,570 voxels, gradients 0 to 4 degrees) with generator seed 4, as step 16 built `held3`: a new
+sample, not an extra random seed. It is still unbuilt and unread; nobody reads its logs or maps
+before its runs and repair end. Clean images, Q-max 8.
+
+**Measured.** Flagged voxels, fits, evaluations (and per fit), voxels changed; wrong voxels (Wilson
+95%), fixed and broken against `J5` and `S8`, median error; `J5L` the same, and against `S8`.
+
+**Predictions, written before any run.**
+1. The tracked scripts reproduce the sizing exactly: flagged / fits 194 / 1,214, 183 / 1,026,
+   142 / 635, 238 / 965, 56 / 162; repair evaluations 146,894 / 124,146 / 76,835 / 116,765 /
+   19,602; fixed / broken 14/0, 18/0, 15/0, 31/0, 14/0; `J5L` 145 / 650, 78,650, 18/0.
+2. `held4`: flagged 150 to 250; repair cost 0.4% to 1.0% of `J5`; fixed against `J5` 8 to 25,
+   broken 0 to 2; median error not higher by more than 0.0001 degree.
+3. `held4`, against `S8`: `J5` broken minus fixed -10 to +5; `J5C` -30 to -5.
+
+**Decision rules, fixed now.** Gate, on the disclosed samples, before `held4` is built: (g0) step
+19's flags and `J5` totals reproduce (above; `J5` totals 23,503,385, 22,939,812, 10,589,493,
+9,041,686, 3,567,098); (g1) prediction 1, exactly; (g2) on each disclosed sample: repair
+evaluations at most 1.5% of `J5` (2.0% on `grad`), fixed minus broken against `J5` at least 3,
+and on `mid` broken minus fixed against `S8` at most +1. Gate fails: stop, report, no tuning, no
+other form, no `held4`. Then `J5C` passes on a sample if, against `J5` (the same run, so draws
+align by construction): (1) repair evaluations at most 1.5% of `J5`'s run with the pass (2.0% on
+`grad`); (2) broken minus fixed at most 0; (3) median error at most 0.001 degree higher; (4) the
+house rule against `S8` with the pass: at least 20% fewer evaluations, broken minus fixed at most
+5, median error at most 0.005 degree higher. The step passes if `J5C` passes on `held4` and on the
+five disclosed samples, and on `mid` broken minus fixed against `S8` is at most +1. Fails on
+`held4`: no key value; study merge. `J5L` repaired is a measurement only.
+
+**Machine.** Gate: the repair on five stored maps and `J5L`, about 0.56 million evaluations plus
+setup, minutes, 2 processes. Then `held4` built (about 15 minutes); `S8` and `J5` on it with their
+passes (about 67 and 23.5 million); the repair (about 0.15 million). In all about 91 million,
+about 4.6 process-hours at 20 million an hour, about 3.6 hours wall (`S8` the long pole), at most
+4 heavy processes. Caps: 480 minutes for `S8`, 300 the rest. `S8` and `J5` on `held4` stay as
+clean baselines for later steps.
+
+**Stop rule:** stop and report if a stored count does not reproduce, if prediction 1 fails, if the
+gate fails, if the repair runs before `ar5/cmarepair/frozen.json` is committed, if `held4`'s logs
+or maps are read before its runs and repair end, if anything of `held2` is opened or listed, or if
+a run hits its cap.
+
+**Phase A (script layer).** 1. Link step 19's cache read only; check the counts; write only into
+this step's cache. 2. Tests first, `tests/test_ar5_cmarepair.py`: a fit's result does not depend
+on which other fits ran or how long (per-fit generators); a CMA fit counts 121 evaluations; the
+keep rule with the current end first on ties; the flag is step 19's frozen function; every
+evaluation counted; guards on `held2` and `held4`. 3. Commit `frozen.json` (rule, gate, decision
+rules, hashes). 4. Gate (g0 to g2); `J5L`. 5. Build `held4` (pilot first), `S8` and `J5` with
+passes, the repair, 4 at a time. Plot first (run evaluations against wrong voxels after the pass:
+`S8`, `J5`, `J5R` where stored, `J5C`, six panels; `mid` with `J5L`); tables; predictions.
+"READY FOR KEY".
+
+**Phase B (key).** One opt-in key `BoundaryPassRepair` (default 0, off), run at the end of
+`run_boundary_pass`; its settings (0.95, 0.15, CMA, 0.05 degree, 120 evaluations, per-fit
+generator) are module constants, as the pass's are; parsed in `config_file.py`. Unit tests;
+key-off suite with no golden change; key on, a library run on `mid` equal to `J5C` (the same map
+and evaluation count). Page `findings_ar5_cmarepair.md` (plot first), history, pareto rows.
+**Files:** `ar5/cmarepair_*.py`, `tests/test_ar5_cmarepair.py`,
+`benchmarks/autoresearch/ar5/cmarepair/` (under 3 MB tracked). **Library changes:** none in phase
+A; phase B the key, if the step passes.
+
+**Not in this step.** The runners-up below; an MC stop; retrying steps 17 or 18, or `F95`, on
+`J5C` (each needs its own plan and, for step 18, an owner decision); a second repair round; any
+change to the pass or to its skip (step 13's idea stays blocked); a change to the house rule;
+realistic images; other crystals; a timing; another random seed; `held2`.
+
+**Choices made.**
+- This form, by the rule: on every disclosed sample, fixed at least step 19's minus one and broken
+  at most step 19's; cost at most step 19's cap minus 0.5 point; median error at most 0.001
+  degree higher; `mid` at most +1 against `S8`; among forms that change one thing in step 19's
+  repair, the cheapest. Only CMA 120 and CMA 240 meet it; CMA 120 is half the cost. Weak side: it
+  was chosen looking at the disclosed samples, by a rule written after the first table; its fixes
+  are 2 to 5 times step 19's, which is consistent with MC's trial steps being coarse for these
+  starts (not tested); it moves nearly every flagged voxel a little (the own-end fit refines it),
+  so a break on `held4` would come from a candidate end beating a right end (none so far).
+- Per-fit generators, not one stream: then a stop or a dropped fit moves no other draw, and every
+  replay is exact. Cost: `J5C` does not use step 19's draws, so `J5C` against `J5R` mixes the
+  form with the draws (up to 3 voxels a sample, as above).
+- Runners-up: CMA 120 with only the top two candidates by pass-try hit ratio (0.28% to 0.92%;
+  14/0, 15/0, 13/0, 24/0, 14/0; `mid` -9) and CMA 120 with flag `M(0.95, 0.10)` (0.29% to 1.00%;
+  12/0, 14/0, 14/0, 29/0, 12/0; `mid` -10): about 40% cheaper again, but two changes, picked after
+  seeing CMA 120. MC stall 50 (0.29% to 0.63%; 5/0, 6/0, 7/0, 5/0, 5/0; `mid` -3) keeps the MC fit
+  and full MC's fixes but fails the rule on `held` (6 against 9 minus one). CMA 240 (1.08% to
+  2.57%) buys 2 to 5 more fixes a sample for twice the cost.
+- Owner option, not proposed: accept step 19's repair as it is (MC, 3.14% to 7.09% of `J5`, caps
+  of about 4.3% on `mid` and 7.1% on `grad`); it fixes fewer than CMA 120 at six times the cost.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing

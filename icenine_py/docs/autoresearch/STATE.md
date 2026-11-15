@@ -113,7 +113,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   Step 5's result files add about 50 MB to git; say so if you want them pruned.
 
 ## Bookkeeping
-- Next decision ID: D-20261115-N9 (first of a day is N1).
+- Next decision ID: D-20261115-N10 (first of a day is N1).
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
