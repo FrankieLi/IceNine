@@ -46,8 +46,8 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
 ## Running jobs
 - AR5 step 14 phase A MERGED f68ab69 (suite 2055 passed, 47 skipped, 1 deselected); J vs H fewer:
   held 17.34%, mid 5.48%, grad 9.87%, big equal. Key WAITS (held2 after the pass: step 13 or owner).
-  Cache kept in worktree `agent-a1bd2e7a7dbfe1efd`. Step 15 (`ar5o`) FAILED its gate (N7), MERGED
-  as a study 053fd66. Page v52 live. Step 16 plan drafter since 18:55 (`SP/plan_step16_draft.md`).
+  Step 14 cache: worktree `agent-a1bd2e7a7dbfe1efd`. Step 15 (`ar5o`) failed its gate (N7), merged
+  053fd66. v52 live. Step 16 (`ar5p`, N8): implementer a8d3953c since 19:15 (gate, then I start runs).
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
@@ -113,7 +113,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   Step 5's result files add about 50 MB to git; say so if you want them pruned.
 
 ## Bookkeeping
-- Next decision ID: D-20261114-N8 (first of a day is N1).
+- Next decision ID: D-20261114-N9 (first of a day is N1).
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
