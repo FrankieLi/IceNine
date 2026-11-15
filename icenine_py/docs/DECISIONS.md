@@ -1984,3 +1984,18 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   built, no whole layer, no key. The scripts, the recording tooling and the result merge as a
   study after an Opus review. The recording stays in the cache for a later learned rule. The owner
   may overrule. Where: PLAN.md AR5 step 17; .claude/reports/20261115-1130-ar5q-gate.md.
+
+### D-20261115-N4 · Track A / AR5 step 18 · AR5 step 18 approved: a learned skip of BFS local optimizations (boosted trees on 16 features known before the fit), trained on the J5r recording; clean test held4
+- 2026-11-15, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Step 18 (task ar5r) trains a gradient-boosted tree
+  model on step 17's recording to predict that a neighbour local optimization or revisit will be
+  rejected, and skips it. Leave-one-sample-out sizing by the drafter (unreviewed; the gate
+  re-checks it): net saving 5.46% held3, 6.16% held, 5.79% mid, 11.83% grad, 5.38% big of J5 with
+  the pass, inside the wrong-skip limits on all five. Model, 16 features, threshold procedure,
+  gate and decision rules are fixed in the plan; the only out-of-sample whole-layer test is the
+  new sample held4. The drafter preferred rule F95 (seed MC stop at the first gain reaching 0.95;
+  bounds 0.58% to 4.59%); I chose the learned skip because its saving is measured out of sample
+  and larger, and the mandate asks for learned approximations. Said plainly: the feature set was
+  fixed after two looks at the disclosed samples (a 17th feature was dropped), and mid's odds are
+  about 1 in 2. No new runtime dependency (trees exported to JSON). The owner may overrule. Where:
+  PLAN.md AR5 step 18.
