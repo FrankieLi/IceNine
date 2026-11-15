@@ -1115,3 +1115,20 @@ Decisions D-20261114-N6 and N7. Reports in the main `.claude/reports/`: `2026111
   limit is 6%. Wrong voxels were broken (2 and 4 on `held`, none fixed); grid searches rose.
 - Saving on `mid` was fine (7.64%, 13.09%). No `held3` sample and no whole-layer run: the gate stops it.
 - Six document fixes after review (documents and headers only).
+
+### AR5 step 16 (rule PH(500); task `ar5p`), merged at 4a1cfb42 on 2026-11-15
+
+Suite after the merge: 2125 passed, 48 skipped, 1 deselected. Decisions D-20261115-N1 and N2.
+Reports in the main `.claude/reports/`: `20261115-0105-review-ar5p.md`,
+`20261115-0150-review-ar5p-phaseB.md`, `20261115-0143-ar5p-phaseB-findings_ar5_high500.md`.
+
+- Rule PH(500): high stop at a 500-evaluation stall in the seed step's MC refinement. Arm J5 is
+  arm J with it. J5 passes rules 1 to 5 on held3 (clean test), held, mid, grad and big.
+- J5 against J, both with the boundary pass: fewer evaluations by 5.37%, 6.21%, 6.25%, 1.46%
+  and 1.87%. Wrong voxels: 55 to 54, 68 to 67, 35 to 35, 56 to 56, 21 to 21. On mid the net
+  is +4 against the limit of 5 versus S8.
+- Library key `SeedIndexMCStallHit 500` is tested (default 0, off). A library run on mid equals
+  script arm J5l (J5 without G2b, which has no library key), before the pass only.
+- D-20261115-N2 approves step 17: record J5's neighbour local optimizations and revisits, then
+  one early skip from a fixed family of 27 (clean test held4). The boundary-pass skip is not
+  approved; it waits for the owner. The findings page text waits for the owner (not placed).
