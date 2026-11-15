@@ -1,0 +1,103 @@
+{
+ "what": "recording J5r: one row per BFS local optimization of arm J5 (neighbour fit or revisit)",
+ "location": "untracked cache of the worktree that ran it: icenine_py/benchmarks/autoresearch/ar5/fitskip/cache/record/ (not in git; archive it before the worktree is removed)",
+ "counted_fields": [
+  "evals",
+  "runbest",
+  "start_cost",
+  "end_R",
+  "end_hit",
+  "end_cost",
+  "end_conf"
+ ],
+ "recording_only_fields": [
+  "start_hit",
+  "start_conf",
+  "hit20",
+  "rec_evals"
+ ],
+ "recording_only_note": "two overlap evaluations per fit (start_hit, start_conf, hit20) are made outside the counted run and are in no stats; a live rule that uses start_hit pays one counted evaluation; hit20 has no live form (needs a library change)",
+ "fields": {
+  "i": "run-order row number from 0",
+  "exp": "expansion number",
+  "pos": "fits already made in this expansion",
+  "voxel": "voxel index",
+  "kind": "neighbour or revisit",
+  "parent": "voxel that passed its orientation on, -1 if unknown",
+  "best": "expansion's running best hit ratio before the fit, ratio in [0, 1]",
+  "start_R": "start rotation matrix, row-major 3x3, 12 decimals",
+  "start_hit": "hit ratio of the start, ratio in [0, 1] (recording-only)",
+  "start_conf": "confidence of the start (recording-only)",
+  "start_cost": "cost of the start (first evaluation of the fit)",
+  "runbest": "running minimum cost after each evaluation, 9 decimals, 61 values",
+  "n_calls": "cost calls seen in the fit (61)",
+  "hit20": "hit ratio of the running best after 20 evaluations (recording-only)",
+  "evals": "counted evaluations of the fit (61)",
+  "end_R": "end rotation matrix, row-major 3x3, 12 decimals",
+  "end_hit": "hit ratio of the end, ratio in [0, 1]",
+  "end_cost": "cost of the end",
+  "end_conf": "confidence of the end",
+  "accepted": "hit ratio over 0.9 times max(best, hit)",
+  "kept": "the hook's model of the push rule (a first fit is kept; a revisit is kept if accepted or its confidence is not under the old one)",
+  "n_revisits": "revisit count of the voxel at this fit",
+  "rec_evals": "recording-only evaluations of this row (2)"
+ },
+ "final_flags": "final_J5r_<s>.json: row numbers i that are the last kept fit of their voxel and whose end matches the run's map (before the pass) or the map after the pass, max absolute difference of the nine entries at most 1e-6",
+ "files": {
+  "held3": {
+   "rows_file": "J5r_held3.jsonl.gz",
+   "rows": 72458,
+   "rows_sha256": "186d40dc97a93ddf890ae5681697ae344daec6c0e5678192f7c6d8ff2e1bcc2e",
+   "rows_bytes": 13637621,
+   "final_file": "final_J5r_held3.json",
+   "final_sha256": "a44a666ae1913e94e8074d834c53d989963972f2bc55c004fc2682d942217e0e",
+   "final_before": 21195,
+   "final_after": 20299,
+   "voxels_with_kept_fit": 24277
+  },
+  "held": {
+   "rows_file": "J5r_held.jsonl.gz",
+   "rows": 76911,
+   "rows_sha256": "f18fc83f041f6c8fea5d39feb8b1b2e8752fa83bb527618be1e1bc81f38bf8f3",
+   "rows_bytes": 14575522,
+   "final_file": "final_J5r_held.json",
+   "final_sha256": "32bfaaad481e8a49daf6ce052c6ab612b73efc70c0d50b278746a588632a73de",
+   "final_before": 20863,
+   "final_after": 19829,
+   "voxels_with_kept_fit": 24273
+  },
+  "mid": {
+   "rows_file": "J5r_mid.jsonl.gz",
+   "rows": 52027,
+   "rows_sha256": "6c09c87329ab2b900a02d6525e8c8fb04603a379aa9847dbd5db266d15967866",
+   "rows_bytes": 9701059,
+   "final_file": "final_J5r_mid.json",
+   "final_sha256": "64d47e11db1e55ba20f7a7f3829a101940b7a36dec5d5765d96cded72dc677af",
+   "final_before": 22952,
+   "final_after": 21497,
+   "voxels_with_kept_fit": 24409
+  },
+  "grad": {
+   "rows_file": "J5r_grad.jsonl.gz",
+   "rows": 53398,
+   "rows_sha256": "d7fee2ec146607ad9cfdb50fbc454f8f733aed2f4bf73b39426a3e84f5ccbdc4",
+   "rows_bytes": 9612306,
+   "final_file": "final_J5r_grad.json",
+   "final_sha256": "337202380dd66a576c4665992f8ed574f20a70dcd741bb9cf8f52e309d00a996",
+   "final_before": 23289,
+   "final_after": 22610,
+   "voxels_with_kept_fit": 24222
+  },
+  "big": {
+   "rows_file": "J5r_big.jsonl.gz",
+   "rows": 32543,
+   "rows_sha256": "a7173f79d7e53219a3bcff56bf2961d5181060816db0ba8295f81fdd783563c9",
+   "rows_bytes": 5883927,
+   "final_file": "final_J5r_big.json",
+   "final_sha256": "257f2f1015d156317bef0c1df562718afb584615ad90d78925ff6eb0c4fc7aa1",
+   "final_before": 24246,
+   "final_after": 23177,
+   "voxels_with_kept_fit": 24533
+  }
+ }
+}

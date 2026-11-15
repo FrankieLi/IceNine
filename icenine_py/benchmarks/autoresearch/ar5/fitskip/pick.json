@@ -1,0 +1,70 @@
+{
+ "pick": "S(0.3,both)",
+ "n_admissible": 12,
+ "per_sample": {
+  "held3": {
+   "rule": "S(0.3,both)",
+   "n_fits": 72458,
+   "skipped": 16525,
+   "wrong": 21,
+   "saved": 1006744,
+   "checks": 72458,
+   "net": 934286,
+   "final_changed": 1
+  },
+  "held": {
+   "rule": "S(0.3,both)",
+   "n_fits": 76911,
+   "skipped": 17116,
+   "wrong": 34,
+   "saved": 1042002,
+   "checks": 76911,
+   "net": 965091,
+   "final_changed": 0
+  },
+  "mid": {
+   "rule": "S(0.3,both)",
+   "n_fits": 52027,
+   "skipped": 7160,
+   "wrong": 26,
+   "saved": 435174,
+   "checks": 52027,
+   "net": 383147,
+   "final_changed": 0
+  },
+  "grad": {
+   "rule": "S(0.3,both)",
+   "n_fits": 53398,
+   "skipped": 13857,
+   "wrong": 24,
+   "saved": 843813,
+   "checks": 53398,
+   "net": 790415,
+   "final_changed": 0
+  },
+  "big": {
+   "rule": "S(0.3,both)",
+   "n_fits": 32543,
+   "skipped": 2408,
+   "wrong": 6,
+   "saved": 146522,
+   "checks": 32543,
+   "net": 113979,
+   "final_changed": 0
+  }
+ },
+ "net_share": {
+  "held3": 0.039751125210262264,
+  "held": 0.042070571458911694,
+  "mid": 0.03618180775982382,
+  "grad": 0.08741898358337151,
+  "big": 0.0319528647657003
+ },
+ "g2": {
+  "held3": true,
+  "held": true,
+  "mid": false,
+  "grad": true,
+  "big": true
+ }
+}
