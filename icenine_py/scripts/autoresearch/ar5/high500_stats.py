@@ -64,7 +64,7 @@ def arm(name: str, rd: Any, pd: Any, T: Any) -> Dict[str, Any]:
     return dict(
         run=run,
         stages=P2.stage_evals(run, int(pj["evals"])),
-        grid_searches=int(run["stats"].get("index_fallback_seed_test", 0)),
+        failed_seed_tests=int(run["stats"].get("index_fallback_seed_test", 0)),
         before=P2.side(eb),
         after=P2.side(ea),
         eb=eb,
@@ -184,6 +184,8 @@ def strip(a: Dict[str, Any]) -> Dict[str, Any]:
 
 def main() -> None:
     s = SAMPLE
+    if s == "held3" and not BC.HG.held3_open():  # every read below, not only guarded ones
+        BC.HG.refuse("high500 guard: held3's results are not read before its runs end")
     T = G.Truth()
     sd, spd = s8_dirs(s)
     rj, rj5 = CACHE / f"J_{s}", CACHE / f"J5_{s}"
@@ -205,6 +207,11 @@ def main() -> None:
     pj = {n: json.loads((d / "polish.json").read_text()) for n, d in (("J", rj), ("J5", rj5))}
     for n in pj:
         pj[n].pop("rule", None)
+    # grid searches actually run: S8 has no rescue, so each failed seed test is one; for J and
+    # J5 a failed seed test goes to G1, then G2b, and only then to a grid search
+    arms["S8"]["grid_searches"] = arms["S8"]["failed_seed_tests"]
+    for n in ("J", "J5"):
+        arms[n]["grid_searches"] = int(pj[n]["grid_fallbacks_left"])
     stages = {n: dict(arms[n]["stages"]) for n in ("J", "J5")}
     for n in ("J", "J5"):
         st = stages[n]

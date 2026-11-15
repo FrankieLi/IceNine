@@ -161,6 +161,7 @@ def tables(st: Dict[str, Dict[str, Any]]) -> Dict[str, str]:
     for s in SAMPLES:
         d = st[s]
         ws, um = d["seed_steps"]["wrong_seeds"], d["seed_steps"]["unmatched"]
+        ar = d["arms"]
         rows.append(
             dict(
                 sample=s,
@@ -172,7 +173,8 @@ def tables(st: Dict[str, Dict[str, Any]]) -> Dict[str, str]:
                 extra_unmatched=ws["unmatched_j5_wrong_where_j_map_right"],
                 only_j5=um["only_j5_n"],
                 only_j=um["only_j_n"],
-                grid=f"{d['arms']['J']['grid_searches']} -> {d['arms']['J5']['grid_searches']}",
+                failed=f"{ar['J']['failed_seed_tests']} -> {ar['J5']['failed_seed_tests']}",
+                grid=f"{ar['J']['grid_searches']} -> {ar['J5']['grid_searches']}",
             )
         )
     t["high500_seeds"] = DT.markdown_table(
@@ -187,6 +189,7 @@ def tables(st: Dict[str, Dict[str, Any]]) -> Dict[str, str]:
             "extra_unmatched",
             "only_j5",
             "only_j",
+            "failed",
             "grid",
         ],
     )

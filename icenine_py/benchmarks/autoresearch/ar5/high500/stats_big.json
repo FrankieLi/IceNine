@@ -11,7 +11,7 @@
     "before_pass": 7201863,
     "total": 8340428
    },
-   "grid_searches": 0,
+   "failed_seed_tests": 0,
    "before": {
     "wrong": 67,
     "wilson_lo": 0.0021480022296533167,
@@ -24,7 +24,8 @@
     "wilson_hi": 0.001453107589350192,
     "median_err_deg": 0.031606382282736975
    },
-   "n_processed": 24570
+   "n_processed": 24570,
+   "grid_searches": 0
   },
   "J": {
    "stages": {
@@ -36,7 +37,7 @@
     "before_pass": 2499924,
     "total": 3635256
    },
-   "grid_searches": 0,
+   "failed_seed_tests": 0,
    "before": {
     "wrong": 74,
     "wilson_lo": 0.0023999678496171954,
@@ -49,7 +50,8 @@
     "wilson_hi": 0.0013063477619366217,
     "median_err_deg": 0.030448122007019213
    },
-   "n_processed": 24570
+   "n_processed": 24570,
+   "grid_searches": 0
   },
   "J5": {
    "stages": {
@@ -61,7 +63,7 @@
     "before_pass": 2431217,
     "total": 3567098
    },
-   "grid_searches": 0,
+   "failed_seed_tests": 0,
    "before": {
     "wrong": 74,
     "wilson_lo": 0.0023999678496171954,
@@ -74,7 +76,8 @@
     "wilson_hi": 0.0013063477619366217,
     "median_err_deg": 0.030453890168153794
    },
-   "n_processed": 24570
+   "n_processed": 24570,
+   "grid_searches": 0
   }
  },
  "stages_split": {

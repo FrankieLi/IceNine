@@ -39,13 +39,13 @@
 <!-- /table:high500_saving -->
 
 <!-- table:high500_seeds -->
-| sample | matched | taken_changed | wrong_j | wrong_j5 | extra_matched | extra_unmatched | only_j5 | only_j | grid |
-|---|---|---|---|---|---|---|---|---|---|
-| held3 | 3345 | 8 | 47 | 47 | 0 | 0 | 34 | 37 | 92 -> 92 |
-| held | 3668 | 7 | 45 | 45 | 0 | 0 | 42 | 32 | 65 -> 65 |
-| mid | 1570 | 6 | 15 | 15 | 0 | 0 | 48 | 37 | 12 -> 12 |
-| grad | 1281 | 1 | 19 | 19 | 0 | 0 | 0 | 0 | 11 -> 11 |
-| big | 266 | 1 | 0 | 0 | 0 | 0 | 58 | 51 | 0 -> 0 |
+| sample | matched | taken_changed | wrong_j | wrong_j5 | extra_matched | extra_unmatched | only_j5 | only_j | failed | grid |
+|---|---|---|---|---|---|---|---|---|---|---|
+| held3 | 3345 | 8 | 47 | 47 | 0 | 0 | 34 | 37 | 92 -> 92 | 9 -> 9 |
+| held | 3668 | 7 | 45 | 45 | 0 | 0 | 42 | 32 | 65 -> 65 | 4 -> 4 |
+| mid | 1570 | 6 | 15 | 15 | 0 | 0 | 48 | 37 | 12 -> 12 | 2 -> 2 |
+| grad | 1281 | 1 | 19 | 19 | 0 | 0 | 0 | 0 | 11 -> 11 | 2 -> 2 |
+| big | 266 | 1 | 0 | 0 | 0 | 0 | 58 | 51 | 0 -> 0 | 0 -> 0 |
 <!-- /table:high500_seeds -->
 
 <!-- table:high500_stages -->
