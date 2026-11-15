@@ -1,0 +1,1472 @@
+{
+ "rules": {
+  "D(0.1)": {
+   "held3": {
+    "rule": "D(0.1)",
+    "n_fits": 72458,
+    "skipped": 15,
+    "wrong": 3,
+    "saved": 732,
+    "checks": 0,
+    "net": 732,
+    "final_changed": 0
+   },
+   "held": {
+    "rule": "D(0.1)",
+    "n_fits": 76911,
+    "skipped": 6,
+    "wrong": 0,
+    "saved": 366,
+    "checks": 0,
+    "net": 366,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "D(0.1)",
+    "n_fits": 52027,
+    "skipped": 20,
+    "wrong": 4,
+    "saved": 976,
+    "checks": 0,
+    "net": 976,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "D(0.1)",
+    "n_fits": 53398,
+    "skipped": 5,
+    "wrong": 0,
+    "saved": 305,
+    "checks": 0,
+    "net": 305,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "D(0.1)",
+    "n_fits": 32543,
+    "skipped": 28,
+    "wrong": 20,
+    "saved": 488,
+    "checks": 0,
+    "net": 488,
+    "final_changed": 0
+   }
+  },
+  "D(0.25)": {
+   "held3": {
+    "rule": "D(0.25)",
+    "n_fits": 72458,
+    "skipped": 72,
+    "wrong": 15,
+    "saved": 3477,
+    "checks": 0,
+    "net": 3477,
+    "final_changed": 0
+   },
+   "held": {
+    "rule": "D(0.25)",
+    "n_fits": 76911,
+    "skipped": 84,
+    "wrong": 9,
+    "saved": 4575,
+    "checks": 0,
+    "net": 4575,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "D(0.25)",
+    "n_fits": 52027,
+    "skipped": 129,
+    "wrong": 37,
+    "saved": 5612,
+    "checks": 0,
+    "net": 5612,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "D(0.25)",
+    "n_fits": 53398,
+    "skipped": 19,
+    "wrong": 4,
+    "saved": 915,
+    "checks": 0,
+    "net": 915,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "D(0.25)",
+    "n_fits": 32543,
+    "skipped": 110,
+    "wrong": 67,
+    "saved": 2623,
+    "checks": 0,
+    "net": 2623,
+    "final_changed": 0
+   }
+  },
+  "D(0.5)": {
+   "held3": {
+    "rule": "D(0.5)",
+    "n_fits": 72458,
+    "skipped": 325,
+    "wrong": 79,
+    "saved": 15006,
+    "checks": 0,
+    "net": 15006,
+    "final_changed": 1
+   },
+   "held": {
+    "rule": "D(0.5)",
+    "n_fits": 76911,
+    "skipped": 379,
+    "wrong": 87,
+    "saved": 17812,
+    "checks": 0,
+    "net": 17812,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "D(0.5)",
+    "n_fits": 52027,
+    "skipped": 456,
+    "wrong": 175,
+    "saved": 17141,
+    "checks": 0,
+    "net": 17141,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "D(0.5)",
+    "n_fits": 53398,
+    "skipped": 44,
+    "wrong": 11,
+    "saved": 2013,
+    "checks": 0,
+    "net": 2013,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "D(0.5)",
+    "n_fits": 32543,
+    "skipped": 332,
+    "wrong": 225,
+    "saved": 6527,
+    "checks": 0,
+    "net": 6527,
+    "final_changed": 0
+   }
+  },
+  "S(0.3,revisit)": {
+   "held3": {
+    "rule": "S(0.3,revisit)",
+    "n_fits": 72458,
+    "skipped": 11806,
+    "wrong": 20,
+    "saved": 718946,
+    "checks": 48181,
+    "net": 670765,
+    "final_changed": 1
+   },
+   "held": {
+    "rule": "S(0.3,revisit)",
+    "n_fits": 76911,
+    "skipped": 12213,
+    "wrong": 25,
+    "saved": 743468,
+    "checks": 52638,
+    "net": 690830,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "S(0.3,revisit)",
+    "n_fits": 52027,
+    "skipped": 3799,
+    "wrong": 24,
+    "saved": 230275,
+    "checks": 27618,
+    "net": 202657,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "S(0.3,revisit)",
+    "n_fits": 53398,
+    "skipped": 6848,
+    "wrong": 22,
+    "saved": 416386,
+    "checks": 29176,
+    "net": 387210,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "S(0.3,revisit)",
+    "n_fits": 32543,
+    "skipped": 511,
+    "wrong": 4,
+    "saved": 30927,
+    "checks": 8010,
+    "net": 22917,
+    "final_changed": 0
+   }
+  },
+  "S(0.3,neighbour)": {
+   "held3": {
+    "rule": "S(0.3,neighbour)",
+    "n_fits": 72458,
+    "skipped": 4719,
+    "wrong": 1,
+    "saved": 287798,
+    "checks": 24277,
+    "net": 263521,
+    "final_changed": 0
+   },
+   "held": {
+    "rule": "S(0.3,neighbour)",
+    "n_fits": 76911,
+    "skipped": 4903,
+    "wrong": 9,
+    "saved": 298534,
+    "checks": 24273,
+    "net": 274261,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "S(0.3,neighbour)",
+    "n_fits": 52027,
+    "skipped": 3361,
+    "wrong": 2,
+    "saved": 204899,
+    "checks": 24409,
+    "net": 180490,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "S(0.3,neighbour)",
+    "n_fits": 53398,
+    "skipped": 7009,
+    "wrong": 2,
+    "saved": 427427,
+    "checks": 24222,
+    "net": 403205,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "S(0.3,neighbour)",
+    "n_fits": 32543,
+    "skipped": 1897,
+    "wrong": 2,
+    "saved": 115595,
+    "checks": 24533,
+    "net": 91062,
+    "final_changed": 0
+   }
+  },
+  "S(0.3,both)": {
+   "held3": {
+    "rule": "S(0.3,both)",
+    "n_fits": 72458,
+    "skipped": 16525,
+    "wrong": 21,
+    "saved": 1006744,
+    "checks": 72458,
+    "net": 934286,
+    "final_changed": 1
+   },
+   "held": {
+    "rule": "S(0.3,both)",
+    "n_fits": 76911,
+    "skipped": 17116,
+    "wrong": 34,
+    "saved": 1042002,
+    "checks": 76911,
+    "net": 965091,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "S(0.3,both)",
+    "n_fits": 52027,
+    "skipped": 7160,
+    "wrong": 26,
+    "saved": 435174,
+    "checks": 52027,
+    "net": 383147,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "S(0.3,both)",
+    "n_fits": 53398,
+    "skipped": 13857,
+    "wrong": 24,
+    "saved": 843813,
+    "checks": 53398,
+    "net": 790415,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "S(0.3,both)",
+    "n_fits": 32543,
+    "skipped": 2408,
+    "wrong": 6,
+    "saved": 146522,
+    "checks": 32543,
+    "net": 113979,
+    "final_changed": 0
+   }
+  },
+  "S(0.4,revisit)": {
+   "held3": {
+    "rule": "S(0.4,revisit)",
+    "n_fits": 72458,
+    "skipped": 19787,
+    "wrong": 146,
+    "saved": 1198101,
+    "checks": 48181,
+    "net": 1149920,
+    "final_changed": 1
+   },
+   "held": {
+    "rule": "S(0.4,revisit)",
+    "n_fits": 76911,
+    "skipped": 21602,
+    "wrong": 162,
+    "saved": 1307840,
+    "checks": 52638,
+    "net": 1255202,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "S(0.4,revisit)",
+    "n_fits": 52027,
+    "skipped": 7393,
+    "wrong": 131,
+    "saved": 442982,
+    "checks": 27618,
+    "net": 415364,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "S(0.4,revisit)",
+    "n_fits": 53398,
+    "skipped": 9371,
+    "wrong": 105,
+    "saved": 565226,
+    "checks": 29176,
+    "net": 536050,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "S(0.4,revisit)",
+    "n_fits": 32543,
+    "skipped": 965,
+    "wrong": 37,
+    "saved": 56608,
+    "checks": 8010,
+    "net": 48598,
+    "final_changed": 0
+   }
+  },
+  "S(0.4,neighbour)": {
+   "held3": {
+    "rule": "S(0.4,neighbour)",
+    "n_fits": 72458,
+    "skipped": 6896,
+    "wrong": 17,
+    "saved": 419619,
+    "checks": 24277,
+    "net": 395342,
+    "final_changed": 0
+   },
+   "held": {
+    "rule": "S(0.4,neighbour)",
+    "n_fits": 76911,
+    "skipped": 7143,
+    "wrong": 53,
+    "saved": 432490,
+    "checks": 24273,
+    "net": 408217,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "S(0.4,neighbour)",
+    "n_fits": 52027,
+    "skipped": 4817,
+    "wrong": 27,
+    "saved": 292190,
+    "checks": 24409,
+    "net": 267781,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "S(0.4,neighbour)",
+    "n_fits": 53398,
+    "skipped": 9278,
+    "wrong": 21,
+    "saved": 564677,
+    "checks": 24222,
+    "net": 540455,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "S(0.4,neighbour)",
+    "n_fits": 32543,
+    "skipped": 2645,
+    "wrong": 17,
+    "saved": 160308,
+    "checks": 24533,
+    "net": 135775,
+    "final_changed": 0
+   }
+  },
+  "S(0.4,both)": {
+   "held3": {
+    "rule": "S(0.4,both)",
+    "n_fits": 72458,
+    "skipped": 26683,
+    "wrong": 163,
+    "saved": 1617720,
+    "checks": 72458,
+    "net": 1545262,
+    "final_changed": 1
+   },
+   "held": {
+    "rule": "S(0.4,both)",
+    "n_fits": 76911,
+    "skipped": 28745,
+    "wrong": 215,
+    "saved": 1740330,
+    "checks": 76911,
+    "net": 1663419,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "S(0.4,both)",
+    "n_fits": 52027,
+    "skipped": 12210,
+    "wrong": 158,
+    "saved": 735172,
+    "checks": 52027,
+    "net": 683145,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "S(0.4,both)",
+    "n_fits": 53398,
+    "skipped": 18649,
+    "wrong": 126,
+    "saved": 1129903,
+    "checks": 53398,
+    "net": 1076505,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "S(0.4,both)",
+    "n_fits": 32543,
+    "skipped": 3610,
+    "wrong": 54,
+    "saved": 216916,
+    "checks": 32543,
+    "net": 184373,
+    "final_changed": 0
+   }
+  },
+  "S(0.5,revisit)": {
+   "held3": {
+    "rule": "S(0.5,revisit)",
+    "n_fits": 72458,
+    "skipped": 27225,
+    "wrong": 506,
+    "saved": 1629859,
+    "checks": 48181,
+    "net": 1581678,
+    "final_changed": 1
+   },
+   "held": {
+    "rule": "S(0.5,revisit)",
+    "n_fits": 76911,
+    "skipped": 30171,
+    "wrong": 568,
+    "saved": 1805783,
+    "checks": 52638,
+    "net": 1753145,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "S(0.5,revisit)",
+    "n_fits": 52027,
+    "skipped": 11233,
+    "wrong": 432,
+    "saved": 658861,
+    "checks": 27618,
+    "net": 631243,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "S(0.5,revisit)",
+    "n_fits": 53398,
+    "skipped": 11658,
+    "wrong": 363,
+    "saved": 688995,
+    "checks": 29176,
+    "net": 659819,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "S(0.5,revisit)",
+    "n_fits": 32543,
+    "skipped": 1555,
+    "wrong": 129,
+    "saved": 86986,
+    "checks": 8010,
+    "net": 78976,
+    "final_changed": 0
+   }
+  },
+  "S(0.5,neighbour)": {
+   "held3": {
+    "rule": "S(0.5,neighbour)",
+    "n_fits": 72458,
+    "skipped": 9014,
+    "wrong": 111,
+    "saved": 543083,
+    "checks": 24277,
+    "net": 518806,
+    "final_changed": 0
+   },
+   "held": {
+    "rule": "S(0.5,neighbour)",
+    "n_fits": 76911,
+    "skipped": 9416,
+    "wrong": 195,
+    "saved": 562481,
+    "checks": 24273,
+    "net": 538208,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "S(0.5,neighbour)",
+    "n_fits": 52027,
+    "skipped": 6626,
+    "wrong": 145,
+    "saved": 395341,
+    "checks": 24409,
+    "net": 370932,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "S(0.5,neighbour)",
+    "n_fits": 53398,
+    "skipped": 11172,
+    "wrong": 95,
+    "saved": 675697,
+    "checks": 24222,
+    "net": 651475,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "S(0.5,neighbour)",
+    "n_fits": 32543,
+    "skipped": 3375,
+    "wrong": 101,
+    "saved": 199714,
+    "checks": 24533,
+    "net": 175181,
+    "final_changed": 0
+   }
+  },
+  "S(0.5,both)": {
+   "held3": {
+    "rule": "S(0.5,both)",
+    "n_fits": 72458,
+    "skipped": 36239,
+    "wrong": 617,
+    "saved": 2172942,
+    "checks": 72458,
+    "net": 2100484,
+    "final_changed": 1
+   },
+   "held": {
+    "rule": "S(0.5,both)",
+    "n_fits": 76911,
+    "skipped": 39587,
+    "wrong": 763,
+    "saved": 2368264,
+    "checks": 76911,
+    "net": 2291353,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "S(0.5,both)",
+    "n_fits": 52027,
+    "skipped": 17859,
+    "wrong": 577,
+    "saved": 1054202,
+    "checks": 52027,
+    "net": 1002175,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "S(0.5,both)",
+    "n_fits": 53398,
+    "skipped": 22830,
+    "wrong": 458,
+    "saved": 1364692,
+    "checks": 53398,
+    "net": 1311294,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "S(0.5,both)",
+    "n_fits": 32543,
+    "skipped": 4930,
+    "wrong": 230,
+    "saved": 286700,
+    "checks": 32543,
+    "net": 254157,
+    "final_changed": 0
+   }
+  },
+  "S(0.6,revisit)": {
+   "held3": {
+    "rule": "S(0.6,revisit)",
+    "n_fits": 72458,
+    "skipped": 32857,
+    "wrong": 1237,
+    "saved": 1928820,
+    "checks": 48181,
+    "net": 1880639,
+    "final_changed": 2
+   },
+   "held": {
+    "rule": "S(0.6,revisit)",
+    "n_fits": 76911,
+    "skipped": 36755,
+    "wrong": 1396,
+    "saved": 2156899,
+    "checks": 52638,
+    "net": 2104261,
+    "final_changed": 1
+   },
+   "mid": {
+    "rule": "S(0.6,revisit)",
+    "n_fits": 52027,
+    "skipped": 15041,
+    "wrong": 1112,
+    "saved": 849669,
+    "checks": 27618,
+    "net": 822051,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "S(0.6,revisit)",
+    "n_fits": 53398,
+    "skipped": 13847,
+    "wrong": 946,
+    "saved": 786961,
+    "checks": 29176,
+    "net": 757785,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "S(0.6,revisit)",
+    "n_fits": 32543,
+    "skipped": 2403,
+    "wrong": 336,
+    "saved": 126087,
+    "checks": 8010,
+    "net": 118077,
+    "final_changed": 0
+   }
+  },
+  "S(0.6,neighbour)": {
+   "held3": {
+    "rule": "S(0.6,neighbour)",
+    "n_fits": 72458,
+    "skipped": 10927,
+    "wrong": 419,
+    "saved": 640988,
+    "checks": 24277,
+    "net": 616711,
+    "final_changed": 0
+   },
+   "held": {
+    "rule": "S(0.6,neighbour)",
+    "n_fits": 76911,
+    "skipped": 11412,
+    "wrong": 533,
+    "saved": 663619,
+    "checks": 24273,
+    "net": 639346,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "S(0.6,neighbour)",
+    "n_fits": 52027,
+    "skipped": 8411,
+    "wrong": 532,
+    "saved": 480619,
+    "checks": 24409,
+    "net": 456210,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "S(0.6,neighbour)",
+    "n_fits": 53398,
+    "skipped": 12643,
+    "wrong": 283,
+    "saved": 753960,
+    "checks": 24222,
+    "net": 729738,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "S(0.6,neighbour)",
+    "n_fits": 32543,
+    "skipped": 4430,
+    "wrong": 381,
+    "saved": 246989,
+    "checks": 24533,
+    "net": 222456,
+    "final_changed": 0
+   }
+  },
+  "S(0.6,both)": {
+   "held3": {
+    "rule": "S(0.6,both)",
+    "n_fits": 72458,
+    "skipped": 43784,
+    "wrong": 1656,
+    "saved": 2569808,
+    "checks": 72458,
+    "net": 2497350,
+    "final_changed": 2
+   },
+   "held": {
+    "rule": "S(0.6,both)",
+    "n_fits": 76911,
+    "skipped": 48167,
+    "wrong": 1929,
+    "saved": 2820518,
+    "checks": 76911,
+    "net": 2743607,
+    "final_changed": 1
+   },
+   "mid": {
+    "rule": "S(0.6,both)",
+    "n_fits": 52027,
+    "skipped": 23452,
+    "wrong": 1644,
+    "saved": 1330288,
+    "checks": 52027,
+    "net": 1278261,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "S(0.6,both)",
+    "n_fits": 53398,
+    "skipped": 26490,
+    "wrong": 1229,
+    "saved": 1540921,
+    "checks": 53398,
+    "net": 1487523,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "S(0.6,both)",
+    "n_fits": 32543,
+    "skipped": 6833,
+    "wrong": 717,
+    "saved": 373076,
+    "checks": 32543,
+    "net": 340533,
+    "final_changed": 0
+   }
+  },
+  "C(0.3,revisit)": {
+   "held3": {
+    "rule": "C(0.3,revisit)",
+    "n_fits": 72458,
+    "skipped": 9036,
+    "wrong": 2,
+    "saved": 370394,
+    "checks": 48181,
+    "net": 322213,
+    "final_changed": 1
+   },
+   "held": {
+    "rule": "C(0.3,revisit)",
+    "n_fits": 76911,
+    "skipped": 8713,
+    "wrong": 1,
+    "saved": 357192,
+    "checks": 52638,
+    "net": 304554,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "C(0.3,revisit)",
+    "n_fits": 52027,
+    "skipped": 2411,
+    "wrong": 2,
+    "saved": 98769,
+    "checks": 27618,
+    "net": 71151,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "C(0.3,revisit)",
+    "n_fits": 53398,
+    "skipped": 6002,
+    "wrong": 0,
+    "saved": 246082,
+    "checks": 29176,
+    "net": 216906,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "C(0.3,revisit)",
+    "n_fits": 32543,
+    "skipped": 346,
+    "wrong": 0,
+    "saved": 14186,
+    "checks": 8010,
+    "net": 6176,
+    "final_changed": 0
+   }
+  },
+  "C(0.3,neighbour)": {
+   "held3": {
+    "rule": "C(0.3,neighbour)",
+    "n_fits": 72458,
+    "skipped": 3822,
+    "wrong": 0,
+    "saved": 156702,
+    "checks": 24277,
+    "net": 132425,
+    "final_changed": 0
+   },
+   "held": {
+    "rule": "C(0.3,neighbour)",
+    "n_fits": 76911,
+    "skipped": 3915,
+    "wrong": 0,
+    "saved": 160515,
+    "checks": 24273,
+    "net": 136242,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "C(0.3,neighbour)",
+    "n_fits": 52027,
+    "skipped": 2669,
+    "wrong": 0,
+    "saved": 109429,
+    "checks": 24409,
+    "net": 85020,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "C(0.3,neighbour)",
+    "n_fits": 53398,
+    "skipped": 6245,
+    "wrong": 0,
+    "saved": 256045,
+    "checks": 24222,
+    "net": 231823,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "C(0.3,neighbour)",
+    "n_fits": 32543,
+    "skipped": 1479,
+    "wrong": 0,
+    "saved": 60639,
+    "checks": 24533,
+    "net": 36106,
+    "final_changed": 0
+   }
+  },
+  "C(0.3,both)": {
+   "held3": {
+    "rule": "C(0.3,both)",
+    "n_fits": 72458,
+    "skipped": 12858,
+    "wrong": 2,
+    "saved": 527096,
+    "checks": 72458,
+    "net": 454638,
+    "final_changed": 1
+   },
+   "held": {
+    "rule": "C(0.3,both)",
+    "n_fits": 76911,
+    "skipped": 12628,
+    "wrong": 1,
+    "saved": 517707,
+    "checks": 76911,
+    "net": 440796,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "C(0.3,both)",
+    "n_fits": 52027,
+    "skipped": 5080,
+    "wrong": 2,
+    "saved": 208198,
+    "checks": 52027,
+    "net": 156171,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "C(0.3,both)",
+    "n_fits": 53398,
+    "skipped": 12247,
+    "wrong": 0,
+    "saved": 502127,
+    "checks": 53398,
+    "net": 448729,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "C(0.3,both)",
+    "n_fits": 32543,
+    "skipped": 1825,
+    "wrong": 0,
+    "saved": 74825,
+    "checks": 32543,
+    "net": 42282,
+    "final_changed": 0
+   }
+  },
+  "C(0.4,revisit)": {
+   "held3": {
+    "rule": "C(0.4,revisit)",
+    "n_fits": 72458,
+    "skipped": 16066,
+    "wrong": 14,
+    "saved": 658132,
+    "checks": 48181,
+    "net": 609951,
+    "final_changed": 1
+   },
+   "held": {
+    "rule": "C(0.4,revisit)",
+    "n_fits": 76911,
+    "skipped": 16924,
+    "wrong": 16,
+    "saved": 693228,
+    "checks": 52638,
+    "net": 640590,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "C(0.4,revisit)",
+    "n_fits": 52027,
+    "skipped": 5295,
+    "wrong": 10,
+    "saved": 216685,
+    "checks": 27618,
+    "net": 189067,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "C(0.4,revisit)",
+    "n_fits": 53398,
+    "skipped": 8247,
+    "wrong": 8,
+    "saved": 337799,
+    "checks": 29176,
+    "net": 308623,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "C(0.4,revisit)",
+    "n_fits": 32543,
+    "skipped": 696,
+    "wrong": 5,
+    "saved": 28331,
+    "checks": 8010,
+    "net": 20321,
+    "final_changed": 0
+   }
+  },
+  "C(0.4,neighbour)": {
+   "held3": {
+    "rule": "C(0.4,neighbour)",
+    "n_fits": 72458,
+    "skipped": 6036,
+    "wrong": 0,
+    "saved": 247476,
+    "checks": 24277,
+    "net": 223199,
+    "final_changed": 0
+   },
+   "held": {
+    "rule": "C(0.4,neighbour)",
+    "n_fits": 76911,
+    "skipped": 6152,
+    "wrong": 6,
+    "saved": 251986,
+    "checks": 24273,
+    "net": 227713,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "C(0.4,neighbour)",
+    "n_fits": 52027,
+    "skipped": 4258,
+    "wrong": 2,
+    "saved": 174496,
+    "checks": 24409,
+    "net": 150087,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "C(0.4,neighbour)",
+    "n_fits": 53398,
+    "skipped": 8559,
+    "wrong": 1,
+    "saved": 350878,
+    "checks": 24222,
+    "net": 326656,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "C(0.4,neighbour)",
+    "n_fits": 32543,
+    "skipped": 2371,
+    "wrong": 1,
+    "saved": 97170,
+    "checks": 24533,
+    "net": 72637,
+    "final_changed": 0
+   }
+  },
+  "C(0.4,both)": {
+   "held3": {
+    "rule": "C(0.4,both)",
+    "n_fits": 72458,
+    "skipped": 22102,
+    "wrong": 14,
+    "saved": 905608,
+    "checks": 72458,
+    "net": 833150,
+    "final_changed": 1
+   },
+   "held": {
+    "rule": "C(0.4,both)",
+    "n_fits": 76911,
+    "skipped": 23076,
+    "wrong": 22,
+    "saved": 945214,
+    "checks": 76911,
+    "net": 868303,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "C(0.4,both)",
+    "n_fits": 52027,
+    "skipped": 9553,
+    "wrong": 12,
+    "saved": 391181,
+    "checks": 52027,
+    "net": 339154,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "C(0.4,both)",
+    "n_fits": 53398,
+    "skipped": 16806,
+    "wrong": 9,
+    "saved": 688677,
+    "checks": 53398,
+    "net": 635279,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "C(0.4,both)",
+    "n_fits": 32543,
+    "skipped": 3067,
+    "wrong": 6,
+    "saved": 125501,
+    "checks": 32543,
+    "net": 92958,
+    "final_changed": 0
+   }
+  },
+  "C(0.5,revisit)": {
+   "held3": {
+    "rule": "C(0.5,revisit)",
+    "n_fits": 72458,
+    "skipped": 23187,
+    "wrong": 70,
+    "saved": 947797,
+    "checks": 48181,
+    "net": 899616,
+    "final_changed": 1
+   },
+   "held": {
+    "rule": "C(0.5,revisit)",
+    "n_fits": 76911,
+    "skipped": 25236,
+    "wrong": 100,
+    "saved": 1030576,
+    "checks": 52638,
+    "net": 977938,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "C(0.5,revisit)",
+    "n_fits": 52027,
+    "skipped": 8648,
+    "wrong": 81,
+    "saved": 351247,
+    "checks": 27618,
+    "net": 323629,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "C(0.5,revisit)",
+    "n_fits": 53398,
+    "skipped": 10071,
+    "wrong": 42,
+    "saved": 411189,
+    "checks": 29176,
+    "net": 382013,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "C(0.5,revisit)",
+    "n_fits": 32543,
+    "skipped": 1069,
+    "wrong": 24,
+    "saved": 42845,
+    "checks": 8010,
+    "net": 34835,
+    "final_changed": 0
+   }
+  },
+  "C(0.5,neighbour)": {
+   "held3": {
+    "rule": "C(0.5,neighbour)",
+    "n_fits": 72458,
+    "skipped": 7974,
+    "wrong": 10,
+    "saved": 326524,
+    "checks": 24277,
+    "net": 302247,
+    "final_changed": 0
+   },
+   "held": {
+    "rule": "C(0.5,neighbour)",
+    "n_fits": 76911,
+    "skipped": 8162,
+    "wrong": 28,
+    "saved": 333494,
+    "checks": 24273,
+    "net": 309221,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "C(0.5,neighbour)",
+    "n_fits": 52027,
+    "skipped": 5685,
+    "wrong": 14,
+    "saved": 232511,
+    "checks": 24409,
+    "net": 208102,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "C(0.5,neighbour)",
+    "n_fits": 53398,
+    "skipped": 10389,
+    "wrong": 5,
+    "saved": 425744,
+    "checks": 24222,
+    "net": 401522,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "C(0.5,neighbour)",
+    "n_fits": 32543,
+    "skipped": 2959,
+    "wrong": 13,
+    "saved": 120786,
+    "checks": 24533,
+    "net": 96253,
+    "final_changed": 0
+   }
+  },
+  "C(0.5,both)": {
+   "held3": {
+    "rule": "C(0.5,both)",
+    "n_fits": 72458,
+    "skipped": 31161,
+    "wrong": 80,
+    "saved": 1274321,
+    "checks": 72458,
+    "net": 1201863,
+    "final_changed": 1
+   },
+   "held": {
+    "rule": "C(0.5,both)",
+    "n_fits": 76911,
+    "skipped": 33398,
+    "wrong": 128,
+    "saved": 1364070,
+    "checks": 76911,
+    "net": 1287159,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "C(0.5,both)",
+    "n_fits": 52027,
+    "skipped": 14333,
+    "wrong": 95,
+    "saved": 583758,
+    "checks": 52027,
+    "net": 531731,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "C(0.5,both)",
+    "n_fits": 53398,
+    "skipped": 20460,
+    "wrong": 47,
+    "saved": 836933,
+    "checks": 53398,
+    "net": 783535,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "C(0.5,both)",
+    "n_fits": 32543,
+    "skipped": 4028,
+    "wrong": 37,
+    "saved": 163631,
+    "checks": 32543,
+    "net": 131088,
+    "final_changed": 0
+   }
+  },
+  "C(0.6,revisit)": {
+   "held3": {
+    "rule": "C(0.6,revisit)",
+    "n_fits": 72458,
+    "skipped": 28900,
+    "wrong": 278,
+    "saved": 1173502,
+    "checks": 48181,
+    "net": 1125321,
+    "final_changed": 2
+   },
+   "held": {
+    "rule": "C(0.6,revisit)",
+    "n_fits": 76911,
+    "skipped": 32102,
+    "wrong": 331,
+    "saved": 1302611,
+    "checks": 52638,
+    "net": 1249973,
+    "final_changed": 1
+   },
+   "mid": {
+    "rule": "C(0.6,revisit)",
+    "n_fits": 52027,
+    "skipped": 12035,
+    "wrong": 253,
+    "saved": 483062,
+    "checks": 27618,
+    "net": 455444,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "C(0.6,revisit)",
+    "n_fits": 53398,
+    "skipped": 11734,
+    "wrong": 150,
+    "saved": 474944,
+    "checks": 29176,
+    "net": 445768,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "C(0.6,revisit)",
+    "n_fits": 32543,
+    "skipped": 1652,
+    "wrong": 66,
+    "saved": 65026,
+    "checks": 8010,
+    "net": 57016,
+    "final_changed": 0
+   }
+  },
+  "C(0.6,neighbour)": {
+   "held3": {
+    "rule": "C(0.6,neighbour)",
+    "n_fits": 72458,
+    "skipped": 9552,
+    "wrong": 54,
+    "saved": 389418,
+    "checks": 24277,
+    "net": 365141,
+    "final_changed": 0
+   },
+   "held": {
+    "rule": "C(0.6,neighbour)",
+    "n_fits": 76911,
+    "skipped": 9840,
+    "wrong": 84,
+    "saved": 399996,
+    "checks": 24273,
+    "net": 375723,
+    "final_changed": 0
+   },
+   "mid": {
+    "rule": "C(0.6,neighbour)",
+    "n_fits": 52027,
+    "skipped": 7040,
+    "wrong": 69,
+    "saved": 285811,
+    "checks": 24409,
+    "net": 261402,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "C(0.6,neighbour)",
+    "n_fits": 53398,
+    "skipped": 11674,
+    "wrong": 37,
+    "saved": 477117,
+    "checks": 24222,
+    "net": 452895,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "C(0.6,neighbour)",
+    "n_fits": 32543,
+    "skipped": 3636,
+    "wrong": 40,
+    "saved": 147436,
+    "checks": 24533,
+    "net": 122903,
+    "final_changed": 0
+   }
+  },
+  "C(0.6,both)": {
+   "held3": {
+    "rule": "C(0.6,both)",
+    "n_fits": 72458,
+    "skipped": 38452,
+    "wrong": 332,
+    "saved": 1562920,
+    "checks": 72458,
+    "net": 1490462,
+    "final_changed": 2
+   },
+   "held": {
+    "rule": "C(0.6,both)",
+    "n_fits": 76911,
+    "skipped": 41942,
+    "wrong": 415,
+    "saved": 1702607,
+    "checks": 76911,
+    "net": 1625696,
+    "final_changed": 1
+   },
+   "mid": {
+    "rule": "C(0.6,both)",
+    "n_fits": 52027,
+    "skipped": 19075,
+    "wrong": 322,
+    "saved": 768873,
+    "checks": 52027,
+    "net": 716846,
+    "final_changed": 0
+   },
+   "grad": {
+    "rule": "C(0.6,both)",
+    "n_fits": 53398,
+    "skipped": 23408,
+    "wrong": 187,
+    "saved": 952061,
+    "checks": 53398,
+    "net": 898663,
+    "final_changed": 0
+   },
+   "big": {
+    "rule": "C(0.6,both)",
+    "n_fits": 32543,
+    "skipped": 5288,
+    "wrong": 106,
+    "saved": 212462,
+    "checks": 32543,
+    "net": 179919,
+    "final_changed": 0
+   }
+  }
+ },
+ "n_admissible": 12,
+ "ranking": [
+  {
+   "rule": "S(0.3,both)",
+   "net_share_sum": 0.2373753527780696,
+   "wrong_all": 111
+  },
+  {
+   "rule": "C(0.4,both)",
+   "net_share_sum": 0.20164780942818022,
+   "wrong_all": 63
+  },
+  {
+   "rule": "S(0.4,neighbour)",
+   "net_share_sum": 0.15774004868528918,
+   "wrong_all": 135
+  },
+  {
+   "rule": "S(0.3,revisit)",
+   "net_share_sum": 0.12704105661439233,
+   "wrong_all": 95
+  },
+  {
+   "rule": "C(0.5,neighbour)",
+   "net_share_sum": 0.11738255879376334,
+   "wrong_all": 70
+  },
+  {
+   "rule": "C(0.3,both)",
+   "net_share_sum": 0.11478881119934818,
+   "wrong_all": 5
+  },
+  {
+   "rule": "C(0.4,revisit)",
+   "net_share_sum": 0.11156077935391813,
+   "wrong_all": 53
+  },
+  {
+   "rule": "S(0.3,neighbour)",
+   "net_share_sum": 0.11033429616367726,
+   "wrong_all": 16
+  },
+  {
+   "rule": "C(0.4,neighbour)",
+   "net_share_sum": 0.0900870300742621,
+   "wrong_all": 10
+  },
+  {
+   "rule": "C(0.3,revisit)",
+   "net_share_sum": 0.05942538752840039,
+   "wrong_all": 5
+  },
+  {
+   "rule": "C(0.3,neighbour)",
+   "net_share_sum": 0.0553634236709478,
+   "wrong_all": 0
+  },
+  {
+   "rule": "D(0.1)",
+   "net_share_sum": 0.00030980460714412686,
+   "wrong_all": 27
+  }
+ ],
+ "pick": "S(0.3,both)"
+}
