@@ -1102,3 +1102,16 @@ Decisions D-20261114-N4, N5 and N6. Reports in the main `.claude/reports/`: `202
   identical. Rules 1 to 5 are met on those four samples.
 - held2 (the test sample) was run only before the pass: 15.75% fewer. Its judgement after the pass,
   and the library key, wait for step 13 or the owner. Guard swap 1d34368 was reviewed.
+
+### AR5 step 15 (rule PB(k); task `ar5o`), merged as a study at 053fd66 on 2026-11-14
+
+Scripts only: no library change, no key. Suite after the merge: 2088 passed, 44 skipped, 1 deselected.
+Decisions D-20261114-N6 and N7. Reports in the main `.claude/reports/`: `20261114-1800-ar5o.md`,
+`20261114-1820-review-ar5o.md`, `20261114-1900-ar5o-fixes.md`.
+
+- Rule PB(k): stop a stalled seed-step MC refinement after k evaluations without gain, if its
+  running best has a hit ratio of 0.95 or more, or under 0.80. Two frozen forms: k = 1000, k = 500.
+- Both forms failed the gate on `held`: saving only 3.77% (k = 1000) and 5.59% (k = 500); the
+  limit is 6%. Wrong voxels were broken (2 and 4 on `held`, none fixed); grid searches rose.
+- Saving on `mid` was fine (7.64%, 13.09%). No `held3` sample and no whole-layer run: the gate stops it.
+- Six document fixes after review (documents and headers only).
