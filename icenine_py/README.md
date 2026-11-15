@@ -927,6 +927,21 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   findings page text waits for the owner in
   `.claude/reports/20261115-1245-ar5q-findings_ar5_fitskip.md` (its write under `docs/` was
   refused). MIGRATION_HISTORY, "Autoresearch AR5 step 17".
+- Autoresearch AR5 step 18 (a learned skip of BFS local optimizations: boosted trees on 16 features
+  known before the fit, trained on the recording `J5r`; D-20261115-N4; stopped at its gate by
+  D-20261115-N5): scripts `scripts/autoresearch/ar5/learnskip_*.py` (script layer: features, model
+  and JSON evaluator, rules, the live hook, run and pass scripts, replay, gate, stats, tables),
+  tests `tests/test_ar5_learnskip.py` (35), results `benchmarks/autoresearch/ar5/learnskip/`
+  (`frozen.json`, `loso.json`, `g2.json`, `stats_mid.json`, `broken_mid.json`, `gate_fail.json`,
+  `tables.md`, the plot). The leave-one-sample-out table of the plan reproduced. The live `mid` run
+  (gate model): 9,990,663 evaluations, 5.65% under `J5`, 4 broken / 0 fixed against `J5`, net 8
+  against `S8` (limit 5): gate g3 failed. Gate g2 failed too: the recording and a live run with skips
+  differ in feature 13 (the voxel's own kept fit end; first difference at fit 1016, 240 of the first
+  7,232 fits). Lesson: the replay cannot see what wrong skips do to growth. No key, no library change.
+  The final model, `held4`, the run-all script and the whole layers were not built; the scripts planned
+  for them are untested. Findings text waits in
+  `.claude/reports/20261115-0840-ar5r-findings_ar5_learnskip.md` (its write under `docs/` was
+  refused); one pareto row flagged "failed gate". MIGRATION_HISTORY, "Autoresearch AR5 step 18".
 
 See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and
 current results of this work, and [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy
