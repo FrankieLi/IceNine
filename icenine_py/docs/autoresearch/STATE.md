@@ -47,8 +47,8 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
 - AR5 step 14 phase A MERGED f68ab69 (suite 2055 passed, 47 skipped, 1 deselected); J vs H fewer:
   held 17.34%, mid 5.48%, grad 9.87%. Key WAITS (held2: step 13 or owner). Step 15 failed, merged.
   Step 16 (`ar5p`) MERGED 4a1cfb42 (suite 2125 passed, 48 skipped, 1 deselected): J5 passes on
-  5 samples. v53 live. Step 17 (`ar5q`, N2): freeze 1cab5174; `J5r` since 02:53, 15 Nov,
-  in `agent-aeba15b7c3850b007`: marker `…/fitskip/cache/logs/fitskip_record.done`; dead: redo it
+  5 samples. v53 live. Step 17 (`ar5q`, N2): recording `J5r` ended exit=0 at 04:37, 15 Nov;
+  implementer aeba15b7c3850b007 on selection + gate since 06:55 (live `mid` run, 1 process).
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
 7, 18, 22, 23, AR0 to AR2, AR3 1 to 11, AR5 1 to 3, 5, 7 to 12, AR4 1): `STATE_HISTORY.md`.
