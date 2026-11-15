@@ -1947,3 +1947,16 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   learned stop on the stall summary (about 1 point more on held, loses 2 to 4 later 0.95 ends; an
   exploratory look only), a start test for revisits (needs a recording run), a stop at the first
   gain that reaches 0.95 (moves hundreds of seed ends). Where: PLAN.md AR5 step 16.
+
+### D-20261115-N1 · Track A / AR5 step 16 · AR5 step 16: rule PH(500) passes on held3 and the four disclosed samples; phase B (key test) starts
+- 2026-11-15, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Arm J5 (arm J with the high stop at a 500-evaluation
+  stall) passes rules 1 to 5 on held3, held, mid, grad and big: fewer evaluations than J with the
+  pass 5.37%, 6.21%, 6.25%, 1.46%, 1.87%; wrong voxels 55 to 54, 68 to 67, 35 to 35, 56 to 56, 21
+  to 21; mid stays at net +4 of limit 5 against S8. The Opus review (20261115-0105-review-ar5p.md)
+  recomputed every rule from the stored runs, found no leakage of held3 and approves. Two fixes
+  are applied first: relabel the failed-seed-test counts that were called grid searches and give
+  rule 4 the real grid-search counts; guard the held3 reads in high500_stats.py. Phase B then
+  starts: unit test of key SeedIndexMCStallHit at k = 500, key-off suite, key-on library run on
+  mid, page, history. The key default stays 0 (off). The owner may overrule. Where: PLAN.md AR5
+  step 16; .claude/reports/20261115-0105-review-ar5p.md.
