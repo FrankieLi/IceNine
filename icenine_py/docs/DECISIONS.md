@@ -1905,3 +1905,16 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   14's own freeze check disagree before held2 is judged. The owner may instead decide that held2's
   after-pass numbers of arm J are read now. Where: PLAN.md AR5 step 14; branch
   feature/eval-reduction-ar5n.
+
+### D-20261114-N6 · A/AR5 step 15 · AR5 step 15 approved: rule PB(k), a two-sided stall check in the seed step's MC refinement; step 14 phase A merges as scripts only
+- 2026-11-14, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. (a) AR5 step 15 (task ar5o) is approved as written in
+  PLAN.md: rule PB(k) stops a seed-step MC refinement at a stall of k evaluations if the running
+  best's hit ratio is at least 0.95 or under 0.80; forms PB(1000) and PB(500) frozen; a recording
+  replay and a gate on held, mid, grad, big before any whole-layer run; clean test on a new sample
+  held3 (built as held, generator seed 3); held2 is not used. Reason: seed-step MC is the largest
+  open part of arm J (46.5% of held, 33.6% of mid, 11.8% of grad); the boundary pass (21 to 40%)
+  is step 13, blocked. (b) Step 14's phase A (scripts, stats, tables; no library change, no key)
+  is merged into feature/eval-reduction now so that step 15 can build on it; its key and its held2
+  after-pass judgement still wait as in N5; nothing of held2's pass is opened by the merge. Where:
+  PLAN.md AR5 step 15; branch feature/eval-reduction-ar5n.
