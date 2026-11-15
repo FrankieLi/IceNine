@@ -48,7 +48,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   held 17.34%, mid 5.48%, grad 9.87%. Key WAITS (held2: step 13 or owner). Step 15 failed, merged.
   Step 16 (`ar5p`) MERGED 4a1cfb42 (suite 2125 passed, 48 skipped, 1 deselected): J5 passes on
   5 samples. v53 live. Step 17 (`ar5q`): gate FAILED (g2 on mid), N3; study MERGED a3a4f1d8; cache
-  with recording `J5r` kept in `agent-aeba15b7c3850b007`. Step 18 (learned skip): redraft on.
+  with `J5r` kept in `agent-aeba15b7c3850b007`. Step 18 (`ar5r`, N4): implementer adedc789a656fa5ed.
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
 7, 18, 22, 23, AR0 to AR2, AR3 1 to 11, AR5 1 to 3, 5, 7 to 12, AR4 1): `STATE_HISTORY.md`.
