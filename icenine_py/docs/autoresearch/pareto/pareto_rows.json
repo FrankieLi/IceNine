@@ -2950,7 +2950,7 @@
    "what_evals_include": "the stored J5 run with its boundary pass plus every counted evaluation of the repair (842,911)",
    "source_json": "icenine_py/benchmarks/autoresearch/ar5/repair/summary.json :: held3",
    "source_page": "icenine_py/MIGRATION_HISTORY.md :: Autoresearch AR5 step 19 (the findings page text waits in .claude/reports/; no page under docs/ yet)",
-   "flag": "FAILED GATE (cost): the repair's evaluations are 3.59% of the J5 run, over the cap of 2.5% (D-20261115-N8). Accuracy as hoped but in-sample: the flag was chosen on these samples; held4 was not built. Not a result to build on."
+   "flag": "FAILED GATE (cost): the repair's evaluations are 3.59% of the J5 run, over the cap of 2.5% (D-20261115-N8). Fixed minus broken against J5 is positive, in-sample: the flag was chosen on these samples; held4 was not built. Not a result to build on."
   },
   {
    "sample": "held_24570",
@@ -2971,7 +2971,7 @@
    "what_evals_include": "the stored J5 run with its boundary pass plus every counted evaluation of the repair (719,418)",
    "source_json": "icenine_py/benchmarks/autoresearch/ar5/repair/summary.json :: held",
    "source_page": "icenine_py/MIGRATION_HISTORY.md :: Autoresearch AR5 step 19 (the findings page text waits in .claude/reports/; no page under docs/ yet)",
-   "flag": "FAILED GATE (cost): the repair's evaluations are 3.14% of the J5 run, over the cap of 2.5% (D-20261115-N8). Accuracy as hoped but in-sample: the flag was chosen on these samples; held4 was not built. Not a result to build on."
+   "flag": "FAILED GATE (cost): the repair's evaluations are 3.14% of the J5 run, over the cap of 2.5% (D-20261115-N8). Fixed minus broken against J5 is positive, in-sample: the flag was chosen on these samples; held4 was not built. Not a result to build on."
   },
   {
    "sample": "mid_24570",
@@ -2992,7 +2992,7 @@
    "what_evals_include": "the stored J5 run with its boundary pass plus every counted evaluation of the repair (451,286)",
    "source_json": "icenine_py/benchmarks/autoresearch/ar5/repair/summary.json :: mid",
    "source_page": "icenine_py/MIGRATION_HISTORY.md :: Autoresearch AR5 step 19 (the findings page text waits in .claude/reports/; no page under docs/ yet)",
-   "flag": "FAILED GATE (cost): the repair's evaluations are 4.26% of the J5 run, over the cap of 2.5% (D-20261115-N8). Accuracy as hoped but in-sample: the flag was chosen on these samples; held4 was not built. Not a result to build on."
+   "flag": "FAILED GATE (cost): the repair's evaluations are 4.26% of the J5 run, over the cap of 2.5% (D-20261115-N8). Fixed minus broken against J5 is positive, in-sample: the flag was chosen on these samples; held4 was not built. Not a result to build on."
   },
   {
    "sample": "gradient_24570",
@@ -3013,7 +3013,7 @@
    "what_evals_include": "the stored J5 run with its boundary pass plus every counted evaluation of the repair (640,885)",
    "source_json": "icenine_py/benchmarks/autoresearch/ar5/repair/summary.json :: grad",
    "source_page": "icenine_py/MIGRATION_HISTORY.md :: Autoresearch AR5 step 19 (the findings page text waits in .claude/reports/; no page under docs/ yet)",
-   "flag": "FAILED GATE (cost): the repair's evaluations are 7.09% of the J5 run, over the cap of 3.5% (D-20261115-N8). Accuracy as hoped but in-sample: the flag was chosen on these samples; held4 was not built. Not a result to build on."
+   "flag": "FAILED GATE (cost): the repair's evaluations are 7.09% of the J5 run, over the cap of 3.5% (D-20261115-N8). Fixed minus broken against J5 is positive, in-sample: the flag was chosen on these samples; held4 was not built. Not a result to build on."
   },
   {
    "sample": "big_24570",
@@ -3034,7 +3034,7 @@
    "what_evals_include": "the stored J5 run with its boundary pass plus every counted evaluation of the repair (123,781)",
    "source_json": "icenine_py/benchmarks/autoresearch/ar5/repair/summary.json :: big",
    "source_page": "icenine_py/MIGRATION_HISTORY.md :: Autoresearch AR5 step 19 (the findings page text waits in .claude/reports/; no page under docs/ yet)",
-   "flag": "FAILED GATE (cost): the repair's evaluations are 3.47% of the J5 run, over the cap of 2.5% (D-20261115-N8). Accuracy as hoped but in-sample: the flag was chosen on these samples; held4 was not built. Not a result to build on."
+   "flag": "FAILED GATE (cost): the repair's evaluations are 3.47% of the J5 run, over the cap of 2.5% (D-20261115-N8). Fixed minus broken against J5 is positive, in-sample: the flag was chosen on these samples; held4 was not built. Not a result to build on."
   }
  ],
  "excluded": [

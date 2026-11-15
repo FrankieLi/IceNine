@@ -946,9 +946,10 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   optimization; D-20261115-N6, g0 counts amended N7, stopped at its gate by N8): scripts
   `scripts/autoresearch/ar5/repair_*.py` (pure rules, guards, freeze, set-up, data loader, flags,
   runner, gate, summary, pareto rows), tests `tests/test_ar5_repair.py` (20), results
-  `benchmarks/autoresearch/ar5/repair/`. Accuracy as hoped (fixed against `J5`: 3, 9, 6, 8, 5; broken
-  0 to 1; `mid` against `S8` from +4 to -2), cost over the cap: 3.14% to 7.09% of the run against 2.5%
-  (3.5% on `grad`), median 662 evaluations a fit. In-sample (flag chosen on these samples); `held4`
+  `benchmarks/autoresearch/ar5/repair/`. Measured: fixed / broken against `J5` 3/0, 9/0, 6/0, 8/0,
+  5/1 (fixed below the predicted range on `held3` and `grad`, above it on `big`); `mid` against `S8`
+  from +4 to -2; `J5L` repaired against `S8` 0 (was +8). Cost over the cap: 3.14% to 7.09% of the run
+  against 2.5% (3.5% on `grad`), median 662 evaluations a fit (own-end fits too). In-sample (flag chosen on these samples); `held4`
   not built; no key, no library change. Five pareto rows flagged "failed gate (cost)". Findings text
   in `.claude/reports/20261115-0930-ar5s-findings_ar5_repair.md` (its write under `docs/` was
   refused). MIGRATION_HISTORY, "Autoresearch AR5 step 19".

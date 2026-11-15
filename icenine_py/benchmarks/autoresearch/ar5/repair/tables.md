@@ -1,12 +1,12 @@
 <!-- table:repair_accuracy -->
-| sample | wrong_before | wrong_after | fixed | broken | med_before | med_after |
-|---|---|---|---|---|---|---|
-| held3 | 54 | 51 | 3 | 0 | 0.02545 | 0.02543 |
-| held | 67 | 58 | 9 | 0 | 0.02596 | 0.02589 |
-| mid | 35 | 29 | 6 | 0 | 0.02860 | 0.02855 |
-| grad | 56 | 48 | 8 | 0 | 0.02134 | 0.02131 |
-| big | 21 | 17 | 5 | 1 | 0.03045 | 0.03044 |
-| mid, J5L | 39 | 31 | 8 | 0 | 0.02857 | 0.02853 |
+| sample | wrong_before | ci_before | wrong_after | ci_after | fixed | broken | med_before | med_after |
+|---|---|---|---|---|---|---|---|---|
+| held3 | 54 | 0.168 to 0.287% | 51 | 0.158 to 0.273% | 3 | 0 | 0.02545 | 0.02543 |
+| held | 67 | 0.215 to 0.346% | 58 | 0.183 to 0.305% | 9 | 0 | 0.02596 | 0.02589 |
+| mid | 35 | 0.102 to 0.198% | 29 | 0.082 to 0.169% | 6 | 0 | 0.02860 | 0.02855 |
+| grad | 56 | 0.176 to 0.296% | 48 | 0.147 to 0.259% | 8 | 0 | 0.02134 | 0.02131 |
+| big | 21 | 0.056 to 0.131% | 17 | 0.043 to 0.111% | 5 | 1 | 0.03045 | 0.03044 |
+| mid, J5L | 39 | 0.116 to 0.217% | 31 | 0.089 to 0.179% | 8 | 0 | 0.02857 | 0.02853 |
 <!-- /table:repair_accuracy -->
 
 <!-- table:repair_cost -->
@@ -19,6 +19,25 @@
 | big | 56 | 162 | 10 | 123,781 | 662 | 764 | 3.47 | 2.5 | cost over the cap |
 | mid, J5L | 145 | 650 | 24 | 469,466 | 662 | 722 | 4.70 | n/a | measurement |
 <!-- /table:repair_cost -->
+
+<!-- table:repair_j5l -->
+| comparison | fixed | broken | net |
+|---|---|---|---|
+| J5L against S8 (before the repair) | 9 | 17 | 8 |
+| J5L repaired against S8 | 11 | 11 | 0 |
+| J5L repaired against J5R (mid) | 2 | 4 | 2 |
+<!-- /table:repair_j5l -->
+
+<!-- table:repair_own_end -->
+| sample | own_fits | own_at_662 | cand_at_662 | own_share |
+|---|---|---|---|---|
+| held3 | 194 | 93 | 53 | 16.1 |
+| held | 183 | 93 | 50 | 17.7 |
+| mid | 142 | 89 | 56 | 22.9 |
+| grad | 238 | 98 | 71 | 24.9 |
+| big | 56 | 89 | 48 | 32.4 |
+| mid, J5L | 145 | 88 | 53 | 22.6 |
+<!-- /table:repair_own_end -->
 
 <!-- table:repair_vs_s8 -->
 | sample | j5_fixed | j5_broken | j5_net | r_fixed | r_broken | r_net |

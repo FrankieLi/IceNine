@@ -55,7 +55,8 @@ def main() -> None:
                 "findings page text waits in .claude/reports/; no page under docs/ yet)",
                 flag="FAILED GATE (cost): the repair's evaluations are "
                 f"{r['share_pct']:.2f}% of the J5 run, over the cap of {r['cap_pct']}% "
-                "(D-20261115-N8). Accuracy as hoped but in-sample: the flag was chosen on these "
+                "(D-20261115-N8). Fixed minus broken against J5 is positive, in-sample: the flag "
+                "was chosen on these "
                 "samples; held4 was not built. Not a result to build on.",
             )
         )
