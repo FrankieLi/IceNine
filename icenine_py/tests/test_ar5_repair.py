@@ -46,8 +46,9 @@ def test_the_frozen_constants_are_the_plans() -> None:
     assert RR.J5_TOTAL == dict(
         held3=23_503_385, held=22_939_812, mid=10_589_493, grad=9_041_686, big=3_567_098
     )
-    assert RR.FLAGGED == dict(held3=193, held=183, mid=143, grad=238, big=56)
-    assert RR.FITS == dict(held3=1_217, held=1_035, mid=643, grad=967, big=161)
+    assert RR.FLAGGED == dict(held3=194, held=183, mid=142, grad=238, big=56)
+    assert RR.FITS == dict(held3=1_214, held=1_026, mid=635, grad=965, big=162)
+    assert (RR.J5L["flagged"], RR.J5L["fits"]) == (145, 650)
     assert RR.J5_WRONG == dict(held3=54, held=67, mid=35, grad=56, big=21)
     assert RR.max_share("grad") == 3.5 and RR.max_share("mid") == 2.5
 

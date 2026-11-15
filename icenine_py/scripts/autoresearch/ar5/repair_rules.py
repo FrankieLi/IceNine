@@ -63,14 +63,18 @@ J5_TOTAL: Dict[str, int] = dict(
 )
 J5_WRONG: Dict[str, int] = dict(held3=54, held=67, mid=35, grad=56, big=21)
 # the plan's table (g0): flagged voxels and repair fits (a fit per start: own end plus candidates)
-FLAGGED: Dict[str, int] = dict(held3=193, held=183, mid=143, grad=238, big=56)
-FITS: Dict[str, int] = dict(held3=1_217, held=1_035, mid=643, grad=967, big=161)
-J5L = dict(total=9_990_663, wrong=39, flagged=146, fits=658)  # step 18's live run of mid
+FLAGGED: Dict[str, int] = dict(held3=194, held=183, mid=142, grad=238, big=56)
+FITS: Dict[str, int] = dict(held3=1_214, held=1_026, mid=635, grad=965, big=162)
+J5L = dict(total=9_990_663, wrong=39, flagged=145, fits=650)  # step 18's live run of mid
+# D-20261115-N7: neighbours are the pass's own (mic.get_neighbors, radius 2 side lengths), the
+# angle is the library's misorientation_deg; the plan's first counts (193 / 183 / 143 / 238 / 56
+# and 1,217 / 1,035 / 643 / 967 / 161) used a cKDTree ball and an arccos angle and are superseded.
 
 # gate (plan "Decision rules", fixed before any run)
 GATE = dict(
-    g0="prediction 1: flagged 193 / 183 / 143 / 238 / 56 and fits 1,217 / 1,035 / 643 / 967 / 161 "
-    "(held3, held, mid, grad, big); J5 wrong 54 / 67 / 35 / 56 / 21; J5 totals as stored",
+    g0="prediction 1 (amended, D-20261115-N7): flagged 194 / 183 / 142 / 238 / 56 and fits "
+    "1,214 / 1,026 / 635 / 965 / 162 (held3, held, mid, grad, big); J5L on mid 145 / 650; "
+    "J5 wrong 54 / 67 / 35 / 56 / 21; J5 totals as stored",
     g1="J5R on mid: fixed minus broken against J5 at least 3; repair evaluations at most 2.5% "
     "of J5",
     g2="J5R on held3, held, grad, big: broken minus fixed against J5 at most 0; repair evaluations "
