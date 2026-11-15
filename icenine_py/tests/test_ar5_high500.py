@@ -399,8 +399,11 @@ def test_run_all_dry_run_resume_lists_an_old_failed_marker_to_move(tmp_path: Pat
         cwd=str(ROOT),
         env=env,
     )
+    expected = "freeze check failed: icenine/orientation_search.py differs from the frozen hash"
     if chk.returncode != 0:  # phase B put a docstring note in orientation_search.py, by design
-        pytest.skip("the step 16 freeze no longer agrees (library docstring note of phase B)")
+        if expected not in chk.stderr:  # any other mismatch or a crash is a real failure
+            pytest.fail(f"unexpected freeze result: {chk.stderr[-300:]}")
+        pytest.skip("the step 16 freeze disagrees only on the phase B docstring note")
     r = subprocess.run(
         [str(sh), "--smoke", "--resume", "--dry-run", "--cache", str(tmp_path)],
         capture_output=True,
@@ -456,3 +459,18 @@ def test_judge_rules_match_the_frozen_pass_rules() -> None:
     assert not HJ.rules("mid", 90, 100, 0, 0.02, 0.02, 0, 3, 3, bad, ok)["passes"]
     assert HJ.rules("grad", 100, 100, 0, 0.02, 0.02, 0, 1, 1, ok, ok)["r1"]
     assert not HJ.rules("grad", 101, 100, 0, 0.02, 0.02, 0, 1, 1, ok, ok)["r1"]
+
+
+def test_the_only_frozen_file_that_differs_is_the_phase_b_docstring_note() -> None:
+    """Phase B edited one comment in ``icenine/orientation_search.py`` (the frozen hash is the one
+    of the freeze commit). Every other frozen script and library file must still agree."""
+    import json
+
+    import high500_freeze as HF
+
+    saved = json.loads(HF.FROZEN.read_text())
+    cur = HF.current()
+    differ = [
+        k for part in ("files", "library") for k, v in cur[part].items() if saved[part].get(k) != v
+    ]
+    assert set(differ) <= {"icenine/orientation_search.py"}, differ

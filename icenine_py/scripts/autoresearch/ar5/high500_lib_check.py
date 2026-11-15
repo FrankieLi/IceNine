@@ -1,11 +1,11 @@
-"""AR5 step 12, phase B: is the key-on library run equal to the script arm ``J5l``? (stop rule)
+"""AR5 step 16, phase B: is the key-on library run equal to the script arm ``J5l``? (stop rule)
 
   RESEED_SAMPLE=mid HIGH500_CACHE=<cache> RESCUE_CACHE=<cache> \
       uv run python scripts/autoresearch/ar5/high500_lib_check.py
 
 Compares, on ``mid``, ``LibJ5`` (library, ``SeedRescueCMA 0.25 1000`` and
-``SeedIndexMCStallHit 500``) with ``J5l`` (script arm ``H`` with library draws), with the helpers of
-step 9's ``rescue_lib_check.py``:
+``SeedIndexMCStallHit 500``) with ``J5l`` (step 12's ``Hl`` with rule ``PH(500)``, i.e. ``J5``
+without ``G2b``, with library draws), with the helpers of step 9's ``rescue_lib_check.py``:
 
 * before the boundary pass: the map (decompressed ``.mic`` bytes; else the voxels that differ and
   the largest angle), the evaluation total, every counter of the script run (time counters left

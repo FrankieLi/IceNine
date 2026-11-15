@@ -1,6 +1,6 @@
-"""AR5 step 12, phase B: a library run with the key ``SeedIndexMCStallHit 500`` on (``LibJ5``).
+"""AR5 step 16, phase B: a library run with the key ``SeedIndexMCStallHit 500`` on (``LibJ5``).
 
-  RESEED_SAMPLE=mid uv run python scripts/autoresearch/ar5/high500_lib_run.py [--cap-min 240]
+  RESEED_SAMPLE=mid uv run python scripts/autoresearch/ar5/high500_lib_run.py [--cap-min 300]
 
 Everything is the library's own: the keys are written to the config (``ar3_common.build``
 appends them, as ``rescue_lib_run.py`` of step 9 does); no method is replaced and nothing is

@@ -13010,8 +13010,8 @@ form, no whole layer; `held3` was not built; no form was chosen (no `chosen.json
 Plan: `docs/autoresearch/PLAN.md`, "AR5 step 16" (D-20261114-N8; phase B D-20261115-N1). Rule
 `PH(500)`: in the seed step's MC refinement, after 500 evaluations with no gain look once at the hit
 ratio of the best orientation; at 0.95 or more stop and keep it; else go on. No low side. Arm `J5`
-is step 14's arm `J` with this rule in place of `PH(3000)`. Findings page:
-`docs/autoresearch/findings_ar5_high500.md` (its text is in the phase B report; see below).
+is step 14's arm `J` with this rule in place of `PH(3000)`. The findings page
+`docs/autoresearch/findings_ar5_high500.md` is not placed yet (see Deviations).
 
 **What was done.** Phase A (script layer, `scripts/autoresearch/ar5/high500_*.py`): step 14's
 stored arm-`J` files and step 15's recording rows were linked read only (four samples, no `held2`);
@@ -13046,11 +13046,16 @@ checks, 402 stops. After the pass they differ as in step 12 (39 and 37 wrong vox
 pass reads the unrounded map).
 
 **Deviations and caveats.**
-- The findings page could not be written to `docs/` (a write was refused); its text is in
-  `.claude/reports/20261115-ar5p-phaseB.md`. The doc tables are in `tables.md`, `gate_tables.md`
-  and `tables_lib.md`.
+- The findings page could not be written to `docs/` (a write was refused). The page text waits
+  for the owner in `.claude/reports/` (the file `20261115-0143-ar5p-phaseB-findings_ar5_high500.md`,
+  untracked). The doc tables are in `tables.md`, `gate_tables.md` and `tables_lib.md`.
+- The library key was checked against script arm `J5l` (`J5` without `G2b`, which has no
+  library key), so the library cannot yet run arm `J5` itself: with the pass `J5l` costs
+  11,189,507 evaluations on `mid` against 10,589,493 for `J5`.
 - `held`, `mid`, `grad` and `big` are a carry-over check, not a test; `held3` is the clean test and
-  its counts (54 against 55 wrong) are too small to show a change.
-- The key was tested on `mid` only. The step 16 freeze and step 14's freeze no longer agree after
-  the docstring change; no `held` run is planned.
-- The `S8` and `J` runs on `held3` stay as clean baselines for later steps.
+  its counts (54 against 55 wrong, Wilson 0.17 to 0.29% for both) are too small to show a change.
+- The key was tested on `mid` only. Three freezes moved with the docstring change (steps 14, 15 and 16),
+  so `high500_common` now refuses `held` and `held3` at HEAD: the `held` and `held3` stats can be
+  regenerated only at b192e1e. No `held` run is planned.
+- The `S8` and `J` runs on `held3` stay as stored baselines on clean images; `held3` is disclosed
+  after step 16 (it was the clean test for step 16 only).

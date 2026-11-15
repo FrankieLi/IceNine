@@ -1,15 +1,15 @@
 #!/bin/bash
-# AR5 step 12, phase B: the script arm J5l and the key-on library run LibJ5 on mid (one job each).
+# AR5 step 16, phase B: the script arm J5l and the key-on library run LibJ5 on mid (one job each).
 #   cd icenine_py && nohup perl -MPOSIX -e 'POSIX::setsid(); exec @ARGV' \
 #       scripts/autoresearch/ar5/high500_phase_b.sh <J5l|LibJ5> > /dev/null 2>&1 < /dev/null &
 # Jobs (one heavy process each, under caffeinate -i):
-#   J5l    script arm J5l (high500_hl.py: step 9's arm Gl + rule PH(500)), then its pass
+#   J5l    script arm J5l (high500_hl.py: step 12's arm Hl with rule PH(500), arm J5 without G2b), then its pass
 #         (order_pass.py --name J5l --aligned 0, the library's single generator)
 #   LibJ5  library run, keys of S11L + SeedRescueCMA 0.25 1000 + SeedIndexMCStallHit 500
 #         (high500_lib_run.py; its boundary pass runs in the run)
 # Resumable: a job whose <job>_mid.done marker reads exit=0 is not rerun; a job whose run folder
 # exists without that marker is refused (move the folder away to rerun it).
-# Logs and markers in <cache>/logs: <job>_mid.log, <job>_mid.done ("exit=<code> ..."). Caps 240
+# Logs and markers in <cache>/logs: <job>_mid.log, <job>_mid.done ("exit=<code> ..."). Caps 300
 # minutes per run. Wall times are contended, not timing results. Refuses (exit 2, nothing written)
 # when an output's real path lies outside the cache (stallhit_cache_guard.py). Plain bash 3.2.
 set -u

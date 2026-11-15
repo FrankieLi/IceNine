@@ -1,13 +1,13 @@
-"""AR5 step 12, phase B: one whole-layer run of the script arm ``J5l`` (arm ``H`` with library
-draws).
+"""AR5 step 16, phase B: one whole-layer run of the script arm ``J5l`` (step 12's arm ``Hl``
+with rule ``PH(500)``: arm ``J5`` without ``G2b``, with library draws).
 
-  RESEED_SAMPLE=mid uv run python scripts/autoresearch/ar5/high500_hl.py [--cap-min 240]
+  RESEED_SAMPLE=mid uv run python scripts/autoresearch/ar5/high500_hl.py [--cap-min 300]
 
 Arm ``J5l`` is step 9's script arm ``Gl`` (``rescue_gl.py``: step 8's arm ``Al``, the interleaved
 order with the library's own draws, one generator for the whole run, plus rule ``G1`` in front of
 the grid fallback) with rule ``PH(500)`` in every seed-step MC refinement, exactly as
 ``stallhit_run.py`` puts it on arm ``G`` (same ``StallHitPick``, ``RescueWrap``, rule, counting and
-logs). It is the script arm that the library run with ``SeedIndexMCStallHit 3000`` must equal
+logs). It is the script arm that the library run with ``SeedIndexMCStallHit 500`` must equal
 before the boundary pass (plan, phase B). ``stallhit_run.py`` is frozen (``stallhit/frozen.json``)
 and is not edited. Writes ``<cache>/J5l_<sample>/`` (the files of ``order_run.py`` plus
 ``rescue_log.json.gz``, ``rescue.json``, ``stallhit.json``) and ``J5l.done`` there at the end. The
