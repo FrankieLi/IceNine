@@ -13059,3 +13059,32 @@ pass reads the unrounded map).
   regenerated only at b192e1e. No `held` run is planned.
 - The `S8` and `J` runs on `held3` stay as stored baselines on clean images; `held3` is disclosed
   after step 16 (it was the clean test for step 16 only).
+
+## Autoresearch AR5 step 17: an early skip of the BFS local optimizations of arm `J5`, phase A (2026-11-15, task ar5q)
+
+Approved: D-20261115-N2. Script layer only; no library change. Status: the rule family, the
+selection, the gate and the hashes are frozen (`benchmarks/autoresearch/ar5/fitskip/frozen.json`,
+committed before any row of the recording was read); the recording run `J5r` is waiting to be
+started by the main session (`scripts/autoresearch/ar5/fitskip_record_all.sh`).
+
+- `fitskip_rules.py` (pure): the 27 rules (`S(t, scope)`, `C(t, scope)`, `D(d)`), their replay on
+  a recording, the admissibility test, the exact selection and the plan's gate and pass rules.
+- `fitskip_hook.py`: one object patches `_expand`, `_insert_seed` and `_local_fit` of the BFS
+  instance. Recording mode stores one row per neighbour fit and revisit (start, best, running best
+  cost at every evaluation, hit ratio after 20 evaluations, end, accepted, kept) with two
+  recording-only overlap evaluations per fit listed apart. Acting mode (rules `S` and `D` only;
+  `C` is replayed only, the library cannot stop a CMA run after 20 evaluations) makes a skipped fit a
+  rejected fit, keeps the old end of a skipped revisit (confidence -1 for the push rule), counts
+  each check as one evaluation and takes and discards the skipped fit's aligned draw.
+- `fitskip_run.py`, `fitskip_pass.py`, `fitskip_p1.py` (prediction 1 against the stored `J5`),
+  `fitskip_final.py` (which fit end is the final answer before and after the pass),
+  `fitskip_record_all.sh` (detached-safe run-all, `--resume`, the marker `logs/fitskip_record.done`),
+  `fitskip_link_cache.sh` (step 16's stored files, read only), `fitskip_guard.py` (`held2` never;
+  `held4` not before the gate and not its logs or maps before its runs end).
+- The freezes of steps 8, 9, 12, 14, 15 and 16 no longer agree with the library (a docstring line
+  moved their hashes). This step's own freeze is checked first; only then are the older checks
+  replaced in the script layer (`fitskip_common.py`), as `stallhit_common.py` did. No hash of an
+  older step is re-recorded and no frozen file of an older step is edited.
+- Tests: `tests/test_ar5_fitskip.py`, 34 tests.
+- Short smoke (`--smoke 30`, `big`): the recording run equals the unhooked `J5` run in every
+  integer count and in the map at all 24,570 voxels (so the hook adds no counted evaluation).

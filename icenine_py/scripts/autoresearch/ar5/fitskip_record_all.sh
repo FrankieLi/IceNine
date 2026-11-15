@@ -214,9 +214,11 @@ if [ "$smoke_cap" = "0" ]; then   # the linked stored arm-J5 files (existence on
     need="$need $cache/J5_$s/run.json $cache/J5_$s/recon.mic.gz $cache/passes_$s/after_J5.npy $cache/passes_$s/D4_J5/pass.json"
   done
 fi
-for p in $need; do
-  if [ ! -e "$p" ]; then refuse "input missing: $p"; fi
-done
+if [ "$dry" = "0" ]; then   # a dry run makes no link, so it checks the link sources only (above)
+  for p in $need; do
+    if [ ! -e "$p" ]; then refuse "input missing: $p"; fi
+  done
+fi
 
 run_cmd() { # run_cmd <sample> <arm> <cap>: the run command (text, for the dry run and the log)
   case "$2" in

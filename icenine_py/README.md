@@ -908,6 +908,14 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   with the pass, no detectable change in wrong voxels. No new library code: step 12's key
   `SeedIndexMCStallHit` takes k = 500 (tested on `mid`: equal to script arm `J5l` before the pass, which is arm `J5` without `G2b` (no library key); the library cannot run `J5` itself); the
   key stays off by default. MIGRATION_HISTORY, "Autoresearch AR5 step 16".
+- Autoresearch AR5 step 17 (phase A so far: an early skip of the BFS local optimizations of arm
+  `J5`, chosen by a procedure fixed before any recording is read): scripts
+  `scripts/autoresearch/ar5/fitskip_*.py` (script layer: `fitskip_rules.py` the 27 rules, their
+  replay and the selection; `fitskip_hook.py` the hook on the BFS instance, recording or acting;
+  `fitskip_record_all.sh` the recording run `J5r` on the five disclosed samples), tests
+  `tests/test_ar5_fitskip.py`, results `benchmarks/autoresearch/ar5/fitskip/` (`frozen.json`; the
+  recording stays in the untracked cache). No library change. MIGRATION_HISTORY, "Autoresearch AR5
+  step 17".
 
 See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and
 current results of this work, and [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy
