@@ -1918,3 +1918,17 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   is merged into feature/eval-reduction now so that step 15 can build on it; its key and its held2
   after-pass judgement still wait as in N5; nothing of held2's pass is opened by the merge. Where:
   PLAN.md AR5 step 15; branch feature/eval-reduction-ar5n.
+
+### D-20261114-N7 · A/AR5 step 15 · AR5 step 15 stops at its gate: rule PB(k) fails, no key; merged as a study after 6 doc fixes
+- 2026-11-14, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. The Opus review
+  (.claude/reports/20261114-1820-review-ar5o.md) recomputed the gate: both frozen forms PB(1000)
+  and PB(500) fail g1 to g4 on held; the stop is accepted and the gate is not overridden. No
+  held3, no whole-layer run, no key. Net saving PB1000 / PB500: held 3.77% / 5.59%, mid 7.64% /
+  13.09%. Seed voxels made wrong, none fixed: 2, 1, 1, 0 and 4, 2, 1, 0 on held, mid, grad, big;
+  lost later 0.95 ends 68 / 161 on held. Observation, not a tested rule: all the damage comes from
+  the low stop (hit ratio under 0.80); the high stop alone would save 4.28% / 5.34% on held, under
+  the 6% the gate asks. No third form is tried on these samples. Required fixes 1 to 6 (documents
+  only) are applied; fix 5 by disclosure, the untracked ar3 files are not deleted. The held3 shim
+  and band_run_all.sh stay, marked untested end to end. Then the branch is merged as a study with
+  scripts only. Where: PLAN.md AR5 step 15; branch feature/eval-reduction-ar5o.
