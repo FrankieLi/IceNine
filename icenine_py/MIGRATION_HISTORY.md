@@ -13395,7 +13395,7 @@ layer only (`scripts/autoresearch/ar5/screen_*.py`, `screen_*.sh`; `tests/test_a
 - Results: `benchmarks/autoresearch/ar5/screen/` (`frozen.json`, `gate.json`, `gate_tables.md`; the
   cache is untracked).
 
-## Autoresearch AR5 step 22, phase A so far: defer a stalled seed refinement while untried candidates remain (2026-11-16, task ar5v)
+## Autoresearch AR5 step 22, phase A: defer a stalled seed refinement while untried candidates remain (2026-11-16, task ar5v)
 
 Approved D-20261116-N2. Branch `feature/eval-reduction-ar5v`. Arm `J5D` = arm `J5` with rule `DEF`: at a
 `PH(500)` check that goes on (the running best's own hit ratio under 0.95), if the seed step still has an
@@ -13433,10 +13433,14 @@ run (`ar5/defer/frozen.json`).
 
 The gate (g2: live `J5D` on `mid` equals the replay in all 35 seed steps before the first C step;
 g3 on `mid` and `held`) passed (`gate.json`). All runs of the rest stage ended with exit 0, no cap
-hit, no traceback; `held6`'s files were first opened by the summary after the marker
-`defer_runs.done` (12:24 on 16 Nov). Evaluations include the boundary pass, the screen pass and the
-wide repair, and every check; the re-run evaluations of resumed refinements are not counted and are
-listed apart in the steps table. Wrong: over 1 degree from the truth (symmetry-reduced), counted by
+hit, no traceback; no agent and no analysis script read `held6`'s logs or maps before the marker
+`defer_runs.done` (12:24 on 16 Nov; guards and agent transcripts; the run jobs read only their own
+inputs; the file access times also show system reads of the new maps, consistent with a macOS indexer
+that the runs' timing labels list at full CPU, not tested). What each evaluation total holds: `S8` and
+`J5` are the search plus the boundary pass (the D4 pass); `J5S` and `J5SD` are the search plus the screen
+pass plus the wide repair (step 21's accounting): the D4 pass that the screen pass reads its tries from
+is not counted for either, so the two are compared alike. Every check is counted; the re-run
+evaluations of resumed refinements are not counted and are listed apart in the steps table. Wrong: over 1 degree from the truth (symmetry-reduced), counted by
 voxel; Wilson 95% interval of `J5SD`'s wrong share; fixed / broken are `J5SD` against the named arm.
 Figure: `benchmarks/autoresearch/ar5/defer/ar5_defer_evals_wrong.png` (run evaluations against wrong
 voxels, S8, J5S and J5SD, eight panels).
@@ -13525,5 +13529,10 @@ Reading line: evaluations of `J5SD` by stage.
 Verdict: the step passes (`J5SD` passes every rule on `held6` and on the seven disclosed samples).
 Prediction 2 missed on the share of C steps that end at another candidate (30% to 70%): `mid` 72%
 (above), `grad` 0 of 10 matched C steps and `big` 7 of 7 (small counts, partial matching by
-voxel). Its savings, broken minus fixed and grid-search parts held. Prediction 3 held on `held6`.
-Not tested here: the key (phase B).
+voxel; Wilson 95% intervals of the shares: `mid` 41 of 57, `grad` 0 of 10, `big` 7 of 7: 0.59 to
+0.82, 0.00 to 0.28, 0.65 to 1.00). Its savings, broken minus fixed and grid-search parts held, but
+`mid` and `held5` sit exactly at the frozen limit of rule (2) (0 fixed, 3 broken each), and the pooled
+paired split against `J5S` leans one way: over the eight samples `J5SD` fixes 9 voxels and breaks 16
+(over the seven disclosed samples 6 and 15); only `held6` goes the other way (3 fixed, 1 broken). The
+rule is per sample and every sample passes. Prediction 3 held on `held6`. The plan's "net bounds" are
+estimates, not bounds: the live savings exceed the unwidened top on `mid` and `big`.

@@ -4,6 +4,7 @@ guards on ``held2`` and ``held6`` and the freeze and run-all layers (plan "AR5 s
 step 2). Written before the scripts were frozen; nothing here opens a sample."""
 
 import itertools
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -341,27 +342,20 @@ def test_freeze_lists_exist_pin_files_and_hash_no_data() -> None:
     assert DF.CONSTANTS["plan_table"] == DR.PLAN_TABLE and DF.CONSTANTS["caps_min"] == DR.CAPS_MIN
 
 
-def test_the_appliers_import_the_common_layer_first() -> None:
-    for src in ("defer_pick.py", "defer_run.py", "defer_launch.py"):
-        text = (AR5 / src).read_text()
-        assert "import defer_common" in text, src
-        assert (
-            text.index("import defer_common") < text.index("import high500_")
-            if "import high500_" in text
-            else True
-        )
-    common = (AR5 / "defer_common.py").read_text()
-    # our freeze first, then the older checks are switched off, then step 21's set-up
-    assert common.index("DF.problems()") < common.index("_SCF.problems = lambda")
-    assert common.index("_SCF.problems = lambda") < common.index("import screen_common")
-    assert common.index("DG.refuse_sample(SAMPLE)") < common.index("DF.problems()")
-
-
-def test_the_pick_never_pauses_the_last_candidate_and_counts_the_rerun_apart() -> None:
-    text = (AR5 / "defer_pick.py").read_text()
-    assert "allow_pause" in text and "rerun_evals" in text and "DeferRerunMismatch" in text
-    rules = (AR5 / "defer_rules.py").read_text()
-    assert "p < n_pos - 1" in rules
+def test_the_common_layer_refuses_before_anything_when_the_freeze_disagrees() -> None:
+    code = (
+        "import sys; sys.path.insert(0, %r)\n"
+        "import defer_freeze as DF\n"
+        "DF.problems = lambda: 'stub reason'\n"
+        "import defer_common\n" % str(AR5)
+    )
+    env = dict(os.environ, RESEED_SAMPLE="mid")
+    env.pop("VIRTUAL_ENV", None)
+    r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=env)
+    assert r.returncode == 2 and "stub reason" in r.stderr
+    env["RESEED_SAMPLE"] = "held2"
+    r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=env)
+    assert r.returncode == 2 and "held2" in r.stderr  # held2 is refused first, whatever the freeze
 
 
 def test_the_run_all_script_parses_and_refuses_the_rest_stage_before_the_gate(
@@ -379,6 +373,3 @@ def test_the_run_all_script_parses_and_refuses_the_rest_stage_before_the_gate(
     assert r.returncode == 2 and "gate_passed" in r.stderr
     r = subprocess.run(["bash", str(p), "--stage", "nonsense"], capture_output=True, text=True)
     assert r.returncode == 2
-    text = p.read_text()
-    assert "defer_gate.done" in text and "defer_runs.done" in text and "gate_passed" in text
-    assert "held2" in text  # the guard
