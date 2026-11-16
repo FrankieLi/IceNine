@@ -4560,6 +4560,157 @@ realistic images; other crystals; a timing; another random seed; `held2`.
 - Owner option, not proposed: accept step 19's repair as it is (MC, 3.14% to 7.09% of `J5`, caps
   of about 4.3% on `mid` and 7.1% on `grad`); it fixes fewer than CMA 120 at six times the cost.
 
+### AR5 step 21: score each pass candidate once, and let a wider repair do the fitting
+
+Task `ar5u`. Approved: D-20261115-N11. Starts from `feature/eval-reduction` after step 20's key phase.
+Reuses step 20's `cmarepair_*` (flag, repair, per-fit generators) and cache (`J5`'s maps before
+and after the pass, pass tries, `J5C` maps, `S8` maps), read only. Phase A ends at "READY FOR KEY"
+or at a gate; phase B only after a recorded decision.
+
+**Why.** The owner asks for fewer evaluations at equal accuracy, and for early stops. The boundary
+pass is 20% to 41% of `J5`'s run (`held4` 20.2%, `grad` 40.7%): one 60-evaluation CMA fit per
+candidate per boundary voxel. Step 20's repair (a 120-evaluation CMA fit at contested voxels) now
+sits behind it. This step stops every pass try at its first evaluation (a screen) and lets the
+repair do the fitting, on a wider set of voxels. The pass runs after BFS, so growth is untouched:
+a whole layer is `J5`'s stored run plus the new pass and repair. Every in-sample number is exact.
+
+**What was read and run.** PLAN steps 17 to 20; DECISIONS N3 to N10; step 20's scripts and cache.
+In scratch: all 385,943 stored pass tries of the six samples re-run with a trace of every gain
+(exact: 0 differ), about 23.5 million evaluations, 7 to 9 minutes a run, 2 processes; then about
+25 pass forms, each followed by step 20's repair run live. Form "full tries" reproduces `J5C`
+exactly on all six samples. Nothing of `held2` opened. `held5` does not exist.
+
+**What the record says.** Cutting the tries alone breaks voxels: at 30 evaluations 5 to 10 a
+sample against `J5C`, at one evaluation 22 to 66. They are voxels that `J5`'s pass got wrong and
+`J5C`'s repair fixed; with short tries the flag misses them, because its margin is measured
+against lower try ends. A wider flag (below) gives them back, and then the try length hardly
+matters. Reading line: per sample, the share of `J5C`'s total saved; fixed / broken against `J5C`
+(by voxel); broken minus fixed against `S8` for `J5C` and for the chosen form (house limit 5).
+
+| sample | tries cut to 30 | race (best on) | one evaluation | chosen | vs S8: J5C, chosen |
+|---|---|---|---|---|---|
+| held4 | 10.0%, 0/6 | 11.4%, 0/3 | 19.7%, 0/22 | 14.1%, 3/2 | -27, -28 |
+| held3 | 10.3%, 0/8 | 11.4%, 0/2 | 20.5%, 0/27 | 14.4%, 4/2 | -21, -23 |
+| held | 11.2%, 0/10 | 12.5%, 0/4 | 22.1%, 0/29 | 15.6%, 9/3 | -21, -27 |
+| mid | 14.2%, 0/8 | 13.6%, 0/3 | 28.1%, 0/23 | 21.3%, 3/3 | -11, -11 |
+| grad | 19.7%, 0/5 | 18.3%, 0/3 | 39.1%, 0/66 | 31.7%, 2/2 | -38, -38 |
+| big | 15.6%, 0/8 | 9.5%, 0/2 | 30.8%, 0/29 | 26.6%, 3/1 | -17, -19 |
+
+The first three columns keep step 20's flag. With the chosen form the median error falls by
+0.0003 to 0.0031 degree; the repair grows to 4.6% to 8.6% of `J5`, the pass shrinks to 0.7% to
+1.3%.
+
+**Terms.** **Hit ratio**: the share of simulated peaks that land on lit pixels. **Boundary pass**,
+**candidate**, **try**, **ratio**, **margin**, **contested** (`M(0.95, 0.15)`), **repair**: as step
+20. **Screen try**: a try with a budget of one evaluation (`cma_max_evals=1`): the candidate start
+is scored, with the library's final evaluation 2 counted; its end is the start. **Wide flag**: a
+voxel is flagged if it is contested, or if its ratio is under 0.95 and one of its pass candidates
+lies more than 1 degree from its kept end (a poor fit next to another orientation). **Arm `J5S`**:
+`J5` with screen tries and the repair on the wide flag. **Right** / **wrong**: at most / over 1
+degree from the truth (symmetry-reduced). **Fixed** / **broken**: wrong in the older arm and right
+in the newer / the reverse, by voxel.
+
+**The rule, frozen now.** BFS and seeds as `J5`. The pass as the library's, with every try a
+screen try; the keep rule `hit` unchanged; each try's generator as `J5`'s pass (`make_rng(v,
+"pass", k)`), though a one-evaluation try draws nothing that matters. Then step 20's repair,
+imported unchanged (CMA 120, first step 0.05 degree, own end and every candidate of the snapshot,
+per-fit generators, keep rule `hit`), on the wide flag. No voxel is skipped by its own hit ratio:
+every boundary voxel scores all its candidates. This is not step 13's skip.
+
+**Samples, and what has touched them.** `held4`, `held3`, `held`, `mid`, `grad`, `big`: disclosed;
+the form was chosen on them. `held2`: not used, not opened. Clean test: a new sample `held5`,
+built by `held_make_sample.py` exactly as `held` (250 Voronoi grains, 24,570 voxels, gradients 0
+to 4 degrees) with generator seed 5, as steps 16 and 20 built `held3` and `held4`: a new sample,
+not an extra random seed. Nobody reads its logs or maps before its runs and repairs end. Clean
+images, Q-max 8.
+
+**Measured.** Pass and repair evaluations, flagged voxels (contested and wide apart), fits, voxels
+changed; wrong voxels (Wilson 95%), fixed and broken against `J5C`, `J5` and `S8`, median error.
+
+**Predictions, written before any run.**
+1. The tracked scripts reproduce the sizing exactly on (held4, held3, held, mid, grad, big): pass
+   evaluations 181,534 / 161,864 / 170,478 / 100,058 / 120,710 / 37,242; flagged 1,869 / 1,787 /
+   1,832 / 1,187 / 1,445 / 366; repair evaluations 1,617,286 / 1,512,258 / 1,547,106 / 759,275 /
+   776,336 / 162,987; totals 23,612,288 / 20,240,655 / 19,457,817 / 8,397,057 / 6,257,077 /
+   2,631,446; fixed / broken against `J5C` 3/2, 4/2, 9/3, 3/3, 2/2, 3/1.
+2. `held5`: 11% to 18% fewer evaluations than `J5C`; flagged 1,500 to 2,200; repair 5% to 8% of
+   `J5`; against `J5C` fixed 2 to 12, broken 0 to 4; median error 0.001 to 0.004 degree lower.
+3. `held5`, against `S8`: `J5C` broken minus fixed -35 to -5; `J5S` within 3 of `J5C`.
+
+**Decision rules, fixed now.** Gate, on the disclosed samples, before `held5` is built: (g0) the
+traced re-run of `J5`'s tries and the full-tries replay reproduce `J5`'s tries and `J5C` exactly
+(wrong voxels, repair evaluations 137,214 / 146,894 / 124,146 / 76,835 / 116,765 / 19,602); (g1)
+prediction 1, exactly; (g2) on each disclosed sample: at least 10% fewer evaluations than `J5C`,
+broken minus fixed against `J5C` at most 0, median error not higher, and on `mid` broken minus
+fixed against `S8` at most +1. Gate fails: stop, report, no tuning, no other form, no `held5`.
+Then `J5S` passes on a sample if, against `J5C` (the same `J5` run, so BFS is identical): (1) at
+least 8% fewer evaluations; (2) broken minus fixed at most 2; (3) median error at most 0.001 degree
+higher; (4) the house rule against `S8` with the pass: at least 20% fewer evaluations, broken minus
+fixed at most 5, median error at most 0.005 degree higher. The step passes if `J5S` passes on
+`held5` and on the six disclosed samples. Fails on `held5`: no key value; study merge. Rule (2)
+allows 2, not 0, because `J5S` refits ten times more voxels than `J5C` and a clean sample can lose
+one or two by chance; set now, before any `held5` number.
+
+**Validity checks.** A screen try run by the library (`cma_max_evals=1`) equals the trace cut at
+one evaluation, try by try, on `mid`; the arm reads no truth (the flag uses the grid's neighbours);
+every evaluation counted, the repair's per-fit evaluations kept apart from the pass's; the wide
+flag's extra voxels listed apart; guards on `held2` and on `held5` before its runs end.
+
+**Machine.** Gate: the pass and repair on six stored maps, about 6 million evaluations, about 15
+minutes on 2 processes; the library check on `mid` (about 0.9 million). Then `held5` built (about
+15 minutes); `S8` and `J5` on it with their passes (about 68 and 27 million); then from `J5`'s
+stored map `J5C` and `J5S` (about 0.15 and 1.8 million). In all about 104 million, about 5.2
+process-hours at 20 million an hour, about 3.8 hours wall (`S8` the long pole), at most 3 heavy
+processes. Caps: 480 minutes for `S8`, 300 the rest. `S8`, `J5`, `J5C` on `held5` stay as clean
+baselines for later steps.
+
+**Stop rule:** stop and report if a stored count does not reproduce, if prediction 1 fails, if the
+gate fails, if `J5S` runs on a disclosed sample before `ar5/screen/frozen.json` is committed, if
+`held5`'s logs or maps are read before its runs and repairs end, if anything of `held2` is opened
+or listed, or if a run hits its cap.
+
+**Phase A (script layer).** 1. Link step 20's cache read only; check the counts; write only into
+this step's cache. 2. Tests first, `tests/test_ar5_screen.py`: a screen try costs 2 evaluations and
+ends at its start; the wide flag on hand-made maps (ratio, 1 degree, the contested part unchanged);
+the repair is step 20's (imported); per-fit generators; every evaluation counted; guards on `held2`
+and `held5`. 3. Commit `frozen.json` (rule, gate, decision rules, hashes). 4. Gate (g0 to g2). 5.
+Build `held5` (pilot first), `S8` and `J5` with passes, then `J5C` and `J5S`. Plot first (run
+evaluations against wrong voxels after the repair: `S8`, `J5`, `J5C`, `J5S`, seven panels); tables;
+predictions. "READY FOR KEY".
+
+**Phase B (key).** One opt-in key `BoundaryPassScreen` (default 0, off), valid only with
+`BoundaryPassRepair 1`: the pass's try budget becomes 1 and the repair takes the wide flag; its
+settings (0.95, 1 degree) are module constants; parsed in `config_file.py`. Unit tests; key-off
+suite with no golden change; key on, a library run on `mid` equal to `J5S` (the same map and
+evaluation count). Page `findings_ar5_screen.md` (plot first), history, pareto rows.
+**Files:** `ar5/screen_*.py`, `tests/test_ar5_screen.py`, `benchmarks/autoresearch/ar5/screen/`
+(under 3 MB tracked; traces stay in the cache). **Library changes:** none in phase A; phase B the
+key, if the step passes.
+
+**What would make us stop the line.** The gate fails; `held5` saves under 8% or breaks more than
+2 net against `J5C`; or the repair's cost on `held5` is above 10% of `J5` (then the wide flag does
+not carry over, and the screen is not worth it).
+
+**Not in this step.** Cutting tries to 8 or 15 evaluations; races; the top-2 repair; a learned
+flag; a BFS skip or seed stop on top (later steps, with `J5S` as their base); counting a screen try
+as 1 evaluation (about 0.3% to 0.7% of `J5C` more); the pass skip (step 13); the house rule;
+realistic images; other crystals; a timing; another random seed; `held2`.
+
+**Choices made.**
+- This idea: the largest exact saving found (14.1% to 31.7% of `J5C`), no growth risk, no model,
+  in-sample no net loss on any sample and `mid` at -11 as with `J5C`. Weak side: picked among
+  about 25 forms looking at all six disclosed samples, so `held5` is the only clean test; the
+  repair becomes the main cost and scales with boundary area; 4 of 13 broken voxels are not
+  flagged at all; the accuracy gain is consistent with more voxels getting a 120-evaluation fit
+  from their own end (not tested).
+- One evaluation, not 8 or 15: equal fixed / broken on five samples (`grad` 2/2 against 2/1 at
+  15), 4.6 to 9.2 points more saving, and the simplest rule (a budget of 1 in the library).
+- Runners-up: the race (best try runs on; a general early stop): 9.5% to 18.3%, but 2 to 4 broken
+  and none fixed against `J5C`. Step 17's BFS skip behind the repair (3.2% to 8.7% of `J5` in
+  replay; needs live runs; stacks with this step later). `F95` (0.6% to 4.6%; needs a recording).
+  A learned grid search (ceiling 0% to 14.5%; a wrong seed grows a grain the repair cannot fix).
+- Not proposed: step 18's learned skip again (needs an owner decision, step 20's plan text).
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
