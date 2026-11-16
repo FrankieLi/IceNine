@@ -13569,7 +13569,15 @@ entry (key on only).
   extras until phase B, so phase A's pytest runs used the main checkout's environment (the same library
   at that time). From phase B on `uv sync --extra dev` was run in the worktree and every count below is
   from it.
-- **Key-off:** the full suite with no golden change (counts in the report of this phase).
+- **Key-off:** the full suite with no golden change: 2,333 passed, 48 skipped, 1 deselected, 0 failed
+  (`uv run pytest tests/` from `icenine_py/`, the worktree's own environment).
+- **What the key gives in library form** (`mid`, before the boundary pass, against the same library run
+  without the key, step 16's `LibJ5`): 7,253,826 evaluations against 8,135,786, 10.8% fewer. Accuracy of
+  the library run was not measured and no library run was made with the screen pass (`lib_check.json`,
+  `library_form`). The gap between the library run and the script arm `J5D` (722,263 evaluations: 7,253,826
+  against 6,531,563) is mostly in the fallbacks: rescues and grid searches cost 1,361,954 evaluations in
+  the library-form run (4 grid searches) against 710,865 in `J5D` (2 grid searches, with `G2b`), a
+  difference of 651,089.
 - **Key on, library run on `mid`:** a REPLACED check. The plan asked for equality with `J5D`; `J5D` has
   rule `G2b` and aligned draws, which the library does not have (as `J5` in step 16, where `J5l` was the
   comparison). The nearest honest check, `LibJ5D` (the keys of step 16 plus `SeedIndexMCDefer 1`) against

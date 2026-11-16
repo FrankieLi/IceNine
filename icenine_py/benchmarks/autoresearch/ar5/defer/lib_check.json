@@ -78,5 +78,21 @@
   },
   "equal_before_pass": true,
   "in_run_pass_evals_library": 3050854
+ },
+ "library_form": {
+  "libJ5_evals_before_pass": 8135786,
+  "libJ5D_evals_before_pass": 7253826,
+  "saving_share": 0.10840501458617524,
+  "j5d_search_evals": 6531563,
+  "gap_to_j5d": 722263,
+  "gap_in_fallbacks": 651089,
+  "j5dl_fallback_evals": 1361954,
+  "j5d_fallback_evals": 710865,
+  "grid_searches": {
+   "j5dl": 4,
+   "j5d": 2
+  },
+  "screen_pass_run_in_library": "no",
+  "accuracy_measured": "no"
  }
 }

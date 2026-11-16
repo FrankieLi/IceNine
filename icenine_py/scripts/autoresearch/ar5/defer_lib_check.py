@@ -110,6 +110,33 @@ def main() -> None:
             - int(run_lib["evals_total_before_pass"]),
         ),
     )
+    # what the key gives in library form (against step 16's LibJ5 on mid, before the pass) and why
+    # the script arm J5D itself is not the comparison (its search is cheaper by this much)
+    lib5 = json.loads((SD.parent / "high500" / "lib_check.json").read_text())
+    j5_lib = int(lib5["libJ5_vs_J5l"]["before_pass"]["evals_total"]["library"])
+    j5d = SCACHE / "J5D_mid"
+    st_d = json.loads((j5d / "run.json").read_text())["stats"]
+    pol_d = json.loads((j5d / "polish.json").read_text())
+    d_search = RLC.evals_total(st_d)
+    d_fb = int(pol_d["rescue_evals"] + pol_d["polish_evals"] + pol_d["grid_evals"])
+    l_fb = int(st_hl["index_fallback_grid_evals"])  # the script arm's rescue + grid evaluations
+    lib_total = int(run_lib["evals_total_before_pass"])
+    res["library_form"] = dict(
+        libJ5_evals_before_pass=j5_lib,
+        libJ5D_evals_before_pass=lib_total,
+        saving_share=1.0 - lib_total / j5_lib,
+        j5d_search_evals=int(d_search),
+        gap_to_j5d=int(lib_total - d_search),
+        gap_in_fallbacks=int(l_fb - d_fb),
+        j5dl_fallback_evals=l_fb,
+        j5d_fallback_evals=d_fb,
+        grid_searches=dict(
+            j5dl=int(json.loads((hl / "rescue.json").read_text())["grid_fallbacks_left"]),
+            j5d=int(pol_d["grid_fallbacks_left"]),
+        ),
+        screen_pass_run_in_library="no",
+        accuracy_measured="no",
+    )
     (SD / "lib_check.json").write_text(json.dumps(res, indent=1, default=float) + "\n")
     print(json.dumps(res, indent=1, default=float), flush=True)
     os._exit(0)
