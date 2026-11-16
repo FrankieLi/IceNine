@@ -1,0 +1,53 @@
+{
+ "cap_deg": 0.45,
+ "n_edge_pairs": 147024,
+ "n_grains": 250,
+ "n_capped": 5,
+ "capped": [
+  {
+   "id": 183,
+   "n_voxels": 93,
+   "level_drawn_deg": 4.0,
+   "max_step_drawn_deg": 0.45247564602741025,
+   "max_step_kept_deg": 0.44999999999999996,
+   "level_kept_deg": 3.9781146563061753,
+   "scale": 0.9945286640765437
+  },
+  {
+   "id": 209,
+   "n_voxels": 114,
+   "level_drawn_deg": 4.0,
+   "max_step_drawn_deg": 0.5136572746830685,
+   "max_step_kept_deg": 0.4499999999995502,
+   "level_kept_deg": 3.5042810605383212,
+   "scale": 0.8760702651345803
+  },
+  {
+   "id": 224,
+   "n_voxels": 158,
+   "level_drawn_deg": 4.0,
+   "max_step_drawn_deg": 0.49253272611666254,
+   "max_step_kept_deg": 0.4499999999995507,
+   "level_kept_deg": 3.654534930374368,
+   "scale": 0.9136337325935919
+  },
+  {
+   "id": 227,
+   "n_voxels": 78,
+   "level_drawn_deg": 4.0,
+   "max_step_drawn_deg": 0.8132544470033879,
+   "max_step_kept_deg": 0.44999999999954987,
+   "level_kept_deg": 2.213328914322042,
+   "scale": 0.5533322285805103
+  },
+  {
+   "id": 238,
+   "n_voxels": 38,
+   "level_drawn_deg": 4.0,
+   "max_step_drawn_deg": 1.1509834849553002,
+   "max_step_kept_deg": 0.44999999999954987,
+   "level_kept_deg": 1.5638799078686807,
+   "scale": 0.3909699769671702
+  }
+ ]
+}
