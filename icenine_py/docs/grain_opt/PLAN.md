@@ -343,6 +343,35 @@ mean of medians 1.66e-4 / 1.57e-4 / 2.67e-4 at 1e-4 / 5e-4 / 1e-3.
 Budget: `cen` costs about the coverage cost's 30 ms per evaluation; `ch` adds a nearest-point
 search per spot. Five runs of 2 to 8 minutes; 3 processes at most.
 
+### GO5g: hybrid cost, coverage for orientation and centroids for strain (idea I43)
+
+Question: GO5f's centroid cost recovers strain well from the painted start at 1e-4 and 5e-4 but
+lets the orientation field drift (0.06 deg; coverage keeps 0.012 deg). Does a hybrid that keeps
+coverage for the orientation field and centroids for strain get both: strain near the `cen`
+floor and orientation near coverage's?
+
+Cost `hyb`: `cen` + lambda x coverage (GO5f's `cen` already truncates merged spots at 4 px^2; no
+further down-weighting in this step). At the ground truth a 2e-4 strain step changes `cen` by
+about 0.01 and coverage by about 0.005, so lambda = 2 weighs them about equally. Benchmark S12
+and measures as before (`fit_strain.py --cost hyb --lam`, output `benchmarks/grain_opt/go5g/`).
+Arms, seed 0:
+
+- `E@GT` `hyb` lambda 2: strain only at the ground-truth orientation (the hybrid's floor).
+- `S@P` `hyb` lambda 2: GO5c staged protocol, every leg on the hybrid.
+- `S@P` `hyb` lambda 8: the same, coverage weighted more.
+- `Sx@P` (by role): field leg 200 on coverage (zero strain), strain-only leg 300 on `cen`,
+  joint leg 600 on `hyb` lambda 2 (steps 0.02 deg, 2e-4).
+
+Judging rule (written before any run). Per level and arm, median strain error over 4 grains and
+median voxel orientation error. I43 is answered yes for a painted-start arm whose strain median
+is at most 1.5 x `cen` `E@GT` (GO5f mean of medians 1.27e-4 / 2.22e-4 / 1.68e-4, so 1.9e-4 /
+3.3e-4 / 2.5e-4) at 5e-4 and 1e-3, and whose orientation median is at most 0.02 deg at every
+level. Better than GO5f `cen` `S@P` at 1e-3 when its median there is below 3.7e-4 and 3 of 4
+grains are better. 1e-4 strain is reported, not judged. Best arm: the one meeting the rule with
+the lowest mean strain median over 5e-4 and 1e-3.
+
+Budget: about 60 ms per hybrid evaluation; four runs of 2 to 8 minutes; 3 processes at most.
+
 ### GO6 onwards
 
 Planned order (each gets a section when it starts): GO6 objective variants (I17 to I22); GO7 richer
