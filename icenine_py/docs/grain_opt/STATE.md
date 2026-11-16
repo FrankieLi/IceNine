@@ -7,18 +7,16 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 - **GO4b closed** (2026-11-15 22:55 PST): per-voxel step ladder L/183 recovers corr3 up to 2 deg
   (9/11/47% above 0.1 deg at 0.5/1/2); rand is a search problem. `findings.md` "GO4b".
-- **GO4c (larger ladders, I37) running**: `go4c_arms.sh` (6 runs), started 23:14 PST. I36 (gated
-  global search) blocked on cost (seed path >15 min per tiny rand grain).
+- **GO4c closed** (23:25 PST): L/366/3 recovers corr3 to 3/9/31% above 0.1 deg at 0.5/1/2 deg;
+  rand about half; 5 deg needs a global search (I36 blocked on ray-index cost).
 - **GO5 (strain) delegated** to an implementer agent, branch `feature/grain-opt-strain`. On
   hand-back: verify tests, review the diff, merge `--no-ff` into `feature/grain-opt`, place its
   findings text, close GO5.
-- **Next action:** when GO4c ends: summarize (`--out go4c/<sample>`), table against L/183, close
-  GO4c. Then plan GO6 (objective variants: I18 Poisson, I19 moments, I3 soft pixel-touched model)
+- **Next action:** wait for the GO5 hand-back (merge after tests and review). Then plan GO6 (objective variants: I18 Poisson, I19 moments, I3 soft pixel-touched model)
   or GO4d (cached ray index for I36), whichever the results point to.
 
 ## Running jobs
 
-- `go4c_arms.sh` (GO4c); log `benchmarks/grain_opt/runs_go4c.log`.
 - Implementer agent for GO5 (branch `feature/grain-opt-strain`). If the session died: check that
   branch's commits and resume from them; never start a second agent on the branch.
 

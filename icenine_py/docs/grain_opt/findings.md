@@ -217,3 +217,29 @@ Reading the table: share of voxels more than 0.1 deg from the ground truth and m
   that need a wider search.
 - Next (I36, I37): a gated wider search for voxels whose strict cost stays high, and a larger
   ladder (a 3 deg first leg, more evaluations) for the 2 and 5 deg levels.
+
+## GO4c: larger ladders (idea I37; I36 blocked)
+
+Question: does more reach and budget per voxel recover the 2 and 5 deg levels? Same setup as
+GO4b. Ladders `L/244/3` and `L/366/3` use four legs (3, 1, 0.3, 0.05 deg; 61 and 91 evaluations
+per leg). Tables `benchmarks/grain_opt/go4c/`. Reading the table: share of voxels more than 0.1
+deg from the ground truth, median error (deg) and share wrong (above 1 deg) per level.
+
+| arm | eval/voxel | ms/voxel | 0.5 deg | 1 deg | 2 deg | 5 deg |
+|---|---|---|---|---|---|---|
+| corr3, L/183 (GO4b) | 196 | 18 | 9%, 0.021, 0% | 11%, 0.018, 0% | 47%, 0.080, 19% | 91%, 3.50, 89% |
+| corr3, L/244/3 | 261 | 26 | 9%, 0.020, 0% | 15%, 0.018, 0% | 40%, 0.038, 11% | 77%, 2.33, 74% |
+| corr3, L/366/3 | 401 | 35 | 3%, 0.012, 0% | 9%, 0.009, 0% | 31%, 0.011, 10% | 72%, 2.15, 69% |
+| corr3, L/183 then N/30 | 283 | 26 | 6%, 0.020, 0% | 10%, 0.018, 0% | 40%, 0.058, 10% | 83%, 2.21, 75% |
+| rand, L/183 (GO4b) | 196 | 18 | 51%, 0.123, 2% | 66%, 0.786, 40% | 81%, 1.99, 74% | 94%, 4.42, 92% |
+| rand, L/244/3 | 261 | 26 | 50%, 0.104, 2% | 64%, 0.781, 39% | 74%, 1.90, 70% | 88%, 5.17, 87% |
+| rand, L/366/3 | 401 | 36 | 48%, 0.047, 3% | 53%, 0.507, 36% | 77%, 1.89, 75% | 83%, 5.35, 83% |
+| rand, L/183 then N/30 | 283 | 26 | 47%, 0.082, 2% | 61%, 0.757, 38% | 71%, 1.82, 64% | 89%, 4.81, 86% |
+
+- More budget per leg keeps paying on corr3: L/366/3 leaves 3%, 9% and 31% of voxels above 0.1
+  deg at 0.5, 1 and 2 deg (medians near 0.01 deg); at 5 deg 72% remain (69% wrong).
+- rand gains less: the median at 0.5 deg falls to 0.047 deg but about half the voxels stay above
+  0.1 deg. Its per-voxel landscape is rougher (neighbours' spots overlap and differ), and the
+  ladder's first legs still start from the grain centre.
+- The 5 deg level (both samples) needs a global search per voxel; I36 (gated seed path) waits for
+  a cached ray index.

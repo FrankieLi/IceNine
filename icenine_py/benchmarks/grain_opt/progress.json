@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-15 22:55 PST",
+ "updated": "2026-11-15 23:25 PST",
  "steps": [
   {
    "id": "GO0",
@@ -56,6 +56,14 @@
    "status": "done",
    "date": "2026-11-15",
    "result": "Step ladder 1.0/0.3/0.05 deg with 61 evaluations per leg: corr3 0.5/1/2 deg -> 9%/11%/47% of voxels > 0.1 deg (GO4 best 32/53/93%), at 196 eval/voxel. rand stays hard (51% at 0.5 deg). The strict cost prefers the ground truth for ~all unresolved voxels: a search problem, and a high strict cost flags them.",
+   "commit": ""
+  },
+  {
+   "id": "GO4c",
+   "title": "Larger per-voxel ladders (3 deg first leg) on rand / corr3",
+   "status": "done",
+   "date": "2026-11-15",
+   "result": "L/366/3 (4 legs x 91, 401 eval/voxel): corr3 0.5/1/2/5 deg -> 3/9/31/72% of voxels > 0.1 deg (medians ~0.01 deg up to 2 deg); rand 48/53/77/83%. 5 deg needs a global per-voxel search (I36, blocked on ray-index cost).",
    "commit": ""
   }
  ],
