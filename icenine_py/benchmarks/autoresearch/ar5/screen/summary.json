@@ -1,0 +1,1083 @@
+{
+ "validity": {
+  "marker": "exit=0",
+  "S8_n_processed": 24570,
+  "S8_capped": false,
+  "S8_pass_json": true,
+  "S8_done": "run=0 pass=0",
+  "J5_n_processed": 24570,
+  "J5_capped": false,
+  "J5_pass_json": true,
+  "J5_done": "run=0 pass=0",
+  "J5C_done": "exit=0",
+  "J5C_capped": false,
+  "J5C_all_fits_121": true,
+  "J5C_evals_equal_fit_sum": true,
+  "J5S_done": "exit=0",
+  "J5S_capped": false,
+  "J5S_all_fits_121": true,
+  "J5S_evals_equal_fit_sum": true,
+  "J5S_tries_all_2_evals": true,
+  "J5S_pass_evals_equal_2_per_try": true,
+  "J5S_extra_voxels_listed": true,
+  "J5S_flagged_is_contested_plus_extra": true,
+  "J5C_J5S_same_J5_run": true,
+  "arms_load_inputs_without_truth": true,
+  "freeze_check": "ok",
+  "freeze_commit_epoch": 1794799039.0,
+  "n_held5_output_files": 57,
+  "oldest_held5_output_minus_freeze_s": 2064.4934644699097,
+  "freeze_older_than_every_held5_output": true,
+  "n_map_files_checked": 27,
+  "n_map_files_accessed_after_marker": 9,
+  "after_S8_atime_minus_marker_s": 6936.917318820953,
+  "frozen_hash_count": 121,
+  "frozen_sha_of_frozen_json": "2c00058ca0f2a8ed",
+  "ok": true
+ },
+ "rows": {
+  "held5": {
+   "sample": "held5",
+   "in_sample": false,
+   "n_voxels": 24570,
+   "evals": {
+    "S8": {
+     "search": 70709879,
+     "pass_": 5169811,
+     "total": 75879690
+    },
+    "J5": {
+     "search": 21097867,
+     "pass_": 5172983,
+     "total": 26270850
+    },
+    "J5C": {
+     "search": 21097867,
+     "pass_": 5172983,
+     "repair": 115676,
+     "total": 26386526
+    },
+    "J5S": {
+     "search": 21097867,
+     "pass_": 169606,
+     "repair": 1439416,
+     "total": 22706889
+    }
+   },
+   "flagged": {
+    "J5C": 162,
+    "J5S": 1645,
+    "J5S_contested": 82,
+    "J5S_extra": 1563
+   },
+   "fits": {
+    "J5C": 956,
+    "J5S": 11896
+   },
+   "changed": {
+    "J5C": 159,
+    "J5S": 1627
+   },
+   "saving_vs_J5C_pct": 13.945136241125489,
+   "saving_vs_J5_pct": 13.566218831899235,
+   "cut_vs_S8_pct": 70.0751426369823,
+   "repair_share_of_J5_pct": 5.47913752314828,
+   "pass_share_of_J5_pct": 0.6456053001711022,
+   "J5C_repair_share_of_J5_pct": 0.4403207357203897,
+   "arms": {
+    "S8": {
+     "wrong": 62,
+     "wilson": [
+      0.0019690859913817547,
+      0.0032332589281036865
+     ],
+     "median": 0.027834405154826526
+    },
+    "J5": {
+     "wrong": 46,
+     "wilson": [
+      0.0014040010978621288,
+      0.0024961461220987906
+     ],
+     "median": 0.026063966776317195
+    },
+    "J5C": {
+     "wrong": 33,
+     "wilson": [
+      0.0009565556779933216,
+      0.0018855559111039238
+     ],
+     "median": 0.02568481958412268
+    },
+    "J5S": {
+     "wrong": 31,
+     "wilson": [
+      0.0008890352069823217,
+      0.0017903016696743583
+     ],
+     "median": 0.02300977031177177
+    }
+   },
+   "pairs": {
+    "J5S_vs_J5C": {
+     "fixed": 4,
+     "broken": 2,
+     "net": -2,
+     "both_wrong": 29
+    },
+    "J5S_vs_J5": {
+     "fixed": 16,
+     "broken": 1,
+     "net": -15,
+     "both_wrong": 30
+    },
+    "J5S_vs_S8": {
+     "fixed": 37,
+     "broken": 6,
+     "net": -31,
+     "both_wrong": 25
+    },
+    "J5C_vs_J5": {
+     "fixed": 13,
+     "broken": 0,
+     "net": -13,
+     "both_wrong": 33
+    },
+    "J5C_vs_S8": {
+     "fixed": 33,
+     "broken": 4,
+     "net": -29,
+     "both_wrong": 29
+    },
+    "J5_vs_S8": {
+     "fixed": 29,
+     "broken": 13,
+     "net": -16,
+     "both_wrong": 33
+    }
+   },
+   "median_drop_vs_J5C_deg": 0.002675049272350908,
+   "judge": {
+    "saving_vs_j5c_pct": 13.945136241125489,
+    "cut_vs_s8_pct": 70.0751426369823,
+    "ok1": true,
+    "ok2": true,
+    "ok3": true,
+    "ok4": true,
+    "ok": true
+   },
+   "stop_line": {
+    "saving_under_8": false,
+    "net_over_2": false,
+    "repair_over_10_pct_of_J5": false
+   }
+  },
+  "held4": {
+   "sample": "held4",
+   "in_sample": true,
+   "n_voxels": 24570,
+   "evals": {
+    "S8": {
+     "search": 62528533,
+     "pass_": 5505067,
+     "total": 68033600
+    },
+    "J5": {
+     "search": 21813468,
+     "pass_": 5536787,
+     "total": 27350255
+    },
+    "J5C": {
+     "search": 21813468,
+     "pass_": 5536787,
+     "repair": 137214,
+     "total": 27487469
+    },
+    "J5S": {
+     "search": 21813468,
+     "pass_": 181534,
+     "repair": 1617286,
+     "total": 23612288
+    }
+   },
+   "flagged": {
+    "J5C": 193,
+    "J5S": 1869,
+    "J5S_contested": 95,
+    "J5S_extra": 1774
+   },
+   "fits": {
+    "J5C": 1134,
+    "J5S": 13366
+   },
+   "changed": {
+    "J5C": 186,
+    "J5S": 1842
+   },
+   "saving_vs_J5C_pct": 14.097991342891556,
+   "saving_vs_J5_pct": 13.667027967380927,
+   "cut_vs_S8_pct": 65.29319630300323,
+   "repair_share_of_J5_pct": 5.913239200146397,
+   "pass_share_of_J5_pct": 0.663737870085672,
+   "J5C_repair_share_of_J5_pct": 0.5016918489425418,
+   "arms": {
+    "S8": {
+     "wrong": 49,
+     "wilson": [
+      0.0015089440417626083,
+      0.0026353652468591605
+     ],
+     "median": 0.029247068382012978
+    },
+    "J5": {
+     "wrong": 40,
+     "wilson": [
+      0.001195853487466834,
+      0.0022159695951723896
+     ],
+     "median": 0.02649226546812116
+    },
+    "J5C": {
+     "wrong": 22,
+     "wilson": [
+      0.0005914051061572457,
+      0.001355445564516891
+     ],
+     "median": 0.02626930426520098
+    },
+    "J5S": {
+     "wrong": 21,
+     "wilson": [
+      0.0005591155525172323,
+      0.0013063477619366217
+     ],
+     "median": 0.023183056508692335
+    }
+   },
+   "pairs": {
+    "J5S_vs_J5C": {
+     "fixed": 3,
+     "broken": 2,
+     "net": -1,
+     "both_wrong": 19
+    },
+    "J5S_vs_J5": {
+     "fixed": 20,
+     "broken": 1,
+     "net": -19,
+     "both_wrong": 20
+    },
+    "J5S_vs_S8": {
+     "fixed": 33,
+     "broken": 5,
+     "net": -28,
+     "both_wrong": 16
+    },
+    "J5C_vs_J5": {
+     "fixed": 18,
+     "broken": 0,
+     "net": -18,
+     "both_wrong": 22
+    },
+    "J5C_vs_S8": {
+     "fixed": 33,
+     "broken": 6,
+     "net": -27,
+     "both_wrong": 16
+    },
+    "J5_vs_S8": {
+     "fixed": 30,
+     "broken": 21,
+     "net": -9,
+     "both_wrong": 19
+    }
+   },
+   "median_drop_vs_J5C_deg": 0.0030862477565086442,
+   "judge": {
+    "saving_vs_j5c_pct": 14.097991342891556,
+    "cut_vs_s8_pct": 65.29319630300323,
+    "ok1": true,
+    "ok2": true,
+    "ok3": true,
+    "ok4": true,
+    "ok": true
+   },
+   "stop_line": {
+    "saving_under_8": false,
+    "net_over_2": false,
+    "repair_over_10_pct_of_J5": false
+   }
+  },
+  "held3": {
+   "sample": "held3",
+   "in_sample": true,
+   "n_voxels": 24570,
+   "evals": {
+    "S8": {
+     "search": 62482637,
+     "pass_": 4925811,
+     "total": 67408448
+    },
+    "J5": {
+     "search": 18566533,
+     "pass_": 4936852,
+     "total": 23503385
+    },
+    "J5C": {
+     "search": 18566533,
+     "pass_": 4936852,
+     "repair": 146894,
+     "total": 23650279
+    },
+    "J5S": {
+     "search": 18566533,
+     "pass_": 161864,
+     "repair": 1512258,
+     "total": 20240655
+    }
+   },
+   "flagged": {
+    "J5C": 194,
+    "J5S": 1787,
+    "J5S_contested": 100,
+    "J5S_extra": 1687
+   },
+   "fits": {
+    "J5C": 1214,
+    "J5S": 12498
+   },
+   "changed": {
+    "J5C": 186,
+    "J5S": 1766
+   },
+   "saving_vs_J5C_pct": 14.416844723058023,
+   "saving_vs_J5_pct": 13.881957854155901,
+   "cut_vs_S8_pct": 69.9731182061928,
+   "repair_share_of_J5_pct": 6.434213624973594,
+   "pass_share_of_J5_pct": 0.6886837789535423,
+   "J5C_repair_share_of_J5_pct": 0.6249908257895618,
+   "arms": {
+    "S8": {
+     "wrong": 61,
+     "wilson": [
+      0.0019334193306586674,
+      0.0031875382326064924
+     ],
+     "median": 0.027524613411211638
+    },
+    "J5": {
+     "wrong": 54,
+     "wilson": [
+      0.0016849616964552316,
+      0.0028662843732679497
+     ],
+     "median": 0.025445795684270897
+    },
+    "J5C": {
+     "wrong": 40,
+     "wilson": [
+      0.001195853487466834,
+      0.0022159695951723896
+     ],
+     "median": 0.0251229692100755
+    },
+    "J5S": {
+     "wrong": 38,
+     "wilson": [
+      0.0011270541670130754,
+      0.0021219942031855833
+     ],
+     "median": 0.022823118702047503
+    }
+   },
+   "pairs": {
+    "J5S_vs_J5C": {
+     "fixed": 4,
+     "broken": 2,
+     "net": -2,
+     "both_wrong": 36
+    },
+    "J5S_vs_J5": {
+     "fixed": 18,
+     "broken": 2,
+     "net": -16,
+     "both_wrong": 36
+    },
+    "J5S_vs_S8": {
+     "fixed": 30,
+     "broken": 7,
+     "net": -23,
+     "both_wrong": 31
+    },
+    "J5C_vs_J5": {
+     "fixed": 14,
+     "broken": 0,
+     "net": -14,
+     "both_wrong": 40
+    },
+    "J5C_vs_S8": {
+     "fixed": 27,
+     "broken": 6,
+     "net": -21,
+     "both_wrong": 34
+    },
+    "J5_vs_S8": {
+     "fixed": 24,
+     "broken": 17,
+     "net": -7,
+     "both_wrong": 37
+    }
+   },
+   "median_drop_vs_J5C_deg": 0.0022998505080279973,
+   "judge": {
+    "saving_vs_j5c_pct": 14.416844723058023,
+    "cut_vs_s8_pct": 69.9731182061928,
+    "ok1": true,
+    "ok2": true,
+    "ok3": true,
+    "ok4": true,
+    "ok": true
+   },
+   "stop_line": {
+    "saving_under_8": false,
+    "net_over_2": false,
+    "repair_over_10_pct_of_J5": false
+   }
+  },
+  "held": {
+   "sample": "held",
+   "in_sample": true,
+   "n_voxels": 24570,
+   "evals": {
+    "S8": {
+     "search": 54733887,
+     "pass_": 5189636,
+     "total": 59923523
+    },
+    "J5": {
+     "search": 17740233,
+     "pass_": 5199579,
+     "total": 22939812
+    },
+    "J5C": {
+     "search": 17740233,
+     "pass_": 5199579,
+     "repair": 124146,
+     "total": 23063958
+    },
+    "J5S": {
+     "search": 17740233,
+     "pass_": 170478,
+     "repair": 1547106,
+     "total": 19457817
+    }
+   },
+   "flagged": {
+    "J5C": 183,
+    "J5S": 1832,
+    "J5S_contested": 91,
+    "J5S_extra": 1741
+   },
+   "fits": {
+    "J5C": 1026,
+    "J5S": 12786
+   },
+   "changed": {
+    "J5C": 180,
+    "J5S": 1806
+   },
+   "saving_vs_J5C_pct": 15.63539527777496,
+   "saving_vs_J5_pct": 15.17882971316417,
+   "cut_vs_S8_pct": 67.5289168161892,
+   "repair_share_of_J5_pct": 6.7441965086723465,
+   "pass_share_of_J5_pct": 0.7431534312486955,
+   "J5C_repair_share_of_J5_pct": 0.541181418574834,
+   "arms": {
+    "S8": {
+     "wrong": 70,
+     "wilson": [
+      0.002255787723261974,
+      0.0035976560459857285
+     ],
+     "median": 0.028587037850269052
+    },
+    "J5": {
+     "wrong": 67,
+     "wilson": [
+      0.0021480022296533167,
+      0.003461279470933539
+     ],
+     "median": 0.025956974552197736
+    },
+    "J5C": {
+     "wrong": 49,
+     "wilson": [
+      0.0015089440417626083,
+      0.0026353652468591605
+     ],
+     "median": 0.025588452343802866
+    },
+    "J5S": {
+     "wrong": 43,
+     "wilson": [
+      0.0012996181500290354,
+      0.002356367001271036
+     ],
+     "median": 0.022747955347915412
+    }
+   },
+   "pairs": {
+    "J5S_vs_J5C": {
+     "fixed": 9,
+     "broken": 3,
+     "net": -6,
+     "both_wrong": 40
+    },
+    "J5S_vs_J5": {
+     "fixed": 26,
+     "broken": 2,
+     "net": -24,
+     "both_wrong": 41
+    },
+    "J5S_vs_S8": {
+     "fixed": 36,
+     "broken": 9,
+     "net": -27,
+     "both_wrong": 34
+    },
+    "J5C_vs_J5": {
+     "fixed": 18,
+     "broken": 0,
+     "net": -18,
+     "both_wrong": 49
+    },
+    "J5C_vs_S8": {
+     "fixed": 33,
+     "broken": 12,
+     "net": -21,
+     "both_wrong": 37
+    },
+    "J5_vs_S8": {
+     "fixed": 26,
+     "broken": 23,
+     "net": -3,
+     "both_wrong": 44
+    }
+   },
+   "median_drop_vs_J5C_deg": 0.0028404969958874537,
+   "judge": {
+    "saving_vs_j5c_pct": 15.63539527777496,
+    "cut_vs_s8_pct": 67.5289168161892,
+    "ok1": true,
+    "ok2": true,
+    "ok3": true,
+    "ok4": true,
+    "ok": true
+   },
+   "stop_line": {
+    "saving_under_8": false,
+    "net_over_2": false,
+    "repair_over_10_pct_of_J5": false
+   }
+  },
+  "mid": {
+   "sample": "mid",
+   "in_sample": true,
+   "n_voxels": 24570,
+   "evals": {
+    "S8": {
+     "search": 23387035,
+     "pass_": 3056039,
+     "total": 26443074
+    },
+    "J5": {
+     "search": 7537724,
+     "pass_": 3051769,
+     "total": 10589493
+    },
+    "J5C": {
+     "search": 7537724,
+     "pass_": 3051769,
+     "repair": 76835,
+     "total": 10666328
+    },
+    "J5S": {
+     "search": 7537724,
+     "pass_": 100058,
+     "repair": 759275,
+     "total": 8397057
+    }
+   },
+   "flagged": {
+    "J5C": 142,
+    "J5S": 1187,
+    "J5S_contested": 65,
+    "J5S_extra": 1122
+   },
+   "fits": {
+    "J5C": 635,
+    "J5S": 6275
+   },
+   "changed": {
+    "J5C": 139,
+    "J5S": 1174
+   },
+   "saving_vs_J5C_pct": 21.275091109142714,
+   "saving_vs_J5_pct": 20.703880724034665,
+   "cut_vs_S8_pct": 68.24477744153346,
+   "repair_share_of_J5_pct": 7.170078869687151,
+   "pass_share_of_J5_pct": 0.9448799862278581,
+   "J5C_repair_share_of_J5_pct": 0.7255777023508113,
+   "arms": {
+    "S8": {
+     "wrong": 31,
+     "wilson": [
+      0.0008890352069823217,
+      0.0017903016696743583
+     ],
+     "median": 0.029722923795110812
+    },
+    "J5": {
+     "wrong": 35,
+     "wilson": [
+      0.001024480457633824,
+      0.001980405843903987
+     ],
+     "median": 0.028598981966716383
+    },
+    "J5C": {
+     "wrong": 20,
+     "wilson": [
+      0.0005270201520727956,
+      0.0012570558061607757
+     ],
+     "median": 0.02824894110018151
+    },
+    "J5S": {
+     "wrong": 20,
+     "wilson": [
+      0.0005270201520727956,
+      0.0012570558061607757
+     ],
+     "median": 0.02706117345481678
+    }
+   },
+   "pairs": {
+    "J5S_vs_J5C": {
+     "fixed": 3,
+     "broken": 3,
+     "net": 0,
+     "both_wrong": 17
+    },
+    "J5S_vs_J5": {
+     "fixed": 16,
+     "broken": 1,
+     "net": -15,
+     "both_wrong": 19
+    },
+    "J5S_vs_S8": {
+     "fixed": 17,
+     "broken": 6,
+     "net": -11,
+     "both_wrong": 14
+    },
+    "J5C_vs_J5": {
+     "fixed": 15,
+     "broken": 0,
+     "net": -15,
+     "both_wrong": 20
+    },
+    "J5C_vs_S8": {
+     "fixed": 16,
+     "broken": 5,
+     "net": -11,
+     "both_wrong": 15
+    },
+    "J5_vs_S8": {
+     "fixed": 9,
+     "broken": 13,
+     "net": 4,
+     "both_wrong": 22
+    }
+   },
+   "median_drop_vs_J5C_deg": 0.0011877676453647297,
+   "judge": {
+    "saving_vs_j5c_pct": 21.275091109142714,
+    "cut_vs_s8_pct": 68.24477744153346,
+    "ok1": true,
+    "ok2": true,
+    "ok3": true,
+    "ok4": true,
+    "ok": true
+   },
+   "stop_line": {
+    "saving_under_8": false,
+    "net_over_2": false,
+    "repair_over_10_pct_of_J5": false
+   }
+  },
+  "grad": {
+   "sample": "grad",
+   "in_sample": true,
+   "n_voxels": 24570,
+   "evals": {
+    "S8": {
+     "search": 14316989,
+     "pass_": 3683241,
+     "total": 18000230
+    },
+    "J5": {
+     "search": 5360031,
+     "pass_": 3681655,
+     "total": 9041686
+    },
+    "J5C": {
+     "search": 5360031,
+     "pass_": 3681655,
+     "repair": 116765,
+     "total": 9158451
+    },
+    "J5S": {
+     "search": 5360031,
+     "pass_": 120710,
+     "repair": 776336,
+     "total": 6257077
+    }
+   },
+   "flagged": {
+    "J5C": 238,
+    "J5S": 1445,
+    "J5S_contested": 201,
+    "J5S_extra": 1244
+   },
+   "fits": {
+    "J5C": 965,
+    "J5S": 6416
+   },
+   "changed": {
+    "J5C": 235,
+    "J5S": 1430
+   },
+   "saving_vs_J5C_pct": 31.679745843483794,
+   "saving_vs_J5_pct": 30.79745304139073,
+   "cut_vs_S8_pct": 65.23890528065475,
+   "repair_share_of_J5_pct": 8.586186248892076,
+   "pass_share_of_J5_pct": 1.3350386200095867,
+   "J5C_repair_share_of_J5_pct": 1.2914073768985121,
+   "arms": {
+    "S8": {
+     "wrong": 63,
+     "wilson": [
+      0.002004792724438049,
+      0.003278939551267675
+     ],
+     "median": 0.022638749845755476
+    },
+    "J5": {
+     "wrong": 56,
+     "wilson": [
+      0.0017557225686594684,
+      0.002958298213504277
+     ],
+     "median": 0.02134024822193951
+    },
+    "J5C": {
+     "wrong": 25,
+     "wilson": [
+      0.0006893195482307838,
+      0.0015016931911042005
+     ],
+     "median": 0.020999449688197617
+    },
+    "J5S": {
+     "wrong": 25,
+     "wilson": [
+      0.0006893195482307838,
+      0.0015016931911042005
+     ],
+     "median": 0.01937104268452232
+    }
+   },
+   "pairs": {
+    "J5S_vs_J5C": {
+     "fixed": 2,
+     "broken": 2,
+     "net": 0,
+     "both_wrong": 23
+    },
+    "J5S_vs_J5": {
+     "fixed": 33,
+     "broken": 2,
+     "net": -31,
+     "both_wrong": 23
+    },
+    "J5S_vs_S8": {
+     "fixed": 41,
+     "broken": 3,
+     "net": -38,
+     "both_wrong": 22
+    },
+    "J5C_vs_J5": {
+     "fixed": 31,
+     "broken": 0,
+     "net": -31,
+     "both_wrong": 25
+    },
+    "J5C_vs_S8": {
+     "fixed": 42,
+     "broken": 4,
+     "net": -38,
+     "both_wrong": 21
+    },
+    "J5_vs_S8": {
+     "fixed": 31,
+     "broken": 24,
+     "net": -7,
+     "both_wrong": 32
+    }
+   },
+   "median_drop_vs_J5C_deg": 0.001628407003675298,
+   "judge": {
+    "saving_vs_j5c_pct": 31.679745843483794,
+    "cut_vs_s8_pct": 65.23890528065475,
+    "ok1": true,
+    "ok2": true,
+    "ok3": true,
+    "ok4": true,
+    "ok": true
+   },
+   "stop_line": {
+    "saving_under_8": false,
+    "net_over_2": false,
+    "repair_over_10_pct_of_J5": false
+   }
+  },
+  "big": {
+   "sample": "big",
+   "in_sample": true,
+   "n_voxels": 24570,
+   "evals": {
+    "S8": {
+     "search": 7201863,
+     "pass_": 1138565,
+     "total": 8340428
+    },
+    "J5": {
+     "search": 2431217,
+     "pass_": 1135881,
+     "total": 3567098
+    },
+    "J5C": {
+     "search": 2431217,
+     "pass_": 1135881,
+     "repair": 19602,
+     "total": 3586700
+    },
+    "J5S": {
+     "search": 2431217,
+     "pass_": 37242,
+     "repair": 162987,
+     "total": 2631446
+    }
+   },
+   "flagged": {
+    "J5C": 56,
+    "J5S": 366,
+    "J5S_contested": 39,
+    "J5S_extra": 327
+   },
+   "fits": {
+    "J5C": 162,
+    "J5S": 1347
+   },
+   "changed": {
+    "J5C": 55,
+    "J5S": 366
+   },
+   "saving_vs_J5C_pct": 26.633228315721972,
+   "saving_vs_J5_pct": 26.230061523400813,
+   "cut_vs_S8_pct": 68.44950882616575,
+   "repair_share_of_J5_pct": 4.569176400536234,
+   "pass_share_of_J5_pct": 1.0440419635232898,
+   "J5C_repair_share_of_J5_pct": 0.5495223287950036,
+   "arms": {
+    "S8": {
+     "wrong": 24,
+     "wilson": [
+      0.0006565177937645098,
+      0.001453107589350192
+     ],
+     "median": 0.031606382282736975
+    },
+    "J5": {
+     "wrong": 21,
+     "wilson": [
+      0.0005591155525172323,
+      0.0013063477619366217
+     ],
+     "median": 0.030453890168153794
+    },
+    "J5C": {
+     "wrong": 7,
+     "wilson": [
+      0.00013801315083577395,
+      0.0005880271765341232
+     ],
+     "median": 0.030359665819751927
+    },
+    "J5S": {
+     "wrong": 5,
+     "wilson": [
+      8.692487399121463e-05,
+      0.0004763407409381173
+     ],
+     "median": 0.030067112977778743
+    }
+   },
+   "pairs": {
+    "J5S_vs_J5C": {
+     "fixed": 3,
+     "broken": 1,
+     "net": -2,
+     "both_wrong": 4
+    },
+    "J5S_vs_J5": {
+     "fixed": 17,
+     "broken": 1,
+     "net": -16,
+     "both_wrong": 4
+    },
+    "J5S_vs_S8": {
+     "fixed": 20,
+     "broken": 1,
+     "net": -19,
+     "both_wrong": 4
+    },
+    "J5C_vs_J5": {
+     "fixed": 14,
+     "broken": 0,
+     "net": -14,
+     "both_wrong": 7
+    },
+    "J5C_vs_S8": {
+     "fixed": 18,
+     "broken": 1,
+     "net": -17,
+     "both_wrong": 6
+    },
+    "J5_vs_S8": {
+     "fixed": 8,
+     "broken": 5,
+     "net": -3,
+     "both_wrong": 16
+    }
+   },
+   "median_drop_vs_J5C_deg": 0.0002925528419731836,
+   "judge": {
+    "saving_vs_j5c_pct": 26.633228315721972,
+    "cut_vs_s8_pct": 68.44950882616575,
+    "ok1": true,
+    "ok2": true,
+    "ok3": true,
+    "ok4": true,
+    "ok": true
+   },
+   "stop_line": {
+    "saving_under_8": false,
+    "net_over_2": false,
+    "repair_over_10_pct_of_J5": false
+   }
+  }
+ },
+ "predictions": {
+  "p2": {
+   "saving_11_18": true,
+   "flagged_1500_2200": true,
+   "repair_5_8_pct": true,
+   "fixed_2_12": true,
+   "broken_0_4": true,
+   "median_lower_0p001_0p004": true
+  },
+  "p2_all": true,
+  "p3": {
+   "j5c_net_in_m35_m5": true,
+   "j5s_within_3_of_j5c": true,
+   "j5c_net": -29,
+   "j5s_net": -31
+  },
+  "p3_all": true
+ },
+ "g0_note": {
+  "held4": {
+   "sample": "held4",
+   "n_start_differs_after_pass": 846,
+   "max_start_diff": 5.293689886443076e-08,
+   "n_final_differ_over_1e6": 5,
+   "n_of_those_with_start_diff_at_voxel_or_neighbour": 5,
+   "max_final_misorientation_deg": 0.1471641280659692,
+   "n_wrong_label_changes": 0
+  },
+  "held3": {
+   "sample": "held3",
+   "n_start_differs_after_pass": 908,
+   "max_start_diff": 5.953174364581315e-08,
+   "n_final_differ_over_1e6": 1,
+   "n_of_those_with_start_diff_at_voxel_or_neighbour": 1,
+   "max_final_misorientation_deg": 0.014547248700779692,
+   "n_wrong_label_changes": 0
+  },
+  "held": {
+   "sample": "held",
+   "n_start_differs_after_pass": 1045,
+   "max_start_diff": 5.503313849075653e-08,
+   "n_final_differ_over_1e6": 3,
+   "n_of_those_with_start_diff_at_voxel_or_neighbour": 3,
+   "max_final_misorientation_deg": 0.01088396891157166,
+   "n_wrong_label_changes": 0
+  },
+  "mid": {
+   "sample": "mid",
+   "n_start_differs_after_pass": 1468,
+   "max_start_diff": 5.250215695529192e-08,
+   "n_final_differ_over_1e6": 6,
+   "n_of_those_with_start_diff_at_voxel_or_neighbour": 6,
+   "max_final_misorientation_deg": 0.03395331515865458,
+   "n_wrong_label_changes": 0
+  },
+  "grad": {
+   "sample": "grad",
+   "n_start_differs_after_pass": 687,
+   "max_start_diff": 4.870639536136423e-08,
+   "n_final_differ_over_1e6": 8,
+   "n_of_those_with_start_diff_at_voxel_or_neighbour": 8,
+   "max_final_misorientation_deg": 0.03331514505258182,
+   "n_wrong_label_changes": 0
+  },
+  "big": {
+   "sample": "big",
+   "n_start_differs_after_pass": 1070,
+   "max_start_diff": 4.848831425263711e-08,
+   "n_final_differ_over_1e6": 1,
+   "n_of_those_with_start_diff_at_voxel_or_neighbour": 1,
+   "max_final_misorientation_deg": 0.016527243706485402,
+   "n_wrong_label_changes": 0
+  }
+ },
+ "verdict": {
+  "held5_pass": true,
+  "disclosed_pass": {
+   "held4": true,
+   "held3": true,
+   "held": true,
+   "mid": true,
+   "grad": true,
+   "big": true
+  },
+  "step_passes": true,
+  "stop_the_line": {
+   "saving_under_8": false,
+   "net_over_2": false,
+   "repair_over_10_pct_of_J5": false
+  }
+ }
+}
