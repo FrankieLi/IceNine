@@ -36,7 +36,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    Not a speed comparison: the C++ run left 416 of 2,000 pilot voxels wrong, Python 24; 393
    refit voxels were never fitted again, all 1,921 local optimizations changed nothing.
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
-   goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. Twelve pages wait now.
+   goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. Thirteen pages wait now.
    NOW: AR5 step 20 (`ar5t`; N9, N10 passed on held4): after the phase-B hand-back, check it, set
    the branch parent, merge, bookkeeping agent, page v56, then plan step 21. See Running jobs.
 
@@ -47,7 +47,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   `J5r` in `agent-aeba15b7c3850b007`. Step 18 (gate failed on mid, N5) MERGED 8b456ac5 (suite 2194
   passed). v55 live. Step 19 (gate failed on cost, N8) MERGED b53e927d. Step 20 (`ar5t`, N9):
   held4 PASSES all rules, review approved (N10 64b8c7ad; `agent-a8b2d0066621fd0f8`); implementer
-  a8b2d0066621fd0f8 on review fixes + phase B (key) since 16:15. Then check, merge, page v56.
+  key built (7a54f164; suite 2239 passed). Opus review a484ca589deeab267 + step 21 drafter running.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
