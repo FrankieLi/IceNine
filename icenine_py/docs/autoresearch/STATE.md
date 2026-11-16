@@ -46,9 +46,8 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   `agent-a8c1c16b70cf43e39` (merge 50628763, suite 2279 passed); v57 live.
   Step 22 (`ar5v`, N2 5fa628c9; arm J5SD): gate g0 to g3 met (65e63d6c; `mid` 12.07% fewer than
   J5S, 0 fixed 3 broken, at the limit; `held` 12.04%, 3/5). Rest stage (five samples, `held6`)
-  started detached 07:07, 16 Nov, worktree `agent-aba6e1bdb95dff72a`, `icenine_py/`. Marker
-  `benchmarks/autoresearch/ar5/defer/cache/logs/defer_runs.done`. Restart, detached (RUNBOOK):
-  `scripts/autoresearch/ar5/defer_run_all.sh --stage rest --resume`.
+  started detached 07:07, 16 Nov, worktree `agent-aba6e1bdb95dff72a`: marker `…/ar5/defer/cache/
+  logs/defer_runs.done`; restart `…/ar5/defer_run_all.sh --stage rest --resume` (RUNBOOK).
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
