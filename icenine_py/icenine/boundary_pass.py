@@ -52,6 +52,7 @@ class BoundaryPassResult:
     old_score: Dict[int, Tuple[float, float, float]] = field(default_factory=dict)
     changed: List[int] = field(default_factory=list)
     skipped: List[int] = field(default_factory=list)  # boundary voxels left without a try
+    repair: Any = None  # a ``boundary_repair.RepairInfo`` with BoundaryPassRepair on, else None
     n_evals_tries: int = 0
     n_evals_score: int = 0
     wall_s: float = 0.0
@@ -105,7 +106,9 @@ def keep_hit(old: Tuple[float, float], tries: Sequence[Tuple[float, float]]) -> 
     return int(np.lexsort((np.arange(len(cost)), cost, -hit))[0])
 
 
-def run_boundary_pass(bfs: Any, mic: Any, skip_hit: float = 0.0) -> BoundaryPassResult:
+def run_boundary_pass(
+    bfs: Any, mic: Any, skip_hit: float = 0.0, repair: bool = False
+) -> BoundaryPassResult:
     """Run the pass once on ``mic`` (the BFS's map, in place) with rule ``hit``.
 
     Every voxel that has a fitted orientation is a target and a source. The strict score of a
@@ -125,7 +128,12 @@ def run_boundary_pass(bfs: Any, mic: Any, skip_hit: float = 0.0) -> BoundaryPass
     the key on, so the stats of a key-off run keep today's entries). ``boundary_voxels`` still
     counts all boundary voxels. The pass has one generator; a skipped voxel's tries draw their CMA
     seeds from it and discard them (no evaluation), so every kept try gets the same draw as in the
-    full pass."""
+    full pass.
+
+    ``repair`` (config key ``BoundaryPassRepair``, AR5 step 20; False = off, the pass is then
+    exactly the one above): once the pass is done, the contested voxels get a second look
+    (``boundary_repair.run_repair``). The result is left in ``res.repair``; ``bfs.stats`` gets the
+    repair's entries only with the key on."""
     t0 = time.time()
     rec = bfs.reconstructor
     voxels = mic.voxels
@@ -228,4 +236,8 @@ def run_boundary_pass(bfs: Any, mic: Any, skip_hit: float = 0.0) -> BoundaryPass
         f"in {res.wall_s:.1f}s",
         flush=True,
     )
+    if repair:  # BoundaryPassRepair (opt-in, AR5 step 20)
+        from .boundary_repair import run_repair
+
+        res.repair = run_repair(bfs, mic, res, R, nbrs, sym, active, cost_fn)
     return res

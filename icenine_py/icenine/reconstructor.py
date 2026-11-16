@@ -119,6 +119,8 @@ def check_bfs_keys(params: Any) -> None:
     boundary = bool(getattr(params, "boundary_pass", False))
     if float(getattr(params, "boundary_pass_skip_hit", 0.0)) > 0.0 and not boundary:
         raise ValueError("BoundaryPassSkipHitRatio > 0 needs BoundaryPass 1")
+    if bool(getattr(params, "boundary_pass_repair", False)) and not boundary:
+        raise ValueError("BoundaryPassRepair 1 needs BoundaryPass 1")
     if seed_keys and not getattr(params, "seed_by_indexing", False):
         raise ValueError(
             "SeedIndexCandidates and SeedIndexStopHitRatio need SeedByIndexing 1 "
@@ -1963,6 +1965,8 @@ class BFSReconstruction:
         self.index_log: List[Dict[str, Any]] = []
         # BoundaryPass (opt-in): one entry per voxel the pass changed (empty with the key off)
         self.boundary_log: List[Dict[str, Any]] = []
+        # BoundaryPassRepair (opt-in): one entry per voxel the repair changed (empty with key off)
+        self.repair_log: List[Dict[str, Any]] = []
 
     @staticmethod
     def _ratios(info: Optional[OverlapInfo]) -> Tuple[float, float]:
@@ -2097,7 +2101,10 @@ class BFSReconstruction:
             from . import boundary_pass as BP
 
             skip_hit = float(getattr(self.setup.search_params, "boundary_pass_skip_hit", 0.0))
-            if skip_hit > 0.0:  # BoundaryPassSkipHitRatio (opt-in, AR5 step 7)
+            repair = bool(getattr(self.setup.search_params, "boundary_pass_repair", False))
+            if repair:  # BoundaryPassRepair (opt-in, AR5 step 20)
+                BP.run_boundary_pass(self, mic, skip_hit=skip_hit, repair=True)
+            elif skip_hit > 0.0:  # BoundaryPassSkipHitRatio (opt-in, AR5 step 7)
                 BP.run_boundary_pass(self, mic, skip_hit=skip_hit)
             else:
                 BP.run_boundary_pass(self, mic)

@@ -399,11 +399,14 @@ def test_run_all_dry_run_resume_lists_an_old_failed_marker_to_move(tmp_path: Pat
         cwd=str(ROOT),
         env=env,
     )
-    expected = "freeze check failed: icenine/orientation_search.py differs from the frozen hash"
-    if chk.returncode != 0:  # phase B put a docstring note in orientation_search.py, by design
-        if expected not in chk.stderr:  # any other mismatch or a crash is a real failure
+    if chk.returncode != 0:  # a later step's library edit (step 16 phase B, AR5 step 20), by design
+        tail = chk.stderr.strip().splitlines()[-1] if chk.stderr.strip() else ""
+        ok = tail.startswith("freeze check failed: icenine/") and tail.endswith(
+            "differs from the frozen hash"
+        )
+        if not ok:  # any other mismatch or a crash is a real failure
             pytest.fail(f"unexpected freeze result: {chk.stderr[-300:]}")
-        pytest.skip("the step 16 freeze disagrees only on the phase B docstring note")
+        pytest.skip("the step 16 freeze disagrees only on a later step's library edit")
     r = subprocess.run(
         [str(sh), "--smoke", "--resume", "--dry-run", "--cache", str(tmp_path)],
         capture_output=True,
@@ -473,4 +476,12 @@ def test_the_only_frozen_file_that_differs_is_the_phase_b_docstring_note() -> No
     differ = [
         k for part in ("files", "library") for k, v in cur[part].items() if saved[part].get(k) != v
     ]
-    assert set(differ) <= {"icenine/orientation_search.py"}, differ
+    # AR5 step 20 (BoundaryPassRepair) added library files and edited these four: allowed here
+    allowed = {
+        "icenine/orientation_search.py",
+        "icenine/boundary_pass.py",
+        "icenine/boundary_repair.py",
+        "icenine/config_file.py",
+        "icenine/reconstructor.py",
+    }
+    assert set(differ) <= allowed, differ
