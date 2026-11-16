@@ -4862,6 +4862,286 @@ timing; another random seed; `held2`.
   late in the fits); learned grid proposals (ceiling 0% to 22.8%; step 10's cut failed). Not
   proposed: step 18's learned skip again; the pass skip by a voxel's own hit ratio (step 13).
 
+### Owner task of 16 Nov, part 1: check the C++ pilot result for a bug
+
+Task `cppchk`. Owner task given 2026-11-16 (part 1 of 2; part 2, task `fine1`, goes ahead whatever
+this part finds). Starts from `feature/eval-reduction` after AR5 step 22. A check, not a study:
+it names the cause of what the stored C++ run shows, or reports that no bug was found.
+
+**Why.** The C++ time study (`cpptime`, merged at 003cc5d, D-20261114-N3) left 416 of 2,000 pilot
+voxels wrong in C++ against 24 in Python. Two things in its record look like a bug: 393 voxels
+marked for a refit were never fitted again, and all 1,921 C++ local optimizations print an end
+orientation equal to the start. C++ is the reference program, so the owner wants this checked
+before C++ numbers are used again (part 2 runs C++ on a new layer).
+
+**What was read.** PLAN section "C++ time on the pilot"; `cpptime/tables.md`, `trace_C1.json`;
+D-20261114-N3; the C++ sources named below; Python `config_file.py`, `orientation_search.py`,
+`reconstructor.py`. The run cache (`cpptime/cache/runs/C1/`: client logs, stdout, `.mic.LBFS`)
+no longer exists: `finish_task.sh` removed the worktree that held it (record of 2026-11-14 10:38).
+Only the tracked summaries remain. So phase A starts with a rerun of the stored command.
+
+**What the record says.** Reading line: each row is one count from `trace_C1.json` or
+`tables.md` of run C1 (one fitting client, stored binary of 2026-03-23, Release).
+
+| count in run C1 | value |
+|---|---|
+| wrong voxels (over 1 degree from the truth) | 416 of 2,000 |
+| voxels marked REFIT (hit ratio over the running best at most 0.9), all wrong | 393 |
+| voxels accepted above 0.9 that are wrong | 23 |
+| local-optimization records whose printed end equals the printed "Original" | 1,921 of 1,921 |
+| distinct orientations in the output map | 80 |
+| wrong voxels within 1 degree of another grain's truth | 416 |
+| paired with Python A1: wrong only in C++ / only in Python / both / neither | 404 / 12 / 12 / 1,572 |
+| seconds in global searches / in local optimizations (C1) | 1,137 / 85 |
+
+**Terms.** **Global search**: a search with no starting guess (C++ `ReconstructVoxel`).
+**Local optimization**: the MC fit from a neighbour's orientation (C++ `LocalOptimization`).
+**Cost**: 1 minus the overlap quality; quality is the pixel hit ratio times the detector ratio
+(`OverlapInfo.h:138,164`). **REFIT**: the mark C++ puts on a voxel whose hit ratio is at most 0.9
+of the running best of its BFS. **Server** / **client**: MPI rank 0 (hands out seeds) and rank 1
+(fits). **Wrong**: over 1 degree from the truth, cubic symmetry. **Bug**: code that does not do
+what its own comments, names or config keys say, or two programs given different inputs, or a
+scoring script that misreads a file. A behaviour the code was written to have is a design
+difference, reported as such, not a bug.
+
+**Hypotheses, to test, not concluded.** Reading line: per check, the candidate cause, where it
+lives, and the observation that would confirm or refute it.
+
+| # | candidate cause | code | confirms / refutes |
+|---|---|---|---|
+| R1 | client grid marks never cleared between seeds: `Reset` empties the queue only, though its comment says visited points "have to be reset to NON_VISITED"; `InsertSeed` queues only NOT_VISITED voxels | `Src/ReconstructionStrategies.tmpl.cpp:314-326`, `:335-356`; called at `BreadthFirstReconstructor.tmpl.cpp:115` | a REFIT voxel borders a voxel fitted by a later BFS and is never queued / no REFIT voxel ever borders a later BFS |
+| R2 | server never re-serves REFIT voxels: `Pop` skips all but NOT_VISITED; `Refit` runs only on RESTART_FIT, sent only with `PartialResultFilename` | `ReconstructionStrategies.tmpl.cpp:124-145`, `:151-196`; `BreadthFirstReconstructor.tmpl.cpp:84-105`, `:223-228`, `:361-366`; `ConfigFile.cpp:689-693` | server log: queue empty while REFIT voxels remain, no RESTART_FIT sent / any REFIT voxel served again |
+| L1 | start already at the lowest reachable cost; MC accepts only a strictly lower cost | `OrientationSearch.cpp:174`, `:241-261` | stdout `C_i` equals `C_f` and is near 0 at accepted voxels / `C_f` below `C_i` |
+| L2 | stop after the first 10-step block: cost under `MaxConvergenceCost` (0.0001) and variance under 0.02 squared | `OrientationSearch.cpp:228-231`, `:263-264`; `ContinuousSearch.h:170-186` | stdout `Step` = 10 on most records / larger step counts |
+| L3 | log reading: "Original" is the BFS seed (`oResult`), not the voxel's own start; Euler angles print with 6 significant digits | `BreadthFirstReconstructor.tmpl.cpp:174-184` | stdout misorientation to the start nonzero while the log shows equal / exactly 0 |
+| L4 | settings differ from Python: box width = `LocalOrientationGridRadius` / 2^`MinLocalResolution`; 0.5 degree resolution fixed; `MCRadiusScaleFactor` unused; `SuccessiveRestarts` passed but unused | `ContinuousSearch.h:68-73`, `:122-133`, `:177`; `SearchDetails.cpp:46-57`; `ConfigFile.cpp:489-520`; Python `config_file.py:460-470`, `orientation_search.py:362`, `:1015-1110`, `reconstructor.py:1510-1521` | parsed values or the use of a key differ between the two / equal |
+| L5 | the C++ local cost differs from Python's at the same orientation (`ShapePixelOverlapCounter`, `DiscreteAdaptive.h:119-127`) | `DiscreteAdaptive.tmpl.cpp:280-317` | per-orientation cost differs by over 0.006 (the old parity limit) / within it |
+| I1 | inputs differ (config, detector, images, grid, structure) | `cpptime/make_config.py`; `pilot_bfs.py:76` | any hash or parsed value differs / all equal |
+| S1 | the scoring script misreads the C++ map (columns, degrees, Euler convention, order, symmetry) | `cpptime/score_cpp.py:35-62`, `:76-86`; `XDMServer.cpp:84-133`, `:219-222` | an independent reading disagrees on any voxel / agrees on all |
+
+**Samples.** The pilot only (2,000 voxels, `benchmarks/phase_d_pilot/region_grid.mic`, clean
+images, Q-max 8). Python side: item 14's stored run `item14/runs/A1` (`recon.mic`,
+`records.json`), read only, not rerun. The 10 voxels: the first 10 in pilot-grid row order that are
+wrong in C++ and right in Python (from C3's map, scored by `score_cpp.py`). Fixed now, before any
+cost is looked at. The traced local optimization: the first record in the C3 client log, in log
+order, whose voxel is one of the 10.
+
+**Measured.** (1) Per REFIT voxel: the BFS that marked it, the later BFS runs that reached a
+neighbour of it, whether it was queued again. (2) Per local optimization (stdout of C3): start
+cost `C_i`, end cost `C_f`, steps, restarts, misorientation end to start. (3) Per chosen voxel:
+the cost in C++ and in Python at four orientations (truth, Python end, C++ end, C++ start).
+(4) The step-by-step trace: every MC sample (offset, orientation, cost, accepted or not), block
+radius, block variance. (5) Inputs: hashes and parsed values. (6) Scoring: per-voxel errors by
+two independent readings.
+
+**Predictions, written before any run.**
+1. C3 (rerun of the stored command) reproduces every count of the table above exactly.
+2. R1 and R2 both hold: every one of the 393 REFIT voxels is adjacent to at least one voxel
+   fitted later, and none is queued or served again.
+3. On at least 90% of accepted records `C_i` equals `C_f`; L3 explains part of "all equal".
+4. L4: the parsed settings agree; the two ports share the same MC rule.
+5. L5: costs agree within 0.006 on all 40 voxel-orientation pairs.
+6. I1 and S1: no difference found.
+
+**Decision rules, fixed now.** A hypothesis is confirmed only by its listed observation, on the
+rerun's own logs. Each check ends as "bug found" (with file and line), "design difference" or
+"no cause found". If a bug is found: a fix on its own task branch `feature/eval-reduction-cppfix`,
+with a test (a C++ run on a small sub-grid, read by a pytest), an Opus review, and then a rerun of
+the pilot (C4, untimed, same command); both C1/C3 and C4 are kept and reported side by side. One
+fix per bug; no tuning to match Python. If no bug is found: the page says which hypotheses were
+refuted, which design differences explain the 416 (with counts), and that C++ stays as it is.
+
+**Validity checks.** C3 equals the stored counts, else stop. A Release build from current `Src/`
+(with the evaluation counter of b9b566b) gives a `.mic.LBFS` byte-equal to C3's, else the stored
+binary stays the reference. The trace build's map is byte-equal to C3's (prints change no draw).
+C++ costs at given orientations come from a restart run (`PartialResultFilename` on a 10-voxel
+sub-grid: `Refit` prints the start cost before any move); if that old path fails, from a small
+driver copied from `Src/CostFunctionBenchmark.cpp`. Scoring: Python A1's map read through
+`score_cpp.py` gives its stored 24 wrong; a second reader (raw text, `scipy` rotations) agrees
+voxel by voxel. Counts and paired splits only.
+
+**Machine.** C3: about 21 minutes, 2 busy processes, untimed. Builds: two Release builds, a few
+minutes each. Trace run on the pilot: about 21 minutes. Restart runs: 4 short runs, seconds each.
+Scripts: minutes. If a fix: C4, about 21 minutes. In all under 2 hours of machine.
+**Process limit exception:** the C++ build command is fixed (`make -j8`, 8 compile jobs); it runs
+only when no other heavy process runs, for its few minutes.
+
+**Stop rule:** stop and report if C3 does not reproduce the stored counts, if a run passes 1 hour
+or its log does not grow for 10 minutes, if stderr holds `RUNTIME_ASSERT`, if any file of an
+earlier step would need an edit, or if a fix would change Python. Part 2 starts in any case.
+
+**Phase A (scripts, task branch `feature/eval-reduction-cppchk`).** 1. `read_on_fetch.sh --save`.
+The cache lives outside the worktree (a gitignored folder of the main checkout, linked), so
+`finish_task.sh` cannot delete it again. 2. Tests first (`tests/test_cppchk.py`): log parsers on
+hand-made lines, the 10-voxel rule, the second reader on a hand-made map. 3. C3 with the stored
+binary and `cpptime/make_config.py`; stdout kept. 4. Checks I1 and S1. 5. R1, R2, L1 to L3 from
+C3's logs. 6. L4: both parsers on the same config; the C++ use of each key read from the source.
+**Phase B (C++, task branch `feature/eval-reduction-cpptrace`).** Trace prints behind an
+environment variable naming one voxel location (`OrientationSearch.cpp:143-198`, `:207-287`) and a
+one-line evaluation count at client exit (near `XDMClient.cpp:103`, also needed by part 2).
+Release build only: `cmake -DCMAKE_BUILD_TYPE=Release . && make -j8`. Opus review before use.
+Trace run; restart runs for L5; Python costs at the same orientations. **Phase C.** Verdict per
+check; if a bug, the fix branch, test, review, C4. Plot first (per check, counts); tables; page.
+
+**Files.** `scripts/autoresearch/cppchk/`, `tests/test_cppchk.py`,
+`benchmarks/autoresearch/cppchk/` (summaries under 1 MB tracked; logs and maps in the cache).
+**Library changes:** none in Python. C++: the trace and count prints on `cpptrace`; a fix only on
+`cppfix`. No frozen file of an earlier step is edited. Nothing merges to develop.
+
+**Not in this step.** C++ with several clients; a Python arm with C++ rules; timing; another
+sample; changing the C++ search design (a revisit pass) unless a bug is found; another seed.
+
+**Choices made.**
+- Rerun first, because the stored logs are gone; the run is deterministic (one client), so C3
+  stands in for C1 if the counts match.
+- Costs from the restart path before a new driver: no code change for that part.
+- One count print added at client exit: the open choice of N3 ("a C++ evaluation count by a print
+  and a rebuild"); part 2 needs it. Owner question: allow it, or report C++ evaluations as missing.
+- R1 is the lead candidate for the dropped refits (comment and code disagree); it may still turn
+  out to be intended for one client, so the decision rule above decides, not this text.
+
+### Owner task of 16 Nov, part 2: a whole layer one generation finer
+
+Task `fine1`. Owner task given 2026-11-16 (part 2 of 2). Goes ahead whatever part 1 (`cppchk`)
+finds. Starts from `feature/eval-reduction` after AR5 step 22. A measurement on a new sample: no
+method is changed or tuned here.
+
+**Why.** Every whole-layer number so far is on 24,570-voxel layers. The owner wants the three
+methods on a layer with half the voxel side (four times the voxels), recorded as evaluations,
+wrong voxels and wall-clock time, on the cost-against-accuracy chart of the review page.
+
+**What was read.** `ar3/held_make_sample.py`, `ar3/held_sample_lib.py`, `gradient_sample.py`,
+`ar5/screen_build_held5.py`; `phase_d/render_full.py` (arguments); the `cpptime` plan and scripts;
+step 21's `screen/lib_check.json` and `summary.json`; item 14's `runs/A1/run.json`;
+`pareto/pareto_rows.json`; RUNBOOK "The review page"; C++ `ReconstructionStrategies.h:66-80`.
+
+**Terms.** **Generation**: the triangle level of a `.mic` grid; side = 0.6 mm / 2^generation.
+`held` is generation 6 (side 0.009375 mm, 24,570 voxels). **Fine layer**: generation 7, each
+triangle split into four (side 0.0046875 mm, 98,280 voxels, the same area). **Neighbour pair**:
+two voxels of one grain that share an edge. **Spread** of a grain: the largest misorientation
+between one of its voxels and its centre orientation. **Global search**: a search with no starting
+guess. **Local optimization**: a fit from a neighbour's orientation. **Wrong**: over 1 degree from
+the truth, cubic symmetry; a voxel with no output orientation counts as wrong and is listed apart.
+**Quiet**: the timing preflight passes (`timing_preflight.py --require`) and the `quiet.py`
+sampler (`item14/quiet.py`, rule R4) finds no other busy process. **Slice**: the 2,000 voxels of
+the fine layer nearest the layer centre (as `render_full.py --n-voxels`), fixed now.
+
+**The arms.** Reading line: each row is one run on the whole fine layer and its exact settings.
+
+| arm | what it is | settings |
+|---|---|---|
+| `PS` stock Python | grid search for every seed, stock MC local optimization: the Python run `cpptime` set beside C++ (item 14 arm A) | `ar2/key_off_fused.config` (with `BFSRevisitRefit 1`, `BFSReseed 1`, `FusedCost 1`) |
+| `CS` stock C++ | mode `p`, `mpirun -n 2` (one server, one fitting client), as `cpptime` | `cpptime/make_config.py` on the same config (drops the three Python-only lines) |
+| `J5S` latest recipe | AR5 step 21's arm, run fully from library keys (`lib_check.json`: library equals the script layer on `mid`) | `ar2/key_on_fused.config` plus `BFSNeighborCMAFirst 1`, `CMASigma0 0.05`, `CMANeighborMaxEvals 60`, `BoundaryPass 1`, `SeedIndexCandidates 20 5`, `SeedIndexStopHitRatio 0.95`, `BFSNeighborCMANoFallback 1`, `SeedIndexCMAFirst 200`, `SeedRescueCMA 0.25 1000`, `SeedIndexMCStallHit 500`, `BoundaryPassRepair 1`, `BoundaryPassScreen 1` |
+| `CF` (only if part 1 makes a fix) | `CS` with part 1's fixed build, an extra labelled run | as `CS` |
+
+Every config changes only: `SampleFilename` (fine grid), `InfileBasename` (fine images),
+`MinSideLength` and `MaxInitSideLength` 0.0046875 (C++ splits any voxel above `MinSideLength`;
+Python does not read them), `OutStructureBasename`. Clean images, Q-max 8 as before.
+
+**Sample.** Name `fine7`. New script `fine1_make_grid.py` splits every triangle of
+`SimInput/rand_500grains_1mm_neworient_s0_grid.mic` into four (three corner triangles and the
+flipped middle one). New builder `fine1_make_sample.py`: `held_make_sample.py`'s steps with its
+helpers imported unchanged (250 Voronoi cells, connected grains, orientations redrawn if under
+5 degrees from a neighbour grain, gradient levels 0, 0.2, 0.5, 1, 2, 4 degrees, linear model),
+on the fine grid, generator seed 7. A new seed is a new sample, as `held3` to `held6` were built;
+it is not an extra random seed for a comparison. One addition, the gradient cap: after a grain's
+gradient is drawn, if its largest neighbour-pair misorientation is 0.45 degree or more, its
+rotation vectors are scaled down so that it is 0.45 degree; each capped grain is listed with its
+drawn and kept level. A crude estimate from `held`'s grain sizes (not a measurement): about 2 of
+250 grains need the cap at the fine grid, about 45 would at the coarse one. Images: `render_full.py
+--tag fine7 --variants clean --mic <truth>` (the render config of `held`), then the stack.
+
+**Gradient check, a hard gate before the freeze.** `fine1_gradient_check.py` reads the written
+truth back from the `.mic` and reports, over all neighbour pairs: the count, the maximum, the
+median, the 90th, 99th and 99.9th percentiles and a histogram of neighbour misorientation; per
+grain: spread, level, voxels, largest neighbour step. Gate: the maximum is under 0.5 degree, and
+the largest spread is at least 3 degrees (the "several degrees" of the spec). Fails: stop.
+
+**Freeze.** Committed before any method runs: `fine1/frozen.json` (seed, grid rule, cap rule,
+arms, slice, projection formula, decision rules, sha256 of the grid, truth, slice grid, every
+image frame and the stack), the generator scripts, `sample.json`, `grainmap.npz`, the gradient
+check JSON. The truth `.mic` (about 10 MB) and images are not tracked, as `held`'s are not; their
+hashes are. Tracked files under 3 MB.
+
+**Measured.** Per run: evaluations (all, and global searches apart); wrong voxels with a Wilson
+95% interval (`common/stats.py`); missing voxels; median error; wall-clock time, labelled with the
+machine, the process count, what else ran and the quiet verdict. C++ evaluations come from part
+1's count print; without it they are reported as missing.
+
+**Budget: slices first, then a projection.** Each arm runs once on the slice, timed alone. The
+projection: T = t_g x G + t_r x (98,280 / 2,000), with t_g the slice's mean seconds per global
+search, G the projected global searches and t_r the slice's seconds outside global searches. Low
+G = slice searches x (grains in the layer / grains touching the slice), from grain-map counts
+only; high G = slice searches x 49.14. Weak points: a slice holds only about 5 to 10 grains, so
+G is poorly known; seeds and reseeds per voxel and grid searches do not scale linearly; smaller
+spots may change hit ratios and so rejected seeds; Python per-voxel overheads may grow with the
+layer. From the slice runs only counts and seconds are read, never maps or wrong counts.
+
+**Stored-number estimates (not the projection).** Reading line: per arm, the stored run used,
+evaluations on the fine layer (low: global part fixed per grain; high: all times four), the
+rate used, and hours on one worker.
+
+| arm | stored basis | evaluations, low-high | rate (per process-hour) | hours |
+|---|---|---|---|---|
+| `PS` | pilot A1: 69 global searches at about 332,000 each, 1,349 per voxel otherwise | 228 M - 1.26 G | 57 M (A1, near-quiet) | 4 - 22 |
+| `CS` | C1: 85 searches at 13.4 s on 60 grains; 1,921 local opt. in 85 s | not measured | seconds | 2.5 - 17 |
+| `J5S` | `held5`: 22,706,889, seed step 48.2% | 58 M - 91 M | 10.6 M (`J5` on `held5`) | 5.5 - 8.6 |
+
+Not verified: the global-search count on the fine layer (scaled from 60 pilot grains to 250); the
+`PS` high end assumes reseeds grow with voxels; `CS` local optimizations stay at 44 ms only while
+they return their start (a part 1 fix may change that); rates were measured contended. For
+comparison `S8` on `held5`: 75,879,690 evaluations, 10,135 s contended for its search part.
+
+**Decision rules, fixed now.** If any arm's high projection passes 48 hours, stop and ask the owner
+before starting it. Caps: 1.5 times each arm's high projection. No arm is changed after the slice.
+Reported: the three (or four) points as measured; no winner rule, this is a measurement.
+
+**Machine.** At most 6 heavy processes. Render with up to 4 workers (about 10 to 40 minutes);
+slices alone, in the order `CS`, `J5S`, `PS` (each 5 to 15 minutes, under 1 hour in all, `CS` = 2
+processes). Whole-layer runs timed alone, one after another, in the order `CS`, `J5S`, `PS`, then
+`CF` if it exists: about 12 to 48 hours serial. Each run detached (`nohup caffeinate -i`), with
+`--resume`, a `--dry-run`, a log and an end marker `<arm>.done`; a launcher starts the next only
+after the previous marker. The cache lives outside the worktree (lesson of `cpptime`).
+**Process limit exception:** none; the C++ build is part 1's.
+
+**Validity checks.** The grid has 98,280 voxels, the same area, every child inside its parent, and
+equals C++'s own split (`SetMinResolution`, `ReconstructionStrategies.h:66-80`) on a small sub-grid
+within 1e-6 mm. The stack equals the frames. Both programs get the same inputs (part 1's input
+check reused). Freeze committed before any output exists (file times checked, as step 21). The
+runs read no truth. `score_cpp.py` matching works at the fine side (neighbour centres 0.0027 mm
+apart, tolerance 1e-3 mm, up/down also matched). Every evaluation counted.
+
+**Stop rule:** stop and report if the gradient gate fails, if the grid check fails, if a run starts
+before `fine1/frozen.json` is committed, if any log or map of `fine7` is read before all end markers
+exist, if a projection passes 48 hours (ask the owner), if a run hits its cap or its log stalls for
+30 minutes, or if a timed run's quiet check fails (relabel as contended and report; no rerun).
+
+**Phases.** A: tests first (`tests/test_fine1.py`: grid split on hand-made triangles, the cap, the
+neighbour-pair measure, guards); grid; sample; gradient gate; render; stack; freeze. B: slices,
+projection file committed; ask if over 48 hours. C: whole-layer runs. D: after all markers, score;
+plot first (a new panel `fine7_98280` in `pareto_rows.json`: evaluations against wrong voxels with
+Wilson bars, wall time in each label; `pareto_build.py`, `pareto_insert.py` on a fresh read of the
+live page); tables; page `findings_fine1.md`; history.
+
+**Files.** `scripts/autoresearch/fine1/`, `tests/test_fine1.py`, `benchmarks/autoresearch/fine1/`.
+**Library changes:** none. C++: only part 1's builds.
+
+**Known limits.** `J5S` was chosen on 24,570-voxel samples; this layer is a new clean sample for it.
+One sample, one layer, clean images, cubic crystal. Nobody reads its logs or maps before the end
+markers. Times on one machine; `CS` uses one client, not its usual several.
+
+**Not in this step.** Realistic images; other Q-max; several C++ clients; `J5SD` (step 22) unless
+the owner says; tuning any arm to the fine grid; another random seed; `held2`.
+
+**Choices made.**
+- "Stock Python" read as `PS` (unmodified grid-search search and stock MC local optimization, the
+  run `cpptime` compared with C++). Alternatives: `S8` (the AR5 house baseline, a tuned seed step);
+  or no opt-in key at all (no revisit, no reseed: 740 wrong on the pilot). Owner question.
+- The gradient cap at 0.45 degree, so the bound holds by construction and is still measured.
+- Missing voxels count as wrong; timed runs alone (slower, but quiet walls); seed 7 (next unused).
+- Part 1's fix, if any, adds `CF`; `CS` stays the build of the branch as it is.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
