@@ -46,7 +46,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   `agent-a8c1c16b70cf43e39` (merge 50628763, suite 2279 passed); v57 live.
   Step 22 (`ar5v`, N2; arm J5SD): gate met (65e63d6c); all runs incl. `held6` ended 12:24,
   16 Nov (worktree `agent-aba6e1bdb95dff72a`); stats asked 13:06.
-  Owner task (N3 8dc07da5; PLAN 4f5d47fc): part 1 `cppchk` phase A started 13:20, 16 Nov.
+  Owner task (N3 8dc07da5; PLAN 4f5d47fc): part 1 `cppchk` phase A started 13:07, 16 Nov.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
