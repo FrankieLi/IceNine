@@ -224,3 +224,103 @@ def test_nearest_centre_rows_are_sorted_and_the_right_count() -> None:
     assert len(rows) == 50 and np.all(np.diff(rows) > 0)
     d = np.linalg.norm(xy, axis=1)
     assert d[rows].max() <= np.sort(d)[50]
+
+
+# ------------------------------------------------------------------------- configs, runs, launcher
+
+import subprocess  # noqa: E402
+
+import fine1_config as CFG  # noqa: E402
+import fine1_freeze as FZ  # noqa: E402
+import fine1_paths as PP  # noqa: E402
+import fine1_run_py as RP  # noqa: E402
+import fine1_stack as ST  # noqa: E402
+
+ICE = Path(__file__).resolve().parents[1]
+LAUNCH = ICE / "scripts" / "autoresearch" / "fine1" / "fine1_launch.sh"
+FRAMES = "/x/fine7/clean/500Grains.sim"
+
+
+def test_ps_config_changes_only_the_five_keys() -> None:
+    text = CFG.python_config("PS", Path("/x/grid.mic"), FRAMES, "out")
+    assert CFG.changed_keys(CFG.BASE_PS.read_text(), text) == sorted(CFG.CHANGED_KEYS)
+    k = CFG.keys_of(text)
+    assert k["MinSideLength"] == k["MaxInitSideLength"] == "0.0046875"
+    assert {"BFSRevisitRefit", "BFSReseed", "FusedCost"} <= set(k)
+
+
+def test_j5s_config_adds_the_twelve_library_keys_of_lib_check() -> None:
+    text = CFG.python_config("J5S", Path("/x/grid.mic"), FRAMES, "out")
+    added = {s.split()[0] for s in CFG.J5S_KEYS}
+    assert CFG.changed_keys(CFG.BASE_J5S.read_text(), text) == sorted(set(CFG.CHANGED_KEYS) | added)
+    assert CFG.J5S_KEYS == CFG.lib_check_keys()  # step 21's key list, same order
+    k = CFG.keys_of(text)
+    assert k["SeedByIndexing"] == "1" and "BoundaryPassSkipHitRatio" not in k
+
+
+def test_j5s_config_parses_and_satisfies_the_screen_preconditions(tmp_path: Path) -> None:
+    from icenine.config_file import ConfigFile
+    from icenine.reconstructor import check_bfs_keys
+
+    p = tmp_path / "j5s.config"
+    p.write_text(CFG.python_config("J5S", Path("/x/grid.mic"), FRAMES, "out"))
+    cfg = ConfigFile.from_file(str(p))
+    assert cfg.boundary_pass and cfg.boundary_pass_repair and cfg.boundary_pass_screen
+    assert cfg.boundary_pass_skip_hit == 0.0 and cfg.seed_by_indexing and cfg.fused_cost
+    check_bfs_keys(cfg)  # raises on a violated precondition
+
+
+def test_cpp_config_drops_the_python_lines_and_sets_the_fine_side() -> None:
+    text = CFG.cpp_config(Path("/x/grid.mic"), FRAMES, "outc")
+    k = CFG.keys_of(text)
+    assert not ({"BFSRevisitRefit", "BFSReseed", "FusedCost"} & set(k))
+    assert k["MinSideLength"] == k["MaxInitSideLength"] == "0.0046875"
+    assert k["SampleFilename"] == "/x/grid.mic" and k["InfileBasename"] == FRAMES
+    assert k["OutStructureBasename"] == "outc"
+    # the search lines are those of the Python arm PS
+    ps = CFG.keys_of(CFG.python_config("PS", Path("/x/grid.mic"), FRAMES, "outc"))
+    for key in ("MaxMCSteps", "MinLocalResolution", "MaxQ", "SuccessiveRestarts", "EtaLimit"):
+        assert k[key] == ps[key]
+
+
+def test_counts_summary_splits_global_searches_from_the_rest() -> None:
+    st = dict(
+        n_seeds=3,
+        n_reseeds=2,
+        n_evals_seed=300,
+        n_evals_reseed=200,
+        n_evals_neighbor=50,
+        n_evals_revisit=10,
+        n_evals_boundary_pass=5,
+        n_evals_boundary_repair=7,
+        wall_seed_s=30.0,
+        wall_reseed_s=20.0,
+    )
+    s = RP.counts_summary(st, 100.0)
+    assert s["evals_all"] == 572 and s["evals_global"] == 500 and s["evals_other"] == 72
+    assert s["global_searches"] == 5 and s["wall_per_global_search_s"] == 10.0
+    assert s["wall_other_s"] == 50.0
+
+
+def test_freeze_check_refuses_a_missing_or_uncommitted_file(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(PP, "FROZEN", tmp_path / "frozen.json")
+    assert "does not exist" in FZ.problems(False, False)
+    (tmp_path / "frozen.json").write_text("{}")
+    assert "not committed" in FZ.problems(False, False)
+
+
+def test_stack_check_reads_the_ascii_frame_as_row_column(tmp_path: Path) -> None:
+    f = tmp_path / "frame"
+    f.write_text("886, 1344, 158593\n887, 1344, 0\n5, 7, 3\n")
+    lit = ST.ascii_lit(f)
+    assert sorted(map(tuple, lit.tolist())) == [(7, 5), (1344, 886)]  # (k = row, j = column)
+
+
+def test_launcher_syntax_and_argument_guards() -> None:
+    assert subprocess.run(["bash", "-n", str(LAUNCH)]).returncode == 0
+    bad = subprocess.run(["bash", str(LAUNCH), "--stage", "mid"], capture_output=True)
+    assert bad.returncode == 64
+    nocap = subprocess.run(["bash", str(LAUNCH), "--stage", "whole"], capture_output=True)
+    assert nocap.returncode == 64 and b"cap-h" in nocap.stderr
+    unk = subprocess.run(["bash", str(LAUNCH), "--stage", "slice", "--bogus"], capture_output=True)
+    assert unk.returncode == 64
