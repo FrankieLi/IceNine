@@ -2092,3 +2092,17 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   candidates and may change, but it also uses the 0.95 hit ratio to decide which voxels get a
   local optimization; the owner may overrule and stop it. Where:
   icenine_py/docs/autoresearch/PLAN.md, section AR5 step 21.
+
+### D-20261116-N1 · D-20261116-N1 | AR5 step 21 passes on held5; key phase approved, flag uses the tested relative ratio · AR5 step 21 (one-evaluation pass tries, wider repair) passes on held5; key phase approved
+- 2026-11-16, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Arm J5S passes every frozen rule on the clean sample
+  held5: 22,706,889 evaluations, 13.9% fewer than J5C and 70.1% fewer than S8; wrong voxels S8 62,
+  J5 46, J5C 33, J5S 31; against J5C 4 fixed and 2 broken; repair 5.48% of J5. The Opus review
+  recomputed every number. Phase B is approved after the review's five wording fixes. The key uses
+  the rule as tested: the wide flag's ratio is the voxel's hit ratio over the median of its
+  neighbours' hit ratios, under 0.95, not the voxel's own hit ratio. Correction to D-20261115-N11:
+  its text said 'under hit ratio 0.95'; the tested and frozen code uses the relative ratio, so the
+  rule is further from step 13's skip than that note said. Limits: one clean sample; the form was
+  chosen among about 25 on the six disclosed samples; 4 fixed and 2 broken is a small count. The
+  owner may overrule. Where: icenine_py/docs/autoresearch/PLAN.md, section AR5 step 21; review
+  .claude/reports/20261116-0100-review-ar5u.md.
