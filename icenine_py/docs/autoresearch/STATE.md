@@ -37,14 +37,14 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    refit voxels were never fitted again, all 1,921 local optimizations changed nothing.
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
    goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. 16 pages wait (+ar5v, cppchk).
-   NOW: (a) step 22 MERGED 566eea3f (suite 2333 passed); page v58 after the cppfix review.
-   (b) OWNER TASK: part 1 fix done (e5c2fd44; C4 311 vs 416 wrong); review a055ff0b37b1d5aeb;
+   NOW: (a) step 22 MERGED 566eea3f; v58 live (16:00, 16 Nov). v59 after C5 and the slices.
+   (b) OWNER TASK: part 1: fix reviewed (C4 311 vs 416); aa5599885ce689568 on fix 2 (server merge), C5;
    part 2 `fine1`: slices run (CS, J5S, PS); then SendMessage a22702f36dfefa989 to project; caps.
-   (c) owner asks (16 Nov): restart distance a4981cf3833b934ae; C++ config a7ef082d6bad907b4.
+   (c) restart distance, C++ config: done (reports 20261116-*); next: local-opt. schedule step.
 
 ## Running jobs
 - Step 14 key WAITS (held2). Steps 15 to 21 merged (caches: `J5r` `agent-aeba15b7c3850b007`,
-  step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v57 live.
+  step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v58 live.
   Step 22 (`ar5v`; cache in `agent-aba6e1bdb95dff72a`): MERGED 566eea3f, key `SeedIndexMCDefer`.
   Owner task: part 1 trace done (ae912cf9), `Reset` fix runs. Part 2 `fine7` frozen (ac76bdd6);
   slices started 14:55, 16 Nov (worktree `agent-a22702f36dfefa989`; `fine1_launch_slice.sh`).
