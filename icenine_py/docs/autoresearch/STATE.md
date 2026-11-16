@@ -37,16 +37,17 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    refit voxels were never fitted again, all 1,921 local optimizations changed nothing.
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
    goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. Fourteen pages wait now.
-   NOW: AR5 step 22 (`ar5v`; N2): after the gate hand-back start `defer_run_all.sh --stage gate`
-   detached; then implementer judges g2, g3; then `--stage rest` (held6). Owner: replaced checks.
+   NOW: AR5 step 22 (`ar5v`; N2): gate stage runs. At marker `exit=0` SendMessage implementer
+   aba6e1bdb95dff72a to judge g2, g3; if passed start `--stage rest` (held6). Owner: checks.
 
 ## Running jobs
-- Step 14 key WAITS (held2: step 13 or owner). Steps 15 to 19: merged (see STATE_HISTORY); `J5r` in
-  `agent-aeba15b7c3850b007`. Step 20 (`ar5t`, N9, cache in `agent-a8b2d0066621fd0f8`):
-  held4 PASSED (N10), key `BoundaryPassRepair` MERGED 64aac65a (suite 2239 passed); v56 live.
-  Step 21 (`ar5u`; arm J5S; cache in `agent-a8c1c16b70cf43e39`): held5 PASSED (16 Nov N1), key
-  `BoundaryPassScreen` MERGED 50628763 (suite 2279 passed); v57 live. Step 22 (`ar5v`, N2
-  5fa628c9; arm J5SD): implementer aba6e1bdb95dff72a on phase A (to g0, g1) since 03:25, 16 Nov.
+- Step 14 key WAITS (held2: step 13 or owner). Steps 15 to 21: merged (see STATE_HISTORY); `J5r`
+  in `agent-aeba15b7c3850b007`; step 20 cache in `agent-a8b2d0066621fd0f8`, step 21 cache in
+  `agent-a8c1c16b70cf43e39` (merge 50628763, suite 2279 passed); v57 live.
+  Step 22 (`ar5v`, N2 5fa628c9; arm J5SD): g0, g1 met (d37440aa). Gate stage (J5D, J5SD on
+  `mid`, `held`) started detached 03:19, 16 Nov, in worktree `agent-aba6e1bdb95dff72a`,
+  `icenine_py/`. Marker `benchmarks/autoresearch/ar5/defer/cache/logs/defer_gate.done`. Restart:
+  `scripts/autoresearch/ar5/defer_run_all.sh --stage gate --resume` (detached, see RUNBOOK).
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
