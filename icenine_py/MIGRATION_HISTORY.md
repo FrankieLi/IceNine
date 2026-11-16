@@ -13362,6 +13362,36 @@ layer only (`scripts/autoresearch/ar5/screen_*.py`, `screen_*.sh`; `tests/test_a
   (24,570 evaluations per pass, `score_evals` in `D4_J5/pass.json` and `D4_S8/pass.json`), for every
   arm alike. (d) J5S against J5C on `held5`: 4 fixed of 6 changed (Wilson 95% 0.30 to 0.90): a small
   count.
-- Phase B (the key `BoundaryPassScreen`) follows below.
+- **Phase B: the key `BoundaryPassScreen` (D-20261116-N1; default 0 = off).** Needs `BoundaryPass 1`
+  and `BoundaryPassRepair 1` (`ValueError` otherwise; also refuses `BoundaryPassSkipHitRatio > 0`:
+  no voxel is skipped by its own hit ratio). The pass's try budget becomes 1: `local_optimization`
+  gets a new keyword `cma_screen` (default False) and its check `cma_max_evals < 2` is relaxed to
+  allow 1 only when `cma_screen` is True; every other path still raises. The repair takes the wide
+  flag (`boundary_repair.wide_flag`, a port of `screen_rules.wide_flag`): contested voxels, plus
+  voxels whose ratio (hit ratio over the median hit ratio of the neighbours, the tested one, not the
+  voxel's own hit ratio) is under 0.95 and that have a pass candidate more than 1 degree from the
+  kept end. Adds `stats['repair_extra']` and `res.repair.extra` with the key on only. Key off:
+  `run_boundary_pass` makes the same calls (60-evaluation tries, no new argument) and the same draws;
+  the BFS call is unchanged unless the key is on. Library files touched (shared with Track S):
+  `icenine/boundary_pass.py`, `boundary_repair.py`, `config_file.py`, `orientation_search.py`,
+  `reconstructor.py`. Tests `tests/test_boundary_screen.py` (written before the code, 14 tests);
+  full suite with the key off: 2278 passed, 45 skipped, 1 deselected, no older test or frozen file
+  changed. The library change moves the library hashes of `frozen.json`, so the screen scripts'
+  freeze check no longer agrees: `screen_summary.py` now allows exactly these five files.
+- **Key-on check on `mid` (replaced check, pending the owner).** The plan's check (a library run on
+  `mid` equal to `J5S`: same map, same evaluation count) cannot hold: as in step 20, the in-run pass
+  reads the unrounded map and the library run is not the script arm `J5` (rule `G2b`, aligned
+  draws). So `screen_lib_check.py` ran the library with `BoundaryPassRepair 1` and `BoundaryPassScreen
+  1` (`LibJ5S`, 1,779 s, contended) and compared the library's screen pass and wide repair with the
+  script rule (`screen_rules`) on that run's own inputs, bit for bit: 50,051 pass tries, every one 2
+  evaluations with its end equal to its start; flagged 1,173 (1,101 wide-only), 6,126 fits in the
+  same order with the same evaluations (741,246 in all), 1,159 changed, final map and every fit end
+  byte for byte equal; the library's state (cost, hit ratio) equals a strict re-score exactly. On that
+  run: 54 wrong voxels after the pass, 21 after the repair (33 fixed, 0 broken; in-sample, `mid`).
+  Results: `lib_check.json`.
+- Not done: the docs pareto file and the findings page under `docs/` (writes refused for agents; the
+  findings text is in `.claude/reports/20261116-0125-ar5u-findings_ar5_screen.md`, the pareto rows
+  are in `benchmarks/autoresearch/ar5/screen/pareto_rows.json`); one `--source stored` re-run of
+  `J5C` per disclosed sample (the screen scripts' freeze check now refuses until re-frozen).
 - Results: `benchmarks/autoresearch/ar5/screen/` (`frozen.json`, `gate.json`, `gate_tables.md`; the
   cache is untracked).
