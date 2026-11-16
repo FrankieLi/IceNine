@@ -1,0 +1,89 @@
+{
+ "rule": {
+  "g0": "with DEF off the scripts reproduce J5's seed steps on mid (ends, evaluations); a resumed refinement equals J5's unpaused one, evaluation by evaluation",
+  "g1": "prediction 1, exactly",
+  "g2": "the live J5D run on mid equals the replay in every seed step up to the first C step in run order",
+  "g3_samples": [
+   "mid",
+   "held"
+  ],
+  "g3_fewer_min": 0.07,
+  "g3_broken_minus_fixed_max": 3,
+  "g3_median_error_higher_max_deg": 0.001,
+  "g3_grid_more_max": 2,
+  "fails": "stop and report: no tuning, no threshold, no held6"
+ },
+ "g0": true,
+ "g1": true,
+ "g2": {
+  "ok": true,
+  "steps_compared": 35,
+  "first_c_step": 35,
+  "live_steps": 1626,
+  "j5_steps": 1618,
+  "differences": [],
+  "n_differences": 0
+ },
+ "g3": {
+  "mid": {
+   "sample": "mid",
+   "j5s_total": 8397057,
+   "j5sd_total": 7383368,
+   "j5d_search": 6531563,
+   "screen_pass_evals": 100032,
+   "repair_evals": 751773,
+   "fewer": 0.12071955686379165,
+   "wrong_j5s": 20,
+   "wrong_j5sd": 23,
+   "wrong_j5sd_wilson": [
+    0.0006238762691554134,
+    0.001404361757739006
+   ],
+   "fixed": 0,
+   "broken": 3,
+   "broken_minus_fixed": 3,
+   "median_err_j5s": 0.02706117345481678,
+   "median_err_j5sd": 0.027046605963688786,
+   "median_err_higher": -1.4567491127992493e-05,
+   "grid_j5": 2,
+   "grid_j5d": 2,
+   "grid_more": 0,
+   "ok_fewer": true,
+   "ok_broken": true,
+   "ok_median": true,
+   "ok_grid": true,
+   "ok": true
+  },
+  "held": {
+   "sample": "held",
+   "j5s_total": 19457817,
+   "j5sd_total": 17114589,
+   "j5d_search": 15419945,
+   "screen_pass_evals": 170528,
+   "repair_evals": 1524116,
+   "fewer": 0.12042604779354227,
+   "wrong_j5s": 43,
+   "wrong_j5sd": 45,
+   "wrong_j5sd_wilson": [
+    0.0013691418781273772,
+    0.0024496179856132597
+   ],
+   "fixed": 3,
+   "broken": 5,
+   "broken_minus_fixed": 2,
+   "median_err_j5s": 0.022747955347915412,
+   "median_err_j5sd": 0.022775047138410505,
+   "median_err_higher": 2.7091790495092916e-05,
+   "grid_j5": 4,
+   "grid_j5d": 4,
+   "grid_more": 0,
+   "ok_fewer": true,
+   "ok_broken": true,
+   "ok_median": true,
+   "ok_grid": true,
+   "ok": true
+  }
+ },
+ "g3_ok": true,
+ "passed": true
+}

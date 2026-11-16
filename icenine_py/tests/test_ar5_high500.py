@@ -485,5 +485,8 @@ def test_the_only_frozen_file_that_differs_is_the_phase_b_docstring_note() -> No
         "icenine/boundary_repair.py",
         "icenine/config_file.py",
         "icenine/reconstructor.py",
+        # AR5 step 22 (SeedIndexMCDefer): the key adds the pausable seed refinement to these
+        # (and `ray_indexing.py`, the seed step's loop); key off, they behave as before
+        "icenine/ray_indexing.py",
     }
     assert set(differ) <= allowed, differ

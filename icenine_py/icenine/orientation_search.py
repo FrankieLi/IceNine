@@ -107,6 +107,12 @@ def check_seed_index_mc_stall_hit(k: Any) -> None:
         raise ValueError(f"SeedIndexMCStallHit must be an integer >= 0 (0 = off), got {k!r}")
 
 
+def check_seed_index_mc_defer(v: Any) -> None:
+    """SeedIndexMCDefer: the integer 0 (off) or 1 (on). Raises ValueError otherwise."""
+    if isinstance(v, bool) or not isinstance(v, (int, np.integer)) or int(v) not in (0, 1):
+        raise ValueError(f"SeedIndexMCDefer must be 0 (off) or 1 (on), got {v!r}")
+
+
 @dataclass
 class SearchParameters:
     """
@@ -238,6 +244,18 @@ class SearchParameters:
     #   a default (MIGRATION_HISTORY.md, "Autoresearch AR5 step 12"). k = 500 (rule PH(500)) is
     #   tested: tests/test_ar5_high500_key.py, MIGRATION_HISTORY.md "Autoresearch AR5 step 16".
     seed_index_mc_stall_hit: int = 0
+    # seed_index_mc_defer (SeedIndexMCDefer 0|1, AR5 step 22; 0 = off): needs
+    #   seed_index_mc_stall_hit >= 1. A seed-step MC refinement whose stall check goes on (the kept
+    #   best's hit ratio under seed_index_stop_hit) is PAUSED while the step has an untried
+    #   candidate (never the last one): its state and generator are kept, the next candidate is
+    #   tried, and the step stops at the first end at seed_index_stop_hit or more. If no later
+    #   candidate reaches it, the paused refinements are resumed in candidate order, exactly where
+    #   they stopped (no re-run), until one reaches it; else the lowest-cost end is taken, as
+    #   before. A paused refinement costs the evaluations made before its check plus the check;
+    #   a resumed one the same total as the uninterrupted refinement. Rule DEF of
+    #   scripts/autoresearch/ar5/defer_rules.py. Off by default (MIGRATION_HISTORY.md,
+    #   "Autoresearch AR5 step 22").
+    seed_index_mc_defer: int = 0
     # paint_grains: opt-in (config key PaintGrains, default off; AR3 step 2). With the key on,
     #   ``BFSReconstruction.reconstruct_sample`` runs ``grain_paint.paint_grains`` in place of the
     #   BFS (seeds indexed, each grain flooded by single strict scores, each voxel painted with the
@@ -348,6 +366,7 @@ class SearchParameters:
             )
         check_seed_rescue(self.seed_rescue_sigma_deg, self.seed_rescue_evals)
         check_seed_index_mc_stall_hit(self.seed_index_mc_stall_hit)
+        check_seed_index_mc_defer(self.seed_index_mc_defer)
         from .candidate_dedup import DedupSpec
 
         DedupSpec.parse(self.candidate_dedup)  # raises ValueError on a malformed spec
@@ -398,6 +417,7 @@ class SearchParameters:
             seed_rescue_sigma_deg=float(getattr(config, "seed_rescue_sigma_deg", 0.0)),
             seed_rescue_evals=int(getattr(config, "seed_rescue_evals", 0)),
             seed_index_mc_stall_hit=int(getattr(config, "seed_index_mc_stall_hit", 0)),
+            seed_index_mc_defer=int(getattr(config, "seed_index_mc_defer", 0)),
             paint_grains=bool(getattr(config, "paint_grains", False)),
             cpp_overlap_rule=bool(getattr(config, "cpp_overlap_rule", False)),
             cpp_edge_rules=bool(getattr(config, "cpp_edge_rules", False)),
