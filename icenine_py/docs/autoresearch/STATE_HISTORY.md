@@ -1209,3 +1209,31 @@ and D-20261115-N10 (passes on held4; key phase approved). Reviews in the main `.
   waits for the owner's acceptance; one unexplained read of `J5_held4/recon.mic.gz` at 12:54:34,
   before the end marker, is disclosed (cause not found, harmless without a truth comparison).
 - Worktree `agent-a8b2d0066621fd0f8` kept.
+
+### AR5 step 21 (one-evaluation boundary-pass tries; task `ar5u`), merged at 50628763 on 2026-11-16
+
+Suite after the merge: 2279 passed, 45 skipped, 1 deselected. Decisions D-20261115-N11 (approved)
+and D-20261116-N1 (passes on held5; key phase approved; the wide flag uses the hit ratio
+relative to the neighbours' median). Reviews in the main `.claude/reports/`:
+`20261116-0100-review-ar5u.md` and `20261116-0230-review-ar5u-phaseB.md`.
+
+- The boundary pass tries each candidate with one evaluation (a screen) instead of a full
+  local optimization. Step 20's repair then runs on a wider flag. This is arm J5S. No truth is used.
+- Clean test on the new sample held5: J5S used 22,706,889 evaluations, 13.9% fewer than J5C and
+  70.1% fewer than S8. Wrong voxels: S8 62, J5 46, J5C 33, J5S 31. J5S against J5C: 4 fixed,
+  2 broken. The repair costs 5.48% of J5's run.
+- In-sample savings against J5C (rules were chosen on these): held4 14.1%, held3 14.4%,
+  held 15.6%, mid 21.3%, grad 31.7%, big 26.6%.
+- Phase B added the library key `BoundaryPassScreen`, default 0 (off), which needs
+  `BoundaryPass 1` and `BoundaryPassRepair 1`, and the keyword `cma_screen` of
+  `local_optimization` (False by default). The key-on check on mid runs the script rule on the
+  run's own inputs, bit for bit.
+- Review verdicts: first review approve (results stand), with documentation and disclosure fixes
+  before phase B; phase B review request changes (docs and a small guard pin, no behaviour
+  change); both sets of fixes applied.
+- Open for the owner: the findings page text waits at
+  `.claude/reports/20261116-0245-ar5u-findings_ar5_screen.md`; the replaced key-on check waits
+  for the owner's acceptance; reads of held5 maps after the end marker, of unknown origin, are
+  disclosed.
+- Worktree `agent-a8c1c16b70cf43e39` kept (cache `ar5/screen/cache` with S8, J5, J5C, J5S on held5).
+- Wake-up cron renewed 2026-11-16, id 24092880, expires 2026-11-23.

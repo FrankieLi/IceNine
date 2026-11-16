@@ -329,6 +329,13 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
   `icenine/boundary_pass.py`, `config_file.py`, `orientation_search.py`, `reconstructor.py`,
   and the new `icenine/boundary_repair.py`. Key off: no behaviour change, no extra
   evaluations. Suite: 2239 passed, 48 skipped, 1 deselected.
+- 2026-11-16 merged: AR5 step 21 (task `ar5u`) is merged into `feature/eval-reduction`
+  (50628763). It adds one opt-in key, `BoundaryPassScreen` (default 0, off; needs
+  `BoundaryPass 1` and `BoundaryPassRepair 1`) and a `cma_screen` keyword of
+  `local_optimization` (False by default). Shared library files touched:
+  `icenine/boundary_pass.py`, `boundary_repair.py`, `config_file.py`, `orientation_search.py`,
+  `reconstructor.py`. Key off: no behaviour change. Suite: 2279 passed, 45 skipped, 1
+  deselected.
 
 ## From Ilium Agent
 
