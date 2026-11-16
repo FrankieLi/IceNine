@@ -31,6 +31,7 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 ICE = HERE.parents[2]
 sys.path.insert(0, str(ICE / "scripts" / "common"))
+import doc_tables as DT  # noqa: E402
 import stats as ST  # noqa: E402
 
 OUT = CG.RD
@@ -295,10 +296,10 @@ def plot(rows: Dict[str, Any], extra: Dict[str, Any]) -> None:
     fig.savefig(OUT / "ar5_cmarepair.png", dpi=110)
 
 
-def tables(rows: Dict[str, Any], jd: Dict[str, Any]) -> str:
+def tables(rows: Dict[str, Any], jd: Dict[str, Any]) -> Dict[str, str]:
     L = [
         "| sample | S8 total | J5 search / pass / total | repair | J5C total | share of J5 "
-        "| wrong S8 / J5 / J5C | median S8 / J5 / J5C (deg) |",
+        "| wrong S8 / J5 / J5C | median error over all 24,570 voxels, S8 / J5 / J5C (deg) |",
         "|---|---|---|---|---|---|---|---|",
     ]
     for s in ORDER:
@@ -310,8 +311,8 @@ def tables(rows: Dict[str, Any], jd: Dict[str, Any]) -> str:
             f"{r['wrong_J5C']} | {r['median_S8']:.5f} / {r['median_J5']:.5f} / "
             f"{r['median_J5C']:.5f} |"
         )
-    L += [
-        "",
+    out = {"evals": "\n".join(L) + "\n"}
+    L = [
         "| sample | flagged / fits | J5C vs J5 fixed / broken | J5C vs S8 fixed / broken (net) "
         "| J5 vs S8 fixed / broken (net) | r1 | r2 | r3 | r4 | pass |",
         "|---|---|---|---|---|---|---|---|---|---|",
@@ -326,12 +327,18 @@ def tables(rows: Dict[str, Any], jd: Dict[str, Any]) -> str:
             f"{'yes' if j['r2'] else 'NO'} | {'yes' if j['r3'] else 'NO'} | "
             f"{'yes' if j['r4'] else 'NO'} | {'yes' if j['pass'] else 'NO'} |"
         )
-    return "\n".join(L) + "\n"
+    out["pairs"] = "\n".join(L) + "\n"
+    return out
 
 
 def main() -> int:
     if not CG.held4_open():
         raise SystemExit("held4 marker missing: not reading held4")
+    if "--tables-only" in sys.argv:  # phase B: rewrite tables.md (marked blocks) from summary.json
+        d = json.loads((OUT / "summary.json").read_text())
+        DT.write_tables(OUT / "tables.md", tables(d["rows"], d["judge"]))
+        print((OUT / "tables.md").read_text())
+        return 0
     val = validity()
     rows = {"held4": held4_rows(), **disclosed_rows()}
     (OUT / "stats_held4.json").write_text(json.dumps(rows["held4"], indent=1) + "\n")
@@ -351,7 +358,7 @@ def main() -> int:
     extra["J5L"] = (CR.J5L["total"], CR.J5L["wrong"])
     extra["J5LC"] = (CR.J5L["total"] + gate["repair_evals"], gate["wrong_J5C"])
     plot(rows, extra)
-    (OUT / "tables.md").write_text(tables(rows, jd))
+    DT.write_tables(OUT / "tables.md", tables(rows, jd))
     pareto = []
     for s in ORDER:
         r = rows[s]

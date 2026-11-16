@@ -13224,3 +13224,63 @@ ratio, then the lowest cost, then the current end; own generator `default_rng(0)
   pareto rows (`J5R`, flagged "FAILED GATE (cost)"). Findings text waits in
   `.claude/reports/20261115-0930-ar5s-findings_ar5_repair.md` (its write under `docs/` was refused).
   Tests: `tests/test_ar5_repair.py`, 20 tests.
+
+## Autoresearch AR5 step 20: a 120-evaluation CMA repair of contested voxels (phases A and B) (2026-11-15, task ar5t)
+
+Approved D-20261115-N9 (the study) and D-20261115-N10 (the key). Branch
+`feature/eval-reduction-ar5t`. Arm `J5C` = the stored `J5` run plus a repair: step 19's frozen flag
+(imported, not copied), then for each contested voxel one local CMA optimization of the library
+(first step 0.05 degree, at most 120 evaluations plus the final one: 121) from its own end and from
+each candidate of the map after the pass, each with its own generator `default_rng([0, v, c + 1])`;
+keep the highest hit ratio, then the lowest cost, then the current end. `frozen.json` committed
+(09:51) before any fit ran from the tracked scripts and before `held4` existed.
+
+- **Gate (contended, not timings; five stored maps and `J5L`).** Prediction 1 reproduced exactly:
+  repair evaluations 146,894 / 124,146 / 76,835 / 116,765 / 19,602 (`held3`, `held`, `mid`, `grad`,
+  `big`), 0.54% to 1.29% of `J5`; fixed / broken against `J5` 14/0, 18/0, 15/0, 31/0, 14/0; `J5L`
+  78,650 evaluations, 18/0; `mid` against `S8` -11. Gate g0, g1, g2 met.
+- **`held4`** (new sample, `held` built with generator seed 4, clean images; the one clean test).
+  Flagged 193, 1,134 local optimizations, 186 changed; repair 137,214 evaluations = 0.50% of the `J5`
+  run (27,350,255); `J5C` 27,487,469 against `S8` 68,033,600 (59.6% fewer). Wrong voxels: `S8` 49,
+  `J5` 40, `J5C` 22 (Wilson 95% [0.06%, 0.14%] of 24,570 for `J5C`). `J5C` against `J5`: 18 fixed, 0
+  broken; against `S8`: 33 fixed, 6 broken (net -27); `J5` against `S8` net -9. Median error over
+  all 24,570 voxels 0.02627 degree (`J5` 0.02649).
+- **Rules.** 1 to 4 and the step rule hold on `held4` and on the five in-sample samples; `mid`
+  against `S8` -11. Predictions 2 and 3 met (flagged 193 in 150 to 250; 0.50%; fixed 18; broken 0;
+  `J5` -9, `J5C` -27).
+- **Where the fixes come from** (review of 2026-11-15, confirmed in `reach.json`). All 18 `held4`
+  fixes (15 on `mid`) are a candidate end adopted (moves 13.3 to 58.7 degrees); none is a sub-degree
+  refinement crossing the 1-degree line. The 167 sub-degree moves (160 to a lower error, median
+  change -0.060 degree) move only the median error. 25 of `J5`'s 40 wrong voxels were flagged and 18
+  of those fixed; 15 of `J5C`'s 22 wrong voxels were never flagged. Cause of the gain untested.
+- **Validity.** Freeze older than every held4 file; no held4 read before the marker (13:04) except
+  by the repair job under `CMAREPAIR_PRODUCER=1` (by file name). Disclosed: the implementer read the
+  build driver's printed counts and 8 setup lines of two smoke logs; `boundary_common.Env` loads
+  `held4`'s truth in memory (unguarded, unused); `J5_held4/recon.mic.gz` shows a read at 12:54:34
+  (0.5 s after the `S8` run ended), cause not identified (no script found that reads it then).
+  `cmarepair_run.py` and the summary are outside the freeze (committed before any held4 file).
+- **Phase B: the key `BoundaryPassRepair`** (default 0, off; needs `BoundaryPass 1`). New module
+  `icenine/boundary_repair.py` (ports of the flag, tested against the script rule; `run_repair`);
+  `run_boundary_pass(..., repair=False)` calls it at its end; opt-in field and parse in
+  `config_file.py`, `orientation_search.py`, `reconstructor.py` (the call passes `repair=True` only
+  with the key on, so the key-off call is unchanged). Settings are module constants.
+  **Library files touched** (shared with Track S if it edits them): `icenine/boundary_pass.py`,
+  `icenine/config_file.py`, `icenine/orientation_search.py`, `icenine/reconstructor.py`, and the new
+  `icenine/boundary_repair.py`. They change the hashes in the older steps' `frozen.json` files; the
+  step 16 tests that compared those hashes now accept them (`tests/test_ar5_high500.py`, two tests),
+  and `cmarepair_freeze.py --check` now reports the library difference by design (the study's runs
+  were made before).
+- **Key-on library run on `mid`.** Not equal to `J5C`, and cannot be: `J5` has rule `G2b` and a pass
+  with aligned draws (script layer). `LibJ5C` = step 16's `LibJ5` plus the key: 127 contested voxels,
+  592 local optimizations, 71,632 evaluations (`J5C` on `mid`: 142, 635, 76,835). Compared instead on
+  its own inputs (`cmarepair_lib_check.py`, `lib_check.json`): the library's repair against the
+  script rule `cmarepair_rules.repair` on the state rebuilt the script way: flagged voxels, order and
+  evaluations of the 592 local optimizations, total, 119 changed voxels, every fit's end and the
+  final map are equal bit for bit; re-scoring all 24,570 voxels equals the library's state exactly.
+  This run: 39 wrong after the pass, 21 after the repair, 18 fixed, 0 broken (in-sample, `mid`).
+- Results: `benchmarks/autoresearch/ar5/cmarepair/` (`frozen.json`, `flags.json`, `gate.json`,
+  `gate_tables.md`, `summary.json`, `tables.md`, `stats_held4.json`, `reach.json`, `lib_check.json`,
+  `pareto_rows.json`, `ar5_cmarepair.png`). Tests: `tests/test_ar5_cmarepair.py` (11),
+  `tests/test_boundary_repair.py` (14). Findings text waits in
+  `.claude/reports/20261115-1646-ar5t-findings_ar5_cmarepair.md` (its write under `docs/` was
+  refused twice).

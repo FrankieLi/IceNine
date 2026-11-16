@@ -1,4 +1,5 @@
-| sample | S8 total | J5 search / pass / total | repair | J5C total | share of J5 | wrong S8 / J5 / J5C | median S8 / J5 / J5C (deg) |
+<!-- table:evals -->
+| sample | S8 total | J5 search / pass / total | repair | J5C total | share of J5 | wrong S8 / J5 / J5C | median error over all 24,570 voxels, S8 / J5 / J5C (deg) |
 |---|---|---|---|---|---|---|---|
 | held4 | 68,033,600 | 21,813,468 / 5,536,787 / 27,350,255 | 137,214 | 27,487,469 | 0.50% | 49 / 40 / 22 | 0.02925 / 0.02649 / 0.02627 |
 | held3 (in-sample) | 67,408,448 | 18,566,533 / 4,936,852 / 23,503,385 | 146,894 | 23,650,279 | 0.62% | 61 / 54 / 40 | 0.02752 / 0.02545 / 0.02512 |
@@ -6,7 +7,9 @@
 | mid (in-sample) | 26,443,074 | 7,537,724 / 3,051,769 / 10,589,493 | 76,835 | 10,666,328 | 0.73% | 31 / 35 / 20 | 0.02972 / 0.02860 / 0.02825 |
 | grad (in-sample) | 18,000,230 | 5,360,031 / 3,681,655 / 9,041,686 | 116,765 | 9,158,451 | 1.29% | 63 / 56 / 25 | 0.02264 / 0.02134 / 0.02100 |
 | big (in-sample) | 8,340,428 | 2,431,217 / 1,135,881 / 3,567,098 | 19,602 | 3,586,700 | 0.55% | 24 / 21 / 7 | 0.03161 / 0.03045 / 0.03036 |
+<!-- /table:evals -->
 
+<!-- table:pairs -->
 | sample | flagged / fits | J5C vs J5 fixed / broken | J5C vs S8 fixed / broken (net) | J5 vs S8 fixed / broken (net) | r1 | r2 | r3 | r4 | pass |
 |---|---|---|---|---|---|---|---|---|---|
 | held4 | 193 / 1134 | 18 / 0 | 33 / 6 (-27) | 30 / 21 (-9) | yes | yes | yes | yes | yes |
@@ -15,3 +18,4 @@
 | mid | 142 / 635 | 15 / 0 | 16 / 5 (-11) | 9 / 13 (+4) | yes | yes | yes | yes | yes |
 | grad | 238 / 965 | 31 / 0 | 42 / 4 (-38) | 31 / 24 (-7) | yes | yes | yes | yes | yes |
 | big | 56 / 162 | 14 / 0 | 18 / 1 (-17) | 8 / 5 (-3) | yes | yes | yes | yes | yes |
+<!-- /table:pairs -->
