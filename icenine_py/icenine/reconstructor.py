@@ -11,6 +11,7 @@ C++ Reference:
 """
 
 import math
+import threading
 import time
 import warnings
 from collections import deque
@@ -193,6 +194,12 @@ def check_bfs_keys(params: Any) -> None:
             raise ValueError("SeedIndexMCStallHit needs LocalOptimizer mc")
         if getattr(params, "use_hybrid_optimizer", False):
             raise ValueError("SeedIndexMCStallHit cannot be combined with use_hybrid_optimizer")
+    if int(getattr(params, "seed_index_mc_defer", 0)) > 0:  # AR5 step 22
+        if int(getattr(params, "seed_index_mc_stall_hit", 0)) <= 0:
+            raise ValueError(
+                "SeedIndexMCDefer needs SeedIndexMCStallHit k >= 1 (it pauses a refinement at "
+                "its stall check; with no check there is nothing to pause)"
+            )
     if cma_first:
         if getattr(params, "local_optimizer", "mc") != "mc":
             raise ValueError("BFSNeighborCMAFirst 1 needs LocalOptimizer mc")
@@ -560,6 +567,9 @@ class SeedMCStallHit:
         self.checks: List[List[Any]] = []
         self.continued = 0
         self.stopped = False
+        # SeedIndexMCDefer: called once, with the check's hit ratio, at the first check that goes
+        # on (after it is counted); it may block the refinement (``SeedMCRun``)
+        self.pause_hook: Optional[Callable[[float], None]] = None
 
     def feed(self, orientation: Any, cost: float) -> None:
         """Count one evaluation of ``orientation`` at ``cost``; may make the stall check."""
@@ -581,6 +591,9 @@ class SeedMCStallHit:
                 raise SeedStallHitStop()
             self.armed = False
             self.continued += 1
+            if self.pause_hook is not None:
+                hook, self.pause_hook = self.pause_hook, None  # only the first check that goes on
+                hook(hit)
 
     def wrap(self, evaluate: Callable[..., Any]) -> Callable[..., Any]:
         def wrapped(orientation: Any, *args: Any, **kw: Any) -> Any:
@@ -599,6 +612,172 @@ class SeedMCStallHit:
             continued=int(self.continued),
             stopped=bool(self.stopped),
         )
+
+
+class SeedMCAbort(BaseException):
+    """Raised inside a paused refinement to unwind it when it is abandoned (``SeedMCRun.abort``);
+    a ``BaseException`` so that no ``except Exception`` of the refinement's code catches it."""
+
+
+class SeedMCRun:
+    """SeedIndexMCDefer (opt-in, AR5 step 22): one seed-step MC refinement (the stock
+    ``refine_from_candidates`` with ``default_rng(0)`` and its local cost function wrapped by
+    ``SeedMCStallHit``, as ``AdaptiveVoxelReconstructor.seed_mc_refine`` runs it) that can be
+    PAUSED at its first stall check that goes on and resumed later exactly where it stopped.
+
+    With ``allow_pause`` the refinement runs in a worker thread; at the first check that goes on
+    (the check is counted) the worker blocks inside the cost function's wrapper, with the whole
+    call stack, the generator and every local variable of the refinement kept, and ``start()``
+    returns with ``paused`` True. ``resume()`` lets the same worker go on (no re-run: the
+    generator is continued, the evaluations already made are not made again) and returns the
+    end, cost and evaluations of the finished refinement: the very values ``seed_mc_refine``
+    gives (the count includes the check). ``abort()`` unwinds a refinement that is never resumed;
+    its log entry is the paused part (evaluations made plus the check). Only one thread runs at a
+    time (the caller waits), so no value or draw changes. Without ``allow_pause`` the refinement
+    runs in the calling thread. ``partial()``: the kept best so far, its cost, the evaluations
+    paid so far and the hit ratio of the check. The log entry (``meter.record``) is appended to
+    ``rec.last_seed_stall_hit`` when the refinement finishes or is aborted."""
+
+    def __init__(
+        self,
+        rec: Any,
+        R: np.ndarray,
+        cost: float,
+        voxel_vertices: Any,
+        phase_index: int,
+        k: int,
+        tau: float,
+        hit_fn: Callable[[np.ndarray], float],
+        allow_pause: bool,
+    ) -> None:
+        self.rec = rec
+        self._R = np.asarray(R).copy()
+        self._cost = float(cost)
+        self._vv = voxel_vertices
+        self._phase = phase_index
+        self.meter = SeedMCStallHit(k, tau, hit_fn)
+        self.cf = rec._make_local_cost_fn()
+        setattr(self.cf, "evaluate", self.meter.wrap(self.cf.evaluate))  # this cost function only
+        self.allow_pause = bool(allow_pause)
+        self.paused = False
+        self.done = False
+        self.aborted = False
+        self.result: Optional[Tuple[np.ndarray, float, int]] = None
+        self.log: Optional[Dict[str, Any]] = None
+        self.pause_hit: Optional[float] = None
+        self._abort = False
+        self._finished = False
+        self._error: Optional[BaseException] = None
+        self._out: Optional[Tuple[np.ndarray, float, int]] = None
+        self._to_worker = threading.Event()
+        self._to_main = threading.Event()
+        self._thread: Optional[threading.Thread] = None
+        if self.allow_pause:
+            self.meter.pause_hook = self._on_pause
+
+    def _on_pause(self, hit: float) -> None:  # runs in the worker, inside the cost function
+        self.pause_hit = float(hit)
+        self.paused = True
+        self._to_main.set()
+        self._to_worker.wait()
+        self._to_worker.clear()
+        if self._abort:
+            raise SeedMCAbort()
+        self.paused = False
+
+    def _body(self) -> Tuple[np.ndarray, float, int]:
+        m = self.meter
+        try:
+            r = self.rec.refine_from_candidates(
+                [SearchCandidate(orientation=self._R.copy(), cost=self._cost)],
+                self._vv,
+                self._phase,
+                rng=np.random.default_rng(0),
+                local_cost_fn=self.cf,
+            )
+            return (
+                np.asarray(r.orientation, np.float64),
+                float(r.cost),
+                int(self.cf.eval_count) + m.continued,
+            )
+        except SeedStallHitStop:
+            assert m.best_R is not None
+            return m.best_R.copy(), float(m.best), m.n + 1 + m.continued
+
+    def _work(self, grad: bool) -> None:
+        try:
+            torch.set_grad_enabled(grad)  # thread-local: the caller's setting
+            self._out = self._body()
+        except SeedMCAbort:
+            pass
+        except BaseException as e:  # reported to the caller by ``_wait``
+            self._error = e
+        finally:
+            self._finished = True
+            self._to_main.set()
+
+    def _finalize(self) -> None:
+        assert self._out is not None
+        self.result = self._out
+        self.rec._last_global_evals = 0
+        self.rec._last_local_evals = int(self.cf.eval_count)
+        self.log = self.meter.record(self._out[2])
+        self.rec.last_seed_stall_hit.append(self.log)
+        self.done = True
+        self.paused = False
+
+    def _wait(self) -> None:
+        self._to_main.wait()
+        self._to_main.clear()
+        if self._error is not None:
+            raise self._error
+        if self._finished and not self.aborted:
+            self._finalize()
+
+    def start(self) -> "SeedMCRun":
+        if not self.allow_pause:
+            self._out = self._body()
+            self._finalize()
+            return self
+        old = threading.stack_size()
+        threading.stack_size(64 * 1024 * 1024)  # the refinement's call stack is deep enough
+        try:
+            self._thread = threading.Thread(
+                target=self._work, args=(torch.is_grad_enabled(),), daemon=True
+            )
+            self._thread.start()
+        finally:
+            threading.stack_size(old)
+        self._wait()
+        return self
+
+    def partial(self) -> Tuple[np.ndarray, float, int, float]:
+        """(kept best, its cost, evaluations paid so far with the check, hit ratio of the check)."""
+        assert self.paused and self.meter.best_R is not None and self.pause_hit is not None
+        m = self.meter
+        return m.best_R.copy(), float(m.best), m.n + m.continued, self.pause_hit
+
+    def resume(self) -> Tuple[np.ndarray, float, int]:
+        """Go on exactly where it stopped; (end, cost, evaluations) of the finished refinement."""
+        assert self.paused, "only a paused refinement can be resumed"
+        self._to_worker.set()
+        self._wait()
+        assert self.result is not None
+        return self.result
+
+    def abort(self) -> None:
+        """Unwind a paused refinement that is never resumed; no-op otherwise."""
+        if not self.paused:
+            return
+        self._abort = True
+        self._to_worker.set()
+        assert self._thread is not None
+        self._thread.join()
+        self.aborted = True
+        self.paused = False
+        m = self.meter
+        self.log = m.record(m.n + m.continued)  # what the step was charged for it
+        self.rec.last_seed_stall_hit.append(self.log)
 
 
 # ---------------------------------------------------------------------------
@@ -1676,6 +1855,7 @@ class AdaptiveVoxelReconstructor:
         cma_first_evals: int = 0,
         cma_sigma0_deg: float = 0.2,
         mc_stall_hit: int = 0,
+        mc_defer: bool = False,
     ) -> Any:
         """SeedByIndexing (opt-in): the voxel's seed search from its observed rays
         (``ray_indexing.seed_by_indexing``): strict cost on the first ``n_cost`` candidates, the
@@ -1692,13 +1872,22 @@ class AdaptiveVoxelReconstructor:
         refinement of a candidate (the finisher, or the MC refinement of the mixed one) runs
         through ``seed_mc_refine``: a stall check after k evaluations with no strict gain ends it
         when the kept best's hit ratio reaches ``stop_hit``. Its log is ``last_seed_stall_hit``
-        (one entry per MC refinement of this call)."""
+        (one entry per MC refinement of this call).
+        ``mc_defer`` (SeedIndexMCDefer, needs ``mc_stall_hit``): an MC refinement whose stall
+        check goes on is paused (``SeedMCRun``: its state and generator kept) while the step has
+        an untried candidate, and resumed in candidate order only if no later candidate reaches
+        ``stop_hit`` (``ray_indexing.seed_by_indexing`` with ``defer``; the last candidate is
+        never paused). ``SeedResult.paused`` / ``resumed`` list the positions."""
         from . import ray_indexing as RI
 
         if cma_first_evals and (cma_first_evals < 2 or stop_hit <= 0):
             raise ValueError("cma_first_evals needs a value >= 2 and stop_hit > 0")
         if mc_stall_hit and (mc_stall_hit < 1 or stop_hit <= 0):
             raise ValueError("mc_stall_hit needs a value >= 1 and stop_hit > 0")
+        if mc_defer and not mc_stall_hit:
+            raise ValueError(
+                "mc_defer needs mc_stall_hit >= 1 (it defers a refinement at its check)"
+            )
         sc, crystal, params, strict_cf = self._index_context(phase_index)
 
         def strict(R: np.ndarray) -> float:
@@ -1726,6 +1915,33 @@ class AdaptiveVoxelReconstructor:
 
             if not cma_first_evals:
                 refine_fn = stall_fn
+
+        def start_mc(R: np.ndarray, cost: float, allow_pause: bool) -> "SeedMCRun":
+            return SeedMCRun(
+                self, R, cost, voxel_vertices, phase_index, mc_stall_hit, stop_hit, hit_fn,
+                allow_pause,
+            ).start()  # fmt: skip
+
+        if mc_defer and not cma_first_evals:
+
+            def refine_fn(  # type: ignore[misc]
+                R: np.ndarray, cost: float, allow_pause: bool = False
+            ) -> Any:
+                run = start_mc(R, cost, allow_pause)
+                if run.paused:
+                    end, c_part, ev_part, _hit = run.partial()
+                    return (
+                        end,
+                        c_part,
+                        ev_part,
+                        dict(
+                            paused=True,
+                            resume=lambda: (*run.resume(), dict(run.log or {})),
+                            abort=run.abort,
+                        ),
+                    )
+                return (*(run.result or ()), dict(run.log or {}))
+
         if cma_first_evals:
             from .orientation_search import SearchCandidate
 
@@ -1760,12 +1976,24 @@ class AdaptiveVoxelReconstructor:
                     int(self.last_eval_counts[1]),
                 )
 
-            def refine_fn(R: np.ndarray, cost: float) -> Any:  # type: ignore[misc]
-                return RI.mixed_refinement(R, cost, cma_fn, mc_fn, hit_fn, stop_hit)
+            if mc_defer:
 
+                def refine_fn(  # type: ignore[misc]
+                    R: np.ndarray, cost: float, allow_pause: bool = False
+                ) -> Any:
+                    return RI.mixed_refinement_deferred(
+                        R, cost, cma_fn, start_mc, hit_fn, stop_hit, allow_pause
+                    )
+
+            else:
+
+                def refine_fn(R: np.ndarray, cost: float) -> Any:  # type: ignore[misc]
+                    return RI.mixed_refinement(R, cost, cma_fn, mc_fn, hit_fn, stop_hit)
+
+        extra = dict(defer=True) if mc_defer else {}
         return RI.seed_by_indexing(
             self, sc, crystal, voxel_vertices, phase_index, params, strict, n_cost, n_refine,
-            stop_hit=stop_hit, hit_fn=hit_fn, refine_fn=refine_fn,
+            stop_hit=stop_hit, hit_fn=hit_fn, refine_fn=refine_fn, **extra,
         )  # fmt: skip
 
     def seed_mc_refine(
@@ -2651,6 +2879,9 @@ class BFSReconstruction:
         stall_k = int(getattr(sp, "seed_index_mc_stall_hit", 0))
         if stall_k:  # SeedIndexMCStallHit (opt-in)
             kw["mc_stall_hit"] = stall_k
+        defer_on = bool(int(getattr(sp, "seed_index_mc_defer", 0)))
+        if defer_on:  # SeedIndexMCDefer (opt-in; needs the stall check)
+            kw["mc_defer"] = True
         res = self.reconstructor.index_seed(vertices, voxel.phase, **kw)
         dt = time.time() - t0  # includes the one-time pairing on the first call
         rec.n_evals += res.evals
@@ -2693,6 +2924,13 @@ class BFSReconstruction:
             self._count(
                 "index_stallhit_evals_in_stopped", sum(x["evals"] for x in logs if x["stopped"])
             )
+        if defer_on:  # SeedIndexMCDefer: which refinements were paused and which resumed
+            entry["defer"] = dict(
+                paused=[int(p) for p in res.paused], resumed=[int(p) for p in res.resumed]
+            )
+            self._count("index_defer_steps", 1 if res.paused else 0)
+            self._count("index_defer_pauses", len(res.paused))
+            self._count("index_defer_resumes", len(res.resumed))
         self.index_log.append(entry)
         self._count("index_runs")
         self._count("index_evals", res.evals)

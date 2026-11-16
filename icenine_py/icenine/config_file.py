@@ -245,6 +245,8 @@ class ConfigFile:
     seed_rescue_evals: int = 0
     # AR5 step 12 (opt-in, off at 0): SeedIndexMCStallHit k (see SearchParameters)
     seed_index_mc_stall_hit: int = 0
+    # AR5 step 22 (opt-in, off at 0): SeedIndexMCDefer 0|1 (see SearchParameters)
+    seed_index_mc_defer: int = 0
     cpp_overlap_rule: bool = False  # C++ CountQualifiedPeaks rule + centroid screen (opt-in)
     cpp_edge_rules: bool = False  # C++ conventions at the low edges (opt-in, see VoxelCostFunction)
     cpp_omega_interp: bool = False  # C++ omega interpolation in the level screen (opt-in)
@@ -506,6 +508,7 @@ class ConfigFile:
             "BoundaryPassScreen": self._parse_bool("boundary_pass_screen"),
             "SeedRescueCMA": self._parse_seed_rescue_cma,
             "SeedIndexMCStallHit": self._parse_seed_index_mc_stall_hit,
+            "SeedIndexMCDefer": self._parse_seed_index_mc_defer,
             "CppOverlapRule": self._parse_bool("cpp_overlap_rule"),
             "CppEdgeRules": self._parse_bool("cpp_edge_rules"),
             "CppOmegaInterp": self._parse_bool("cpp_omega_interp"),
@@ -689,6 +692,21 @@ class ConfigFile:
             raise ValueError(f"{tokens[0]} needs an integer >= 0, got {tokens[1]!r}") from None
         check_seed_index_mc_stall_hit(k)
         self.seed_index_mc_stall_hit = k
+
+    def _parse_seed_index_mc_defer(self, tokens: List[str]) -> None:
+        """SeedIndexMCDefer 0|1 (Python-only, opt-in, AR5 step 22): a seed-step MC refinement
+        whose stall check goes on is paused while the step has an untried candidate. ``0`` is
+        off. Needs ``SeedIndexMCStallHit`` (checked by ``reconstructor.check_bfs_keys``)."""
+        from .orientation_search import check_seed_index_mc_defer
+
+        if len(tokens) != 2:
+            raise ValueError(f"{tokens[0]} needs exactly one value, 0 or 1, got {tokens[1:]}")
+        try:
+            v = int(tokens[1])
+        except ValueError:
+            raise ValueError(f"{tokens[0]} needs 0 or 1, got {tokens[1]!r}") from None
+        check_seed_index_mc_defer(v)
+        self.seed_index_mc_defer = v
 
     def _parse_off_or_min2(self, attr_name: str) -> Callable[[List[str]], None]:
         """Parser for an integer that is 0 (off) or at least 2."""

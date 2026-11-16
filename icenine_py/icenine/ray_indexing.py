@@ -512,6 +512,54 @@ class SeedResult:
     # SeedIndexCMAFirst only: one dict per refined candidate, ``cma_hit`` (the hit ratio of the CMA
     # end) and ``mc_ran`` (the stock MC refinement ran from the same candidate); [] otherwise
     mixed: List[Dict[str, Any]] = field(default_factory=list)
+    # SeedIndexMCDefer only: positions (in finisher order) of the refinements that were paused at
+    # a stall check that went on, and of those of them that were resumed; [] otherwise
+    paused: List[int] = field(default_factory=list)
+    resumed: List[int] = field(default_factory=list)
+
+
+def mixed_refinement_deferred(
+    R: np.ndarray,
+    cost: float,
+    cma_fn: Any,
+    start_mc: Any,
+    hit_fn: Any,
+    stop_hit: float,
+    allow_pause: bool,
+) -> Tuple[np.ndarray, float, int, Dict[str, Any]]:
+    """``mixed_refinement`` with a pausable MC refinement (``SeedIndexMCDefer``, opt-in).
+
+    The CMA fit and the choice are those of ``mixed_refinement``. ``start_mc(R, cost,
+    allow_pause)`` starts the MC refinement and returns a run with ``paused``, ``partial()``
+    (end, cost, evaluations so far, hit ratio of the check), ``result`` (end, cost, evaluations,
+    when it finished), ``resume()`` (finish it: end, cost, evaluations) and ``abort()``. When the
+    run is paused, the returned end is the lower-cost of the CMA end and the kept best so far, the
+    evaluations are those paid so far (CMA fit, MC part before the check, the check), and ``info``
+    carries ``paused`` True and the callables ``resume`` (finish the refinement and return the
+    result ``mixed_refinement`` would have given: (end, cost, evaluations, info)) and ``abort``.
+    The caller does not test a paused end against the stop ratio."""
+    rc, cc, ec = cma_fn(R, cost)
+    hc = float(hit_fn(rc))
+    if hc >= stop_hit:
+        return rc, cc, int(ec), dict(cma_hit=hc, mc_ran=False)
+    run = start_mc(R, cost, allow_pause)
+
+    def finish(rm: np.ndarray, cm: float, em: int) -> Tuple[np.ndarray, float, int, Dict[str, Any]]:
+        info = dict(cma_hit=hc, mc_ran=True)
+        if cm < cc:
+            return rm, cm, int(ec) + int(em), info
+        return rc, cc, int(ec) + int(em), info
+
+    if run.paused:
+        pm, pc, pe, _hit = run.partial()
+        end, c_end, ev, info = finish(pm, pc, pe)
+
+        def resume() -> Tuple[np.ndarray, float, int, Dict[str, Any]]:
+            return finish(*run.resume())
+
+        info.update(paused=True, resume=resume, abort=run.abort)
+        return end, c_end, ev, info
+    return finish(*run.result)
 
 
 def mixed_refinement(
@@ -589,6 +637,7 @@ def seed_by_indexing(
     stop_hit: float = 0.0,
     hit_fn: Any = None,
     refine_fn: Any = None,
+    defer: bool = False,
 ) -> SeedResult:
     """The AR2 seed search of one voxel: index it, take the strict cost on the first ``n_cost``
     candidates, run the finisher (``rec.refine_from_candidates``: FindOptimal, VarianceMinimizing,
@@ -608,13 +657,25 @@ def seed_by_indexing(
 
     ``refine_fn(R, cost) -> (end, end cost, evaluations, info)`` (AR5 step 5, opt-in) replaces the
     finisher of each candidate (``rec.refine_from_candidates``); ``info`` is appended to
-    ``SeedResult.mixed``. It needs ``stop_hit`` > 0."""
+    ``SeedResult.mixed``. It needs ``stop_hit`` > 0.
+
+    ``defer`` (AR5 step 22, ``SeedIndexMCDefer``, opt-in; needs ``refine_fn``): ``refine_fn(R,
+    cost, allow_pause)`` may return a PAUSED refinement (``info["paused"]`` True, with the
+    callables ``info["resume"]() -> (end, cost, evaluations, info)`` and ``info["abort"]()``),
+    allowed for every candidate but the last. The paused refinement's partial end and the
+    evaluations paid so far are kept in its position and it is not tested against ``stop_hit``; the
+    next candidate is tried. The loop still stops at the first end at ``stop_hit`` or more. If none
+    does, the paused refinements are resumed in candidate order until one does (its end is then the
+    result); a paused refinement that is never resumed is aborted. With no pause the loop is the
+    one above."""
     from .orientation_search import SearchCandidate
 
     if stop_hit > 0 and hit_fn is None:
         raise ValueError("stop_hit > 0 needs hit_fn")
     if refine_fn is not None and stop_hit <= 0:
         raise ValueError("refine_fn needs stop_hit > 0")
+    if defer and refine_fn is None:
+        raise ValueError("defer needs refine_fn")
     t0 = time.perf_counter()
     res, att = index_voxel(sc, voxel_vertices, crystal, p, top_k)
     index_s = time.perf_counter() - t0
@@ -629,14 +690,60 @@ def seed_by_indexing(
     out.strict_costs = [float(c) for c in costs]
     out.evals = k
     order = [int(j) for j in np.argsort(costs, kind="stable")[:n_refine]]
-    for j in order:
+    handles: Dict[int, Dict[str, Any]] = {}  # SeedIndexMCDefer: paused refinements by position
+    try:
+        _seed_loop(rec, voxel_vertices, phase_index, R, costs, order, out, refine_fn, stop_hit,
+                   hit_fn, defer, handles)  # fmt: skip
+    finally:
+        for pos in sorted(handles):  # a paused refinement that was never resumed
+            handles[pos]["abort"]()
+    out.evals += int(sum(out.finisher_evals))
+    if out.stopped_at >= 0:
+        best = out.stopped_at
+    else:
+        best = int(np.argmin(out.finisher_costs))  # first of equal costs, as min() in the scripts
+    out.taken = out.refined[best]
+    out.orientation = out.finisher_R[best]
+    out.cost = out.finisher_costs[best]
+    out.total_s = time.perf_counter() - t0
+    return out
+
+
+def _seed_loop(
+    rec: Any,
+    voxel_vertices: Any,
+    phase_index: int,
+    R: np.ndarray,
+    costs: np.ndarray,
+    order: List[int],
+    out: SeedResult,
+    refine_fn: Any,
+    stop_hit: float,
+    hit_fn: Any,
+    defer: bool,
+    handles: Dict[int, Dict[str, Any]],
+) -> None:
+    """The finisher loop of ``seed_by_indexing`` (see there); ``handles`` receives the callables
+    of every paused refinement (``resume``, ``abort``) and loses those that are resumed."""
+    from .orientation_search import SearchCandidate
+
+    for pos, j in enumerate(order):
         if refine_fn is not None:
-            end, c_end, n_ev, info = refine_fn(R[j], float(costs[j]))
+            if defer:
+                end, c_end, n_ev, info = refine_fn(R[j], float(costs[j]), pos < len(order) - 1)
+            else:
+                end, c_end, n_ev, info = refine_fn(R[j], float(costs[j]))
+            if info.get("paused"):
+                info = dict(info)
+                handles[pos] = dict(resume=info.pop("resume"), abort=info.pop("abort"))
+                out.paused.append(pos)
             out.mixed.append(info)
             out.refined.append(j)
             out.finisher_costs.append(float(c_end))
             out.finisher_evals.append(int(n_ev))
             out.finisher_R.append(np.asarray(end, dtype=np.float64))
+            if pos in handles:
+                continue  # paused: not tested against the stop ratio, the next candidate is tried
         else:
             r = rec.refine_from_candidates(
                 [SearchCandidate(orientation=R[j].copy(), cost=float(costs[j]))],
@@ -650,14 +757,16 @@ def seed_by_indexing(
             out.finisher_R.append(np.asarray(r.orientation, dtype=np.float64))
         if stop_hit > 0 and float(hit_fn(out.finisher_R[-1])) >= stop_hit:
             out.stopped_at = len(out.refined) - 1
-            break
-    out.evals += int(sum(out.finisher_evals))
-    if out.stopped_at >= 0:
-        best = out.stopped_at
-    else:
-        best = int(np.argmin(out.finisher_costs))  # first of equal costs, as min() in the scripts
-    out.taken = out.refined[best]
-    out.orientation = out.finisher_R[best]
-    out.cost = out.finisher_costs[best]
-    out.total_s = time.perf_counter() - t0
-    return out
+            return
+    # no end at the ratio: the paused refinements are resumed in candidate order, each exactly
+    # where it stopped, until one reaches it
+    for pos in sorted(handles):
+        end, c_end, n_ev, info = handles.pop(pos)["resume"]()
+        out.resumed.append(pos)
+        out.mixed[pos] = info
+        out.finisher_costs[pos] = float(c_end)
+        out.finisher_evals[pos] = int(n_ev)
+        out.finisher_R[pos] = np.asarray(end, dtype=np.float64)
+        if float(hit_fn(out.finisher_R[pos])) >= stop_hit:
+            out.stopped_at = pos
+            return
