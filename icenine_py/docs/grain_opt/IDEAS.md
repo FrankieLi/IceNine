@@ -1,7 +1,7 @@
 # AR6 ideas
 
 One row per idea. Status: proposed, running, done, dropped. Result in one line with its number;
-details in the findings page named in the last column. New ideas get the next free id (I28).
+details in the findings page named in the last column. New ideas get the next free id (I31).
 `build_page.py` reads this table: keep the columns and the `|` layout.
 
 | id | goal | idea | status | result | findings |
@@ -16,12 +16,12 @@ details in the findings page named in the last column. New ideas get the next fr
 | I8 | G1a | Coarse-to-fine blur (eps annealing) and warm-started Sinkhorn potentials | proposed | | |
 | I9 | G1a | Per-voxel CMA on the strict cost (AR3 C) and on the grain objective, same voxels | proposed | | |
 | I10 | G1a | Hybrid: grain field (stage A) then per-voxel strict-cost polish only where needed | proposed | | |
-| I11 | G1b | Sample generator: uncorrelated random voxel rotations about the grain mean, 0.5-5 deg | proposed | | |
-| I12 | G1b | Sample generator: spatially correlated random fields (GND-like), correlation 2-10 voxels | proposed | | |
+| I11 | G1b | Sample generator: uncorrelated random voxel rotations about the grain mean, 0.5-5 deg | done | `rand` built and rendered (22.4M lit px); 69%/97% of neighbour pairs over 2 deg at 2/5 deg | PLAN.md GO3 |
+| I12 | G1b | Sample generator: spatially correlated random fields (GND-like), correlation 2-10 voxels | done | `corr3` (length 3 voxel sides) built and rendered (19.2M lit px) | PLAN.md GO3 |
 | I13 | G1b | Robustness of the best G1a methods across linear, quadratic, correlated, random fields | proposed | | |
 | I14 | G1c | Strained reciprocal vectors in SpotModel (opt-in): g' = R (I + eps)^-T g, Bragg from abs g' | proposed | | |
 | I15 | G1c | Strain in the stock forward model render path (opt-in, from the .mic deformation tensor) | proposed | | |
-| I16 | G1c | Strain sensitivity: objective curvature in the 6 strain components; recovery at 1e-4 to 1e-3 | proposed | | |
+| I16 | G1c | Strain sensitivity: objective curvature in the 6 strain components; recovery at 1e-4 to 1e-3 (resolution scales with pixel size / distance) | proposed | | |
 | I17 | G2a | Intensity-weighted Sinkhorn (observed mass = clean intensity) | running | in GO1 | findings.md |
 | I18 | G2a | Poisson NLL on pixel counts with a per-reflection scale and background | proposed | | |
 | I19 | G2a | Per-spot moment matching (centroid + covariance), as objective and as LM residual | proposed | | |
@@ -33,3 +33,6 @@ details in the findings page named in the last column. New ideas get the next fr
 | I25 | G2c | GNLayerNet (orientation_nn_design.md) as a per-voxel start inside a grain | proposed | | |
 | I26 | G2c | Learned residual / amortised Gauss-Newton step for the grain field (todo_hybrid_nn) | proposed | | |
 | I27 | G2c | Neural field for orientation (and strain) over the grain, render-and-compare (nerf note) | proposed | | |
+| I28 | G1a | Grain-field CMA on the mean strict cost of the group's voxels (sharp objective, cheap) | proposed | GO1: strict optimum 0.006-0.008 deg from truth; smoke: grain 306 median 0.032 to 0.015 deg in 0.8 s | |
+| I29 | G1a | Two-phase: Sinkhorn (or LS) as basin finder, strict cost as finisher | proposed | | |
+| I30 | G1c | Borrow HEXRD far-field strain fitting: per-grain lattice-strain fit from spot centroids; sensitivity vs pixel/distance ratio (e.g. a far-field-like detector distance in our config) | proposed | Reference saved (owner, 2026-11-16): hexrd.github.io, local ~/Research/github/hexrd | |

@@ -823,7 +823,8 @@ class FieldA:
 # --------------------------------------------------------------------------------------------
 @dataclass
 class ObjectiveSpec:
-    """Objective settings. ``kind``: "sinkhorn" (main) or "ls" (baseline)."""
+    """Objective settings. ``kind``: "sinkhorn" (main), "ls" (baseline) or "strict" (mean strict
+    binary cost over the grain's voxels, through ``GrainProblem.strict_fn``; not differentiable)."""
 
     kind: str = "sinkhorn"
     blur_px: float = 1.0
@@ -856,8 +857,12 @@ class GrainProblem:
         region_kw: Optional[Dict[str, Any]] = None,
         max_points: int = 240,
         chunk_elems: int = 3_000_000,
+        strict_fn: Optional[Any] = None,
     ) -> None:
         self.model = model
+        # strict_fn(R (n, 3, 3) numpy, members) -> per-voxel strict costs; used by kind "strict"
+        self.strict_fn = strict_fn
+        self.n_strict = 0
         self.members = [int(v) for v in members]
         self.shell = [int(v) for v in shell]
         self.sym = sym
@@ -897,6 +902,11 @@ class GrainProblem:
         """Mean over spots of the objective at member orientations ``R`` (n, 3, 3)."""
         sp = spec or self.spec
         self.n_evals += 1
+        if sp.kind == "strict":
+            assert self.strict_fn is not None, "kind 'strict' needs strict_fn"
+            self.n_strict += len(self.members)
+            c = self.strict_fn(R.detach().numpy(), self.members)
+            return torch.as_tensor(float(np.mean(c)), dtype=DT)
         rows = self.model.predict(R, self.V)
         x, a = pack_predicted(self.region, rows, self.bary, self.model.n_det)
         if sp.kind == "sinkhorn" and sp.dilate > 0:

@@ -5,20 +5,23 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **Step GO1 (objective bias, ideas I1 I2 I17 I21) is running.** First run (20:24) was cut by its
-  40-minute timeout and its rows were lost in a pipe. Rerun 20:56 PST 2026-11-15, one process per
-  grain: `probe_bias.py --grains 381 --evals 120 --tag bias_381` (and 302); rows are appended to
-  `benchmarks/grain_opt/probe/bias_<grain>.jsonl` as they finish (7 arms each).
-- **Next action:** read the GO1 rows; pick the objective with the smallest offset (rule in PLAN
-  GO1: below 0.01 deg on both grains). If one qualifies: plan GO2 (optimizer Pareto on G20). If
-  none: plan a cause study (I3 soft pixel-touched model, I4 noise floor) first.
-- Open issue: the objective's minimum sat about 0.05 deg from the truth in the smoke test; the
-  strict-cost gate rejected both updates.
+- **GO1 (objective bias) nearly done.** Rows in `benchmarks/grain_opt/probe/bias_*.jsonl`.
+  So far every Sinkhorn variant has a flat bottom: CMA from the truth ends 0.031 to 0.041 deg
+  away (balanced 0.013 to 0.095) with the objective only 0.2 to 0.7% lower; the strict cost
+  (grain mean) ends 0.006 to 0.008 deg away (passes the 0.01 rule). Left: intensity and LS arms,
+  dilation arms on grain 302.
+- **GO2 (optimizer Pareto on G20) started early on the strict-cost arms** (PLAN GO2 arms 1 to 4)
+  via `scripts/grain_opt/go2_strict_arms.sh`; Sinkhorn / LS arms (5, 6) start after GO1 ends.
+- **GO3 done** (samples `rand`, `corr3`, commit 52cab1b7).
+- **Next action:** when GO1's last rows land, write the GO1 findings section, IDEAS statuses,
+  progress.json step row; start GO2 arms 5 and 6; when all GO2 arms end, run
+  `summarize.py go2_*`, add Pareto rows, close GO2 (runbook "Close").
 
 ## Running jobs
 
-- `probe_bias.py` x2 (GO1, grains 381 and 302), started 20:56 PST 2026-11-15, no timeout; logs
-  `benchmarks/grain_opt/probe/bias_<grain>.log`.
+- `probe_bias.py` (GO1): grains 381 and 302 (tags bias_381, bias_302), started 20:56 PST.
+- `go2_strict_arms.sh` (GO2 arms 1-4, 10 runs in sequence), started about 21:15 PST; log
+  `benchmarks/grain_opt/runs_go2_strict.log`, per-run logs `benchmarks/grain_opt/runs/*.log`.
 
 ## Data (git-ignored, in this worktree; link, do not copy)
 
