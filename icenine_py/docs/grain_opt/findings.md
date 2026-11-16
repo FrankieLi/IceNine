@@ -178,3 +178,42 @@ step 0.3 deg; coarse only = per-voxel CMA 61 at 0.3 deg; LS first = `Als/150` th
   24 per level-1 grain), so voxels start nearer their own orientation. GO4b tests strategies that
   do not need that: continuation from fitted neighbours and a wider per-voxel search (I33, I34),
   and a real paint start (I35).
+
+## GO4b: reaching far starts (ideas I33, I34)
+
+Question: which per-voxel strategy recovers deformed grains whose voxels start 0.5 to 5 deg from
+their ground truth? Same samples, start, membership and benchmarks as GO4. Stages: `L/n` per-voxel
+CMA step ladder 1.0 / 0.3 / 0.05 deg with n/3 evaluations per leg; `N/30/0.3` neighbour
+continuation (breadth-first from the best 10%, candidates = own and fitted neighbours'
+orientations, then CMA 30 at 0.3 deg; two sweeps). Tables `benchmarks/grain_opt/go4b/`.
+
+Reading the table: share of voxels more than 0.1 deg from the ground truth and median error
+(deg) per level; `eval/voxel` objective evaluations per voxel; `ms/voxel` wall time (contended).
+
+| arm | eval/voxel | ms/voxel | 0.5 deg | 1 deg | 2 deg | 5 deg |
+|---|---|---|---|---|---|---|
+| corr3, GO4 best (LS + field + coarse) | 340 | 57 | 32%, 0.071 | 53%, 0.108 | 93%, 0.929 | 99%, 4.191 |
+| corr3, L/61 | 70 | 9 | 49%, 0.097 | 71%, 0.219 | 86%, 0.598 | 97%, 4.136 |
+| corr3, L/183 | 196 | 18 | 9%, 0.021 | 11%, 0.018 | 47%, 0.080 | 91%, 3.498 |
+| corr3, N/30 | 87 | 8 | 36%, 0.077 | 53%, 0.108 | 76%, 0.433 | 98%, 4.132 |
+| corr3, L/61 then N/30 | 157 | 16 | 24%, 0.057 | 44%, 0.090 | 63%, 0.166 | 93%, 3.418 |
+| corr3, LS + field + L/61 + N/30 | 433 | 70 | 23%, 0.057 | 39%, 0.080 | 65%, 0.219 | 94%, 3.348 |
+| rand, GO4 best (field + coarse) | 177 | 9 | 71%, 0.314 | 85%, 0.854 | 95%, 1.862 | 99%, 4.535 |
+| rand, L/61 | 70 | 10 | 75%, 0.370 | 88%, 0.830 | 91%, 1.903 | 100%, 4.526 |
+| rand, L/183 | 196 | 18 | 51%, 0.123 | 66%, 0.786 | 81%, 1.989 | 94%, 4.424 |
+| rand, N/30 | 87 | 8 | 72%, 0.302 | 82%, 0.882 | 92%, 2.046 | 98%, 4.844 |
+| rand, L/61 then N/30 | 157 | 15 | 64%, 0.264 | 76%, 0.824 | 80%, 1.973 | 94%, 4.803 |
+| rand, LS + field + L/61 + N/30 | 433 | 57 | 67%, 0.268 | 73%, 0.770 | 82%, 1.883 | 93%, 4.851 |
+
+- The step ladder with enough budget per leg is the step forward: L/183 (61 per leg) takes corr3
+  to 9%, 11% and 47% above 0.1 deg at 0.5, 1 and 2 deg (medians 0.021, 0.018, 0.080), from 32%,
+  53% and 93% for GO4's best, at less than half its evaluations. With 20 per leg (L/61) it is
+  worse than GO4's best: the budget per leg matters more than the arm.
+- Neighbour continuation helps when neighbours are close (corr3) and does little on rand.
+- rand stays hard (51% at 0.5 deg with L/183). It is a search problem, not an objective problem:
+  on 150 voxels per level of both samples, the strict cost at the ground truth is lower than at
+  the fit's end for practically every voxel left above 0.1 deg (median strict cost at the ground
+  truth 0.065 to 0.096; at the end 0.10 to 0.71). So the strict cost after a fit flags the voxels
+  that need a wider search.
+- Next (I36, I37): a gated wider search for voxels whose strict cost stays high, and a larger
+  ladder (a 3 deg first leg, more evaluations) for the 2 and 5 deg levels.
