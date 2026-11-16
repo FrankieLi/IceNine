@@ -13536,3 +13536,48 @@ paired split against `J5S` leans one way: over the eight samples `J5SD` fixes 9 
 (over the seven disclosed samples 6 and 15); only `held6` goes the other way (3 fixed, 1 broken). The
 rule is per sample and every sample passes. Prediction 3 held on `held6`. The plan's "net bounds" are
 estimates, not bounds: the live savings exceed the unwidened top on `mid` and `big`.
+
+### AR5 step 22, phase B: the opt-in key `SeedIndexMCDefer` (2026-11-16, D-20261116-N4)
+
+One opt-in key, `SeedIndexMCDefer 0|1` (default 0, off), valid only with `SeedIndexMCStallHit k >= 1`
+(`ValueError` with a message that names it otherwise; parsed in `config_file.py`, checked in
+`orientation_search.py` and `reconstructor.check_bfs_keys`). With it on, the seed step's MC refinement
+gets a TRUE pause and resume: `SeedMCRun` runs the stock refinement in a worker thread that blocks inside
+its wrapped cost function at the first stall check that goes on (the check is counted), with its call
+stack, state and `default_rng(0)` kept; `ray_indexing.seed_by_indexing(..., defer=True)` tries the next
+candidate, stops at the first end at the ratio, resumes the paused refinements in candidate order only if
+none does, and tears down any that is never resumed (`SeedMCRun.abort`). No re-run and no new draw (the
+script arms re-ran the paused part). The last candidate is never paused. A paused refinement costs the
+evaluations before its check plus the check; a resumed one the same total as the uninterrupted refinement.
+Works with and without `SeedIndexCMAFirst` (`ray_indexing.mixed_refinement_deferred`). Adds
+`stats['index_defer_steps' | 'index_defer_pauses' | 'index_defer_resumes']` and `defer` in each `index_log`
+entry (key on only).
+
+- **Library files changed:** `icenine/reconstructor.py`, `icenine/ray_indexing.py`,
+  `icenine/orientation_search.py`, `icenine/config_file.py`. No `pyproject.toml` or `uv.lock` change.
+- **Tests:** `tests/test_seed_index_mc_defer.py` (31 behaviour tests: parsing and refused combinations; a
+  resumed refinement equals the uninterrupted one in end, cost, evaluations and draws, and makes no draw
+  twice; no pause when not allowed or when the check stops; teardown; step types A, N and C of the seed
+  loop; wiring; the BFS with the key absent and written 0 identical). The tests were written with the
+  library change and committed with it, not before it. `tests/test_ar5_high500.py` lists the library files
+  that may differ from step 16's freeze; `icenine/ray_indexing.py` was added to that list (test code only;
+  no frozen file edited, no hash re-recorded). This step's own freeze (`defer_freeze.py`) pins the library
+  files as of the phase A commits and now refuses by design; the library-run scripts of this phase
+  (`defer_lib_run.py`, `defer_lib_check.py`) do not go through it, and the script arm `J5Dl` was run
+  before the library change, under the freeze.
+- **A note on the test environment:** the worktree's own virtual environment did not have the dev
+  extras until phase B, so phase A's pytest runs used the main checkout's environment (the same library
+  at that time). From phase B on `uv sync --extra dev` was run in the worktree and every count below is
+  from it.
+- **Key-off:** the full suite with no golden change (counts in the report of this phase).
+- **Key on, library run on `mid`:** a REPLACED check. The plan asked for equality with `J5D`; `J5D` has
+  rule `G2b` and aligned draws, which the library does not have (as `J5` in step 16, where `J5l` was the
+  comparison). The nearest honest check, `LibJ5D` (the keys of step 16 plus `SeedIndexMCDefer 1`) against
+  the script arm `J5Dl` (`J5D` without `G2b`, with the library's own draws), before the boundary pass: the
+  same map bytes, 7,253,826 evaluations on both, all 36 counters of the script run, all 24,570 records, the
+  11 rescues (7 rescued), all 1,741 MC refinements with their checks, and the pauses and resumes (569 steps
+  with a pause, 1,128 pauses, 505 resumes). Equality with `J5D` itself is not shown; it waits for the
+  owner. Results: `benchmarks/autoresearch/ar5/defer/lib_check.json`.
+- Findings page text: `findings_ar5_defer.md` (the write into `docs/autoresearch/` was refused; the text
+  was saved as a report). Pareto rows: `benchmarks/autoresearch/ar5/defer/pareto_rows.json` (`held6`: `S8`,
+  `J5`, `J5S`, `J5SD`; the seven disclosed samples: `J5SD`).
