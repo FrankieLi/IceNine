@@ -13291,3 +13291,48 @@ keep the highest hit ratio, then the lowest cost, then the current end. `frozen.
   `tests/test_boundary_repair.py` (14). Findings text waits in
   `.claude/reports/20261115-1646-ar5t-findings_ar5_cmarepair.md` (its write under `docs/` was
   refused twice).
+
+## Autoresearch AR5 step 21, phase A: score each pass candidate once, a wider repair does the fitting (2026-11-15, task ar5u)
+
+Approved D-20261115-N11. Branch `feature/eval-reduction-ar5u`. Arm `J5S` = arm `J5` with every
+boundary-pass try cut to its first evaluation (a screen try: the candidate's start is scored, the
+library's final evaluation is counted, so 2 evaluations a try; the end is the start) and step 20's
+repair (imported, not copied) on a wider flag: contested voxels, plus voxels whose hit ratio is
+under 0.95 and one of whose pass candidates lies more than 1 degree from its kept end. Script
+layer only (`scripts/autoresearch/ar5/screen_*.py`, `screen_*.sh`; `tests/test_ar5_screen.py`,
+`tests/test_ar5_screen_freeze.py`); no library change, no key (phase B). `frozen.json` committed
+(`a10837e0`) before any `J5S` pass or repair ran from the tracked scripts and before `held5` existed.
+
+- **Library finding.** `Reconstructor.local_optimization` refuses `cma_max_evals < 2` (its override
+  check), while `CMAOptimizer` itself takes 1. The script layer sets the budget 1 on the optimizer
+  the library makes (`screen_rules.pass_try`); phase B's key must relax that check for the pass.
+- **Own set-up.** `cmarepair_common` refuses `held`, `held3` and `held4` at this commit (its freeze
+  hashes the library, which moved after step 20). `screen_common.py` has its own freeze
+  (`screen_freeze.py`, checked first, before any sample is read) and replaces the stale checks of
+  older steps in-process as `cmarepair_common` did. No older frozen file edited, no older hash
+  re-recorded. `held5` is `held` with generator seed 5 (`screen_samples.py` adds it to step 18's
+  table at import); the guards refuse `held2` everywhere and `held5` until `gate.json` (builds) and
+  `logs/screen_runs.done` (reads; the `J5C` and `J5S` jobs open their own inputs by file name).
+- **Gate g0, g1, g2 on the six disclosed samples (contended, not timings): met.** g0: the
+  full-budget re-run of `J5`'s pass (60 evaluations, the gain trace kept; 385,943 tries) equals the
+  stored tries (count, voxel, candidate, evaluations; cost and hit ratio to 0; ends to 3e-8, the
+  stored ones are float32; after-pass map to 6e-8); the replay of step 20's repair on those tries
+  gives repair evaluations 137,214 / 146,894 / 124,146 / 76,835 / 116,765 / 19,602 and the same wrong
+  voxels as the stored `J5C` (22 / 40 / 49 / 20 / 25 / 7); the replayed map differs from the stored
+  `J5C` map by more than 1e-6 at 1 to 8 voxels a sample (one above 1e-3, on `held4`), consistent with
+  the float64 against float32-orthonormalized start ends (untested). g1: prediction 1 exactly, all
+  six samples: pass evaluations 181,534 / 161,864 / 170,478 / 100,058 / 120,710 / 37,242; flagged
+  1,869 / 1,787 / 1,832 / 1,187 / 1,445 / 366 (extra, apart from contested: 1,774 / 1,687 / 1,741 /
+  1,122 / 1,244 / 327); repair evaluations 1,617,286 / 1,512,258 / 1,547,106 / 759,275 / 776,336 /
+  162,987; totals 23,612,288 / 20,240,655 / 19,457,817 / 8,397,057 / 6,257,077 / 2,631,446; fixed /
+  broken against `J5C` 3/2, 4/2, 9/3, 3/3, 2/2, 3/1. g2: 14.1% / 14.4% / 15.6% / 21.3% / 31.7% /
+  26.6% fewer evaluations than `J5C`; broken minus fixed against `J5C` -1, -2, -6, 0, 0, -2; median
+  error lower by 0.0003 to 0.0031 degree; `mid` against `S8` -11.
+- **Validity.** The live screen tries equal the re-run's gain trace cut at one evaluation, try by
+  try, on all six samples (0 of 385,943 differ in cost, hit ratio or end; every try 2 evaluations;
+  every end equal to the candidate's start bit for bit).
+- **Not done here.** `held5` (not built; the run-all script `screen_run_all.sh` builds it, runs a
+  pilot, then `S8`, `J5`, `J5C`, `J5S`, 3 heavy processes at most, caps 480 / 300 minutes, marker
+  `logs/screen_runs.done`); the summary, plot and tables; phase B (the key).
+- Results: `benchmarks/autoresearch/ar5/screen/` (`frozen.json`, `gate.json`, `gate_tables.md`; the
+  cache is untracked).

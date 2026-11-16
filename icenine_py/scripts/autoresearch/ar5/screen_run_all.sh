@@ -11,7 +11,8 @@
 #                      linked in the cache): short jobs, no pass: S8 and J5 with --smoke 30 and a cap
 #                      of --smoke-cap M minutes (default 3), then J5C --limit 5 and J5S --limit 20
 #                      on the linked stored maps. The cache defaults to <screen>/cache_smoke. Exit 3
-#                      (the cap) is the S8 / J5 smoke jobs' normal end. No build, no pilot.
+#                      (the cap) is the S8 / J5 smoke jobs' normal end. The build command is "true"
+#                      (the build check and the pilot's exit-code logic still run).
 #   ... --sample S     the sample of a smoke (default held5; any other only with --smoke)
 #   ... --resume       after an interruption or a FAILED earlier attempt: the held5 build skips its
 #                      finished stages and moves an unfinished stage's output aside; a job whose
@@ -85,6 +86,8 @@ fi
 logs="$cache/logs"
 marker="$logs/screen_runs.done"
 pilot_cache="${cache}_pilot"
+pilot_cap=5
+if [ "$smoke" = "1" ]; then pilot_cap="$smoke_cap"; fi
 export SCREEN_CACHE="$cache"
 unset VIRTUAL_ENV
 
@@ -250,11 +253,14 @@ arm_cmd() { # arm_cmd <arm>
 }
 pilot_cmd() { # pilot_cmd <arm>: a smoke of an S8 / J5 run on held5, in the pilot cache
   case "$1" in
-    S8) echo "SCREEN_CACHE=$pilot_cache RESEED_SAMPLE=$smp uv run python scripts/autoresearch/ar5/screen_launch.py fit_run.py --name S8 --cap-min 5 --smoke 30" ;;
-    J5) echo "SCREEN_CACHE=$pilot_cache RESEED_SAMPLE=$smp uv run python scripts/autoresearch/ar5/screen_launch.py high500_run.py --cap-min 5 --smoke 30" ;;
+    S8) echo "SCREEN_CACHE=$pilot_cache RESEED_SAMPLE=$smp uv run python scripts/autoresearch/ar5/screen_launch.py fit_run.py --name S8 --cap-min $pilot_cap --smoke 30" ;;
+    J5) echo "SCREEN_CACHE=$pilot_cache RESEED_SAMPLE=$smp uv run python scripts/autoresearch/ar5/screen_launch.py high500_run.py --cap-min $pilot_cap --smoke 30" ;;
   esac
 }
-build_cmd() { echo "uv run python scripts/autoresearch/ar5/screen_build_held5.py --resume"; }
+build_cmd() {
+  if [ "$smp" = "held5" ]; then echo "uv run python scripts/autoresearch/ar5/screen_build_held5.py --resume"
+  else echo "true"; fi   # a smoke on a disclosed sample: nothing to build, the same check follows
+}
 
 if [ "$dry" = "1" ]; then
   echo "dry run: guards passed (cache $cache, at most 3 heavy processes, sample $smp)"
@@ -263,11 +269,9 @@ if [ "$dry" = "1" ]; then
     echo "  resume: RERUN from scratch (leftovers moved to $cache/interrupted_<time>/):${redo:- none}"
     [ -e "$marker" ] && echo "    would move $marker (old marker: $(head -1 "$marker"))"
   fi
-  if [ "$smoke" = "0" ]; then
-    echo "  $(build_cmd) > $logs/held5_driver.log 2>&1"
-    echo "  pilot: $(pilot_cmd S8) > $logs/pilot_S8.log 2>&1"
-    echo "  pilot: $(pilot_cmd J5) > $logs/pilot_J5.log 2>&1"
-  fi
+  echo "  $(build_cmd) > $logs/held5_driver.log 2>&1"
+  echo "  pilot: $(pilot_cmd S8) > $logs/pilot_S8.log 2>&1"
+  echo "  pilot: $(pilot_cmd J5) > $logs/pilot_J5.log 2>&1"
   for j in $joblist; do
     a="${j%%:*}"; cap="${j#*:}"
     echo "  $(run_cmd "$a" "$cap") > $logs/${a}_${smp}.log 2>&1"
@@ -309,8 +313,10 @@ else
 fi
 echo "start $(date +%Y-%m-%dT%H:%M:%S%z) sample=$smp smoke=$smoke resume=$resume"
 
-# ---- the held5 build (a finished stage is skipped by the builder itself) and the pilot
-if [ "$smoke" = "0" ]; then
+# ---- the held5 build (a finished stage is skipped by the builder itself) and the pilot; a smoke
+# on a disclosed sample runs the same stage with the build command "true", so the check below and
+# the pilot's exit-code logic are exercised
+if true; then
   eval "$(build_cmd)" > "$logs/held5_driver.log" 2>&1
   brc=$?
   [ "$brc" = "0" ] && { build_finished || brc=4; }
@@ -387,13 +393,15 @@ for j in $joblist; do
   run_job "$a" "$cap" &
   pids="$pids $!"
 done
-if [ "$smoke" = "1" ]; then   # the arms on the linked stored maps, at once (S8 and J5 smoke + 2)
+for p in $pids; do wait "$p"; done
+if [ "$smoke" = "1" ]; then   # the arms on the linked stored maps, after the two smoke jobs (2 heavy)
+  pids=""
   for a in $arms; do
     ( run_arm "$a" ) &
     pids="$pids $!"
   done
+  for p in $pids; do wait "$p"; done
 fi
-for p in $pids; do wait "$p"; done
 
 capped=""
 fail=0

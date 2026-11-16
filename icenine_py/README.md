@@ -955,6 +955,15 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   not built; no key, no library change. Five pareto rows flagged "failed gate (cost)". Findings text
   in `.claude/reports/20261115-0930-ar5s-findings_ar5_repair.md` (its write under `docs/` was
   refused). MIGRATION_HISTORY, "Autoresearch AR5 step 19".
+- Autoresearch AR5 step 21, phase A (score each boundary-pass candidate once, then a wider repair;
+  D-20261115-N11): scripts `scripts/autoresearch/ar5/screen_*.py` and `screen_*.sh` (pure rule and
+  wide flag `screen_rules.py`, guards, own freeze, set-up, data loader, the pass with try budget 1
+  or 60 `screen_pass.py`, arms `J5C` / `J5S` `screen_run.py`, gate `screen_gate.py`, `held5` build
+  `screen_build_held5.py`, run-all `screen_run_all.sh`), tests `tests/test_ar5_screen.py` and
+  `tests/test_ar5_screen_freeze.py`, results `benchmarks/autoresearch/ar5/screen/`. Script layer, no
+  library change, no key yet. Gate on the six disclosed samples met: 14.1% to 31.7% fewer evaluations
+  than `J5C`, prediction 1 reproduced exactly. `held5` (the clean test) not yet run.
+  MIGRATION_HISTORY, "Autoresearch AR5 step 21, phase A".
 
 See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and
 current results of this work, and [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy
