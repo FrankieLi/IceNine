@@ -262,6 +262,49 @@ seed 0.
 Budget: about 30 ms per coverage evaluation, strict about 25 ms per voxel; under 30 min in
 total; 3 processes.
 
+### GO5e: a sharper sub-pixel strain cost (idea I40)
+
+Question: the coverage cost is flat over about 1e-4 to 3e-4 strain (GO5d: at the exact
+orientation, repeat strain-only fits scatter in that band). Does a cost that sees sub-pixel
+shifts of the predicted coverage bring the strain-only error below that band, and then the
+painted-start staged fit with it?
+
+Costs, on the same predicted coverage points (continuous column, row and frame positions, mass)
+as the coverage cost, per spot in its window, mean over spots:
+
+- `sd` (signed distance): a 3D signed distance map of the lit pixels in the window (frames,
+  rows, columns; distance in pixel or frame units, positive outside the lit set, negative inside,
+  from Euclidean distance transforms), read by trilinear interpolation at each point, clipped to
+  [-3, 5]; cost = mass-weighted mean. Lowest when the predicted mass sits deepest inside the
+  observed spot.
+- `int` (intensity): the clean intensity of the lit pixels (0 elsewhere), read by trilinear
+  interpolation; cost = 1 - mass-weighted mean intensity / the spot's top intensity.
+
+Benchmark S12 and measures as GO5b to GO5d (`fit_strain.py --cost`, output
+`benchmarks/grain_opt/go5e/`). Arms:
+
+- `E@GT` (ground-truth orientations, strain only, 300 evaluations) with `sd` and with `int`,
+  each with seeds 0 and 1 (repeat scatter).
+- `S@P` (painted start: field leg 200 on the same cost at zero strain, strain only 300, joint
+  600 at steps 0.02 deg and 2e-4) with the cost that wins the first part, seed 0. Not run if
+  neither cost is sharper.
+
+Judging rule (written before any run). Reference: the coverage cost's floor, the mean of the
+`E@GT` (GO5b) and `E@F` (GO5d) medians: 1.66e-4 / 1.57e-4 / 2.67e-4 at 1e-4 / 5e-4 / 1e-3; its
+repeat scatter (median over grains of the absolute difference between the two runs) 3.5e-5.
+
+- A cost is "sharper" at a level when the mean of its two seeds' medians is at most the
+  reference / 1.5 at that level. I40 is answered yes for a cost that is sharper at 2 or more
+  levels, one of them 1e-4. The winner is the cost sharper at more levels (ties: lower mean of
+  medians over levels). The repeat scatter is reported, not judged.
+- The staged fit with the winner "reaches the new floor" at a level when its median is at most
+  1.5 x the winner's `E@GT` mean of medians there, and beats the coverage `S@P` (7.1e-4 /
+  3.4e-4 / 3.0e-4) at a level when its median is lower and 3 of 4 grains are better. Judged at
+  5e-4 and 1e-3; 1e-4 reported.
+
+Budget: the maps are built once per grain; an evaluation adds one interpolation per spot (a few
+ms over the coverage cost's 30 ms). Five runs of 2 to 6 minutes; 3 processes at most.
+
 ### GO6 onwards
 
 Planned order (each gets a section when it starts): GO6 objective variants (I17 to I22); GO7 richer
