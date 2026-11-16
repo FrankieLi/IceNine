@@ -169,6 +169,44 @@ frame symmetric strain eps; M = (I + eps)^-1; g = O M g0; Bragg angle and omega 
 Budget: implementation about 2 to 3 h of agent time; runs under 30 min. Committed: code, tests,
 the generator, sample records (not the .mic), a short findings section.
 
+### GO5b: per-grain strain fit (idea I38)
+
+Question: can a per-grain fit recover the elastic strain of sample `strain` (GO5) from clean
+images, at tensor RMS 1e-4, 5e-4 and 1e-3, and does it still work from the painted start?
+
+Setup. Benchmark S12: 12 grains of `strain`, 4 per strain level, sizes at quantiles 0.2, 0.4,
+0.6, 0.8 of the level (true grain ids as membership). Cost: the coverage cost of GO5 (1 minus the
+share of predicted coverage mass on lit pixels, mean over the grain's spots), the sharper
+strict-like cost (`VoxelCostFunction` has no strain). Parameters: the grain field (`FieldA`
+order 1, 9 numbers) and one crystal-frame strain per grain (6 numbers, [e11 e22 e33 e23 e13
+e12]). The spot windows are built without strain (no ground-truth strain leaks in). Optimizer:
+CMA, per-coordinate steps 0.05 deg (field) and 5e-4 (strain), strain starting at 0.
+
+Arms (script `fit_strain.py`, output `benchmarks/grain_opt/go5b/`):
+
+- `E@GT`: orientations held at the ground truth; CMA on the 6 strain numbers, 300 evaluations
+  (can the cost see strain at all).
+- `FE@GT`: field + strain from the field fitted to the ground-truth orientations, 600 evaluations.
+- `FE@P`: from the painted start "P": a field-only CMA on the coverage cost (200 evaluations, step
+  0.05 deg), then field + strain (600 evaluations).
+
+Measures per grain: strain error = tensor RMS of (fitted minus ground-truth strain), with the
+ground truth re-expressed in the fitted symmetry representative; per-component errors; cost at
+the fit and at the ground truth (ground-truth orientations and strain); per-voxel misorientation
+to the ground truth (median, p95) for the field arms.
+
+Judging rule (written before any run). Per level and arm, the median strain error over its 4
+grains: "recovered" when at most 0.5 x the level (twice better than answering zero), "partial"
+between 0.5 and 1.0 x, "not recovered" at or above the level. A grain whose cost at the fit is
+above its cost at the ground truth is an optimizer shortfall; one with a lower cost but a large
+error (above the level) is an objective shortfall (the cost optimum is not at the ground truth).
+`FE@P` against `FE@GT`: worse at a level only when its median error is above 1.5 x and at least
+2 of the 4 grains are worse. Reference scale: pixel / distance 2.7e-4 to 4.4e-4 (GO5: 1e-3 strain
+moves spots 0.2 to 0.5 px). One run per arm, seed 0; no p-values.
+
+Budget: under 1 h of compute (measured per evaluation before the full run); at most 3
+processes (one per arm). Committed: the script, `go5b/*.json` (per-grain rows), findings.
+
 ### GO6 onwards
 
 Planned order (each gets a section when it starts): GO6 objective variants (I17 to I22); GO7 richer

@@ -43,4 +43,4 @@ details in the findings page named in the last column. New ideas get the next fr
 | I35 | G1b | Real paint start on rand / corr3 (AR3 paint key: many grain entries per deformed grain) | proposed | | |
 | I36 | G1b | Gated wider search: voxels whose strict cost stays high after the ladder get a global search (ray-indexing seed path / grid) | proposed | Blocked on cost: seed path took >15 min for one 8-voxel rand grain (pairs 1.56M spot fragments); needs a cached ray index |  |
 | I37 | G1b | Larger ladder for 2-5 deg: first leg 3 deg, 4 legs, 61-120 per leg; budget sweep | done | GO4c: L/366/3 (4 legs x 91): corr3 0.5/1/2/5 deg -> 3/9/31/72% above 0.1 deg; rand 48/53/77/83% | findings.md |
-| I38 | G1c | Per-grain strain fit (6 numbers + grain field) on the strict / coverage cost on sample `strain`; recovered vs ground-truth strain per level | proposed | | |
+| I38 | G1c | Per-grain strain fit (6 numbers + grain field) on the strict / coverage cost on sample `strain`; recovered vs ground-truth strain per level | running | | |
