@@ -15,6 +15,12 @@ once per session; the rest only when needed (`grep -n "^## " RUNBOOK.md`, then `
    second copy of a running job.
 5. Do the "Next action" in STATE.md. At the end of a step, do "Closing a step".
 
+**No idling between steps** (standing rule, owner via the coordinator, 2026-11-16): when a step
+closes (state saved, commit, push, shmem fact, page republished, report sent), plan and start the
+next step right away in the same session. The 3-hourly wake job is only a fallback for an
+interrupted session. Stop only for a decision that needs the owner, an irreversible action, or a
+merge to develop.
+
 ## Keeping the context small
 
 1. **Three files, three jobs.** `STATE.md`: now (next action, running jobs, where data lives,
@@ -82,7 +88,8 @@ what is next. A question or blocker gets its own report. Keep the live checklist
 
 ## Wake job and usage limits
 
-A session cron job sends the wake prompt every 3 hours while the session is open (id and expiry
+A session cron job sends the wake prompt every 3 hours while the session is open as a
+fallback only (steps follow each other without waiting for it; see "On every wake") (id and expiry
 in STATE.md); recreate it a day before it expires. Near the plan's usage limit, schedule a
 one-shot resume after the reset. After the session dies, the owner types "continue the grainopt
 research" and a new session starts at "On every wake".

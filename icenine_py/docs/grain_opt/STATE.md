@@ -54,6 +54,9 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Owner items
 
+- Standing rule (owner via the coordinator, 2026-11-16): no idling between steps; after a
+  step closes, plan and start the next one at once (RUNBOOK "On every wake"). The wake job is
+  a fallback.
 - Style (owner, 2026-11-16): write "ground truth", not "truth" (RUNBOOK "Wording"). Existing
   docs and the page get the wording at the GO1/GO2 close.
 
