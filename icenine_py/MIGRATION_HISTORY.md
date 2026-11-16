@@ -13427,4 +13427,103 @@ run (`ar5/defer/frozen.json`).
 - Run scripts: `defer_run_all.sh --stage gate|rest` (gate: live `J5D` on `mid` and `held`, each then
   the screen pass and wide repair; rest: `J5SD` on the other five samples, the `held6` build, pilot, `S8`,
   `J5`, `J5S` and `J5SD`; 3 heavy processes at most), `defer_gate.py` (g2, g3), `defer_build_held6.py`.
-  Status: gate stage and the long runs not started by this session.
+  The runs were started by the main session.
+
+### AR5 step 22, phase A result: J5SD against J5S, J5 and S8 (2026-11-16)
+
+The gate (g2: live `J5D` on `mid` equals the replay in all 35 seed steps before the first C step;
+g3 on `mid` and `held`) passed (`gate.json`). All runs of the rest stage ended with exit 0, no cap
+hit, no traceback; `held6`'s files were first opened by the summary after the marker
+`defer_runs.done` (12:24 on 16 Nov). Evaluations include the boundary pass, the screen pass and the
+wide repair, and every check; the re-run evaluations of resumed refinements are not counted and are
+listed apart in the steps table. Wrong: over 1 degree from the truth (symmetry-reduced), counted by
+voxel; Wilson 95% interval of `J5SD`'s wrong share; fixed / broken are `J5SD` against the named arm.
+Figure: `benchmarks/autoresearch/ar5/defer/ar5_defer_evals_wrong.png` (run evaluations against wrong
+voxels, S8, J5S and J5SD, eight panels).
+
+Reading line: evaluations per arm, and the share `J5SD` saves against each.
+
+<!-- table:ar5_defer_evals -->
+| sample | s8 | j5 | j5s | j5sd | vs_j5s | vs_j5 | vs_s8 |
+|---|---|---|---|---|---|---|---|
+| held5 | 75,879,690 | 26,270,850 | 22,706,889 | 20,076,940 | 11.58 | 23.58 | 73.54 |
+| held4 | 68,033,600 | 27,350,255 | 23,612,288 | 20,685,850 | 12.39 | 24.37 | 69.59 |
+| held3 | 67,408,448 | 23,503,385 | 20,240,655 | 18,363,331 | 9.28 | 21.87 | 72.76 |
+| held | 59,923,523 | 22,939,812 | 19,457,817 | 17,114,589 | 12.04 | 25.39 | 71.44 |
+| mid | 26,443,074 | 10,589,493 | 8,397,057 | 7,383,368 | 12.07 | 30.28 | 72.08 |
+| grad | 18,000,230 | 9,041,686 | 6,257,077 | 6,134,231 | 1.96 | 32.16 | 65.92 |
+| big | 8,340,428 | 3,567,098 | 2,631,446 | 2,452,596 | 6.80 | 31.24 | 70.59 |
+| held6 | 67,502,030 | 29,194,542 | 25,464,972 | 22,690,096 | 10.90 | 22.28 | 66.39 |
+<!-- /table:ar5_defer_evals -->
+
+Reading line: wrong voxels of each arm out of 24,570, `J5SD`'s Wilson interval, fixed / broken of
+`J5SD` against `J5S`, `J5` and `S8`, and the median error over all voxels in degrees.
+
+<!-- table:ar5_defer_accuracy -->
+| sample | w_s8 | w_j5 | w_j5s | w_j5sd | wilson | fb_j5s | fb_j5 | fb_s8 | med_j5s | med_j5sd |
+|---|---|---|---|---|---|---|---|---|---|---|
+| held5 | 62 | 46 | 31 | 34 | 0.10-0.19% | 0/3 | 14/2 | 35/7 | 0.02301 | 0.02287 |
+| held4 | 49 | 40 | 21 | 22 | 0.06-0.14% | 1/2 | 19/1 | 33/6 | 0.02318 | 0.02320 |
+| held3 | 61 | 54 | 38 | 38 | 0.11-0.21% | 2/2 | 18/2 | 31/8 | 0.02282 | 0.02278 |
+| held | 70 | 67 | 43 | 45 | 0.14-0.24% | 3/5 | 25/3 | 35/10 | 0.02275 | 0.02278 |
+| mid | 31 | 35 | 20 | 23 | 0.06-0.14% | 0/3 | 16/4 | 15/7 | 0.02706 | 0.02705 |
+| grad | 63 | 56 | 25 | 25 | 0.07-0.15% | 0/0 | 33/2 | 41/3 | 0.01937 | 0.01937 |
+| big | 24 | 21 | 5 | 5 | 0.01-0.05% | 0/0 | 17/1 | 20/1 | 0.03007 | 0.03007 |
+| held6 | 80 | 58 | 39 | 37 | 0.11-0.21% | 3/1 | 23/2 | 46/3 | 0.02189 | 0.02199 |
+<!-- /table:ar5_defer_accuracy -->
+
+Reading line: the frozen rules against `J5S` (r1 fewer evaluations at least 7%, grad 1.5%, big 3%;
+r2 broken minus fixed at most 3; r3 median error at most 0.001 degree higher) and the house rule
+against `S8` (at least 20% fewer, broken minus fixed at most 5, median at most 0.005 higher).
+
+<!-- table:ar5_defer_decision -->
+| sample | fewer | r1 | net | r2 | med | r3 | house | passes |
+|---|---|---|---|---|---|---|---|---|
+| held5 | 11.58 | True | 3 | True | -0.00014 | True | True | True |
+| held4 | 12.39 | True | 1 | True | 0.00001 | True | True | True |
+| held3 | 9.28 | True | 0 | True | -0.00004 | True | True | True |
+| held | 12.04 | True | 2 | True | 0.00003 | True | True | True |
+| mid | 12.07 | True | 3 | True | -0.00001 | True | True | True |
+| grad | 1.96 | True | 0 | True | 0.00000 | True | True | True |
+| big | 6.80 | True | 0 | True | 0.00000 | True | True | True |
+| held6 | 10.90 | True | -2 | True | 0.00010 | True | True | True |
+<!-- /table:ar5_defer_decision -->
+
+Reading line: the seed step under `DEF` (seed and reseed evaluations of `J5D` and of `J5`), steps,
+steps with a pause, pauses, resumes, where the end was found (a later candidate, in the resume, none),
+re-run evaluations listed apart, type C steps matched by voxel and how many ended at another
+candidate, grid searches `J5` / `J5D`, rescued `J5` / `J5D`.
+
+<!-- table:ar5_defer_steps -->
+| sample | seed | j5_seed | steps | with_pause | pauses | resumes | tried | resume | none | rerun | c_matched | c_moved | grid | rescued |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| held5 | 13,916,063 | 16,535,921 | 3556 | 1752 | 3947 | 2011 | 1121 | 84 | 547 | 1,493,878 | 175 | 96 | 15/14 | 69/69 |
+| held4 | 13,906,881 | 16,832,879 | 4109 | 1946 | 4476 | 2297 | 1231 | 115 | 600 | 1,755,284 | 227 | 116 | 8/8 | 43/43 |
+| held3 | 12,242,149 | 14,146,595 | 3391 | 1654 | 3881 | 2239 | 974 | 79 | 601 | 1,671,681 | 157 | 82 | 9/9 | 68/66 |
+| held | 10,732,949 | 13,048,662 | 3685 | 1760 | 3949 | 1946 | 1141 | 114 | 505 | 1,468,568 | 212 | 107 | 4/4 | 46/46 |
+| mid | 3,355,537 | 4,364,077 | 1626 | 565 | 1123 | 492 | 418 | 17 | 130 | 363,828 | 57 | 41 | 2/2 | 8/8 |
+| grad | 1,979,907 | 2,102,753 | 1281 | 377 | 659 | 312 | 269 | 10 | 98 | 204,271 | 10 | 0 | 2/2 | 6/6 |
+| big | 261,653 | 446,094 | 330 | 84 | 115 | 13 | 79 | 1 | 4 | 10,292 | 7 | 7 | 0/0 | 0/0 |
+| held6 | 15,887,960 | 18,629,098 | 4109 | 1891 | 4242 | 2188 | 1216 | 89 | 586 | 1,630,541 | 202 | 120 | 16/16 | 35/35 |
+<!-- /table:ar5_defer_steps -->
+
+Reading line: evaluations of `J5SD` by stage.
+
+<!-- table:ar5_defer_stages -->
+| sample | index | rescue | polish | grid | bfs_neighbour | bfs_revisit | screen_pass | repair |
+|---|---|---|---|---|---|---|---|---|
+| held5 | 8,690,640 | 293,293 | 104,415 | 4,827,715 | 1,481,568 | 3,091,968 | 169,584 | 1,417,757 |
+| held4 | 10,882,299 | 191,191 | 72,371 | 2,761,020 | 1,478,152 | 3,485,906 | 181,532 | 1,633,379 |
+| held3 | 8,840,378 | 227,227 | 72,307 | 3,102,237 | 1,480,897 | 2,950,509 | 161,788 | 1,527,988 |
+| held | 9,129,537 | 172,172 | 43,525 | 1,387,715 | 1,480,653 | 3,206,343 | 170,528 | 1,524,116 |
+| mid | 2,644,672 | 32,032 | 12,856 | 665,977 | 1,488,888 | 1,687,138 | 100,032 | 751,773 |
+| grad | 1,255,626 | 34,034 | 12,856 | 677,391 | 1,477,542 | 1,779,736 | 120,710 | 776,336 |
+| big | 261,653 | 0 | 0 | 0 | 1,496,391 | 496,235 | 37,266 | 161,051 |
+| held6 | 10,054,329 | 199,199 | 105,726 | 5,528,706 | 1,478,091 | 3,502,742 | 183,084 | 1,638,219 |
+<!-- /table:ar5_defer_stages -->
+
+Verdict: the step passes (`J5SD` passes every rule on `held6` and on the seven disclosed samples).
+Prediction 2 missed on the share of C steps that end at another candidate (30% to 70%): `mid` 72%
+(above), `grad` 0 of 10 matched C steps and `big` 7 of 7 (small counts, partial matching by
+voxel). Its savings, broken minus fixed and grid-search parts held. Prediction 3 held on `held6`.
+Not tested here: the key (phase B).
