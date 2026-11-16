@@ -64,3 +64,17 @@ became AR6 on 2026-11-16 at the owner's request.
   fit (e.g. field leg without strain, or the strict cost), then fit strain alone; compare with
   `S@P` and the `E@GT` floor. Then I40 (sharper sub-pixel cost). Runs take minutes
   (`fit_strain.py`). Then GO6 or the cached ray index for I36.
+
+## Now as of GO5d close (2026-11-16 13:30 PST)
+
+- **GO5d closed** (2026-11-16 13:30 PST): fixing the field first, then strain alone, does not
+  help (I41 no). Field fits without a strain model take up the strain as rotation (0.009 / 0.022
+  / 0.040 deg at 1e-4 / 5e-4 / 1e-3); strain after them 1.5 / 5.3 / 6.0e-4, worse than the staged
+  joint `S@P` (7.1 / 3.4 / 3.0e-4) above 1e-4. At a fixed exact orientation the strain fit
+  scatters 1-3e-4 run to run: the coverage cost is flat there. `findings.md` "GO5d".
+- GO5c: reaching the optimum does not recover strain (orientation-strain trade-off).
+- **Next action:** plan and run I40 (GO5e): a sharper sub-pixel cost (intensity-weighted
+  coverage or distance to lit pixels) so 1e-4 strain moves the cost. Judge first at the
+  ground-truth orientation (`E@GT`, floor band 1-3e-4), then in the staged joint fit from the
+  painted start (`S@P`). Runs take minutes (`fit_strain.py`). Then GO6 or the cached ray index
+  for I36.

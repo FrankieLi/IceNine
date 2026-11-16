@@ -9,6 +9,9 @@ mass on lit pixels, mean over the grain's spots (GO5 "coverage"). Spot windows a
 strain. Parameters: grain field (FieldA order 1, 9 numbers) and one crystal-frame strain per
 grain (6). CMA with per-coordinate steps 0.05 deg (field) and 5e-4 (strain), strain from 0.
 
+GO5e (I40): ``--cost sd|int`` replaces the coverage cost by a sub-pixel cost (``SubPix``: signed
+distance to the lit set, or clean intensity) in any arm; ``--seed`` offsets every CMA seed.
+
 GO5d arms (I41), strain only (``--evals_e``) at a fixed field: ``E@F`` (field fitted to the
 ground truth); ``O@P`` (field leg ``--evals_f`` on the coverage cost at zero strain); ``Ost@P``
 (field leg on the strict cost, no strain model).
@@ -92,6 +95,70 @@ class Coverage:
         return 1.0 - float(((a * on).sum(1)[ok] / tot[ok]).mean())
 
 
+class SubPix:
+    """GO5e sub-pixel costs on the same predicted coverage points as ``Coverage``. Per spot a map
+    over its window (frames, rows, columns), read by trilinear interpolation at each point;
+    mass-weighted mean per spot, mean over spots. ``sd``: signed distance to the lit set (pixel
+    / frame units, negative inside, boundary at 0, clipped to [-3, 5]). ``int``: 1 - clean
+    intensity / the spot's top intensity (intensity 0 off the lit set)."""
+
+    def __init__(self, prob: Any, kind: str) -> None:
+        from scipy import ndimage
+
+        self.prob, self.kind = prob, kind
+        self.maps, self.lo = [], []
+        for sp in prob.region.spots:
+            shape = (sp.f1 - sp.f0, sp.r1 - sp.r0, sp.c1 - sp.c0)
+            o = np.floor(np.asarray(sp.obs)).astype(np.int64)
+            fi = np.clip(o[:, 2] - sp.f0, 0, shape[0] - 1)
+            ri = np.clip(o[:, 1] - sp.r0, 0, shape[1] - 1)
+            ci = np.clip(o[:, 0] - sp.c0, 0, shape[2] - 1)
+            if kind == "sd":
+                lit = np.zeros(shape, bool)
+                lit[fi, ri, ci] = True
+                if lit.any():
+                    d_out = ndimage.distance_transform_edt(~lit)
+                    d_in = ndimage.distance_transform_edt(lit)
+                    m = np.where(lit, -(d_in - 0.5), d_out - 0.5)
+                else:
+                    m = np.full(shape, 5.0)
+                m = np.clip(m, -3.0, 5.0)
+            else:
+                m = np.zeros(shape)
+                v = np.asarray(sp.obs_val, float)
+                m[fi, ri, ci] = v / max(float(v.max()), 1e-12) if len(v) else 0.0
+            self.maps.append(m)
+            self.lo.append(np.array([sp.f0, sp.r0, sp.c0], float) + 0.5)
+
+    def __call__(self, R: torch.Tensor, strain: torch.Tensor) -> float:
+        from scipy import ndimage
+
+        prob = self.prob
+        prob.n_evals += 1
+        with torch.no_grad():
+            rows = prob.model.predict(R, prob.V, strain)
+            x, a = GF.pack_predicted(
+                prob.region, rows, prob.bary, prob.model.n_det, with_shell=False
+            )
+        x, a = x.numpy(), a.numpy()
+        vals = []
+        for j, m in enumerate(self.maps):
+            ok = a[j] > 0
+            if not ok.any():
+                continue
+            c = x[j][ok][:, ::-1] - self.lo[j]  # (frame, row, col) in map index units
+            if self.kind == "sd":
+                v = ndimage.map_coordinates(m, c.T, order=1, mode="nearest")
+            else:
+                v = ndimage.map_coordinates(m, c.T, order=1, mode="constant", cval=0.0)
+            w = a[j][ok]
+            vals.append(float((w * v).sum() / w.sum()))
+        if not vals:
+            return 5.0 if self.kind == "sd" else 1.0
+        f = float(np.mean(vals))
+        return f if self.kind == "sd" else 1.0 - f
+
+
 def robust_theta0(prob: Any, sym: np.ndarray, tol_deg: float = 1.5) -> Any:
     """Field fit of the start that ignores painted outliers: the medoid voxel (most members within
     ``tol_deg``) is the anchor; members farther than ``tol_deg`` from it are set to it before the
@@ -110,6 +177,9 @@ def robust_theta0(prob: Any, sym: np.ndarray, tol_deg: float = 1.5) -> Any:
     return prob.field.fit_theta(Rc, sym), int(out.sum())
 
 
+SEED = 0  # GO5e: offset added to every CMA seed (--seed)
+
+
 def cma_min(f: Any, x0: np.ndarray, stds: np.ndarray, evals: int, seed: int = 0) -> Dict[str, Any]:
     import cma
 
@@ -118,7 +188,7 @@ def cma_min(f: Any, x0: np.ndarray, stds: np.ndarray, evals: int, seed: int = 0)
         list(x0),
         1.0,
         {
-            "seed": seed + 1,
+            "seed": seed + 1 + 1000 * SEED,
             "maxfevals": evals,
             "verbose": -9,
             "CMA_stds": list(stds),
@@ -150,9 +220,17 @@ def main() -> None:
     ap.add_argument("--evals_e", type=int, default=300)
     ap.add_argument("--evals_f", type=int, default=200)
     ap.add_argument("--only", type=int, default=None)
+    ap.add_argument("--cost", default="cov", choices=["cov", "sd", "int"])
+    ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args()
+    global SEED
+    SEED = a.seed
     out = CM.OUT / a.out
     tag = a.arm.replace("@", "_")
+    if a.cost != "cov":
+        tag += f"_{a.cost}"
+    if a.seed:
+        tag += f"_s{a.seed}"
     start = "paint" if a.arm.endswith("@P") else "truth"
     S = CM.Sample(out / f"run_{tag}", start=start, intensity=True, sample="strain")
     T = S.T
@@ -179,7 +257,7 @@ def main() -> None:
             spec=GF.ObjectiveSpec(kind="sinkhorn"),
             strain=np.zeros((S.n, 6)),
         )
-        cov = Coverage(prob)
+        cov = Coverage(prob) if a.cost == "cov" else SubPix(prob, a.cost)
         zero = torch.zeros((n, 6), dtype=GF.DT)
         # ground truth in the fitted symmetry representative (that of prob.R_start), the same
         # re-expression GrainProblem applies to a strain when it swaps representatives
@@ -270,6 +348,8 @@ def main() -> None:
         err_start = T.err(prob.R_start, members)
         row = dict(
             arm=a.arm,
+            cost=a.cost,
+            seed=a.seed,
             grain=int(g),
             level=float(T.strain_level_of[g]),
             n_vox=n,

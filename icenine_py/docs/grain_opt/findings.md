@@ -400,3 +400,38 @@ Verdicts by the rule written before the runs:
   the cost has to resolve sub-pixel spot shifts. Next is I40 (sharper sub-pixel cost:
   intensity-weighted or distance to lit pixels), judged first at the ground-truth orientation
   (`E@GT`) and then in the staged joint fit from the painted start.
+
+## GO5e: a sharper sub-pixel strain cost (idea I40)
+
+Question: does a cost that sees sub-pixel shifts of the predicted coverage bring the strain-only
+error at the ground-truth orientation below the coverage cost's band (reference 1.66e-4 /
+1.57e-4 / 2.67e-4)? Costs on the same predicted points: `sd` (mass-weighted signed distance to
+the lit set, trilinear) and `int` (1 - mass-weighted clean intensity / spot top). `E@GT`, seeds
+0 and 1; rows in `benchmarks/grain_opt/go5e/*.json`. About 2 minutes per run, 15-33 ms per
+evaluation (same as coverage).
+
+| cost | 1e-4 | 5e-4 | 1e-3 | repeat scatter | short |
+|---|---|---|---|---|---|
+| coverage (reference, GO5b/GO5d) | 1.7e-4 | 1.6e-4 | 2.7e-4 | 3.5e-5 | 5 of 12 |
+| `sd` (mean of 2 seeds) | 1.8e-3 | 1.2e-3 | 8.9e-4 | 5.8e-5 | 0 of 12 |
+| `int` (mean of 2 seeds) | 2.5e-3 | 1.9e-3 | 1.5e-3 | 1.0e-4 | 0 of 12 |
+
+Verdicts by the rule written before the runs:
+
+- I40 is answered no for both costs: neither is sharper at any level, so the painted-start
+  staged fit was not run (rule).
+- Both costs are sharp but biased. Their repeat scatter is as small as coverage's, every fit
+  ends below the ground truth's cost (0 of 12 short; `sd` at grain 111 -0.263 against -0.229),
+  and the errors are 3e-4 to 3.6e-3. A probe along one random strain direction (grains 47, 237,
+  111) showed `sd` smooth with its minimum within 5e-5 of the ground truth, so the bias lies in
+  other directions: both costs reward strains that shrink or move the predicted footprint into
+  the interior of the observed spot (deepest signed distance, brightest pixels) instead of
+  matching it. A one-sided "predicted onto observed" cost is minimised by a footprint smaller
+  than the spot, and strain changes footprint size.
+- The coverage cost has the same one-sided form but saturates at 1 once all mass is lit, which
+  is why it is flat (GO5d) instead of biased. A sub-pixel cost has to be two-sided (observed onto
+  predicted as well) or compare positions, not depths.
+- Next (I42): a two-sided cost: per-spot centroid match (predicted mass centroid against the
+  observed intensity centroid, in pixel and frame units, the far-field HEXRD approach), or the
+  symmetric signed distance (`sd` plus the observed pixels' distance to the predicted
+  footprint).
