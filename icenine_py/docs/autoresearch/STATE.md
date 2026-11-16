@@ -38,7 +38,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
    goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. Fourteen pages wait now.
    NOW: AR5 step 22 (`ar5v`; N2): rest stage runs (~5 h). At marker `exit=0` SendMessage
-   implementer aba6e1bdb95dff72a for stats, plot, READY FOR KEY; then Opus review. Owner: checks.
+   implementer aba6e1bdb95dff72a for stats, plot; review; key. THEN the OWNER TASK (Queue row 1).
 
 ## Running jobs
 - Step 14 key WAITS (held2: step 13 or owner). Steps 15 to 21: merged (see STATE_HISTORY); `J5r`
@@ -55,6 +55,7 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 
 | step | what | state |
 |---|---|---|
+| OWNER TASK 16 Nov | (1) check the C++ pilot result for a bug (393 refits never fitted, 1,921 local optimizations returned their start, same inputs, scoring); (2) new finer layer, about 98,000 voxels: stock Python, stock C++, J5S; slice timing first, ask the owner if a run projects over 48 hours | FIRST after step 22, ahead of all else. Spec: PLAN "Owner task of 16 Nov" once placed; `shmem query "owner task C++ bug finer layer"` |
 | AR5 step 4 | `S10`, `S11`, `S11v2` on the held-out sample (task `ar5d`) | waits for the owner (page): `.claude/reports/20261111-2330-ar5d-phaseB-page.md` (main checkout) goes to `icenine_py/docs/autoresearch/findings_ar5_held.md` in worktree `agent-a8a1ac8e80f8913cf` |
 | AR5 step 6 | `S11n`, `S11h` on `mid` and `grad` (task `ar5f`) | reviewed and fixed; waits for the owner (page) and for step 4's merge. Branch tip d643eff, held by the fixes worktree `agent-a9420a98460078e81`; the first worktree `agent-a89458addd73332d9` (detached, 4c18740) holds the run cache `ar5/ver/cache/`: keep both. Opus review (`.claude/reports/20261112-0510-review-ar5f.md`): every headline number recomputed, none differs; 11 wording fixes, no rerun (N3). Fixes round done (7f272ce, 18260d5, d643eff; report `.claude/reports/20261112-0517-ar5f-fixes.md` in the fixes worktree; hand-back check: only the expected format flag; no number changed, `predictions[4].met` now false; 14 tests pass). Numbers: on `mid` `S11n` 14,105,137 evaluations (12.3% fewer than `S11`, 6 seeds kept, 0 wrong), `S11h` 15,680,025 (2.5%, 1 kept); both pass; "plain does as well" not met on `mid` (20.4% of the saving; 62.2% on `grad`, in-sample); six of seven predictions met. PAGE: not in the repo (Write refused). Corrected text: `.claude/reports/20261112-ar5f-page-v2.md` in the fixes worktree; the owner places it at `icenine_py/docs/autoresearch/findings_ar5_ver.md` there (or allows it). Then: sync check, commit, merge after step 4 (`finish_task.sh` in the fixes worktree), close (pareto points, page, PR #43); then a decision on an opt-in key for the `N1` rule |
 | AR5 step 7 | opt-in key `BoundaryPassSkipHitRatio` (task `ar5g`) | MERGED at 50c3b9c (N4, N5, N6), see "Last finished step". Open: only its page, for the owner to place: text `.claude/reports/20261112-ar5g-page-v2.md` (main checkout; the merge removed the fixes worktree, the text was recovered exactly from the recorded write and a table sync) goes to `icenine_py/docs/autoresearch/findings_ar5_gate.md` on `feature/eval-reduction`, then a sync check and a commit. Keep worktree `agent-a331e7882919e74aa` (stored passes, `ar5/gate/`). Step 6's page text and reports are now also copied to the main `.claude/reports/` |
@@ -70,7 +71,6 @@ Reading the table: one row per step that is not finished, in order. Finished ste
 C++ time (`cpptime`): merged at 003cc5d, 14 Nov; suite 2030 passed, 47 skipped, 1 deselected.
 - Walls: C1 1,236.87 s, C2 1,231.87 s (two busy processes); not a speed comparison to Python.
 - C++ left 416 of 2,000 pilot voxels wrong (Python 24); 393 refit voxels never fitted again.
-- Decisions: 14-N1 (rule R4b), D-20261114-N3 (review, 16 fixes, shared `quiet.py`, median 2.5).
 
 ## Untracked data that later steps need
 
