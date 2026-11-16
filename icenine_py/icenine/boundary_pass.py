@@ -37,6 +37,7 @@ from .reconstructor import _get_voxel_vertices
 BOUNDARY_THRESHOLD_DEG = 0.5  # boundary test and candidate merge distance
 PASS_SIGMA0_DEG = 0.05  # first step of a try (degrees)
 PASS_MAX_EVALS = 60  # evaluation budget of a try, the start's own evaluation included
+SCREEN_MAX_EVALS = 1  # BoundaryPassScreen (AR5 step 21): a screen try scores its start only
 PASS_SEED = 0  # the pass's own generator
 CMA_SEED_BOUND = 2**31 - 2  # the bound of the one seed a CMA try draws (orientation_search.py)
 
@@ -107,7 +108,7 @@ def keep_hit(old: Tuple[float, float], tries: Sequence[Tuple[float, float]]) -> 
 
 
 def run_boundary_pass(
-    bfs: Any, mic: Any, skip_hit: float = 0.0, repair: bool = False
+    bfs: Any, mic: Any, skip_hit: float = 0.0, repair: bool = False, screen: bool = False
 ) -> BoundaryPassResult:
     """Run the pass once on ``mic`` (the BFS's map, in place) with rule ``hit``.
 
@@ -133,7 +134,17 @@ def run_boundary_pass(
     ``repair`` (config key ``BoundaryPassRepair``, AR5 step 20; False = off, the pass is then
     exactly the one above): once the pass is done, the contested voxels get a second look
     (``boundary_repair.run_repair``). The result is left in ``res.repair``; ``bfs.stats`` gets the
-    repair's entries only with the key on."""
+    repair's entries only with the key on.
+
+    ``screen`` (config key ``BoundaryPassScreen``, AR5 step 21; False = off, the pass is then
+    exactly the one above, with the same calls and draws): every try has a budget of one
+    evaluation (``SCREEN_MAX_EVALS``: the candidate's start is scored and is the try's end; 2
+    evaluations with the final one) and the repair takes the wide flag. Needs ``repair``; refuses
+    ``skip_hit``."""
+    if screen and not repair:
+        raise ValueError("screen needs repair (BoundaryPassScreen 1 needs BoundaryPassRepair 1)")
+    if screen and skip_hit > 0.0:
+        raise ValueError("screen cannot be combined with skip_hit")
     t0 = time.time()
     rec = bfs.reconstructor
     voxels = mic.voxels
@@ -173,15 +184,27 @@ def run_boundary_pass(
             continue
         rows: List[Dict[str, Any]] = []
         for c in cands[v]:
-            r = rec.local_optimization(
-                voxel_vertices=verts,
-                phase_index=vox.phase,
-                initial_orientation=R[c],
-                rng=rng,
-                cma_sigma0_deg=PASS_SIGMA0_DEG,
-                cma_max_evals=PASS_MAX_EVALS,
-                optimizer="cma",
-            )
+            if screen:  # BoundaryPassScreen (opt-in, AR5 step 21): a one-evaluation try
+                r = rec.local_optimization(
+                    voxel_vertices=verts,
+                    phase_index=vox.phase,
+                    initial_orientation=R[c],
+                    rng=rng,
+                    cma_sigma0_deg=PASS_SIGMA0_DEG,
+                    cma_max_evals=SCREEN_MAX_EVALS,
+                    optimizer="cma",
+                    cma_screen=True,
+                )
+            else:
+                r = rec.local_optimization(
+                    voxel_vertices=verts,
+                    phase_index=vox.phase,
+                    initial_orientation=R[c],
+                    rng=rng,
+                    cma_sigma0_deg=PASS_SIGMA0_DEG,
+                    cma_max_evals=PASS_MAX_EVALS,
+                    optimizer="cma",
+                )
             hit, conf = bfs._ratios(r.overlap_info)
             rows.append(
                 dict(
@@ -239,5 +262,5 @@ def run_boundary_pass(
     if repair:  # BoundaryPassRepair (opt-in, AR5 step 20)
         from .boundary_repair import run_repair
 
-        res.repair = run_repair(bfs, mic, res, R, nbrs, sym, active, cost_fn)
+        res.repair = run_repair(bfs, mic, res, R, nbrs, sym, active, cost_fn, wide=screen)
     return res

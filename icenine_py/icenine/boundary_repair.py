@@ -40,6 +40,7 @@ SIGMA0_DEG = 0.05  # first step of a repair local optimization (degrees)
 MAX_EVALS = 120  # its budget, the start's own evaluation included (121 with the final one)
 SEED = 0  # first entry of every per-fit generator
 NO_OTHER = 1.0  # margin of a voxel with no other pass end (never contested)
+WIDE_DEG = 1.0  # BoundaryPassScreen: a pass candidate this far from the kept end makes a voxel wide
 
 
 @dataclass
@@ -52,6 +53,7 @@ class RepairInfo:
     flagged: List[int] = field(default_factory=list)
     fits: List[Dict[str, Any]] = field(default_factory=list)
     changed: List[int] = field(default_factory=list)
+    extra: List[int] = field(default_factory=list)  # wide voxels that are not contested (screen)
     n_evals_fits: int = 0
     n_evals_score: int = 0
     wall_s: float = 0.0
@@ -115,6 +117,30 @@ def contested(
     return (ratio < RATIO_MAX) & (margin < MARGIN_MAX), ratio, margin
 
 
+def wide_flag(
+    flag: np.ndarray,
+    ratio: np.ndarray,
+    t_voxel: np.ndarray,
+    t_end: np.ndarray,
+    R_after: np.ndarray,
+    sym: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """(wide (n,) bool, extra (n,) bool) of ``BoundaryPassScreen``: a voxel is wide if it is
+    contested (``flag``, unchanged), or if its ``ratio`` (hit ratio over the median hit ratio of
+    its neighbours, as ``contested`` gives it) is under ``RATIO_MAX`` and one of its pass
+    candidates (rows ``t_voxel`` / ``t_end``) is more than ``WIDE_DEG`` from its kept end
+    ``R_after``. ``extra``: the wide voxels that are not contested. A port of
+    ``scripts/autoresearch/ar5/screen_rules.wide_flag``."""
+    flag = np.asarray(flag, dtype=bool)
+    has_far = np.zeros(len(flag), dtype=bool)
+    if len(t_voxel):
+        tv = np.asarray(t_voxel, dtype=np.int64)
+        far = np.asarray(misorientation_deg(t_end, R_after[tv], sym), dtype=float) > WIDE_DEG
+        has_far[tv[far]] = True
+    wide = flag | ((np.asarray(ratio, dtype=float) < RATIO_MAX) & has_far)
+    return wide, wide & ~flag
+
+
 def run_repair(
     bfs: Any,
     mic: Any,
@@ -124,6 +150,7 @@ def run_repair(
     sym: np.ndarray,
     active: Optional[np.ndarray],
     cost_fn: Any,
+    wide: bool = False,
 ) -> RepairInfo:
     """Repair the contested voxels of ``mic`` (the BFS's map after the pass, in place).
 
@@ -156,7 +183,10 @@ def run_repair(
         [res.old_score[v][1] if v in res.old_score else hit[v] for v in range(n)], dtype=float
     )
     other = other_end_hit(R, R_before, old_hit, t_voxel, t_end, t_hit, sym)
-    flag, _ratio, _margin = contested(hit, other, nbrs)
+    flag, ratio, _margin = contested(hit, other, nbrs)
+    if wide:  # BoundaryPassScreen (opt-in, AR5 step 21): the wide flag
+        flag, extra = wide_flag(flag, ratio, t_voxel, t_end, R, sym)
+        info.extra = [int(v) for v in np.where(extra)[0]]
     flagged = [int(v) for v in np.where(flag)[0]]
     _isb, cands = boundary_candidates(R, nbrs, sym, active=active)
     info.flagged = flagged
@@ -224,6 +254,8 @@ def run_repair(
     st["repair_fits"] = len(info.fits)
     st["repair_changed"] = len(info.changed)
     st["n_evals_boundary_repair"] = info.n_evals
+    if wide:
+        st["repair_extra"] = len(info.extra)
     st["wall_boundary_repair_s"] = info.wall_s
     bfs.repair_log = log
     print(

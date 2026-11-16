@@ -238,6 +238,8 @@ class ConfigFile:
     boundary_pass_skip_hit: float = 0.0
     # AR5 step 20 (opt-in, off at 0): repair of the contested voxels after the boundary pass
     boundary_pass_repair: bool = False
+    # AR5 step 21 (opt-in, off at 0): screen tries in the boundary pass, repair on the wide flag
+    boundary_pass_screen: bool = False
     # AR5 step 9 (opt-in, off at 0 0): SeedRescueCMA sigma evals (see SearchParameters)
     seed_rescue_sigma_deg: float = 0.0  # degrees (kept in degrees, not converted)
     seed_rescue_evals: int = 0
@@ -501,6 +503,7 @@ class ConfigFile:
             "BFSNeighborCMANoFallback": self._parse_bool("bfs_neighbor_cma_no_fallback"),
             "BoundaryPassSkipHitRatio": self._parse_unit_interval("boundary_pass_skip_hit"),
             "BoundaryPassRepair": self._parse_bool("boundary_pass_repair"),
+            "BoundaryPassScreen": self._parse_bool("boundary_pass_screen"),
             "SeedRescueCMA": self._parse_seed_rescue_cma,
             "SeedIndexMCStallHit": self._parse_seed_index_mc_stall_hit,
             "CppOverlapRule": self._parse_bool("cpp_overlap_rule"),

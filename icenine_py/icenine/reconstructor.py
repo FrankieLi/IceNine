@@ -121,6 +121,13 @@ def check_bfs_keys(params: Any) -> None:
         raise ValueError("BoundaryPassSkipHitRatio > 0 needs BoundaryPass 1")
     if bool(getattr(params, "boundary_pass_repair", False)) and not boundary:
         raise ValueError("BoundaryPassRepair 1 needs BoundaryPass 1")
+    if bool(getattr(params, "boundary_pass_screen", False)):
+        if not bool(getattr(params, "boundary_pass_repair", False)):
+            raise ValueError("BoundaryPassScreen 1 needs BoundaryPassRepair 1")
+        if float(getattr(params, "boundary_pass_skip_hit", 0.0)) > 0.0:
+            raise ValueError(
+                "BoundaryPassScreen 1 cannot be combined with BoundaryPassSkipHitRatio"
+            )
     if seed_keys and not getattr(params, "seed_by_indexing", False):
         raise ValueError(
             "SeedIndexCandidates and SeedIndexStopHitRatio need SeedByIndexing 1 "
@@ -1427,6 +1434,7 @@ class AdaptiveVoxelReconstructor:
         cma_sigma0_deg: Optional[float] = None,
         cma_max_evals: Optional[int] = None,
         optimizer: Optional[str] = None,
+        cma_screen: bool = False,
     ) -> SearchCandidate:
         """
         Local optimization from a given starting orientation (for BFS neighbors).
@@ -1444,6 +1452,9 @@ class AdaptiveVoxelReconstructor:
                 params.cma_sigma0_deg)
             cma_max_evals: local_optimizer == "cma" only: budget override (default
                 params.cma_max_evals; BFS passes params.cma_neighbor_max_evals)
+            cma_screen: True only for the boundary pass's screen try (``BoundaryPassScreen``, AR5
+                step 21): allows ``cma_max_evals == 1``, a try that scores its start and returns it
+                (2 evaluations with the final one). False (the default): a budget under 2 raises.
             optimizer: "mc" or "cma" for this call only (AR3 step 10: ``BFSNeighborCMAFirst`` and
                 the boundary pass); None (the default) takes params.local_optimizer. A CMA call
                 leaves the start's own cost in ``result.start_cost``.
@@ -1483,7 +1494,7 @@ class AdaptiveVoxelReconstructor:
                     raise ValueError(f"cma_sigma0_deg must be > 0, got {cma_sigma0_deg}")
                 cma_opt.sigma0_deg = float(cma_sigma0_deg)
             if cma_max_evals is not None:
-                if cma_max_evals < 2:
+                if cma_max_evals < 2 and not (cma_screen and cma_max_evals == 1):
                     raise ValueError(f"cma_max_evals must be >= 2, got {cma_max_evals}")
                 cma_opt.max_evals = int(cma_max_evals)
             result = cma_opt.optimize(initial_orientation)
@@ -2102,7 +2113,10 @@ class BFSReconstruction:
 
             skip_hit = float(getattr(self.setup.search_params, "boundary_pass_skip_hit", 0.0))
             repair = bool(getattr(self.setup.search_params, "boundary_pass_repair", False))
-            if repair:  # BoundaryPassRepair (opt-in, AR5 step 20)
+            if repair and bool(getattr(self.setup.search_params, "boundary_pass_screen", False)):
+                # BoundaryPassScreen (opt-in, AR5 step 21): screen tries, repair on the wide flag
+                BP.run_boundary_pass(self, mic, skip_hit=skip_hit, repair=True, screen=True)
+            elif repair:  # BoundaryPassRepair (opt-in, AR5 step 20)
                 BP.run_boundary_pass(self, mic, skip_hit=skip_hit, repair=True)
             elif skip_hit > 0.0:  # BoundaryPassSkipHitRatio (opt-in, AR5 step 7)
                 BP.run_boundary_pass(self, mic, skip_hit=skip_hit)

@@ -211,6 +211,13 @@ class SearchParameters:
     #   of the map after the pass, and keeps the best end (icenine/boundary_repair.py; its settings
     #   are constants of that module). Needs boundary_pass.
     boundary_pass_repair: bool = False
+    # boundary_pass_screen (BoundaryPassScreen, AR5 step 21; off by default): every boundary-pass
+    #   try has a budget of one evaluation (a screen try: the candidate's start is scored and is the
+    #   try's end; 2 evaluations with the final one) and the repair takes the wide flag: the
+    #   contested voxels plus the voxels whose hit ratio over the median hit ratio of their
+    #   neighbours is under 0.95 and that have a pass candidate more than 1 degree from the kept
+    #   end. Needs boundary_pass and boundary_pass_repair; refuses boundary_pass_skip_hit.
+    boundary_pass_screen: bool = False
     # seed_rescue_sigma_deg, seed_rescue_evals (SeedRescueCMA sigma evals, AR5 step 9; both 0 =
     #   off, else sigma > 0 degrees and evals >= 2): after an indexed seed step fails the seed test,
     #   the kept end of each refined candidate is tried in order of cost (at most 5) with one CMA
@@ -387,6 +394,7 @@ class SearchParameters:
             ),
             boundary_pass_skip_hit=float(getattr(config, "boundary_pass_skip_hit", 0.0)),
             boundary_pass_repair=bool(getattr(config, "boundary_pass_repair", False)),
+            boundary_pass_screen=bool(getattr(config, "boundary_pass_screen", False)),
             seed_rescue_sigma_deg=float(getattr(config, "seed_rescue_sigma_deg", 0.0)),
             seed_rescue_evals=int(getattr(config, "seed_rescue_evals", 0)),
             seed_index_mc_stall_hit=int(getattr(config, "seed_index_mc_stall_hit", 0)),
