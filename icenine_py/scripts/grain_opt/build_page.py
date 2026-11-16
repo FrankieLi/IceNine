@@ -152,7 +152,7 @@ def pareto_svg(points: List[Dict[str, Any]]) -> str:
             break
         out.append(f'<text x="{X(t):.1f}" y="{H-B+18}" class="tick" text-anchor="middle">{t}</text>')
     out.append(f'<text x="{(L+W-R)/2:.0f}" y="{H-8}" class="axis" text-anchor="middle">'
-               "cost: renders per voxel (log scale; 0 = no fit)</text>")
+               "num objective eval / voxel (log scale; 0 = no fit)</text>")
     out.append(f'<text x="16" y="{(T+H-B)/2:.0f}" class="axis" text-anchor="middle" '
                f'transform="rotate(-90 16 {(T+H-B)/2:.0f})">share of voxels above 0.1 deg (%)</text>')
     # frontier over the G20 points (excluding the reference set)
@@ -167,7 +167,7 @@ def pareto_svg(points: List[Dict[str, Any]]) -> str:
         out.append(f'<line x1="{x:.1f}" x2="{x:.1f}" y1="{Y(lo):.1f}" y2="{Y(hi):.1f}" '
                    f'stroke="var({g[3]})" stroke-width="1.6" opacity="0.6"/>')
         tip = (f'<title>{esc(p["label"])}: {c:.2f}% ({lo:.2f} to {hi:.2f}), '
-               f'{p["renders_per_voxel"]} renders/voxel, {esc(p.get("set", ""))}</title>')
+               f'{p["renders_per_voxel"]} objective eval / voxel, {esc(p.get("set", ""))}</title>')
         out.append(f"<g>{marker(g[2], x, y, 4.5, g[3])}{tip}</g>")
         out.append(f'<text x="{x+8:.1f}" y="{y-7:.1f}" class="lab">{idx}</text>')
     out.append("</svg>")
@@ -185,7 +185,7 @@ def pareto_svg(points: List[Dict[str, Any]]) -> str:
                  '<line x1="1" y1="9" x2="25" y2="9" class="front"/></svg>Frontier (G20 arms)</li>')
     legend = f'<ul class="legend">{"".join(items)}</ul>'
     howto = ('<p class="note">How to read: lower and further left is better (fewer voxels off by more '
-             'than 0.1 deg, for less work). Each marker is one arm; the vertical line through it is '
+             'than 0.1 deg, for fewer objective evaluations). Each marker is one arm; the vertical line through it is '
              'the Wilson 95% interval; the number next to it matches the table below. The dashed line '
              'joins the arms that no other arm beats on both axes.</p>')
     return "".join(out) + legend + howto
@@ -275,7 +275,11 @@ border-radius:6px;padding:3px 10px;cursor:pointer}.filters button[aria-pressed="
         )
     parts.append("</tbody></table></div>")
     parts.append("<h2>Cost against quality</h2>")
-    parts.append(f'<p class="note">{esc(prog["pareto_note"])} Whiskers: Wilson 95% intervals.</p>')
+    parts.append(f'<p class="note">{esc(prog["pareto_note"])}</p>')
+    parts.append('<p class="note"><strong>Unit.</strong> One objective evaluation is one call of the '
+                 'objective being fitted. In a grain fit that call scores every voxel of the grain '
+                 'once, so N grain evaluations count as N per voxel. In a per-voxel fit it is one '
+                 'strict-cost call for one voxel. Chained stages add up. Log scale; 0 = no fit.</p>')
     parts.append(pareto_svg(prog["pareto"]))
     key_rows = "".join(
         f'<tr><td class="id">{i}</td><td>{esc(p["label"])}</td><td class="id">{esc(p.get("set", ""))}</td>'
@@ -285,7 +289,7 @@ border-radius:6px;padding:3px 10px;cursor:pointer}.filters button[aria-pressed="
         for i, p in enumerate(prog["pareto"], 1)
     )
     parts.append('<div class="tbl" style="margin-top:10px"><table><thead><tr><th>#</th><th>arm</th>'
-                 '<th>voxels</th><th>renders / voxel</th><th>above 0.1 deg</th><th>median deg</th>'
+                 '<th>voxels</th><th>num objective eval / voxel</th><th>above 0.1 deg</th><th>median deg</th>'
                  f'</tr></thead><tbody>{key_rows}</tbody></table></div>')
     parts.append("<h2>Ideas</h2>")
     parts.append('<div class="filters" role="group" aria-label="Filter ideas by status">'

@@ -64,7 +64,7 @@ def main() -> None:
             rpv = float((np.array([g["renders_per_voxel"] for g in G]) * nv).sum() / nv.sum())
             tsec = float(sum(s["t_s"] for g in G for s in g["stages"]))
             md += [f"grains: {len(G)}; stages {run['stages']}; accepted per stage {acc}; "
-                   f"renders per voxel {rpv:.1f}; stage wall time {tsec:.1f} s "
+                   f"objective evaluations per voxel {rpv:.1f}; stage wall time {tsec:.1f} s "
                    f"({tsec / nv.sum() * 1000:.1f} ms per voxel); timing: {run.get('timing', '')}", ""]
             last = f"s{nst - 1}"
             withC = [r for r in rows if "err_C" in r]
@@ -85,7 +85,7 @@ def main() -> None:
     (ap_out.parent / f"{ap_out.name}.json").write_text(json.dumps(summ, indent=1) + "\n")
     for k, v in summ.items():
         if "renders_per_voxel" in v:
-            print(f"{k:16s} r/vox {v['renders_per_voxel']:6.1f} ms/vox {v['ms_per_voxel']:6.1f} "
+            print(f"{k:16s} eval/vox {v['renders_per_voxel']:6.1f} ms/vox {v['ms_per_voxel']:6.1f} "
                   f"C-voxels n {v['n']} gt0.1 {v['k_gt01']} med {v['median']:.4f} p95 {v['p95']:.4f} "
                   f"wrong {v['k_wrong']} | all n {v['n_all']} gt0.1 {v['k_gt01_all']} acc {v['accepted']}")
 

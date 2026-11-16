@@ -40,8 +40,9 @@ Written before any run of the step.
   (`VoxelCostFunction`, local, hard) is the referee and is reported per voxel.
 - **Cost**: objective evaluations per grain (one evaluation renders every voxel of the group
   once) and wall seconds (labelled single-worker or contended by `preflight_label`). For a
-  per-voxel method, strict evaluations per voxel. The Pareto x axis is "renders per voxel":
-  grain-objective evaluations, or per-voxel strict evaluations.
+  per-voxel method, strict evaluations per voxel. The Pareto x axis is "objective evaluations
+  per voxel": one evaluation of a grain objective scores every voxel of the grain once (counts 1
+  per voxel); a per-voxel fit counts its strict-cost calls per voxel; chained stages add up.
 - **Reference points**: start (0), AR3 step 4 CMA per-voxel fit `C` (61 strict evaluations per
   voxel; on the painted voxels 334 of 19,013 above 0.1 deg, 1.6 to 2.0%), on the same voxels.
 - **Comparisons**: a gain or loss only when Wilson intervals do not overlap. No p-values, no
@@ -71,7 +72,7 @@ next step studies the cause (I3, I4) before any optimizer study.
 
 ### GO2: optimizer Pareto on G20 (ideas I5, I6, I9, I10, I28, I29)
 
-Question: for each objective, how many renders per voxel buy how much accuracy, and which chain
+Question: for each objective, how many objective evaluations per voxel buy how much accuracy, and which chain
 of stages reaches the strict-cost optimum cheapest? GO1 found every Sinkhorn variant flat within
 0.03 to 0.04 deg of the ground truth, and the strict cost (grain mean) within 0.006 to 0.008 deg. So
 Sinkhorn is a basin finder at best, and the finish must use the strict cost (or a sharper smooth
@@ -88,7 +89,7 @@ the strict cost):
 5. Sinkhorn first: `Asink/150,Astrict/100,V/20`; and `Asink/150,Bsink/40,Astrict/50` (I6).
 6. Least squares first: `Als/150,Astrict/100,V/20` (I21 as basin finder).
 
-Judging: the standing rule. Pareto axes: renders per voxel (x) against share above 0.1 deg and
+Judging: the standing rule. Pareto axes: objective evaluations per voxel (x) against share above 0.1 deg and
 median error (y), on the voxels of the 20 grains with a C record; also wall seconds per voxel.
 The frontier is the set of arms no other arm beats on both axes (with interval overlap counted as
 a tie). Budget: strict-cost arms take seconds per grain; Sinkhorn arms about 1 min per grain;
