@@ -968,6 +968,16 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   fewer evaluations than `J5C` and 70.1% fewer than `S8`, 31 wrong voxels of 24,570 against 33 for
   `J5C` (4 fixed, 2 broken), rules 1 to 4 pass.
   MIGRATION_HISTORY, "Autoresearch AR5 step 21, phase A".
+- Autoresearch `fine1`, phase A (a whole layer one generation finer; D-20261116-N3, N5): scripts
+  `scripts/autoresearch/fine1/` (`fine1_lib.py` pure grid split, edge pairs, gradient cap and gate;
+  `fine1_make_grid.py` generation-7 grid of 98,280 voxels and the 2,000-voxel slice;
+  `fine1_make_sample.py` sample `fine7`, generator seed 7; `fine1_gradient_check.py` the hard gate;
+  `fine1_stack.py`, `fine1_check_inputs.py`, `fine1_cpp_split_check.py` with `cpp_split_check.cpp`;
+  `fine1_config.py` the arm configs; `fine1_run_py.py`, `fine1_launch.sh` with
+  `fine1_launch_slice.sh` and `fine1_launch_whole.sh` for arms `CS`, `J5S`, `PS`, `CF`;
+  `fine1_freeze.py`), tests `tests/test_fine1.py`, records `benchmarks/autoresearch/fine1/`
+  (`frozen.json`; truth, images, stack and run outputs in the gitignored `cache/`). No library
+  change. MIGRATION_HISTORY, "Autoresearch fine1, phase A".
 
 See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and
 current results of this work, and [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy

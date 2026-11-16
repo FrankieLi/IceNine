@@ -13394,3 +13394,43 @@ layer only (`scripts/autoresearch/ar5/screen_*.py`, `screen_*.sh`; `tests/test_a
   `J5C` per disclosed sample (the screen scripts' freeze check now refuses until re-frozen).
 - Results: `benchmarks/autoresearch/ar5/screen/` (`frozen.json`, `gate.json`, `gate_tables.md`; the
   cache is untracked).
+
+## Autoresearch `fine1`, phase A: a whole layer one generation finer, sample built and frozen (2026-11-16, task fine1)
+
+Owner task of 16 Nov, part 2 (D-20261116-N3, N5). A measurement on a new sample: no method is
+changed or tuned. Phase A builds the sample and the launchers; no method ran on `fine7` or its slice.
+Library changes: none.
+
+- **Grid.** `fine1_make_grid.py` splits each of the 24,570 triangles of
+  `rand_500grains_1mm_neworient_s0_grid.mic` into four as C++ does: 98,280 voxels of generation 7,
+  side 0.0046875 mm, the same area (relative difference 2e-15), every child inside its parent.
+  The grid equals C++'s own `SetMinimumResolution` (`cpp_split_check.cpp` links the stock build's
+  `ReconstructionStrategies.cpp.o`, reads the generation-6 grid and writes the result): 98,280 rows,
+  directions and generations equal, positions within 5.1e-7 mm (consistent with the 6-digit text
+  output of the C++ writer; the grid is written with 9 decimals). Fed the generation-7 grid, C++
+  returns it unchanged (nothing is split again): the generation rule gives 7 for `MinSideLength`
+  0.0046875 with 32-bit floats.
+- **Sample `fine7`.** Generator seed 7 (a new sample, not an extra seed for a comparison), 250
+  Voronoi cells, 250 connected grains (38 to 1,111 voxels, median 358), one orientation redrawn for
+  the 5-degree rule, levels 0 / 0.2 / 0.5 / 1 / 2 / 4 degrees on 41 / 28 / 44 / 49 / 39 / 49 grains.
+  The gradient cap (`fine1_lib.capped_gradient_orientations`, 0.45 degree) scaled 5 grains (all of
+  level 4: drawn largest steps 0.45 to 1.15 degrees; kept spreads 1.56 to 3.98 degrees); the crude
+  estimate of the plan was 2.
+- **Gradient gate, passed.** From the written truth: 139,346 neighbour pairs inside grains (edge
+  sharing), maximum 0.4501 degree (32 pairs between 0.45 and 0.5, all in capped grains: the
+  difference is the Euler precision of the written file), median 0.0282, 90th 0.184, 99th 0.329,
+  99.9th 0.4499; largest grain spread 4.000 degrees, median 1.000. `gradient_tables.md` has the
+  histogram and the 250-grain table.
+- **Images.** `render_full.py --tag fine7 --workers 2 --variants clean`: 397 s, contended (two
+  workers; the machine was busy), 12,054,858 lit pixels; the stack equals all 360 frames; C++ and
+  Python read the same inputs (`inputs_check.json`: the config differences are the three Python-only
+  keys, the output name and the save interval; `score_cpp.py` matching is unique at the fine side).
+- **Freeze.** `benchmarks/autoresearch/fine1/frozen.json` committed before any run (hashes of grid,
+  truth, slice grid, stack, 360 frames, the scripts and the library). The slice is the 2,000 rows
+  nearest the centre by left vertex.
+- **Launchers (written, not run).** `fine1_launch.sh` (stages `slice` and `whole`, wrappers
+  `fine1_launch_slice.sh` and `fine1_launch_whole.sh`): arms `CS`, `J5S`, `PS` (and `CF` with a
+  fixed binary) strictly one after another, `--dry-run`, `--resume`, logs and `<arm>.done`
+  markers, preflight and quiet verdict, guard at the cap and at a 30-minute log stall. The Python
+  run script was tried on a 30-voxel piece of the coarse pilot (not `fine7`) for both arms.
+- Not done: the slice and whole-layer runs, the projection (phases B and C).
