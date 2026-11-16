@@ -34,11 +34,13 @@ def table(rows: List[Dict[str, Any]], keys: List[str]) -> List[str]:
 
     add("all", rows)
     withC = [r for r in rows if "err_C" in r]
-    add("voxels with a C fit", withC)
-    add("interior (C voxels)", [r for r in withC if not r["boundary"]])
-    add("boundary (C voxels)", [r for r in withC if r["boundary"]])
+    base, tag = (withC, "C voxels") if withC else (rows, "all")
+    if withC:
+        add("voxels with a C fit", withC)
+    add(f"interior ({tag})", [r for r in base if not r["boundary"]])
+    add(f"boundary ({tag})", [r for r in base if r["boundary"]])
     for lv in sorted({r["level"] for r in rows}):
-        add(f"level {lv} (C voxels)", [r for r in withC if r["level"] == lv])
+        add(f"level {lv} ({tag})", [r for r in base if r["level"] == lv])
     return out
 
 
@@ -67,7 +69,7 @@ def main() -> None:
                    f"objective evaluations per voxel {rpv:.1f}; stage wall time {tsec:.1f} s "
                    f"({tsec / nv.sum() * 1000:.1f} ms per voxel); timing: {run.get('timing', '')}", ""]
             last = f"s{nst - 1}"
-            withC = [r for r in rows if "err_C" in r]
+            withC = [r for r in rows if "err_C" in r] or rows
             e = np.array([r[f"err_{last}"] for r in withC])
             summ[name] = dict(stages=run["stages"], renders_per_voxel=rpv, wall_s=tsec,
                               ms_per_voxel=tsec / nv.sum() * 1000, accepted=acc, n=len(e),

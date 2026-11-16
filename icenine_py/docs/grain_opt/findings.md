@@ -93,3 +93,52 @@ the optimum (ground truth: 0.0806 on 381, 0.0522 on 302).
 A two-grain stage-A test on Sinkhorn (60 CMA evaluations) lowered the objective while moving
 voxels away from the ground truth (median 0.016 to 0.050 deg on grain 381, 0.032 to 0.081 deg on
 306); the strict-cost gate rejected both. GO1 above explains it.
+
+## GO2: optimizer Pareto on G20 (ideas I5, I6, I9, I10, I28, I29)
+
+Question: how many objective evaluations per voxel buy how much accuracy, and which chain of
+stages reaches the strict-cost optimum cheapest? Benchmark G20 (20 `grad` grains, painted start,
+start-map flood-fill groups, 1,082 voxels; 853 of them have an AR3 C record). Pipelines of
+`run_pipeline.py`: A = grain-field CMA on an objective, V = per-voxel CMA on the strict cost
+(sigma 0.02 deg). One objective evaluation scores every voxel of the grain once (grain fits) or
+one voxel (per-voxel fits); chained stages add up. Tables: `benchmarks/grain_opt/go2/`.
+
+Reading the table: on the 853 voxels with a C record; `eval/voxel` objective evaluations per
+voxel; `ms/voxel` wall time of the fit stages per voxel (contended: Newt's runs share the
+machine); `> 0.1 deg` pooled count with Wilson 95% interval; `median` and `p95` in degrees.
+
+| arm | eval/voxel | ms/voxel | > 0.1 deg | median | p95 |
+|---|---|---|---|---|---|
+| painted start | 0 | 0 | 84 (8.0 to 12.0%) | 0.0349 | 0.135 |
+| AR3 per-voxel CMA, C (sigma 0.05) | 61 | 6.5 | 18 (1.3 to 3.3%) | 0.0181 | 0.055 |
+| per-voxel CMA, sigma 0.02, 20 | 22 | 3.4 | 45 (4.0 to 7.0%) | 0.0235 | 0.102 |
+| per-voxel CMA, sigma 0.02, 61 | 62 | 6.6 | 34 (2.9 to 5.5%) | 0.0165 | 0.083 |
+| grain field, strict, 50 | 63 | 1.8 | 20 (1.5 to 3.6%) | 0.0148 | 0.043 |
+| grain field, strict, 100 | 113 | 3.1 | 3 (0.1 to 1.0%) | 0.0146 | 0.035 |
+| grain field, strict, 200 | 213 | 5.2 | 3 (0.1 to 1.0%) | 0.0111 | 0.033 |
+| grain field, strict, 400 | 413 | 11.1 | 3 (0.1 to 1.0%) | 0.0062 | 0.022 |
+| quadratic field, strict, 200 | 207 | 5.7 | 20 (1.5 to 3.6%) | 0.0170 | 0.049 |
+| field 100 + voxel 10 | 128 | 5.6 | 3 | 0.0151 | 0.034 |
+| field 100 + voxel 30 | 149 | 7.2 | 3 | 0.0130 | 0.032 |
+| field 100 + voxel 61 | 175 | 9.4 | 3 | 0.0114 | 0.030 |
+| Sinkhorn 150, field 100, voxel 20 | 298 | 2,287 | 3 | 0.0145 | 0.033 |
+
+On the 10-grain subset (494 C voxels): strict field 100 + voxel 20: 1 above 0.1 deg, median
+0.0153 (5.6 ms/voxel); least squares 150 first: median 0.0136 (112 ms/voxel); intensity-weighted
+Sinkhorn 150 first: median 0.0155 (1,391 ms/voxel).
+
+- The grain field on the strict cost is the frontier: at 100 evaluations per voxel it beats C on
+  voxels above 0.1 deg (3 against 18, intervals apart) and on p95 (0.035 against 0.055), at half
+  of C's wall time. The 3 left are the 3 wrong voxels (above 1 deg) of the paint; no local fit
+  reaches them. More evaluations lower the median (0.0146 at 100, 0.0062 at 400).
+- A per-voxel polish after the field lowers the median a little (0.0151 to 0.0114 for 10 to 61
+  more per voxel); 300 more grain evaluations do better (0.0062).
+- The quadratic field (5 more coefficients per component) is worse at 200 than the linear field at
+  100: CMA spends its budget on directions `grad` does not need (its gradients are linear).
+- Per-voxel CMA alone is worse than the field at every budget here: each voxel's strict cost is
+  noisy (few pixels per voxel), and the field pools all of a grain's spots.
+- Smooth objectives as basin finders add nothing from this start: the Sinkhorn stage was kept on
+  3 of 20 grains (gate), the end result equals strict alone, at about 700 times the wall time;
+  least squares was kept on 7 of 10 and lowers the median slightly (0.0136 against 0.0153) at 20
+  times the wall time. The painted start is already inside the strict basin; GO4 tests starts
+  that are not.

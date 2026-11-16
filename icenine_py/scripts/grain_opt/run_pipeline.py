@@ -8,7 +8,8 @@ of the group's voxels do not get worse):
   on objective ``obj`` in {sink, sinki (intensity-weighted Sinkhorn), ls, strict}, at most
   ``evals`` evaluations.
 * ``B<obj>/<steps>``: Adam on free per-voxel offsets with smoothness (``obj`` sink or ls).
-* ``V/<evals>``: per-voxel CMA on that voxel's strict cost (3 numbers, sigma 0.02 deg), at most
+* ``V/<evals>[/<sigma>]``: per-voxel CMA on that voxel's strict cost (3 numbers, sigma 0.02 deg
+  unless given), at most
   ``evals`` strict evaluations per voxel (AR3 C used 61 from the painted start).
 
 Cost accounting: ``renders_per_voxel`` = grain-objective evaluations of every A/B stage (each
@@ -45,6 +46,8 @@ def parse(p: str) -> List[Tuple[str, str, int, int]]:
         head, n = parts[0], int(parts[1])
         order = 2 if len(parts) > 2 and parts[2] == "o2" else 1
         kind, obj = head[0], head[1:]
+        if kind == "V" and len(parts) > 2:  # V/<evals>/<sigma deg>
+            obj = parts[2]
         assert kind in "ABV", st
         if kind != "V":
             assert obj in OBJ, st
@@ -147,7 +150,7 @@ def main() -> None:
                 R_new = R_now.copy()
                 used_v = []
                 for i, v in enumerate(members):
-                    R_new[i], k = voxel_cma(S, R_now[i], v, n)
+                    R_new[i], k = voxel_cma(S, R_now[i], v, n, float(obj) if obj else 0.02)
                     used_v.append(k)
                 used = float(np.mean(used_v))
                 f_old = f_new = float("nan")

@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-15 22:00 PST",
+ "updated": "2026-11-15 22:35 PST",
  "steps": [
   {
    "id": "GO0",
@@ -37,9 +37,9 @@
   {
    "id": "GO2",
    "title": "Optimizer Pareto on G20 (20 grad grains, painted start)",
-   "status": "running",
+   "status": "done",
    "date": "2026-11-15",
-   "result": "Strict-cost arms done: field CMA 100 evals leaves 3 of 853 voxels above 0.1 deg (0.1-1.0%) against 18 (1.3-3.3%) for AR3 per-voxel CMA at 61 evals; 400 evals: median 0.0062 deg. Sinkhorn-first arms running.",
+   "result": "Frontier: grain-field CMA on the strict cost. At 100 objective evaluations per voxel, 3 of 853 voxels > 0.1 deg (the 3 paint errors) vs 18 for AR3 per-voxel CMA, at half its wall time; 400 evaluations: median 0.0062 deg. Per-voxel CMA alone, quadratic fields and Sinkhorn/LS basin stages add nothing from the painted start (Sinkhorn: 700x wall time).",
    "commit": ""
   }
  ],
@@ -174,6 +174,16 @@
    "k": 34,
    "n": 853,
    "median": 0.01645216117598562
+  },
+  {
+   "label": "Sinkhorn 150 + field 100 + voxel 20",
+   "family": "g20",
+   "group": "smooth",
+   "set": "G20, 853 voxels",
+   "renders_per_voxel": 298.0,
+   "k": 3,
+   "n": 853,
+   "median": 0.014474684522747592
   }
  ]
 }

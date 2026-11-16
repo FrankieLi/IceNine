@@ -32,7 +32,7 @@ args: `{"name": "go2_As50", "pipeline": "Astrict/50", "sample": "grad", "start":
 | level 1.0 (C voxels) | s0 | 77 | 0.0107 | 0.1879 | 19 of 77 (16.4 to 35.4%) | 2 of 77 (0.7 to 9.0%) | 0.0980 |
 | level 1.0 (C voxels) | C | 77 | 0.0247 | 0.2014 | 16 of 77 (13.2 to 31.1%) | 2 of 77 (0.7 to 9.0%) | 0.0927 |
 
-grains: 20; stages Astrict/50; accepted per stage [16]; renders per voxel 63.0; stage wall time 2.0 s (1.8 ms per voxel); timing: contended: timing preflight refused (duetexpertd at 97% CPU, Python at 100% CPU); single run, one worker
+grains: 20; stages Astrict/50; accepted per stage [16]; objective evaluations per voxel 63.0; stage wall time 2.0 s (1.8 ms per voxel); timing: contended: timing preflight refused (duetexpertd at 97% CPU, Python at 100% CPU); single run, one worker
 
 ## go2_As100
 
@@ -68,7 +68,7 @@ args: `{"name": "go2_As100", "pipeline": "Astrict/100", "sample": "grad", "start
 | level 1.0 (C voxels) | s0 | 77 | 0.0095 | 0.0352 | 2 of 77 (0.7 to 9.0%) | 2 of 77 (0.7 to 9.0%) | 0.0869 |
 | level 1.0 (C voxels) | C | 77 | 0.0247 | 0.2014 | 16 of 77 (13.2 to 31.1%) | 2 of 77 (0.7 to 9.0%) | 0.0927 |
 
-grains: 20; stages Astrict/100; accepted per stage [17]; renders per voxel 113.0; stage wall time 3.3 s (3.1 ms per voxel); timing: contended: timing preflight refused (Python at 100% CPU); single run, one worker
+grains: 20; stages Astrict/100; accepted per stage [17]; objective evaluations per voxel 113.0; stage wall time 3.3 s (3.1 ms per voxel); timing: contended: timing preflight refused (Python at 100% CPU); single run, one worker
 
 ## go2_As200
 
@@ -104,7 +104,7 @@ args: `{"name": "go2_As200", "pipeline": "Astrict/200", "sample": "grad", "start
 | level 1.0 (C voxels) | s0 | 77 | 0.0093 | 0.0335 | 2 of 77 (0.7 to 9.0%) | 2 of 77 (0.7 to 9.0%) | 0.0859 |
 | level 1.0 (C voxels) | C | 77 | 0.0247 | 0.2014 | 16 of 77 (13.2 to 31.1%) | 2 of 77 (0.7 to 9.0%) | 0.0927 |
 
-grains: 20; stages Astrict/200; accepted per stage [17]; renders per voxel 213.0; stage wall time 5.7 s (5.2 ms per voxel); timing: contended: timing preflight refused (Python at 100% CPU); single run, one worker
+grains: 20; stages Astrict/200; accepted per stage [17]; objective evaluations per voxel 213.0; stage wall time 5.7 s (5.2 ms per voxel); timing: contended: timing preflight refused (Python at 100% CPU); single run, one worker
 
 ## go2_As400
 
@@ -140,7 +140,7 @@ args: `{"name": "go2_As400", "pipeline": "Astrict/400", "sample": "grad", "start
 | level 1.0 (C voxels) | s0 | 77 | 0.0031 | 0.0184 | 2 of 77 (0.7 to 9.0%) | 2 of 77 (0.7 to 9.0%) | 0.0773 |
 | level 1.0 (C voxels) | C | 77 | 0.0247 | 0.2014 | 16 of 77 (13.2 to 31.1%) | 2 of 77 (0.7 to 9.0%) | 0.0927 |
 
-grains: 20; stages Astrict/400; accepted per stage [20]; renders per voxel 413.0; stage wall time 12.0 s (11.1 ms per voxel); timing: contended: timing preflight refused (corespotlightd at 227% CPU, Python at 46% CPU, Slack at 33% CPU); single run, one worker
+grains: 20; stages Astrict/400; accepted per stage [20]; objective evaluations per voxel 413.0; stage wall time 12.0 s (11.1 ms per voxel); timing: contended: timing preflight refused (corespotlightd at 227% CPU, Python at 46% CPU, Slack at 33% CPU); single run, one worker
 
 ## go2_As200o2
 
@@ -176,7 +176,7 @@ args: `{"name": "go2_As200o2", "pipeline": "Astrict/200/o2", "sample": "grad", "
 | level 1.0 (C voxels) | s0 | 77 | 0.0156 | 0.1879 | 19 of 77 (16.4 to 35.4%) | 2 of 77 (0.7 to 9.0%) | 0.1010 |
 | level 1.0 (C voxels) | C | 77 | 0.0247 | 0.2014 | 16 of 77 (13.2 to 31.1%) | 2 of 77 (0.7 to 9.0%) | 0.0927 |
 
-grains: 20; stages Astrict/200/o2; accepted per stage [17]; renders per voxel 207.0; stage wall time 6.2 s (5.7 ms per voxel); timing: contended: timing preflight refused (Python at 99% CPU); single run, one worker
+grains: 20; stages Astrict/200/o2; accepted per stage [17]; objective evaluations per voxel 207.0; stage wall time 6.2 s (5.7 ms per voxel); timing: contended: timing preflight refused (Python at 99% CPU); single run, one worker
 
 ## go2_As100_V10
 
@@ -221,7 +221,7 @@ args: `{"name": "go2_As100_V10", "pipeline": "Astrict/100,V/10", "sample": "grad
 | level 1.0 (C voxels) | s1 | 77 | 0.0099 | 0.0463 | 2 of 77 (0.7 to 9.0%) | 2 of 77 (0.7 to 9.0%) | 0.0804 |
 | level 1.0 (C voxels) | C | 77 | 0.0247 | 0.2014 | 16 of 77 (13.2 to 31.1%) | 2 of 77 (0.7 to 9.0%) | 0.0927 |
 
-grains: 20; stages Astrict/100,V/10; accepted per stage [17, 20]; renders per voxel 128.0; stage wall time 6.1 s (5.6 ms per voxel); timing: contended: timing preflight refused (Python at 99% CPU); single run, one worker
+grains: 20; stages Astrict/100,V/10; accepted per stage [17, 20]; objective evaluations per voxel 128.0; stage wall time 6.1 s (5.6 ms per voxel); timing: contended: timing preflight refused (Python at 99% CPU); single run, one worker
 
 ## go2_As100_V30
 
@@ -266,7 +266,7 @@ args: `{"name": "go2_As100_V30", "pipeline": "Astrict/100,V/30", "sample": "grad
 | level 1.0 (C voxels) | s1 | 77 | 0.0099 | 0.0317 | 2 of 77 (0.7 to 9.0%) | 2 of 77 (0.7 to 9.0%) | 0.0772 |
 | level 1.0 (C voxels) | C | 77 | 0.0247 | 0.2014 | 16 of 77 (13.2 to 31.1%) | 2 of 77 (0.7 to 9.0%) | 0.0927 |
 
-grains: 20; stages Astrict/100,V/30; accepted per stage [17, 20]; renders per voxel 149.0; stage wall time 7.7 s (7.2 ms per voxel); timing: contended: timing preflight refused (Python at 100% CPU); single run, one worker
+grains: 20; stages Astrict/100,V/30; accepted per stage [17, 20]; objective evaluations per voxel 149.0; stage wall time 7.7 s (7.2 ms per voxel); timing: contended: timing preflight refused (Python at 100% CPU); single run, one worker
 
 ## go2_As100_V61
 
@@ -311,7 +311,7 @@ args: `{"name": "go2_As100_V61", "pipeline": "Astrict/100,V/61", "sample": "grad
 | level 1.0 (C voxels) | s1 | 77 | 0.0077 | 0.0317 | 2 of 77 (0.7 to 9.0%) | 2 of 77 (0.7 to 9.0%) | 0.0754 |
 | level 1.0 (C voxels) | C | 77 | 0.0247 | 0.2014 | 16 of 77 (13.2 to 31.1%) | 2 of 77 (0.7 to 9.0%) | 0.0927 |
 
-grains: 20; stages Astrict/100,V/61; accepted per stage [17, 20]; renders per voxel 175.1; stage wall time 10.2 s (9.4 ms per voxel); timing: contended: timing preflight refused (Claude at 26% CPU, Claude at 43% CPU, Python at 100% CPU); single run, one worker
+grains: 20; stages Astrict/100,V/61; accepted per stage [17, 20]; objective evaluations per voxel 175.1; stage wall time 10.2 s (9.4 ms per voxel); timing: contended: timing preflight refused (Claude at 26% CPU, Claude at 43% CPU, Python at 100% CPU); single run, one worker
 
 ## go2_V20
 
@@ -347,7 +347,7 @@ args: `{"name": "go2_V20", "pipeline": "V/20", "sample": "grad", "start": "paint
 | level 1.0 (C voxels) | s0 | 77 | 0.0742 | 0.2062 | 35 of 77 (34.8 to 56.5%) | 2 of 77 (0.7 to 9.0%) | 0.1122 |
 | level 1.0 (C voxels) | C | 77 | 0.0247 | 0.2014 | 16 of 77 (13.2 to 31.1%) | 2 of 77 (0.7 to 9.0%) | 0.0927 |
 
-grains: 20; stages V/20; accepted per stage [20]; renders per voxel 22.0; stage wall time 3.7 s (3.4 ms per voxel); timing: contended: timing preflight refused (Claude at 25% CPU, Claude at 50% CPU, Python at 97% CPU); single run, one worker
+grains: 20; stages V/20; accepted per stage [20]; objective evaluations per voxel 22.0; stage wall time 3.7 s (3.4 ms per voxel); timing: contended: timing preflight refused (Claude at 25% CPU, Claude at 50% CPU, Python at 97% CPU); single run, one worker
 
 ## go2_V61
 
@@ -383,5 +383,59 @@ args: `{"name": "go2_V61", "pipeline": "V/61", "sample": "grad", "start": "paint
 | level 1.0 (C voxels) | s0 | 77 | 0.0460 | 0.2053 | 26 of 77 (24.2 to 44.9%) | 2 of 77 (0.7 to 9.0%) | 0.0983 |
 | level 1.0 (C voxels) | C | 77 | 0.0247 | 0.2014 | 16 of 77 (13.2 to 31.1%) | 2 of 77 (0.7 to 9.0%) | 0.0927 |
 
-grains: 20; stages V/61; accepted per stage [20]; renders per voxel 62.4; stage wall time 7.1 s (6.6 ms per voxel); timing: contended: timing preflight refused (Claude at 24% CPU, Claude at 41% CPU, Python at 100% CPU); single run, one worker
+grains: 20; stages V/61; accepted per stage [20]; objective evaluations per voxel 62.4; stage wall time 7.1 s (6.6 ms per voxel); timing: contended: timing preflight refused (Claude at 24% CPU, Claude at 41% CPU, Python at 100% CPU); single run, one worker
+
+## go2_Ask150_As100_V20
+
+args: `{"name": "go2_Ask150_As100_V20", "pipeline": "Asink/150,Astrict/100,V/20", "sample": "grad", "start": "paint", "grains": 20, "true_grains": null, "group": "flood", "sigma0": 0.05, "b_lr": 0.01, "b_mu": 1.0}`
+
+| group | stage | n | median | p95 | above 0.1 | wrong | strict |
+|---|---|---|---|---|---|---|---|
+| all | start | 1082 | 0.0285 | 0.1302 | 94 of 1082 (7.2 to 10.5%) | 6 of 1082 (0.3 to 1.2%) | 0.0948 |
+| all | s0 | 1082 | 0.0279 | 0.1101 | 76 of 1082 (5.6 to 8.7%) | 6 of 1082 (0.3 to 1.2%) | 0.0922 |
+| all | s1 | 1082 | 0.0164 | 0.0408 | 8 of 1082 (0.4 to 1.5%) | 6 of 1082 (0.3 to 1.2%) | 0.0850 |
+| all | s2 | 1082 | 0.0143 | 0.0344 | 7 of 1082 (0.3 to 1.3%) | 6 of 1082 (0.3 to 1.2%) | 0.0772 |
+| all | C | 853 | 0.0181 | 0.0551 | 18 of 853 (1.3 to 3.3%) | 3 of 853 (0.1 to 1.0%) | 0.0781 |
+| voxels with a C fit | start | 853 | 0.0349 | 0.1354 | 84 of 853 (8.0 to 12.0%) | 3 of 853 (0.1 to 1.0%) | 0.0986 |
+| voxels with a C fit | s0 | 853 | 0.0279 | 0.1169 | 67 of 853 (6.2 to 9.9%) | 3 of 853 (0.1 to 1.0%) | 0.0929 |
+| voxels with a C fit | s1 | 853 | 0.0159 | 0.0376 | 3 of 853 (0.1 to 1.0%) | 3 of 853 (0.1 to 1.0%) | 0.0826 |
+| voxels with a C fit | s2 | 853 | 0.0145 | 0.0329 | 3 of 853 (0.1 to 1.0%) | 3 of 853 (0.1 to 1.0%) | 0.0764 |
+| voxels with a C fit | C | 853 | 0.0181 | 0.0551 | 18 of 853 (1.3 to 3.3%) | 3 of 853 (0.1 to 1.0%) | 0.0781 |
+| interior (C voxels) | start | 120 | 0.0512 | 0.1498 | 14 of 120 (7.1 to 18.6%) | 0 of 120 (0.0 to 3.1%) | 0.0968 |
+| interior (C voxels) | s0 | 120 | 0.0279 | 0.1498 | 12 of 120 (5.8 to 16.7%) | 0 of 120 (0.0 to 3.1%) | 0.0876 |
+| interior (C voxels) | s1 | 120 | 0.0131 | 0.0279 | 0 of 120 (0.0 to 3.1%) | 0 of 120 (0.0 to 3.1%) | 0.0761 |
+| interior (C voxels) | s2 | 120 | 0.0142 | 0.0295 | 0 of 120 (0.0 to 3.1%) | 0 of 120 (0.0 to 3.1%) | 0.0735 |
+| interior (C voxels) | C | 120 | 0.0227 | 0.0555 | 3 of 120 (0.9 to 7.1%) | 0 of 120 (0.0 to 3.1%) | 0.0755 |
+| boundary (C voxels) | start | 733 | 0.0324 | 0.1305 | 70 of 733 (7.6 to 11.9%) | 3 of 733 (0.1 to 1.2%) | 0.0989 |
+| boundary (C voxels) | s0 | 733 | 0.0279 | 0.1098 | 55 of 733 (5.8 to 9.6%) | 3 of 733 (0.1 to 1.2%) | 0.0938 |
+| boundary (C voxels) | s1 | 733 | 0.0164 | 0.0391 | 3 of 733 (0.1 to 1.2%) | 3 of 733 (0.1 to 1.2%) | 0.0837 |
+| boundary (C voxels) | s2 | 733 | 0.0146 | 0.0338 | 3 of 733 (0.1 to 1.2%) | 3 of 733 (0.1 to 1.2%) | 0.0768 |
+| boundary (C voxels) | C | 733 | 0.0176 | 0.0545 | 15 of 733 (1.2 to 3.3%) | 3 of 733 (0.1 to 1.2%) | 0.0786 |
+| level 0.0 (C voxels) | start | 209 | 0.0165 | 0.0279 | 0 of 209 (0.0 to 1.8%) | 0 of 209 (0.0 to 1.8%) | 0.0843 |
+| level 0.0 (C voxels) | s0 | 209 | 0.0165 | 0.0279 | 0 of 209 (0.0 to 1.8%) | 0 of 209 (0.0 to 1.8%) | 0.0843 |
+| level 0.0 (C voxels) | s1 | 209 | 0.0165 | 0.0279 | 0 of 209 (0.0 to 1.8%) | 0 of 209 (0.0 to 1.8%) | 0.0843 |
+| level 0.0 (C voxels) | s2 | 209 | 0.0194 | 0.0279 | 0 of 209 (0.0 to 1.8%) | 0 of 209 (0.0 to 1.8%) | 0.0793 |
+| level 0.0 (C voxels) | C | 209 | 0.0148 | 0.0337 | 0 of 209 (0.0 to 1.8%) | 0 of 209 (0.0 to 1.8%) | 0.0794 |
+| level 0.1 (C voxels) | start | 222 | 0.0334 | 0.0649 | 0 of 222 (0.0 to 1.7%) | 0 of 222 (0.0 to 1.7%) | 0.0958 |
+| level 0.1 (C voxels) | s0 | 222 | 0.0334 | 0.0649 | 0 of 222 (0.0 to 1.7%) | 0 of 222 (0.0 to 1.7%) | 0.0958 |
+| level 0.1 (C voxels) | s1 | 222 | 0.0186 | 0.0378 | 0 of 222 (0.0 to 1.7%) | 0 of 222 (0.0 to 1.7%) | 0.0868 |
+| level 0.1 (C voxels) | s2 | 222 | 0.0151 | 0.0381 | 0 of 222 (0.0 to 1.7%) | 0 of 222 (0.0 to 1.7%) | 0.0810 |
+| level 0.1 (C voxels) | C | 222 | 0.0187 | 0.0463 | 0 of 222 (0.0 to 1.7%) | 0 of 222 (0.0 to 1.7%) | 0.0818 |
+| level 0.2 (C voxels) | start | 201 | 0.0392 | 0.0764 | 4 of 201 (0.8 to 5.0%) | 1 of 201 (0.1 to 2.8%) | 0.0942 |
+| level 0.2 (C voxels) | s0 | 201 | 0.0129 | 0.0735 | 4 of 201 (0.8 to 5.0%) | 1 of 201 (0.1 to 2.8%) | 0.0815 |
+| level 0.2 (C voxels) | s1 | 201 | 0.0095 | 0.0236 | 1 of 201 (0.1 to 2.8%) | 1 of 201 (0.1 to 2.8%) | 0.0698 |
+| level 0.2 (C voxels) | s2 | 201 | 0.0112 | 0.0307 | 1 of 201 (0.1 to 2.8%) | 1 of 201 (0.1 to 2.8%) | 0.0656 |
+| level 0.2 (C voxels) | C | 201 | 0.0162 | 0.0354 | 1 of 201 (0.1 to 2.8%) | 1 of 201 (0.1 to 2.8%) | 0.0664 |
+| level 0.5 (C voxels) | start | 144 | 0.0684 | 0.1497 | 36 of 144 (18.6 to 32.7%) | 0 of 144 (0.0 to 2.6%) | 0.1112 |
+| level 0.5 (C voxels) | s0 | 144 | 0.0528 | 0.1497 | 30 of 144 (15.0 to 28.2%) | 0 of 144 (0.0 to 2.6%) | 0.1061 |
+| level 0.5 (C voxels) | s1 | 144 | 0.0225 | 0.0478 | 0 of 144 (0.0 to 2.6%) | 0 of 144 (0.0 to 2.6%) | 0.0866 |
+| level 0.5 (C voxels) | s2 | 144 | 0.0165 | 0.0340 | 0 of 144 (0.0 to 2.6%) | 0 of 144 (0.0 to 2.6%) | 0.0774 |
+| level 0.5 (C voxels) | C | 144 | 0.0216 | 0.0556 | 1 of 144 (0.1 to 3.8%) | 0 of 144 (0.0 to 2.6%) | 0.0792 |
+| level 1.0 (C voxels) | start | 77 | 0.1269 | 0.2487 | 44 of 77 (46.0 to 67.6%) | 2 of 77 (0.7 to 9.0%) | 0.1330 |
+| level 1.0 (C voxels) | s0 | 77 | 0.0600 | 0.2487 | 33 of 77 (32.4 to 54.0%) | 2 of 77 (0.7 to 9.0%) | 0.1134 |
+| level 1.0 (C voxels) | s1 | 77 | 0.0169 | 0.0425 | 2 of 77 (0.7 to 9.0%) | 2 of 77 (0.7 to 9.0%) | 0.0918 |
+| level 1.0 (C voxels) | s2 | 77 | 0.0147 | 0.0517 | 2 of 77 (0.7 to 9.0%) | 2 of 77 (0.7 to 9.0%) | 0.0812 |
+| level 1.0 (C voxels) | C | 77 | 0.0247 | 0.2014 | 16 of 77 (13.2 to 31.1%) | 2 of 77 (0.7 to 9.0%) | 0.0927 |
+
+grains: 20; stages Asink/150,Astrict/100,V/20; accepted per stage [3, 17, 20]; objective evaluations per voxel 298.0; stage wall time 2474.7 s (2287.1 ms per voxel); timing: contended: timing preflight refused (Google at 38% CPU); single run, one worker
 

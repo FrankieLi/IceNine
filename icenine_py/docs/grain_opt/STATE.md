@@ -5,24 +5,19 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO1 closed** (2026-11-15 22:00 PST): only the strict cost (grain mean) puts its optimum within
-  0.01 deg of the ground truth; Sinkhorn is flat within 0.03-0.04 deg. `findings.md` "GO1".
-- **GO2 (optimizer Pareto on G20) running.** Strict-cost arms done (`benchmarks/grain_opt/go2/
-  tables.md`): field CMA on the strict cost at 100 evaluations leaves 3 of 853 voxels above 0.1
-  deg (the 3 wrong paint voxels) against 18 for AR3 C. Running: `go2_Ask150_As100_V20` (20
-  grains, 2-4 min per grain), then `go2_smooth_arms2.sh` (intensity-Sinkhorn and LS basin arms
-  plus a strict reference on the 10-grain subset).
-- **GO3 done** (samples `rand`, `corr3`). **I31 done** (C++ strain survey).
-- **Next action:** when the smooth arms end: `summarize.py` on all go2 runs (`--out go2/tables`),
-  write the GO2 findings section (Pareto frontier, wall time per voxel, the Sinkhorn arms' gate
-  outcome), add Pareto rows, close GO2. Then plan GO4: robustness of the GO2 frontier pipelines
-  on `rand` and `corr3` (`--sample rand --start centre --group true`) and on `grad`.
+- **GO2 closed** (2026-11-15 22:35 PST): the frontier is the grain field on the strict cost (100
+  objective evaluations per voxel: 3 of 853 voxels > 0.1 deg against 18 for AR3 C); smooth basin
+  stages add nothing from the painted start. `findings.md` "GO2", `benchmarks/grain_opt/go2/`.
+- **GO4 (robustness on `rand`, `corr3`) running**: `scripts/grain_opt/go4_arms.sh` (10 runs),
+  started 22:40 PST; PLAN.md "GO4".
+- **Next action:** when GO4 ends: `summarize.py go4_rand_* --out go4/rand` (and corr3), per-level
+  tables into a GO4 findings section, Pareto rows per sample (new chart group or note), close GO4.
+  Then plan GO5 (strain: SpotModel opt-in strained g, pure-dilation sign test, strained sample
+  render; sources `findings_cpp_strain.md`, HEXRD reference in shmem "ref-hexrd").
 
 ## Running jobs
 
-- `run_pipeline.py --name go2_Ask150_As100_V20` (started about 21:20 PST 2026-11-15).
-- `go2_smooth_arms2.sh` (waits for the run above, then 3 runs on 10 grains); log
-  `benchmarks/grain_opt/runs_go2_smooth.log`.
+- `go4_arms.sh` (GO4, 10 runs in sequence); log `benchmarks/grain_opt/runs_go4.log`.
 
 ## Data (git-ignored, in this worktree; link, do not copy)
 

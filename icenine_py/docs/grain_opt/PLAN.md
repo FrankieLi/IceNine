@@ -104,8 +104,24 @@ coverage mass on lit pixels at the ground truth 97 to 99% on 10 grains of each. 
 and 97% (5 deg) of neighbour pairs exceed 2 deg, so flood-fill grouping fragments those grains:
 GO4 uses true grain ids (`--group true`) and the grain-centre start (`--start centre`).
 
-### GO4 onwards
+### GO4: robustness across kinds of orientation variation (ideas I13, I6)
 
-Planned order (each gets a section when it starts): GO4 robustness on the GO3 samples (I13); GO5 strain in the forward
+Question: does the GO2 frontier (grain field on the strict cost, then a per-voxel polish) hold
+when the voxel-to-voxel variation is random or spatially correlated, from 0.5 to 5 deg RMS?
+Samples `rand` (white noise) and `corr3` (correlation length 3 voxel sides), GO3. Start: each
+voxel at its grain's orientation before deformation (`--start centre`, a perfect paint that knows
+nothing of the variation); membership: true grain ids (`--group true`; flood fill fails at 2 and
+5 deg). Benchmark: 20 grains per sample by `pick_true_grains` (5 per level 0.5, 1, 2, 5 deg).
+
+Arms (per sample): `Astrict/100`; `Astrict/100,V/61`; `Astrict/100,V/61/0.3` (per-voxel step
+0.3 deg); `V/61/0.3`; `Als/150,Astrict/100,V/61/0.3` (least squares as basin finder).
+Judging: the standing rule, reported per level (median, p95, above 0.1 deg, wrong above 1 deg,
+Wilson intervals); no C reference exists on these samples, so all voxels of the groups count.
+Expected: the field cannot follow white noise; the question is which polish recovers which level.
+Budget: strict arms seconds per grain, the LS arm about 10 s per grain; under 1 h in total.
+
+### GO5 onwards
+
+Planned order (each gets a section when it starts): GO5 strain in the forward
 model and the strained samples (I14 to I16); GO6 objective variants (I17 to I22); GO7 richer
 simulation (I23, I24); GO8 learned models (I25 to I27).
