@@ -2134,3 +2134,22 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   with generator seed 7. Any run projected over 48 hours waits for the owner. Any C++ fix goes on
   its own branch with a test and an Opus review. Nothing merges to develop. Where:
   icenine_py/docs/autoresearch/PLAN.md, sections 'Owner task of 16 Nov, part 1' and 'part 2'.
+
+### D-20261116-N4 · D-20261116-N4 | AR5 step 22 passes on held6; key phase approved (SeedIndexMCDefer, default off) · AR5 step 22: rule DEF passes its clean test; key phase approved
+- 2026-11-16, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. By the rules frozen before any run (frozen.json
+  committed 02:30 on 16 Nov, first run 03:18, held6 built 07:07), arm J5SD passes on the clean
+  sample held6 and on the seven disclosed samples; the Opus review recounted it from the run files
+  and approves. held6: 22,690,096 evaluations against 25,464,972 for J5S (10.90% fewer; 66.4%
+  fewer than S8), wrong voxels 37 against 39, 3 fixed and 1 broken, median error 0.02199 against
+  0.02189 degree. Stated plainly: mid and held5 sit at the limit of broken minus fixed (+3), and
+  over all eight samples the split against J5S is 9 fixed and 16 broken, a small lean against
+  accuracy for 1.96% to 12.39% fewer evaluations; the owner may weigh that differently. Prediction
+  2 missed on one part (share of changed seed steps ending at another candidate). A system
+  process, no agent command, read the new maps at 11:49, before the end marker; no agent read
+  held6 early. Phase B goes ahead: opt-in key SeedIndexMCDefer, default 0, valid only with
+  SeedIndexMCStallHit on, after the five review fixes. If the plan's key-on check (library run
+  equal to the script arm) cannot hold as in steps 20 and 21, the replacement is disclosed and
+  waits for the owner with those two. Where: icenine_py/docs/autoresearch/PLAN.md 'AR5 step 22';
+  review .claude/reports/20261116-1310-review-ar5v.md; branch feature/eval-reduction-ar5v
+  f2486521.
