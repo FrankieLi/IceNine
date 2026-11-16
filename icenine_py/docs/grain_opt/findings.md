@@ -360,3 +360,43 @@ Verdicts by the rule written before the runs:
   strain hardly moves (e.g. spot positions summed over all reflections, or the field from the
   unstrained fit) and fit strain alone (I41); or a sharper sub-pixel cost (I40) that separates
   rotation from strain by their different patterns across reflections.
+
+## GO5d: fix the orientation, then strain alone (idea I41)
+
+Question: if the grain field is fixed first from a fit that does not fit strain, and strain
+alone is fitted after, does the painted-start strain error reach the `E@GT` floor? Same S12
+grains, coverage cost, robust painted start; the last leg of every arm is strain only (300
+evaluations) at a fixed field. Rows in `benchmarks/grain_opt/go5d/*.json`. 2 to 4 minutes per
+arm.
+
+Reading line: median strain error over 4 grains per level, median orientation error of the fixed
+field (deg) in brackets.
+
+| arm | evaluations | 1e-4 | 5e-4 | 1e-3 | short |
+|---|---|---|---|---|---|
+| GO5b `E@GT` (ground-truth orientations) | 309 | 1.7e-4 | 1.9e-4 | 2.0e-4 | 5 of 12 |
+| `E@F` field fitted to the ground truth | 309 | 1.6e-4 (0.00002) | 1.3e-4 (0.00002) | 3.3e-4 (0.00002) | 5 of 12 |
+| `O@P` field on coverage at zero strain, 600 | 920 | 1.5e-4 (0.009) | 5.3e-4 (0.022) | 6.0e-4 (0.040) | 8 of 12 |
+| `Ost@P` field on the strict cost, 200 | 309 + strict | 4.7e-4 (0.015) | 5.4e-4 (0.021) | 6.3e-4 (0.039) | 11 of 12 |
+| GO5c `S@P` (staged joint) | 1133 | 7.1e-4 (0.015) | 3.4e-4 (0.012) | 3.0e-4 (0.012) | 7 of 12 |
+
+Verdicts by the rule written before the runs:
+
+- I41 is answered no. Neither painted arm reaches the floor at 5e-4 or 1e-3 (needed at most
+  2.8e-4 / 3.1e-4 against `E@GT`, or 1.9e-4 / 5.0e-4 against `E@F`), and neither beats `S@P` at
+  those levels (`O@P` 1 and 0 of 4 grains better; `Ost@P` 1 and 1).
+- A fit without a strain model is not strain-insensitive: the field absorbs the unmodelled
+  strain as a rotation. The fixed field's orientation error grows with the strain level, 0.009 /
+  0.022 / 0.040 deg on the coverage cost and 0.015 / 0.021 / 0.039 deg on the strict cost
+  (about 0.04 deg, 7e-4 rad, per 1e-3 strain), against 0.012 deg for the staged joint fit.
+  Strain fitted at that biased field is then worse than the joint fit's. At 1e-4 the bias is
+  small and `O@P` sits at the floor (1.5e-4, 4 of 4 grains better than `S@P`; reported, not judged).
+- The rule's `E@F` fallback does not apply as written: the `strain` sample's grains have one
+  orientation each, so the order-1 field reproduces the ground truth to 2e-5 deg. `E@F` and
+  `E@GT` are the same problem, and their difference (median 1.3e-4 vs 1.9e-4 at 5e-4, 3.3e-4 vs
+  2.0e-4 at 1e-3; single grains differ up to 4x, e.g. grain 47 6.4e-5 vs 2.4e-4) is run-to-run
+  scatter. The floor itself is a band of about 1e-4 to 3e-4 where the coverage cost is flat.
+- Consequence: neither a staged search nor a strain-free orientation fit gets below the band;
+  the cost has to resolve sub-pixel spot shifts. Next is I40 (sharper sub-pixel cost:
+  intensity-weighted or distance to lit pixels), judged first at the ground-truth orientation
+  (`E@GT`) and then in the staged joint fit from the painted start.

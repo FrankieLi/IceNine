@@ -9,6 +9,10 @@ mass on lit pixels, mean over the grain's spots (GO5 "coverage"). Spot windows a
 strain. Parameters: grain field (FieldA order 1, 9 numbers) and one crystal-frame strain per
 grain (6). CMA with per-coordinate steps 0.05 deg (field) and 5e-4 (strain), strain from 0.
 
+GO5d arms (I41), strain only (``--evals_e``) at a fixed field: ``E@F`` (field fitted to the
+ground truth); ``O@P`` (field leg ``--evals_f`` on the coverage cost at zero strain); ``Ost@P``
+(field leg on the strict cost, no strain model).
+
 GO5c arms (I39): ``J@P`` (field leg, then one joint leg of ``--evals``); ``S@P`` (field leg,
 strain-only leg ``--evals_e`` at the fixed field, joint leg ``--evals`` at steps 0.02 deg and
 2e-4); ``SR@P`` (``S@P`` plus two joint legs of 300, steps halved each leg); ``S@GT`` (``S@P``
@@ -137,7 +141,9 @@ def cma_min(f: Any, x0: np.ndarray, stds: np.ndarray, evals: int, seed: int = 0)
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument(
-        "--arm", required=True, choices=["E@GT", "FE@GT", "FE@P", "J@P", "S@P", "SR@P", "S@GT"]
+        "--arm",
+        required=True,
+        choices=["E@GT", "FE@GT", "FE@P", "J@P", "S@P", "SR@P", "S@GT", "E@F", "O@P", "Ost@P"],
     )
     ap.add_argument("--out", default="go5b")
     ap.add_argument("--evals", type=int, default=600)
@@ -196,8 +202,20 @@ def main() -> None:
             th0 = prob.theta0
             if a.arm.endswith("@P"):
                 th0, info["n_outliers"] = robust_theta0(prob, S.sym)
+                if a.arm == "Ost@P":  # GO5d: field leg on the strict cost (no strain model)
+
+                    def f_field(th: np.ndarray) -> float:
+                        with torch.no_grad():
+                            R = field.orientations(torch.as_tensor(th, dtype=GF.DT)).numpy()
+                        return float(np.mean(S.strict(R, members)))
+
+                else:
+
+                    def f_field(th: np.ndarray) -> float:
+                        return cov(field.orientations(torch.as_tensor(th, dtype=GF.DT)), zero)
+
                 rf = cma_min(
-                    lambda th: cov(field.orientations(torch.as_tensor(th, dtype=GF.DT)), zero),
+                    f_field,
                     th0,
                     np.full(len(th0), STEP_ROT),
                     a.evals_f,
@@ -212,7 +230,16 @@ def main() -> None:
             def stds(rot: float, eps: float) -> np.ndarray:
                 return np.concatenate([np.full(k, rot), np.full(6, eps)])
 
-            if a.arm in ("FE@GT", "FE@P", "J@P"):  # one joint leg
+            if a.arm in ("E@F", "O@P", "Ost@P"):  # GO5d: strain only at the fixed field
+                th_t = torch.as_tensor(th0, dtype=GF.DT)
+                rs = cma_min(
+                    lambda e: cov(field.orientations(th_t), eps_of(e)),
+                    np.zeros(6),
+                    np.full(6, STEP_EPS),
+                    a.evals_e,
+                )
+                r = dict(rs, x=np.concatenate([th0, rs["x"]]))
+            elif a.arm in ("FE@GT", "FE@P", "J@P"):  # one joint leg
                 r = cma_min(
                     fj, np.concatenate([th0, np.zeros(6)]), stds(STEP_ROT, STEP_EPS), a.evals
                 )

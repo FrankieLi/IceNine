@@ -51,3 +51,16 @@ became AR6 on 2026-11-16 at the owner's request.
   (staged legs field -> strain only -> joint, CMA restarts or a bigger budget) from the painted
   start, target the 2e-4 floor; then I40 (sharper sub-pixel cost for 1e-4). Runs take minutes
   (`fit_strain.py`, about 30 ms per evaluation). Then GO6 or the cached ray index for I36.
+
+## Now as of GO5c close (2026-11-16 11:45 PST)
+
+- **GO5c closed** (2026-11-16 11:45 PST): reaching the cost optimum does not recover strain.
+  `J@P` (2400 joint evaluations) ends below the ground truth's cost in 10 of 12 grains but keeps
+  4.5-6.5e-4 strain error: with the orientation field free the coverage cost is
+  objective-limited (0.01 deg rotation trades with 2-4e-4 strain). Staged `S@P` gives 3.4e-4 /
+  3.0e-4 at 5e-4 / 1e-3 (floor 1.9e-4 / 2.0e-4). `findings.md` "GO5c".
+- GO5b closed: strain-only at the ground-truth orientation reaches ~2e-4 (1e-4 below the floor).
+- **Next action:** plan and run GO5d (I41): fix the orientation field from a strain-insensitive
+  fit (e.g. field leg without strain, or the strict cost), then fit strain alone; compare with
+  `S@P` and the `E@GT` floor. Then I40 (sharper sub-pixel cost). Runs take minutes
+  (`fit_strain.py`). Then GO6 or the cached ray index for I36.
