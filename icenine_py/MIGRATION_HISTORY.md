@@ -13390,8 +13390,7 @@ layer only (`scripts/autoresearch/ar5/screen_*.py`, `screen_*.sh`; `tests/test_a
   run: 54 wrong voxels after the pass, 21 after the repair (33 fixed, 0 broken; in-sample, `mid`).
   Results: `lib_check.json`.
 - Not done: the docs pareto file and the findings page under `docs/` (writes refused for agents; the
-  findings text is in `.claude/reports/20261116-0125-ar5u-findings_ar5_screen.md`, the pareto rows
-  are in `benchmarks/autoresearch/ar5/screen/pareto_rows.json`); one `--source stored` re-run of
+  findings page waits to be placed by the main session or the owner; the pareto rows are in `benchmarks/autoresearch/ar5/screen/pareto_rows.json`); one `--source stored` re-run of
   `J5C` per disclosed sample (the screen scripts' freeze check now refuses until re-frozen).
 - Results: `benchmarks/autoresearch/ar5/screen/` (`frozen.json`, `gate.json`, `gate_tables.md`; the
   cache is untracked).

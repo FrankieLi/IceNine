@@ -84,15 +84,90 @@ def test_constants_are_the_plans_and_the_scripts() -> None:
     assert BR.WIDE_DEG == 1.0 == SR.WIDE_DEG and BR.RATIO_MAX == SR.RATIO_MAX == 0.95
 
 
-def test_the_library_budget_check_is_relaxed_only_with_the_screen_argument() -> None:
-    import inspect
-
+def _real_local_optimization(monkeypatch: pytest.MonkeyPatch) -> Any:
+    """The library's ``AdaptiveVoxelReconstructor.local_optimization`` on a stub ``self`` (real
+    ``_make_cma_optimizer`` and ``_check_local_optimizer``, a counting fake cost function)."""
     from icenine.reconstructor import AdaptiveVoxelReconstructor as A
 
-    p = inspect.signature(A.local_optimization).parameters
-    assert p["cma_screen"].default is False
-    src = inspect.getsource(A.local_optimization)
-    assert "cma_max_evals must be >= 2" in src  # the key-off check is still there
+    state = SimpleNamespace(n=0)
+
+    class CF:
+        def __init__(self, **kw: Any) -> None:
+            self.eval_count = 0
+
+        def evaluate(self, orientation: Any, voxel_vertices: Any, phase_index: int = 0) -> Any:
+            self.eval_count += 1
+            return _info(0.5)
+
+    monkeypatch.setattr(reconstructor_module, "VoxelCostFunction", CF)
+    me = SimpleNamespace(
+        params=SimpleNamespace(
+            local_optimizer="mc",
+            use_hybrid_optimizer=False,
+            cma_sigma0_deg=0.2,
+            cma_max_evals=1000,
+            cma_popsize=None,
+        ),  # fmt: skip
+        setup=SimpleNamespace(
+            exp_setup=SimpleNamespace(get_eta_limit=lambda: 0.0),
+            simulator=None,
+            detector_list=None,
+            range_map=None,
+            exp_data=None,
+            sample=None,
+            structure_list=None,
+        ),  # fmt: skip
+        _cost_flags=lambda: {},
+        last_local_optimization_evals=0,
+    )
+    me._check_local_optimizer = lambda: A._check_local_optimizer(me)
+    me._make_cma_optimizer = lambda *a, **k: A._make_cma_optimizer(me, *a, **k)
+
+    def call(budget: Any, **kw: Any) -> Any:
+        rng = np.random.default_rng(3)
+        r = A.local_optimization(
+            me, np.zeros((3, 3)), 0, np.eye(3), rng=rng, cma_sigma0_deg=0.05,
+            cma_max_evals=budget, optimizer="cma", **kw,
+        )  # fmt: skip
+        return r, me.last_local_optimization_evals, rng
+
+    return call
+
+
+def test_a_budget_of_one_raises_without_cma_screen_and_runs_with_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    call = _real_local_optimization(monkeypatch)
+    with pytest.raises(ValueError, match="cma_max_evals must be >= 2"):
+        call(1)
+    with pytest.raises(ValueError, match="cma_max_evals must be >= 2"):
+        call(1, cma_screen=False)
+    with pytest.raises(ValueError):
+        call(0, cma_screen=True)  # only a budget of exactly 1 is the screen try
+    r, evals, _rng = call(1, cma_screen=True)
+    assert evals == 2  # the start's own evaluation plus the final one
+    assert np.array_equal(r.orientation, np.eye(3))  # the end is the start
+    r2, evals2, _ = call(2)  # key-off budgets are unchanged
+    assert evals2 == 3
+
+
+def test_cma_optimizer_with_budget_one_returns_the_start_and_draws_one_seed() -> None:
+    from icenine.orientation_search import CMAOptimizer
+
+    n = [0]
+
+    class CF:
+        def evaluate(self, R: np.ndarray, vertices: Any, phase: int) -> Any:
+            n[0] += 1
+            return _info(0.25)
+
+    rng = np.random.default_rng(11)
+    res = CMAOptimizer(CF(), None, 0, rng, sigma0_deg=0.05, max_evals=1).optimize(_rz(3.0))
+    assert res.n_evals == 1 and n[0] == 1
+    assert np.array_equal(res.orientation, _rz(3.0))
+    ref = np.random.default_rng(11)
+    ref.integers(0, 2**31 - 2)  # exactly one seed draw
+    assert rng.bit_generator.state == ref.bit_generator.state
 
 
 # ------------------------------------------------------------------------------ 2. wide flag

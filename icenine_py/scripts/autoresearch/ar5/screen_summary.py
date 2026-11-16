@@ -112,17 +112,37 @@ def validity() -> Dict[str, Any]:
     # one by one and allows exactly the five library files phase B edits.
     saved = json.loads(FROZEN.read_text())
     cur = _current()
-    moved = sorted(k for k, h in cur["library"].items() if saved["library"].get(k) != h)
-    moved += sorted(k for k, h in cur["files"].items() if saved["files"].get(k) != h)
-    allowed = {
-        "icenine/boundary_pass.py",
-        "icenine/boundary_repair.py",
-        "icenine/config_file.py",
-        "icenine/orientation_search.py",
-        "icenine/reconstructor.py",
+    # The five files are pinned to their sha256 at commit 7e8b67bc (recorded here, not in
+    # frozen.json, which is not edited): a later edit of any of them fails the check.
+    pinned = {
+        "icenine/boundary_pass.py": (
+            "71733dba6fa1566744ea85ab57e0b1d4" "e31cd733c141db2a2659f65543c0d182"
+        ),
+        "icenine/boundary_repair.py": (
+            "96983e5e392359c0e8e9d50a2a2e0296" "03ab1528ccbb59ba760842749f452486"
+        ),
+        "icenine/config_file.py": (
+            "522950d6176419ced79a89ee61b0f4c3" "e046e8e0ea5fe31c1cbb757fc22a7a1f"
+        ),
+        "icenine/orientation_search.py": (
+            "b7e217c4dd4b99f25b4743d9e5a4831b" "9a8f20cd5508d1e09c7259eb581f6501"
+        ),
+        "icenine/reconstructor.py": (
+            "6560f7101144297e96d2762a7eaabd95" "5819057e87d2b3fd94861273130671b5"
+        ),
     }
+    bad = []
+    for part in ("library", "files"):
+        for k, h in cur[part].items():
+            want = pinned.get(k, saved[part].get(k))
+            if want != h:
+                bad.append(f"{k} differs from the {'pinned' if k in pinned else 'frozen'} hash")
+        for k in saved[part]:
+            if k not in cur[part]:
+                bad.append(f"{k} is frozen but missing")
+    moved = sorted(k for k in pinned if cur["library"].get(k) != saved["library"].get(k))
     v["files_moved_since_freeze"] = moved
-    v["freeze_check"] = "ok" if set(moved) <= allowed else "FAILED: " + ", ".join(moved)
+    v["freeze_check"] = "ok" if not bad else "FAILED: " + "; ".join(bad)
     v["freeze_commit_intact"] = bool(
         not subprocess.run(
             ["git", "status", "--porcelain", "--", str(FROZEN)],
