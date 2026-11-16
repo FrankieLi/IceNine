@@ -2068,3 +2068,14 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   looking at the disclosed samples, by a rule written after the first table, so held4 is the only
   clean test. It saves no evaluations itself; it reduces wrong voxels and buys room on mid. The
   house rule is not changed. The owner may overrule. Where: PLAN.md AR5 step 20.
+
+### D-20261115-N10 · D-20261115-N10 | AR5 step 20 passes on held4; key phase approved · AR5 step 20 (CMA-120 repair) passes on held4; key phase approved
+- 2026-11-15, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. The repair of contested boundary voxels with a
+  120-evaluation CMA fit (arm J5C) passes every frozen rule on the clean sample held4: wrong
+  voxels S8 49, J5 40, J5C 22; 18 fixed and 0 broken against J5; repair cost 137,214 evaluations,
+  0.50% of J5; J5C uses 59.6% fewer evaluations than S8. The Opus review recomputed these numbers
+  exactly and found no early read of results. Phase B is approved: library key BoundaryPassRepair,
+  default off, after the three wording fixes of the review. Limits: one clean sample; the cause of
+  the gain is untested. The owner may overrule. Where: icenine_py/docs/autoresearch/PLAN.md,
+  section AR5 step 20; review .claude/reports/20261115-1600-review-ar5t.md.
