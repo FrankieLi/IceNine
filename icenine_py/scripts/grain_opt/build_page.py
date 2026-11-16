@@ -63,22 +63,84 @@ def md_inline(s: str) -> str:
     return s
 
 
+# arm groups: (key, legend name, marker shape, colour token)
+GROUPS = [
+    ("ref", "Reference, all 19,013 painted grad voxels", "circle", "--ref"),
+    ("start", "Painted start (G20 voxels)", "square", "--muted"),
+    ("c", "AR3 per-voxel CMA, C (G20 voxels)", "diamond", "--run"),
+    ("field", "Grain field, strict cost, N evaluations", "circle", "--accent"),
+    ("quad", "Quadratic grain field, strict cost", "square", "--accent"),
+    ("polish", "Grain field 100 + per-voxel polish", "triangle", "--done"),
+    ("voxel", "Per-voxel CMA only (this program)", "diamond", "--prop"),
+    ("smooth", "Sinkhorn / LS first, then strict", "cross", "--bad"),
+]
+
+
+def group_of(p: Dict[str, Any]) -> str:
+    if p.get("group"):
+        return str(p["group"])
+    lab = p["label"]
+    if p.get("family") == "reference":
+        return "ref"
+    if lab.startswith("start"):
+        return "start"
+    if lab.startswith("C "):
+        return "c"
+    if lab.startswith("quadratic"):
+        return "quad"
+    if "+ voxel" in lab:
+        return "polish"
+    if lab.startswith("voxel"):
+        return "voxel"
+    if lab.startswith("field"):
+        return "field"
+    return "smooth"
+
+
+def marker(shape: str, x: float, y: float, r: float, color: str, extra: str = "") -> str:
+    st = f'fill="var({color})" stroke="var({color})"'
+    if shape == "circle":
+        return f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r}" {st} {extra}/>'
+    if shape == "square":
+        return f'<rect x="{x-r:.1f}" y="{y-r:.1f}" width="{2*r}" height="{2*r}" {st} {extra}/>'
+    if shape == "diamond":
+        pts = f"{x:.1f},{y-r-1:.1f} {x+r+1:.1f},{y:.1f} {x:.1f},{y+r+1:.1f} {x-r-1:.1f},{y:.1f}"
+        return f'<polygon points="{pts}" {st} {extra}/>'
+    if shape == "triangle":
+        pts = f"{x:.1f},{y-r-1:.1f} {x+r+1:.1f},{y+r:.1f} {x-r-1:.1f},{y+r:.1f}"
+        return f'<polygon points="{pts}" {st} {extra}/>'
+    d = r + 0.5  # cross
+    return (f'<path d="M{x-d:.1f},{y-d:.1f}L{x+d:.1f},{y+d:.1f}M{x-d:.1f},{y+d:.1f}L{x+d:.1f},'
+            f'{y-d:.1f}" stroke="var({color})" stroke-width="2.4" fill="none" {extra}/>')
+
+
+def frontier(pts: List[Any]) -> List[Any]:
+    """Lower-left frontier: points no other point beats on both renders and share (ties kept)."""
+    pts = sorted(pts, key=lambda t: (t[0], t[1]))
+    out, best = [], float("inf")
+    for t in pts:
+        if t[1] < best:
+            out.append(t)
+            best = t[1]
+    return out
+
+
 def pareto_svg(points: List[Dict[str, Any]]) -> str:
-    W, H, L, R, T, B = 640, 300, 56, 16, 14, 44
+    W, H, L, R, T, B = 660, 320, 64, 18, 16, 50
     xs = [p["renders_per_voxel"] for p in points]
     xmax = max(max(xs), 100)
     ys = [wilson(p["k"], p["n"]) for p in points]
-    ymax = max(5.0, max(y[2] for y in ys) * 1.15)
+    ymax = max(5.0, max(y[2] for y in ys) * 1.12)
+    gmap = {g[0]: g for g in GROUPS}
 
     def X(v: float) -> float:
-        # log scale with 0 drawn at the left edge ("0" tick)
         lv = math.log10(max(v, 1.0))
-        return L + (W - L - R) * (0.06 + 0.94 * lv / math.log10(xmax * 1.2)) if v > 0 else L + 4
+        return L + (W - L - R) * (0.07 + 0.93 * lv / math.log10(xmax * 1.25)) if v > 0 else L + 8
 
     def Y(v: float) -> float:
         return T + (H - T - B) * (1 - v / ymax)
 
-    out = [f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="Pareto chart" class="chart">']
+    out = [f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="Cost against quality" class="chart">']
     step = 1 if ymax <= 6 else (2 if ymax <= 12 else 5)
     v = 0.0
     while v <= ymax:
@@ -86,24 +148,47 @@ def pareto_svg(points: List[Dict[str, Any]]) -> str:
         out.append(f'<text x="{L-8}" y="{Y(v)+4:.1f}" class="tick" text-anchor="end">{v:g}%</text>')
         v += step
     for t in [0, 1, 10, 100, 1000]:
-        if t > xmax * 1.2:
+        if t > xmax * 1.25:
             break
         out.append(f'<text x="{X(t):.1f}" y="{H-B+18}" class="tick" text-anchor="middle">{t}</text>')
-    out.append(f'<text x="{(L+W-R)/2:.0f}" y="{H-6}" class="axis" text-anchor="middle">'
-               "renders per voxel (log)</text>")
-    out.append(f'<text x="14" y="{(T+H-B)/2:.0f}" class="axis" text-anchor="middle" '
-               f'transform="rotate(-90 14 {(T+H-B)/2:.0f})">voxels above 0.1 deg</text>')
+    out.append(f'<text x="{(L+W-R)/2:.0f}" y="{H-8}" class="axis" text-anchor="middle">'
+               "cost: renders per voxel (log scale; 0 = no fit)</text>")
+    out.append(f'<text x="16" y="{(T+H-B)/2:.0f}" class="axis" text-anchor="middle" '
+               f'transform="rotate(-90 16 {(T+H-B)/2:.0f})">share of voxels above 0.1 deg (%)</text>')
+    # frontier over the G20 points (excluding the reference set)
+    g20 = [(p["renders_per_voxel"], c) for p, (c, _l, _h) in zip(points, ys) if group_of(p) != "ref"]
+    fr = frontier(g20)
+    if len(fr) > 1:
+        path = " ".join(f"{X(x):.1f},{Y(y):.1f}" for x, y in fr)
+        out.append(f'<polyline points="{path}" class="front"/>')
     for idx, (p, (c, lo, hi)) in enumerate(zip(points, ys), 1):
-        fam = esc(p.get("family", "g20"))
-        x = X(p["renders_per_voxel"])
+        g = gmap.get(group_of(p), GROUPS[-1])
+        x, y = X(p["renders_per_voxel"]), Y(c)
         out.append(f'<line x1="{x:.1f}" x2="{x:.1f}" y1="{Y(lo):.1f}" y2="{Y(hi):.1f}" '
-                   f'class="whisk {fam}"/>')
-        out.append(f'<circle cx="{x:.1f}" cy="{Y(c):.1f}" r="4.5" class="dot {fam}"><title>'
-                   f'{esc(p["label"])}: {c:.2f}% ({lo:.2f} to {hi:.2f}), '
-                   f'{p["renders_per_voxel"]} renders/voxel, {esc(p.get("set", ""))}</title></circle>')
-        out.append(f'<text x="{x+7:.1f}" y="{Y(c)-6:.1f}" class="lab">{idx}</text>')
+                   f'stroke="var({g[3]})" stroke-width="1.6" opacity="0.6"/>')
+        tip = (f'<title>{esc(p["label"])}: {c:.2f}% ({lo:.2f} to {hi:.2f}), '
+               f'{p["renders_per_voxel"]} renders/voxel, {esc(p.get("set", ""))}</title>')
+        out.append(f"<g>{marker(g[2], x, y, 4.5, g[3])}{tip}</g>")
+        out.append(f'<text x="{x+8:.1f}" y="{y-7:.1f}" class="lab">{idx}</text>')
     out.append("</svg>")
-    return "".join(out)
+    used = []
+    for p in points:
+        k = group_of(p)
+        if k not in used:
+            used.append(k)
+    items = []
+    for k in [g[0] for g in GROUPS if g[0] in used]:
+        g = gmap[k]
+        items.append(f'<li><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">'
+                     f'{marker(g[2], 9, 9, 4.5, g[3])}</svg>{esc(g[1])}</li>')
+    items.append('<li><svg viewBox="0 0 26 18" width="26" height="18" aria-hidden="true">'
+                 '<line x1="1" y1="9" x2="25" y2="9" class="front"/></svg>Frontier (G20 arms)</li>')
+    legend = f'<ul class="legend">{"".join(items)}</ul>'
+    howto = ('<p class="note">How to read: lower and further left is better (fewer voxels off by more '
+             'than 0.1 deg, for less work). Each marker is one arm; the vertical line through it is '
+             'the Wilson 95% interval; the number next to it matches the table below. The dashed line '
+             'joins the arms that no other arm beats on both axes.</p>')
+    return "".join(out) + legend + howto
 
 
 def build() -> str:
@@ -114,13 +199,13 @@ def build() -> str:
     css = """
 :root{--bg:#f6f7f9;--panel:#ffffff;--fg:#1c2330;--muted:#5d6879;--line:#dde2ea;
 --accent:#2f6f9f;--run:#b26b00;--done:#2e7d4f;--drop:#8a8f98;--prop:#4a5a73;
---ref:#8a8f98;--sans:"IBM Plex Sans",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace}
+--ref:#8a8f98;--bad:#b23b3b;--sans:"IBM Plex Sans",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11151b;--panel:#171c24;
 --fg:#e3e8ef;--muted:#9aa5b5;--line:#2a313c;--accent:#6fb0de;--run:#e3a33f;--done:#5cbf86;
---drop:#7c838d;--prop:#a9b6cb;--ref:#7c838d;color-scheme:dark}}
+--drop:#7c838d;--prop:#a9b6cb;--ref:#7c838d;--bad:#e06a6a;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#11151b;--panel:#171c24;--fg:#e3e8ef;--muted:#9aa5b5;--line:#2a313c;
 --accent:#6fb0de;--run:#e3a33f;--done:#5cbf86;--drop:#7c838d;--prop:#a9b6cb;--ref:#7c838d;
-color-scheme:dark}
+--bad:#e06a6a;color-scheme:dark}
 body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.5}
 .wrap{max-width:1040px;margin:0 auto;padding-block:28px 48px;
 padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
@@ -149,6 +234,9 @@ code{font-family:var(--mono);font-size:.92em}
 .chart .dot{fill:var(--accent)}.chart .dot.reference{fill:var(--ref)}.chart .dot.g20ref{fill:var(--run)}
 .chart .whisk.g20ref{stroke:var(--run)}
 .chart .whisk{stroke:var(--accent);stroke-width:2}.chart .whisk.reference{stroke:var(--ref)}
+.chart .front{fill:none;stroke:var(--fg);stroke-width:1.2;stroke-dasharray:5 4;opacity:.55}
+.legend{list-style:none;padding:0;margin:10px 0 0;display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;max-width:720px}
+.legend li{display:flex;align-items:center;gap:6px}
 .note{color:var(--muted);font-size:13px;max-width:70ch}
 .filters{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}
 .filters button{font:inherit;font-size:13px;background:var(--panel);color:var(--fg);border:1px solid var(--line);
