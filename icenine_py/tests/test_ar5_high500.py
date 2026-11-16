@@ -465,8 +465,10 @@ def test_judge_rules_match_the_frozen_pass_rules() -> None:
 
 
 def test_the_only_frozen_file_that_differs_is_the_phase_b_docstring_note() -> None:
-    """Phase B edited one comment in ``icenine/orientation_search.py`` (the frozen hash is the one
-    of the freeze commit). Every other frozen script and library file must still agree."""
+    """Step 16 phase B edited one comment in ``icenine/orientation_search.py``, and AR5 step 20
+    added ``boundary_repair.py`` and edited ``boundary_pass.py``, ``config_file.py`` and
+    ``reconstructor.py`` (the frozen hashes are those of the freeze commit). Every other frozen
+    script and library file must still agree."""
     import json
 
     import high500_freeze as HF

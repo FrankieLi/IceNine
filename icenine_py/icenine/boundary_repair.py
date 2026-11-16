@@ -13,8 +13,9 @@ evaluation: 121 in all) from its own end and one from each **candidate** (a neig
 more than 0.5 degree from its own, merged within 0.5 degree, read from a snapshot of the map after
 the pass). Each one has its own generator ``default_rng([0, v, c + 1])`` (``c`` = -1 for the voxel's
 own end), so no draw depends on any other fit. The kept end is the one with the highest hit ratio,
-then the lowest cost, then the current end (``boundary_pass.keep_hit``). A voxel whose stored hit
-ratio is missing costs one counted evaluation. Every evaluation is counted.
+then the lowest cost, then the current end (``boundary_pass.keep_hit``). A contested voxel whose
+stored cost is missing costs one counted evaluation (a voxel whose hit ratio is missing is never
+contested: its ratio is NaN). Every evaluation is counted.
 
 This is the library form of the script rule ``scripts/autoresearch/ar5/cmarepair_rules.py`` (study
 step 20, arm ``J5C``), which imports step 19's frozen flag; the functions below are ports of that

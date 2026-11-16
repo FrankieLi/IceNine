@@ -218,18 +218,17 @@ def test_nothing_contested_means_no_fit(monkeypatch: pytest.MonkeyPatch) -> None
     assert bfs.stats["n_evals_boundary_repair"] == 0
 
 
-def test_a_missing_hit_costs_one_counted_evaluation(monkeypatch: pytest.MonkeyPatch) -> None:
-    """A flagged voxel whose stored hit ratio is NaN is scored once (counted); the flag itself
-    never needs it: this drives ``run_repair`` with a contested voxel whose state hit is NaN."""
+def test_a_missing_cost_costs_one_counted_evaluation(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A contested voxel whose stored cost is NaN (its hit ratio finite) is scored once, counted.
+    A NaN hit ratio never reaches the scoring: its ratio is NaN and ``NaN < 0.95`` is False, so
+    such a voxel is not contested (the script rule behaves the same)."""
     bfs, mic = _repair_bfs(monkeypatch, [0.0, 2.0, 2.0, 2.0])
     res = BP.run_boundary_pass(bfs, mic)
     nbrs = [
         sorted(int(j) for j in mic.get_neighbors(v, radius=2.0) if int(j) != v) for v in range(4)
     ]
     calls: List[int] = []
-    for v in mic.voxels:
-        v.overlap_ratio = float("nan")  # every stored hit missing; the pass's re-scores remain
-    res.old_score[0] = (res.old_score[0][0], float("nan"), res.old_score[0][2])
+    mic.voxels[0].cost = float("nan")  # voxel 0 (changed by the pass) keeps its finite hit ratio
     cf = bfs.reconstructor._make_local_cost_fn()
     orig_eval = cf.evaluate
 
@@ -238,9 +237,17 @@ def test_a_missing_hit_costs_one_counted_evaluation(monkeypatch: pytest.MonkeyPa
         return orig_eval(*a, **k)
 
     cf.evaluate = counting  # type: ignore[method-assign]
-    rep = BR.run_repair(bfs, mic, res, np.stack([_rz(d) for d in [0.0, 2.0, 2.0, 2.0]]), nbrs,
-                        IDENT, None, cf)  # fmt: skip
-    assert rep.n_evals_score == len(calls)
+    R_before = np.stack([_rz(d) for d in [0.0, 2.0, 2.0, 2.0]])
+    rep = BR.run_repair(bfs, mic, res, R_before, nbrs, IDENT, None, cf)
+    assert rep.flagged == [0]
+    assert rep.n_evals_score == 1 == len(calls)
+    assert rep.n_evals == rep.n_evals_fits + 1
+    # a NaN hit ratio is never contested, so it costs nothing
+    bfs2, mic2 = _repair_bfs(monkeypatch, [0.0, 2.0, 2.0, 2.0])
+    res2 = BP.run_boundary_pass(bfs2, mic2)
+    mic2.voxels[0].overlap_ratio = float("nan")
+    rep2 = BR.run_repair(bfs2, mic2, res2, R_before, nbrs, IDENT, None, cf)
+    assert rep2.flagged == [] and rep2.n_evals_score == 0
 
 
 # ------------------------------------------------------------------------------ 4. the BFS call

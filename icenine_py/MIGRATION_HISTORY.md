@@ -13269,9 +13269,16 @@ keep the highest hit ratio, then the lowest cost, then the current end. `frozen.
   `icenine/boundary_repair.py`. They change the hashes in the older steps' `frozen.json` files; the
   step 16 tests that compared those hashes now accept them (`tests/test_ar5_high500.py`, two tests),
   and `cmarepair_freeze.py --check` now reports the library difference by design (the study's runs
-  were made before).
-- **Key-on library run on `mid`.** Not equal to `J5C`, and cannot be: `J5` has rule `G2b` and a pass
-  with aligned draws (script layer). `LibJ5C` = step 16's `LibJ5` plus the key: 127 contested voxels,
+  were made before). Consequence: `cmarepair_common` refuses `held`, `held3` and `held4` at HEAD
+  (`CF.problems()` is non-empty); re-running a held-sample study script of this step needs the
+  commit before the library change, `2e91ff54` (as step 16's entry says for `high500_common`).
+- **Key-on library run on `mid`.** The plan's check ("a library run on `mid` equal to `J5C`, the
+  same map and evaluation count") was REPLACED by the check below, pending the owner's acceptance.
+  It cannot hold, for three reasons: `J5` has rule `G2b` and aligned (script) draws over the whole
+  run, which the library lacks; and, deciding it, even the library form `J5l` differs from `LibJ5`
+  after the pass (the in-run pass reads the unrounded map, the script pass the rounded `.mic`:
+  step 16, 39 against 37 wrong voxels), so no stored script arm matches the library's state after
+  the pass. `LibJ5C` = step 16's `LibJ5` plus the key: 127 contested voxels,
   592 local optimizations, 71,632 evaluations (`J5C` on `mid`: 142, 635, 76,835). Compared instead on
   its own inputs (`cmarepair_lib_check.py`, `lib_check.json`): the library's repair against the
   script rule `cmarepair_rules.repair` on the state rebuilt the script way: flagged voxels, order and
