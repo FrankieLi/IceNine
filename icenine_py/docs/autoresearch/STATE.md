@@ -37,8 +37,8 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    refit voxels were never fitted again, all 1,921 local optimizations changed nothing.
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
    goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. Thirteen pages wait now.
-   NOW: AR5 step 21: read the drafter's plan (`SP/plan_step21_draft.md`), place it in PLAN.md,
-   log the decision (N11), brief and start the implementer. Owner: accept step 20's replaced check.
+   NOW: AR5 step 21 (`ar5u`; N11): after the gate hand-back, check it and start its run-all
+   script detached (held5 runs, about 4 h). Owner: accept step 20's replaced check; see N11 note.
 
 ## Running jobs
 - AR5 step 14 phase A MERGED f68ab69 (suite 2055 passed, 47 skipped, 1 deselected); J vs H fewer:
@@ -47,7 +47,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   `J5r` in `agent-aeba15b7c3850b007`. Step 18 (gate failed on mid, N5) MERGED 8b456ac5 (suite 2194
   passed). v55 live. Step 19 (gate failed on cost, N8) MERGED b53e927d. Step 20 (`ar5t`, N9):
   held4 PASSED (N10), key `BoundaryPassRepair` MERGED 64aac65a (suite 2239 passed); v56 live.
-  Step 21 drafter a3d0a08127b51f986 running (`SP/plan_step21_draft.md`); history agent running.
+  Step 21 (`ar5u`, N11 85c1bd6e; arm J5S): implementer a8c1c16b70cf43e39 on phase A since 19:05.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
@@ -113,7 +113,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   Step 5's result files add about 50 MB to git; say so if you want them pruned.
 
 ## Bookkeeping
-- Next decision ID: D-20261115-N11 (first of a day is N1).
+- Next decision ID: D-20261115-N12 (first of a day is N1).
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
