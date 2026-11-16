@@ -40,6 +40,7 @@ EVAL_KEYS_ALL = (
     "n_evals_restart",
     "n_evals_reseed",
     "n_evals_boundary_pass",
+    "n_evals_boundary_score",
     "n_evals_boundary_repair",
 )
 
@@ -57,6 +58,7 @@ def counts_summary(stats: Dict[str, Any], wall_total_s: float) -> Dict[str, Any]
     t_global = float(stats.get("wall_seed_s", 0.0)) + float(stats.get("wall_reseed_s", 0.0))
     return dict(
         evals_all=n_all,
+        evals_by_key={k: int(stats.get(k, 0)) for k in EVAL_KEYS_ALL},
         evals_global=n_global,
         evals_other=n_all - n_global,
         global_searches=searches,
@@ -83,24 +85,32 @@ def main() -> int:
     ap.add_argument("--max-voxels", type=int, default=0, help="smoke test only")
     ap.add_argument("--no-timing-gate", action="store_true", help="skip the preflight (tests)")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--test-grid", type=Path, default=None, help="code-path test: another grid")
+    ap.add_argument("--test-stack", type=Path, default=None, help="code-path test: another stack")
     a = ap.parse_args()
-    grid = P.SLICE if a.grid == "slice" else P.GRID
+    fine_files = {P.GRID.resolve(), P.SLICE.resolve(), P.STACK.resolve()}
+    for t in (a.test_grid, a.test_stack):  # the freeze is skipped only on other data
+        if t is not None and t.resolve() in fine_files:
+            raise SystemExit("--test-grid and --test-stack are for data other than fine7's")
+    grid = a.test_grid or (P.SLICE if a.grid == "slice" else P.GRID)
+    stack = a.test_stack or P.STACK
     text = CF.python_config(a.arm, grid, str(P.FRAMES / "500Grains.sim"), f"fine1_{a.arm}")
     a.out.mkdir(parents=True, exist_ok=True)
     (a.out / "arm.config").write_text(text)
     if a.dry_run:
-        print(f"dry run: arm {a.arm} grid {grid} stack {P.STACK} out {a.out}")
+        print(f"dry run: arm {a.arm} grid {grid} stack {stack} out {a.out}")
         print(
             "config changed keys against the base:",
             CF.changed_keys((CF.BASE_J5S if a.arm == "J5S" else CF.BASE_PS).read_text(), text),
         )
         return 0
-    FZ.check_or_exit()  # nothing runs before frozen.json is committed
+    if not (a.test_grid or a.test_stack):  # a code-path test on other data skips the freeze
+        FZ.check_or_exit()  # nothing runs before frozen.json is committed
     sys.path.insert(0, str(P.ICE / "scripts" / "autoresearch" / "ar3"))
     import ar3_common as C
 
     label = "not a timing run" if a.no_timing_gate else C.preflight_label(a.out)
-    setup, bfs, t_setup = C.build(a.out / "arm.config", a.out, sample=grid, stack_name=str(P.STACK))
+    setup, bfs, t_setup = C.build(a.out / "arm.config", a.out, sample=grid, stack_name=str(stack))
     mic = setup.sample.get_mic()
     p = setup.search_params
     assert p.fused_cost and p.bfs_revisit_refit and p.bfs_reseed and p.local_optimizer == "mc"
@@ -115,7 +125,8 @@ def main() -> int:
         assert p.cma_sigma0_deg == 0.05 and p.cma_neighbor_max_evals == 60
         assert (p.seed_rescue_sigma_deg, p.seed_rescue_evals) == (0.25, 1000)
     n = len(mic.voxels)
-    assert n == (P.SLICE_N if a.grid == "slice" else P.N_FINE), n
+    if not a.test_grid:
+        assert n == (P.SLICE_N if a.grid == "slice" else P.N_FINE), n
     import numpy as np
 
     t0 = time.time()
