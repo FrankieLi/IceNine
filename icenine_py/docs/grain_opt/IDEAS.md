@@ -1,7 +1,7 @@
 # AR6 ideas
 
 One row per idea. Status: proposed, running, done, dropped. Result in one line with its number;
-details in the findings page named in the last column. New ideas get the next free id (I31).
+details in the findings page named in the last column. New ideas get the next free id (I32).
 `build_page.py` reads this table: keep the columns and the `|` layout.
 
 | id | goal | idea | status | result | findings |
@@ -36,3 +36,4 @@ details in the findings page named in the last column. New ideas get the next fr
 | I28 | G1a | Grain-field CMA on the mean strict cost of the group's voxels (sharp objective, cheap) | proposed | GO1: strict optimum 0.006-0.008 deg from truth; smoke: grain 306 median 0.032 to 0.015 deg in 0.8 s | |
 | I29 | G1a | Two-phase: Sinkhorn (or LS) as basin finder, strict cost as finisher | proposed | | |
 | I30 | G1c | Borrow HEXRD far-field strain fitting: per-grain lattice-strain fit from spot centroids; sensitivity vs pixel/distance ratio (e.g. a far-field-like detector distance in our config) | proposed | Reference saved (owner, 2026-11-16): hexrd.github.io, local ~/Research/github/hexrd | |
+| I31 | G1c | Survey strain-fitting code in older IceNine C++ branches (GrainFitting, IceNine_v3.0.x, fix_pmc_opt, archive snapshot, master) and ~/Research/IceNine.others/IceNine.Strain | done | Strain only in the C++ image simulator (g = O M g0, M ~ I - eps, Bragg from abs g); no fitter exists; branches identical; reuse convention + .mic cols 13-18 + config keys | findings_cpp_strain.md |

@@ -5,7 +5,8 @@ list order), each stage gated by the acceptance rule (objective of the stage and
 of the group's voxels do not get worse):
 
 * ``A<obj>/<evals>[/o2]``: CMA over the grain field (rotation + linear field; ``o2`` quadratic)
-  on objective ``obj`` in {sink, ls, strict}, at most ``evals`` evaluations.
+  on objective ``obj`` in {sink, sinki (intensity-weighted Sinkhorn), ls, strict}, at most
+  ``evals`` evaluations.
 * ``B<obj>/<steps>``: Adam on free per-voxel offsets with smoothness (``obj`` sink or ls).
 * ``V/<evals>``: per-voxel CMA on that voxel's strict cost (3 numbers, sigma 0.02 deg), at most
   ``evals`` strict evaluations per voxel (AR3 C used 61 from the painted start).
@@ -34,7 +35,7 @@ import torch
 from icenine import grain_fit as GF
 from run_grains import pick_true_grains
 
-OBJ = {"sink": "sinkhorn", "ls": "ls", "strict": "strict"}
+OBJ = {"sink": "sinkhorn", "sinki": "sinkhorn", "ls": "ls", "strict": "strict"}
 
 
 def parse(p: str) -> List[Tuple[str, str, int, int]]:
@@ -123,7 +124,9 @@ def main() -> None:
             t2 = time.time()
             info: Dict[str, Any] = dict(stage=f"{kind}{obj}/{n}")
             if kind == "A":
-                spec = GF.ObjectiveSpec(kind=OBJ[obj])
+                spec = GF.ObjectiveSpec(kind=OBJ[obj], intensity=(obj == "sinki"))
+                if spec.intensity != prob.spec.intensity:  # observed mass weights change
+                    prob.y, prob.b, _ = GF.pack_observed(prob.region, spec.intensity, prob.bin_px)
                 prob.spec = spec
                 if order != 1 or prob.field.feats.shape[1] != 2 * order + (order == 2):
                     prob.field = GF.FieldA.build(prob.field.R_ref, S.xy[members], order)

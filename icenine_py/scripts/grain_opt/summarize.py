@@ -45,6 +45,7 @@ def table(rows: List[Dict[str, Any]], keys: List[str]) -> List[str]:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("runs", nargs="+")
+    ap.add_argument("--out", default="")
     a = ap.parse_args()
     md: List[str] = []
     summ: Dict[str, Any] = {}
@@ -52,21 +53,41 @@ def main() -> None:
         d = CM.OUT / "runs" / name
         rows = CM.G.load_gz(d / "voxels.json.gz")
         run = json.loads((d / "run.json").read_text())
-        keys = ["start"] + [k for k in ("A_raw", "A", "B_raw", "B") if f"err_{k}" in rows[0]] + ["C"]
+        keys = [k[4:] for k in rows[0] if k.startswith("err_") and k != "err_C"] + ["C"]
         md += [f"## {name}", "", f"args: `{json.dumps(run['args'])}`", ""]
         md += table(rows, keys) + [""]
-        acc = {s: sum(1 for g in run["grains"] if g.get(s, {}).get("accepted")) for s in ("A", "B")}
-        ts = {s: sum(g.get(s, {}).get("t_s", 0.0) for g in run["grains"]) for s in ("A", "B")}
-        ev = {s: sum(g.get(s, {}).get("evals", 0) for g in run["grains"]) for s in ("A", "B")}
-        md += [
-            f"grains: {len(run['grains'])}; accepted A {acc['A']}, B {acc['B']}; "
-            f"time A {ts['A']:.0f} s, B {ts['B']:.0f} s; objective evaluations A {ev['A']}, B {ev['B']}; "
-            f"timing: {run.get('timing', '')}",
-            "",
-        ]
-        summ[name] = dict(accepted=acc, t_s=ts, evals=ev)
-    (CM.OUT / "tables.md").write_text("\n".join(md) + "\n")
-    print("\n".join(md))
+        G = run["grains"]
+        if "stages" in G[0]:  # run_pipeline.py
+            nst = len(G[0]["stages"])
+            acc = [sum(1 for g in G if g["stages"][i]["accepted"]) for i in range(nst)]
+            nv = np.array([g["n_vox"] for g in G], float)
+            rpv = float((np.array([g["renders_per_voxel"] for g in G]) * nv).sum() / nv.sum())
+            tsec = float(sum(s["t_s"] for g in G for s in g["stages"]))
+            md += [f"grains: {len(G)}; stages {run['stages']}; accepted per stage {acc}; "
+                   f"renders per voxel {rpv:.1f}; stage wall time {tsec:.1f} s "
+                   f"({tsec / nv.sum() * 1000:.1f} ms per voxel); timing: {run.get('timing', '')}", ""]
+            last = f"s{nst - 1}"
+            withC = [r for r in rows if "err_C" in r]
+            e = np.array([r[f"err_{last}"] for r in withC])
+            summ[name] = dict(stages=run["stages"], renders_per_voxel=rpv, wall_s=tsec,
+                              ms_per_voxel=tsec / nv.sum() * 1000, accepted=acc, n=len(e),
+                              k_gt01=int((e > 0.1).sum()), median=float(np.median(e)),
+                              p95=float(np.percentile(e, 95)), k_wrong=int((e > 1).sum()),
+                              n_all=len(rows),
+                              k_gt01_all=int((np.array([r[f"err_{last}"] for r in rows]) > 0.1).sum()))
+        else:
+            acc = {s: sum(1 for g in G if g.get(s, {}).get("accepted")) for s in ("A", "B")}
+            md += [f"grains: {len(G)}; accepted A {acc['A']}, B {acc['B']}", ""]
+            summ[name] = dict(accepted=acc)
+    ap_out = CM.OUT / (a.out or "tables")
+    ap_out.parent.mkdir(parents=True, exist_ok=True)
+    (ap_out.parent / f"{ap_out.name}.md").write_text("\n".join(md) + "\n")
+    (ap_out.parent / f"{ap_out.name}.json").write_text(json.dumps(summ, indent=1) + "\n")
+    for k, v in summ.items():
+        if "renders_per_voxel" in v:
+            print(f"{k:16s} r/vox {v['renders_per_voxel']:6.1f} ms/vox {v['ms_per_voxel']:6.1f} "
+                  f"C-voxels n {v['n']} gt0.1 {v['k_gt01']} med {v['median']:.4f} p95 {v['p95']:.4f} "
+                  f"wrong {v['k_wrong']} | all n {v['n_all']} gt0.1 {v['k_gt01_all']} acc {v['accepted']}")
 
 
 if __name__ == "__main__":
