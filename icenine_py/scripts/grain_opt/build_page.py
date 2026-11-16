@@ -93,7 +93,7 @@ def pareto_svg(points: List[Dict[str, Any]]) -> str:
                "renders per voxel (log)</text>")
     out.append(f'<text x="14" y="{(T+H-B)/2:.0f}" class="axis" text-anchor="middle" '
                f'transform="rotate(-90 14 {(T+H-B)/2:.0f})">voxels above 0.1 deg</text>')
-    for p, (c, lo, hi) in zip(points, ys):
+    for idx, (p, (c, lo, hi)) in enumerate(zip(points, ys), 1):
         fam = esc(p.get("family", "g20"))
         x = X(p["renders_per_voxel"])
         out.append(f'<line x1="{x:.1f}" x2="{x:.1f}" y1="{Y(lo):.1f}" y2="{Y(hi):.1f}" '
@@ -101,7 +101,7 @@ def pareto_svg(points: List[Dict[str, Any]]) -> str:
         out.append(f'<circle cx="{x:.1f}" cy="{Y(c):.1f}" r="4.5" class="dot {fam}"><title>'
                    f'{esc(p["label"])}: {c:.2f}% ({lo:.2f} to {hi:.2f}), '
                    f'{p["renders_per_voxel"]} renders/voxel, {esc(p.get("set", ""))}</title></circle>')
-        out.append(f'<text x="{x+8:.1f}" y="{Y(c)-6:.1f}" class="lab">{esc(p["label"])}</text>')
+        out.append(f'<text x="{x+7:.1f}" y="{Y(c)-6:.1f}" class="lab">{idx}</text>')
     out.append("</svg>")
     return "".join(out)
 
@@ -146,7 +146,8 @@ code{font-family:var(--mono);font-size:.92em}
 .chart{width:100%;height:auto;max-width:720px;background:var(--panel);border:1px solid var(--line);border-radius:8px}
 .chart .grid{stroke:var(--line);stroke-width:1}.chart .tick{fill:var(--muted);font-size:11px;font-family:var(--mono)}
 .chart .axis{fill:var(--muted);font-size:12px}.chart .lab{fill:var(--fg);font-size:11px}
-.chart .dot{fill:var(--accent)}.chart .dot.reference{fill:var(--ref)}
+.chart .dot{fill:var(--accent)}.chart .dot.reference{fill:var(--ref)}.chart .dot.g20ref{fill:var(--run)}
+.chart .whisk.g20ref{stroke:var(--run)}
 .chart .whisk{stroke:var(--accent);stroke-width:2}.chart .whisk.reference{stroke:var(--ref)}
 .note{color:var(--muted);font-size:13px;max-width:70ch}
 .filters{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}
@@ -188,6 +189,16 @@ border-radius:6px;padding:3px 10px;cursor:pointer}.filters button[aria-pressed="
     parts.append("<h2>Cost against quality</h2>")
     parts.append(f'<p class="note">{esc(prog["pareto_note"])} Whiskers: Wilson 95% intervals.</p>')
     parts.append(pareto_svg(prog["pareto"]))
+    key_rows = "".join(
+        f'<tr><td class="id">{i}</td><td>{esc(p["label"])}</td><td class="id">{esc(p.get("set", ""))}</td>'
+        f'<td class="id">{p["renders_per_voxel"]}</td><td class="id">{p["k"]} of {p["n"]} '
+        f'({wilson(p["k"], p["n"])[1]:.1f} to {wilson(p["k"], p["n"])[2]:.1f}%)</td>'
+        f'<td class="id">{(f"{p[chr(109)+chr(101)+chr(100)+chr(105)+chr(97)+chr(110)]:.4f}" if "median" in p else "")}</td></tr>'
+        for i, p in enumerate(prog["pareto"], 1)
+    )
+    parts.append('<div class="tbl" style="margin-top:10px"><table><thead><tr><th>#</th><th>arm</th>'
+                 '<th>voxels</th><th>renders / voxel</th><th>above 0.1 deg</th><th>median deg</th>'
+                 f'</tr></thead><tbody>{key_rows}</tbody></table></div>')
     parts.append("<h2>Ideas</h2>")
     parts.append('<div class="filters" role="group" aria-label="Filter ideas by status">'
                  '<button id="f-all" data-f="all" aria-pressed="true">all</button>'

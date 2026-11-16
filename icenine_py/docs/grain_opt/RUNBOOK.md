@@ -89,5 +89,6 @@ research" and a new session starts at "On every wake".
 
 ## Wording
 
-Plain English, short sentences, each term defined; "local optimization" (not "finisher");
+Say "ground truth", never bare "truth", in reports, the tracking page, docs and shmem facts
+(owner, 2026-11-16); code identifiers such as `truth` variables or `truth.mic` stay. Plain English, short sentences, each term defined; "local optimization" (not "finisher");
 a reading line before each table and plot; no p-values; prose lines at 99 characters or less.

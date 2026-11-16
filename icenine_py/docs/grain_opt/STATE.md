@@ -5,23 +5,24 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO1 (objective bias) nearly done.** Rows in `benchmarks/grain_opt/probe/bias_*.jsonl`.
-  So far every Sinkhorn variant has a flat bottom: CMA from the truth ends 0.031 to 0.041 deg
-  away (balanced 0.013 to 0.095) with the objective only 0.2 to 0.7% lower; the strict cost
-  (grain mean) ends 0.006 to 0.008 deg away (passes the 0.01 rule). Left: intensity and LS arms,
-  dilation arms on grain 302.
-- **GO2 (optimizer Pareto on G20) started early on the strict-cost arms** (PLAN GO2 arms 1 to 4)
-  via `scripts/grain_opt/go2_strict_arms.sh`; Sinkhorn / LS arms (5, 6) start after GO1 ends.
-- **GO3 done** (samples `rand`, `corr3`, commit 52cab1b7).
-- **Next action:** when GO1's last rows land, write the GO1 findings section, IDEAS statuses,
-  progress.json step row; start GO2 arms 5 and 6; when all GO2 arms end, run
-  `summarize.py go2_*`, add Pareto rows, close GO2 (runbook "Close").
+- **GO1 closed** (2026-11-15 22:00 PST): only the strict cost (grain mean) puts its optimum within
+  0.01 deg of the ground truth; Sinkhorn is flat within 0.03-0.04 deg. `findings.md` "GO1".
+- **GO2 (optimizer Pareto on G20) running.** Strict-cost arms done (`benchmarks/grain_opt/go2/
+  tables.md`): field CMA on the strict cost at 100 evaluations leaves 3 of 853 voxels above 0.1
+  deg (the 3 wrong paint voxels) against 18 for AR3 C. Running: `go2_Ask150_As100_V20` (20
+  grains, 2-4 min per grain), then `go2_smooth_arms2.sh` (intensity-Sinkhorn and LS basin arms
+  plus a strict reference on the 10-grain subset).
+- **GO3 done** (samples `rand`, `corr3`). **I31 done** (C++ strain survey).
+- **Next action:** when the smooth arms end: `summarize.py` on all go2 runs (`--out go2/tables`),
+  write the GO2 findings section (Pareto frontier, wall time per voxel, the Sinkhorn arms' gate
+  outcome), add Pareto rows, close GO2. Then plan GO4: robustness of the GO2 frontier pipelines
+  on `rand` and `corr3` (`--sample rand --start centre --group true`) and on `grad`.
 
 ## Running jobs
 
-- `probe_bias.py` (GO1): grains 381 and 302 (tags bias_381, bias_302), started 20:56 PST.
-- `go2_strict_arms.sh` (GO2 arms 1-4, 10 runs in sequence), started about 21:15 PST; log
-  `benchmarks/grain_opt/runs_go2_strict.log`, per-run logs `benchmarks/grain_opt/runs/*.log`.
+- `run_pipeline.py --name go2_Ask150_As100_V20` (started about 21:20 PST 2026-11-15).
+- `go2_smooth_arms2.sh` (waits for the run above, then 3 runs on 10 grains); log
+  `benchmarks/grain_opt/runs_go2_smooth.log`.
 
 ## Data (git-ignored, in this worktree; link, do not copy)
 
@@ -31,7 +32,7 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 - `.../ScatteringData_PhaseD/grad/clean/`: the ASCII render.
 - `big`, `held`, `mid` stacks: not present on this machine's worktrees (STATE.md of Newt lists
   removed worktrees). Re-render with `render_full.py --mic <truth>` when needed (about 1 min).
-- Committed truth and starts: `benchmarks/autoresearch/ar3/gradient/sample/` (truth .mic,
+- Committed ground truth and starts: `benchmarks/autoresearch/ar3/gradient/sample/` (ground truth .mic,
   sample.json), `.../gradient/runs/P/maps.npz` (painted start "P"),
   `.../ar3/fine/runs/C/refine.json.gz` (AR3 step 4 per-voxel CMA, reference).
 
@@ -49,5 +50,8 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
   2026-11-22; recreate on 2026-11-21.
 
 ## Owner items
+
+- Style (owner, 2026-11-16): write "ground truth", not "truth" (RUNBOOK "Wording"). Existing
+  docs and the page get the wording at the GO1/GO2 close.
 
 - None open. Merges to develop: owner only.

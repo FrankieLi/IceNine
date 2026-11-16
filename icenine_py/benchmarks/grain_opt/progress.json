@@ -1,14 +1,179 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-16",
+ "updated": "2026-11-15 22:00 PST",
  "steps": [
-  {"id": "GO0", "title": "Grouping, regions, coverage renderer, Sinkhorn and LS objectives (work item 1)", "status": "done", "date": "2026-11-15", "result": "Coverage mass on stock-rendered lit pixels at the truth: median 99.6% (min 95.2%) over 20 grad grains; truth map groups into exactly the 497 grains; Sinkhorn at truth 0.4-0.7 px^2 after component + ratio filters and reach 3 px.", "commit": "5a3162d2"},
-  {"id": "GO1", "title": "Objective bias: where each objective's minimum sits against the truth", "status": "running", "date": "2026-11-16", "result": "Smoke test: stage A lowered Sinkhorn while moving voxels 0.016 to 0.050 deg away from the truth (strict-cost gate rejected).", "commit": ""}
+  {
+   "id": "GO0",
+   "title": "Grouping, regions, coverage renderer, Sinkhorn and LS objectives (work item 1)",
+   "status": "done",
+   "date": "2026-11-15",
+   "result": "Coverage mass on stock-rendered lit pixels at the ground truth: median 99.6% (min 95.2%) over 20 grad grains; ground-truth map groups into exactly the 497 grains; Sinkhorn at ground truth 0.4-0.7 px^2 after component + ratio filters and reach 3 px.",
+   "commit": "5a3162d2"
+  },
+  {
+   "id": "GO1",
+   "title": "Objective bias: where each objective's minimum sits against the ground truth",
+   "status": "done",
+   "date": "2026-11-16",
+   "result": "Only the strict cost (grain mean) puts its optimum within 0.01 deg of the ground truth (0.006, 0.008 deg); Sinkhorn variants are flat within 0.031-0.041 deg (objective <1% lower); intensity-weighted Sinkhorn 0.0074 / 0.026 deg; least squares 0.012 / 0.042 deg.",
+   "commit": ""
+  },
+  {
+   "id": "GO3",
+   "title": "Deformed samples: random (rand) and correlated (corr3) voxel-to-voxel misorientation, RMS 0.5-5 deg",
+   "status": "done",
+   "date": "2026-11-15",
+   "result": "Rendered: rand 22.4M lit pixels, corr3 19.2M; coverage mass on lit pixels at the ground truth 97-99%. At 2 / 5 deg, 69% / 97% of neighbour pairs in rand exceed 2 deg (flood-fill grouping fails there).",
+   "commit": "52cab1b7"
+  },
+  {
+   "id": "I31",
+   "title": "Survey of strain code in older C++ branches",
+   "status": "done",
+   "date": "2026-11-16",
+   "result": "Strain only in the C++ image simulator (g = O M g0, M ~ I - eps); no fitter or cost exists; branches identical. Reuse convention, .mic columns 13-18, config keys.",
+   "commit": "8323e841"
+  },
+  {
+   "id": "GO2",
+   "title": "Optimizer Pareto on G20 (20 grad grains, painted start)",
+   "status": "running",
+   "date": "2026-11-15",
+   "result": "Strict-cost arms done: field CMA 100 evals leaves 3 of 853 voxels above 0.1 deg (0.1-1.0%) against 18 (1.3-3.3%) for AR3 per-voxel CMA at 61 evals; 400 evals: median 0.0062 deg. Sinkhorn-first arms running.",
+   "commit": ""
+  }
  ],
- "pareto_note": "Share of voxels above 0.1 deg against renders per voxel (grain-objective evaluations, or strict evaluations per voxel for per-voxel fits). Reference points are on all 19,013 painted voxels of grad; G20 points on the voxels of the 20 benchmark grains that have a C record.",
+ "pareto_note": "Share of voxels above 0.1 deg against renders per voxel (grain-objective evaluations, or strict evaluations per voxel for per-voxel fits). Grey: reference points on all 19,013 painted voxels of grad. Blue: GO2 arms on the 853 voxels of the 20 benchmark grains that have an AR3 C record (start 84 of 853, C 18 of 853 on these voxels).",
  "pareto": [
-  {"label": "painted start", "family": "reference", "set": "grad painted voxels", "renders_per_voxel": 0, "k": 2240, "n": 19013},
-  {"label": "AR3 stock MC fit", "family": "reference", "set": "grad painted voxels", "renders_per_voxel": 675, "k": 2230, "n": 19013},
-  {"label": "AR3 per-voxel CMA (C)", "family": "reference", "set": "grad painted voxels", "renders_per_voxel": 61, "k": 334, "n": 19013}
+  {
+   "label": "painted start",
+   "family": "reference",
+   "set": "grad painted voxels",
+   "renders_per_voxel": 0,
+   "k": 2240,
+   "n": 19013
+  },
+  {
+   "label": "AR3 stock MC fit",
+   "family": "reference",
+   "set": "grad painted voxels",
+   "renders_per_voxel": 675,
+   "k": 2230,
+   "n": 19013
+  },
+  {
+   "label": "AR3 per-voxel CMA (C)",
+   "family": "reference",
+   "set": "grad painted voxels",
+   "renders_per_voxel": 61,
+   "k": 334,
+   "n": 19013
+  },
+  {
+   "label": "start on G20 voxels",
+   "family": "g20ref",
+   "set": "G20, 853 voxels",
+   "renders_per_voxel": 0,
+   "k": 84,
+   "n": 853
+  },
+  {
+   "label": "C on G20 voxels",
+   "family": "g20ref",
+   "set": "G20, 853 voxels",
+   "renders_per_voxel": 61,
+   "k": 18,
+   "n": 853
+  },
+  {
+   "label": "field 50",
+   "family": "g20",
+   "set": "G20, 853 voxels",
+   "renders_per_voxel": 63.0,
+   "k": 20,
+   "n": 853,
+   "median": 0.014814239951853665
+  },
+  {
+   "label": "field 100",
+   "family": "g20",
+   "set": "G20, 853 voxels",
+   "renders_per_voxel": 113.0,
+   "k": 3,
+   "n": 853,
+   "median": 0.014558597293219178
+  },
+  {
+   "label": "field 200",
+   "family": "g20",
+   "set": "G20, 853 voxels",
+   "renders_per_voxel": 213.0,
+   "k": 3,
+   "n": 853,
+   "median": 0.011088880987589925
+  },
+  {
+   "label": "field 400",
+   "family": "g20",
+   "set": "G20, 853 voxels",
+   "renders_per_voxel": 413.0,
+   "k": 3,
+   "n": 853,
+   "median": 0.0062049788568570635
+  },
+  {
+   "label": "quadratic 200",
+   "family": "g20",
+   "set": "G20, 853 voxels",
+   "renders_per_voxel": 207.0,
+   "k": 20,
+   "n": 853,
+   "median": 0.017002130289712068
+  },
+  {
+   "label": "field 100 + voxel 10",
+   "family": "g20",
+   "set": "G20, 853 voxels",
+   "renders_per_voxel": 128.0,
+   "k": 3,
+   "n": 853,
+   "median": 0.015060726469298511
+  },
+  {
+   "label": "field 100 + voxel 30",
+   "family": "g20",
+   "set": "G20, 853 voxels",
+   "renders_per_voxel": 149.0,
+   "k": 3,
+   "n": 853,
+   "median": 0.013009008336930908
+  },
+  {
+   "label": "field 100 + voxel 61",
+   "family": "g20",
+   "set": "G20, 853 voxels",
+   "renders_per_voxel": 175.1,
+   "k": 3,
+   "n": 853,
+   "median": 0.011416391268512462
+  },
+  {
+   "label": "voxel 20",
+   "family": "g20",
+   "set": "G20, 853 voxels",
+   "renders_per_voxel": 22.0,
+   "k": 45,
+   "n": 853,
+   "median": 0.02348353878587096
+  },
+  {
+   "label": "voxel 61",
+   "family": "g20",
+   "set": "G20, 853 voxels",
+   "renders_per_voxel": 62.4,
+   "k": 34,
+   "n": 853,
+   "median": 0.01645216117598562
+  }
  ]
 }

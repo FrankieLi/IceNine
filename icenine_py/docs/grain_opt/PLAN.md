@@ -34,7 +34,7 @@ Written before any run of the step.
   gradient level 0, 0.1, 0.2, 0.5, 1.0 deg; sizes at quantiles 0.1 to 0.95 of the level). The
   fitted group of a true grain is the start-map flood-fill group (2 deg) holding most of its
   voxels. Start map: the painted map (AR3 step 3, `runs/P/maps.npz` "P").
-- **Quality**: per-voxel symmetry-reduced misorientation to the voxel's own truth: median, 95th
+- **Quality**: per-voxel symmetry-reduced misorientation to the voxel's own ground truth: median, 95th
   percentile, share above 0.1 deg, wrong (above 1 deg), with Wilson 95% intervals. Boundary
   voxels (a neighbour outside the group) reported separately. The strict binary cost
   (`VoxelCostFunction`, local, hard) is the referee and is reported per voxel.
@@ -59,12 +59,12 @@ budget, what is committed. Ideas live in `IDEAS.md`; a step takes one or more id
 
 ### GO1: objective bias (ideas I1, I2)
 
-Question: where does each objective's minimum sit relative to the truth? Level-0 grains of
+Question: where does each objective's minimum sit relative to the ground truth? Level-0 grains of
 `grad` (one true orientation each): grains 381 and 302. CMA over the grain rotation only
-(3 numbers), started AT the truth, 150 evaluations, sigma 0.03 deg. Arms: unbalanced Sinkhorn
+(3 numbers), started AT the ground truth, 150 evaluations, sigma 0.03 deg. Arms: unbalanced Sinkhorn
 (reach 3 px) at blur 1 and 0.5 px, balanced at blur 1, with the pixel-box dilation of the
 prediction at blur 1 and 0.5, intensity-weighted, least squares. Reported: median offset of the
-optimum from the truth (deg), objective and mean strict cost at truth and optimum. Rule: an
+optimum from the ground truth (deg), objective and mean strict cost at ground truth and optimum. Rule: an
 objective is "unbiased enough" if its offset is below 0.01 deg on both grains (the start's median
 error on level-0 grains is 0.016 deg, on all painted voxels 0.041 deg). If no arm qualifies, the
 next step studies the cause (I3, I4) before any optimizer study.
@@ -73,7 +73,7 @@ next step studies the cause (I3, I4) before any optimizer study.
 
 Question: for each objective, how many renders per voxel buy how much accuracy, and which chain
 of stages reaches the strict-cost optimum cheapest? GO1 found every Sinkhorn variant flat within
-0.03 to 0.04 deg of the truth, and the strict cost (grain mean) within 0.006 to 0.008 deg. So
+0.03 to 0.04 deg of the ground truth, and the strict cost (grain mean) within 0.006 to 0.008 deg. So
 Sinkhorn is a basin finder at best, and the finish must use the strict cost (or a sharper smooth
 cost, I3).
 
@@ -99,7 +99,7 @@ whole step under 1 h of compute. Committed: run.json and voxels.json.gz per arm 
 
 `rand` (white-noise voxel rotations) and `corr3` (Gaussian-smoothed, length 3 voxel sides), RMS
 levels 0.5, 1, 2, 5 deg drawn per grain (seed 0). Rendered clean with the stock forward model;
-coverage mass on lit pixels at the truth 97 to 99% on 10 grains of each. In `rand`, 69% (2 deg)
+coverage mass on lit pixels at the ground truth 97 to 99% on 10 grains of each. In `rand`, 69% (2 deg)
 and 97% (5 deg) of neighbour pairs exceed 2 deg, so flood-fill grouping fragments those grains:
 GO4 uses true grain ids (`--group true`) and the grain-centre start (`--start centre`).
 
