@@ -13394,3 +13394,37 @@ layer only (`scripts/autoresearch/ar5/screen_*.py`, `screen_*.sh`; `tests/test_a
   `J5C` per disclosed sample (the screen scripts' freeze check now refuses until re-frozen).
 - Results: `benchmarks/autoresearch/ar5/screen/` (`frozen.json`, `gate.json`, `gate_tables.md`; the
   cache is untracked).
+
+## Autoresearch AR5 step 22, phase A so far: defer a stalled seed refinement while untried candidates remain (2026-11-16, task ar5v)
+
+Approved D-20261116-N2. Branch `feature/eval-reduction-ar5v`. Arm `J5D` = arm `J5` with rule `DEF`: at a
+`PH(500)` check that goes on (the running best's own hit ratio under 0.95), if the seed step still has an
+untried candidate, the refinement is paused and the next candidate is tried; if no later candidate
+reaches 0.95 the paused refinements are resumed in candidate order under `J5`'s rules. `J5SD` = `J5D`
+with step 21's screen pass and wide repair. Script layer only (`scripts/autoresearch/ar5/defer_*.py`,
+`defer_*.sh`; `tests/test_ar5_defer.py`, `tests/test_ar5_defer_pick.py`); no library change, no key
+(phase B, if the step passes). Tests were committed first (`155b7b8c`), `frozen.json` before any `J5D`
+run (`ar5/defer/frozen.json`).
+
+- **Own freeze layer.** Step 21's freeze check no longer agrees at this commit
+  (`icenine/boundary_pass.py` changed with its key phase). `defer_common` runs this step's own check
+  first (every script and every library file pinned by sha256, the file committed and clean) and only
+  then switches off step 21's and the older steps' checks in that process; no older frozen file or
+  hash was edited or re-recorded.
+- **Resume in phase A is an exact re-run** of the paused part (the library has no pause): the
+  refinement's own generator is `default_rng(0)`, not keyed by a call count, so the re-run repeats the
+  first part; it is checked identical (check evaluation, hit ratio, best cost, trace of gains) and not
+  counted; those evaluations are listed apart (`rerun_evals`).
+- **g1 (prediction 1), reproduced exactly** by the tracked replay (`defer_replay.py`; `replay.json`):
+  A steps / exact saving / C steps / N steps: held5 998 / 10.54% / 191 / 546; held4 1,106 / 13.14% /
+  251 / 593; held3 869 / 9.75% / 172 / 599; held 1,010 / 12.28% / 238 / 512; mid 358 / 10.65% / 79 /
+  127; grad 269 / 2.40% / 10 / 98; big 62 / 4.95% / 9 / 4; net bounds equal to the plan's table.
+- **g0 on `mid`** (32 stored seed steps, 8 each of types A, C, N and no pause; `defer_g0.py`,
+  `g0.json`): with `DEF` off every fit equals `J5`'s stored one (hit ratio, cost, end, evaluations);
+  with `DEF` on, A / N / unpaused steps have `J5`'s taken end and exactly `J5`'s evaluations minus the
+  paused tails; all 30 resumed refinements equal `J5`'s unpaused ones (trace of gains, checks,
+  evaluations); 7 of the 8 C steps ended at another candidate than `J5`'s, 1 in the resume.
+- Run scripts: `defer_run_all.sh --stage gate|rest` (gate: live `J5D` on `mid` and `held`, each then
+  the screen pass and wide repair; rest: `J5SD` on the other five samples, the `held6` build, pilot, `S8`,
+  `J5`, `J5S` and `J5SD`; 3 heavy processes at most), `defer_gate.py` (g2, g3), `defer_build_held6.py`.
+  Status: gate stage and the long runs not started by this session.
