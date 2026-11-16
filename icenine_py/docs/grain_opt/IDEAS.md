@@ -41,5 +41,5 @@ details in the findings page named in the last column. New ideas get the next fr
 | I33 | G1b | Neighbour continuation: fit voxels in BFS order from the best-fitting ones, each starting from its fitted neighbours' orientations (multi-start) | done | GO4b: helps on corr3 (L/61 + N/30: 2 deg 63% vs 86%), little on rand | findings.md |
 | I34 | G1b | Wider per-voxel search: step ladder 0.3 / 1 / 3 deg with larger budgets, or a per-voxel smooth objective (LS) for reach, finished on the strict cost | done | GO4b: ladder L/183 (61 per leg): corr3 0.5/1/2 deg -> 9%/11%/47% above 0.1 deg (GO4 best 32/53/93%); rand 0.5 deg 51% | findings.md |
 | I35 | G1b | Real paint start on rand / corr3 (AR3 paint key: many grain entries per deformed grain) | proposed | | |
-| I36 | G1b | Gated wider search: voxels whose strict cost stays high after the ladder get a global search (ray-indexing seed path / grid) | proposed | GO4b: strict cost at ground truth lower than at fit end for ~all voxels left above 0.1 deg | |
-| I37 | G1b | Larger ladder for 2-5 deg: first leg 3 deg, 4 legs, 61-120 per leg; budget sweep | proposed | | |
+| I36 | G1b | Gated wider search: voxels whose strict cost stays high after the ladder get a global search (ray-indexing seed path / grid) | proposed | Blocked on cost: seed path took >15 min for one 8-voxel rand grain (pairs 1.56M spot fragments); needs a cached ray index |  |
+| I37 | G1b | Larger ladder for 2-5 deg: first leg 3 deg, 4 legs, 61-120 per leg; budget sweep | running | | |

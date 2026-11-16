@@ -136,6 +136,14 @@ their ground truth? Same samples, start, membership and 20-grain benchmarks as G
 Arms per sample: `L/61`, `L/183`, `N/30/0.3`, `L/61,N/30/0.3`, `Als/150,Astrict/100,L/61,N/30/0.3`.
 Judging: the standing rule per level, against GO4's best arm per level. Budget: under 1 h.
 
+### GO4c: larger ladders (idea I37; I36 blocked)
+
+Same setup as GO4b. Arms per sample: `L/244/3` (legs 3, 1, 0.3, 0.05 deg, 61 each), `L/366/3`
+(91 each), `L/183,N/30/0.3`. Judging as GO4b, against L/183. The gated global search (I36, stage
+`G`) was tried first: the reconstructor's seed path did not finish one 8-voxel `rand` grain in
+15 minutes (it pairs 1.56M spot fragments across the detectors, about 25% of memory), so it is
+blocked until the ray index is cached per sample.
+
 ### GO5: strain in the forward model (ideas I14, I15, I16, I30)
 
 Implemented by an `implementer` agent in its own worktree (branch `feature/grain-opt-strain` off

@@ -10,7 +10,11 @@ of the group's voxels do not get worse):
 * ``B<obj>/<steps>``: Adam on free per-voxel offsets with smoothness (``obj`` sink or ls).
 * ``N/<evals>[/<sigma>]``: neighbour continuation (two breadth-first sweeps from the best 10%;
   candidates = own + fitted in-grain neighbours' orientations; then per-voxel CMA polish).
-* ``L/<evals>``: per-voxel CMA step ladder 1.0 / 0.3 / 0.05 deg, ``evals``/3 per leg.
+* ``L/<evals>[/3]``: per-voxel CMA step ladder 1.0 / 0.3 / 0.05 deg (or 3 / 1 / 0.3 / 0.05),
+  ``evals`` split evenly over the legs.
+* ``G/<n>[/<threshold>]``: gated global search: voxels whose strict cost exceeds the threshold
+  (default n/100) run the reconstructor's ray-indexing seed path; the seed is kept if its strict
+  cost is lower. Its evaluations count per voxel of the group.
 * ``V/<evals>[/<sigma>]``: per-voxel CMA on that voxel's strict cost (3 numbers, sigma 0.02 deg
   unless given), at most
   ``evals`` strict evaluations per voxel (AR3 C used 61 from the painted start).
@@ -49,9 +53,9 @@ def parse(p: str) -> List[Tuple[str, str, int, int]]:
         head, n = parts[0], int(parts[1])
         order = 2 if len(parts) > 2 and parts[2] == "o2" else 1
         kind, obj = head[0], head[1:]
-        if kind in "VNL" and len(parts) > 2:  # V/<evals>/<sigma deg>
+        if kind in "VNLG" and len(parts) > 2:  # V/<evals>/<sigma deg>
             obj = parts[2]
-        assert kind in "ABVNL", st
+        assert kind in "ABVNLG", st
         if kind in "NL" and len(parts) > 2:
             obj = parts[2]
         if kind in "AB":
@@ -84,13 +88,20 @@ def voxel_cma(S: Any, R0: np.ndarray, v: int, evals: int, sigma_deg: float = 0.0
     return GF.rotvec_to_matrix(torch.as_tensor(best)).numpy() @ R0, n
 
 
-def voxel_ladder(S: Any, R0: np.ndarray, v: int, evals: int) -> Tuple[np.ndarray, int]:
-    """Per-voxel CMA in three legs (steps 1.0, 0.3, 0.05 deg), each from the best so far."""
+LADDERS = {1.0: (1.0, 0.3, 0.05), 3.0: (3.0, 1.0, 0.3, 0.05)}
+
+
+def voxel_ladder(
+    S: Any, R0: np.ndarray, v: int, evals: int, first: float = 1.0
+) -> Tuple[np.ndarray, int]:
+    """Per-voxel CMA in legs (steps 1.0, 0.3, 0.05 deg, or 3, 1, 0.3, 0.05 when ``first`` is 3),
+    ``evals`` split evenly over the legs, each leg from the best so far."""
+    legs = LADDERS[first]
     R, n = np.asarray(R0, float), 0
     fb = float(S.strict(R[None], [v])[0])
     n += 1
-    for sig in (1.0, 0.3, 0.05):
-        Rn, k = voxel_cma(S, R, v, max(evals // 3, 7), sig)
+    for sig in legs:
+        Rn, k = voxel_cma(S, R, v, max(evals // len(legs), 7), sig)
         n += k
         fn = float(S.strict(Rn[None], [v])[0])
         n += 1
@@ -167,6 +178,7 @@ def main() -> None:
     if a.sample == "grad" and a.start == "paint":
         Cref = {r["voxel"]: r for r in CM.G.load_gz(CM.C.OUT / "fine" / "runs" / "C" / "refine.json.gz")}
     R_cur = S.R0.copy()
+    hooks = None
     grains, vox_rows = [], []
     t_all = time.time()
     for g in picks:
@@ -213,11 +225,33 @@ def main() -> None:
                 R_new, _sn, used = neighbour_continuation(S, R_now, s_now, members, n,
                                                           float(obj) if obj else 0.3)
                 f_old = f_new = float("nan")
+            elif kind == "G":  # gated global search (ray-indexing seed path) for high-cost voxels
+                thr = float(obj) if obj else float(n) / 100.0
+                if hooks is None:
+                    from icenine import grain_paint as GP
+
+                    hooks = GP.ReconstructorHooks(S.bfs, S.mic, np.random.default_rng(0))
+                R_new = R_now.copy()
+                ev_tot, n_gate, n_found = 0, 0, 0
+                for i, v in enumerate(members):
+                    if s_now[i] <= thr:
+                        continue
+                    n_gate += 1
+                    Rs, _c, _h, ev = hooks.index_seed(v)
+                    ev_tot += ev + 1
+                    if Rs is not None:
+                        Rs = GF.align_to(Rs[None], R_now[i], S.sym)[0]
+                        if float(S.strict(Rs[None], [v])[0]) < s_now[i]:
+                            R_new[i] = Rs
+                            n_found += 1
+                used = ev_tot / len(members)
+                info.update(gated=n_gate, improved=n_found, threshold=thr)
+                f_old = f_new = float("nan")
             elif kind == "L":
                 R_new = R_now.copy()
                 used_v = []
                 for i, v in enumerate(members):
-                    R_new[i], k = voxel_ladder(S, R_now[i], v, n)
+                    R_new[i], k = voxel_ladder(S, R_now[i], v, n, float(obj) if obj else 1.0)
                     used_v.append(k)
                 used = float(np.mean(used_v))
                 f_old = f_new = float("nan")
@@ -230,7 +264,7 @@ def main() -> None:
                 used = float(np.mean(used_v))
                 f_old = f_new = float("nan")
             s_new = S.strict(R_new, members)
-            if kind in "VNL":  # per voxel: keep a voxel's fit only if its strict cost did not rise
+            if kind in "VNLG":  # per voxel: keep a voxel's fit only if its strict cost did not rise
                 keep = s_new <= s_now
                 R_new = np.where(keep[:, None, None], R_new, R_now)
                 s_new = np.where(keep, s_new, s_now)

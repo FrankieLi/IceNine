@@ -5,22 +5,22 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO4 closed** (2026-11-15 22:45 PST): from a grain-centre start, local fits recover only voxels
-  within about 0.5 deg of their start. `findings.md` "GO4".
-- **GO4b (far starts: neighbour continuation N, step ladder L) running**: `go4b_arms.sh` (10 runs),
-  started 22:36 PST. Smoke: corr3 grain 20 (1 deg) median 0.923 to 0.163 deg at 103 eval/voxel.
-- **GO5 (strain) delegated** to an implementer agent in its own worktree, branch
-  `feature/grain-opt-strain` (PLAN "GO5"). On hand-back: verify tests, review the diff (code under
-  `icenine/`), merge `--no-ff` into `feature/grain-opt`, place its findings text.
-- **Next action:** when GO4b ends: summarize (`--out go4b/<sample>`), per-level table against
-  GO4's best arm, close GO4b. When GO5 hands back: check and merge as above.
+- **GO4b closed** (2026-11-15 22:55 PST): per-voxel step ladder L/183 recovers corr3 up to 2 deg
+  (9/11/47% above 0.1 deg at 0.5/1/2); rand is a search problem. `findings.md` "GO4b".
+- **GO4c (larger ladders, I37) running**: `go4c_arms.sh` (6 runs), started 23:14 PST. I36 (gated
+  global search) blocked on cost (seed path >15 min per tiny rand grain).
+- **GO5 (strain) delegated** to an implementer agent, branch `feature/grain-opt-strain`. On
+  hand-back: verify tests, review the diff, merge `--no-ff` into `feature/grain-opt`, place its
+  findings text, close GO5.
+- **Next action:** when GO4c ends: summarize (`--out go4c/<sample>`), table against L/183, close
+  GO4c. Then plan GO6 (objective variants: I18 Poisson, I19 moments, I3 soft pixel-touched model)
+  or GO4d (cached ray index for I36), whichever the results point to.
 
 ## Running jobs
 
-- `go4b_arms.sh` (GO4b, 10 runs); log `benchmarks/grain_opt/runs_go4b.log`.
-- Implementer agent for GO5 (background; worktree under `.claude/worktrees/agent-*`, branch
-  `feature/grain-opt-strain`). If the session died: check that branch's commits and resume the
-  step from them; never start a second agent on the branch.
+- `go4c_arms.sh` (GO4c); log `benchmarks/grain_opt/runs_go4c.log`.
+- Implementer agent for GO5 (branch `feature/grain-opt-strain`). If the session died: check that
+  branch's commits and resume from them; never start a second agent on the branch.
 
 ## Data (git-ignored, in this worktree; link, do not copy)
 
