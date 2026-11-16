@@ -31,6 +31,7 @@ def main() -> None:
     ap.add_argument("--grains", type=int, nargs="+", default=[381, 302, 41])
     ap.add_argument("--variants", nargs="*", default=list(VARIANTS))
     ap.add_argument("--evals", type=int, default=150)
+    ap.add_argument("--tag", default="bias")
     a = ap.parse_args()
     S = CM.Sample(CM.OUT / "probe")
     T = S.T
@@ -73,8 +74,10 @@ def main() -> None:
                        strict_truth=st_truth, strict_opt=float(S.strict(R_opt, members).mean()),
                        t_s=time.time() - t0)
             print(json.dumps(row), flush=True)
+            with open(CM.OUT / "probe" / f"{a.tag}.jsonl", "a") as fh:
+                fh.write(json.dumps(row) + "\n")
             out.append(row)
-    (CM.OUT / "probe" / "bias.json").write_text(json.dumps(out, indent=1) + "\n")
+    (CM.OUT / "probe" / f"{a.tag}.json").write_text(json.dumps(out, indent=1) + "\n")
 
 
 if __name__ == "__main__":

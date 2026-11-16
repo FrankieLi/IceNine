@@ -1,0 +1,3 @@
+# truth and grid maps are rebuilt by scripts/grain_opt/make_deformed_sample.py (sha256 in sample.json)
+*.mic
+render.log

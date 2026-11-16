@@ -47,23 +47,60 @@ def err_stats(err: np.ndarray) -> Dict[str, Any]:
     )
 
 
-class Sample:
-    """Everything a grain fit needs on one sample (``grad`` by default, AR3_SAMPLE for others)."""
+class SampleTruth:
+    """Truth of an AR6 sample under ``benchmarks/grain_opt/samples/<tag>/`` (same fields as
+    ``gradient_common.Truth``)."""
 
-    def __init__(self, out: Path, start: str = "paint", intensity: bool = True) -> None:
+    def __init__(self, tag: str) -> None:
+        import json
+
+        from icenine.mic_file import MicFile
+        from icenine.ray_indexing import proper_rotations
+        from icenine.symmetry import create_cubic_symmetry
+
+        d = OUT / "samples" / tag
+        self.sym = proper_rotations(create_cubic_symmetry(3.6))
+        mic = MicFile.read(str(d / "truth.mic"))
+        self.R = np.array([v.orientation for v in mic.voxels], dtype=np.float64)
+        self.gmap = np.load(d / "grainmap.npy")
+        info = json.loads((d / "sample.json").read_text())
+        self.gids = [g["id"] for g in info["grains"]]
+        self.level_of = {g["id"]: g["level_deg"] for g in info["grains"]}
+        self.Rc = {g["id"]: np.array(g["R_centre"]) for g in info["grains"]}
+        self.R_centre = np.stack([self.Rc[int(g)] for g in self.gmap])
+        self.n = len(self.R)
+        self.grid_mic = d / "grid.mic"
+
+    def err(self, R: np.ndarray, idx: Any = slice(None)) -> np.ndarray:
+        from icenine.ray_indexing import misorientation_deg
+
+        return np.asarray(misorientation_deg(R, self.R[idx], self.sym), dtype=float)
+
+
+class Sample:
+    """Everything a grain fit needs on one sample: ``grad`` (default) or an AR6 sample tag under
+    ``benchmarks/grain_opt/samples/`` (``rand``, ``corr3``, ...)."""
+
+    def __init__(
+        self, out: Path, start: str = "paint", intensity: bool = True, sample: str = "grad"
+    ) -> None:
         from icenine import grain_fit as GF
         from icenine.reconstructor import _get_voxel_vertices
         from icenine.smooth_cost import _build_smooth_cost
 
         out.mkdir(parents=True, exist_ok=True)
         cwd = os.getcwd()
-        self.setup, self.bfs, self.t_setup = C.build(
-            C.CONFIG, out, sample=G.GRID_MIC, stack_name=G.STACK
-        )
+        self.tag = sample
+        if sample == "grad":
+            self.T: Any = G.Truth()
+            grid, stack_name = G.GRID_MIC, G.STACK
+        else:
+            self.T = SampleTruth(sample)
+            grid, stack_name = self.T.grid_mic, f"{sample}_clean.npy"
+        self.setup, self.bfs, self.t_setup = C.build(C.CONFIG, out, sample=grid, stack_name=stack_name)
         os.chdir(cwd)
         self.mic = self.setup.sample.get_mic()
         self.n = len(self.mic.voxels)
-        self.T = G.Truth()
         assert self.T.n == self.n
         self.sym = self.T.sym
         self.cost_fn = self.bfs.reconstructor._make_local_cost_fn()
@@ -79,9 +116,9 @@ class Sample:
         self.phase = int(self.mic.voxels[0].phase)
         assert all(int(v.phase) == self.phase for v in self.mic.voxels)
         self.model = GF.SpotModel(self.sc, phase=self.phase)
-        stack = np.load(str(PHASE_D / "stacks" / G.STACK), mmap_mode="r")
+        stack = np.load(str(PHASE_D / "stacks" / stack_name), mmap_mode="r")
         store = None
-        tag = G.STACK.replace("_clean.npy", "")
+        tag = stack_name.replace("_clean.npy", "")
         sp = PHASE_D / tag / "intensity_clean.npz"
         if intensity and sp.exists():
             z = np.load(sp)
@@ -95,6 +132,8 @@ class Sample:
             return m["P"].astype(np.float64)
         if start == "truth":
             return self.T.R.copy()
+        if start == "centre":  # each voxel at its grain's (pre-deformation) orientation
+            return self.T.R_centre.copy()
         R, _ = G.read_map(Path(start), self.n)
         return R
 

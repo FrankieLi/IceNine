@@ -5,11 +5,10 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **Step GO1 (objective bias, ideas I1 I2 I17 I21) is running.** `probe_bias.py --grains 381 302`
-  (7 arms, CMA over the grain rotation from the truth). Started 2026-11-15 20:24 PST under a
-  40-minute `timeout`; rows go to the console only (rerun the missing arms with
-  `--grains ... --variants ...` if it was cut off), and `benchmarks/grain_opt/probe/bias.json` at
-  the end.
+- **Step GO1 (objective bias, ideas I1 I2 I17 I21) is running.** First run (20:24) was cut by its
+  40-minute timeout and its rows were lost in a pipe. Rerun 20:56 PST 2026-11-15, one process per
+  grain: `probe_bias.py --grains 381 --evals 120 --tag bias_381` (and 302); rows are appended to
+  `benchmarks/grain_opt/probe/bias_<grain>.jsonl` as they finish (7 arms each).
 - **Next action:** read the GO1 rows; pick the objective with the smallest offset (rule in PLAN
   GO1: below 0.01 deg on both grains). If one qualifies: plan GO2 (optimizer Pareto on G20). If
   none: plan a cause study (I3 soft pixel-touched model, I4 noise floor) first.
@@ -18,7 +17,8 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Running jobs
 
-- `scripts/grain_opt/probe_bias.py` (GO1), one process, started 20:24 PST 2026-11-15.
+- `probe_bias.py` x2 (GO1, grains 381 and 302), started 20:56 PST 2026-11-15, no timeout; logs
+  `benchmarks/grain_opt/probe/bias_<grain>.log`.
 
 ## Data (git-ignored, in this worktree; link, do not copy)
 
