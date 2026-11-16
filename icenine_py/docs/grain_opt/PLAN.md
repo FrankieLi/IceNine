@@ -232,6 +232,36 @@ answers I39 when an arm has at most 4 of 12 short and reaches the floor at 5e-4 
 
 Budget: about 30 ms per evaluation, under 30 min in total; 4 processes at most.
 
+### GO5d: fix the orientation, then strain alone (idea I41)
+
+Question: GO5c showed the coverage cost trades a 0.01 deg rotation of the grain field against
+2-4e-4 strain, so a joint fit lands at a lower cost with the wrong strain. If the field is fixed
+first from a fit that does not fit strain, and only strain is then fitted, does the painted-start
+strain error come down to the strain-only floor of `E@GT` (median 1.7e-4 / 1.9e-4 / 2.0e-4)?
+
+Same benchmark S12, coverage cost, robust painted start and measures as GO5b/GO5c
+(`fit_strain.py`, output `benchmarks/grain_opt/go5d/`). In every arm the last leg is strain only
+(300 evaluations, step 5e-4, from 0) at a fixed field; `mis_fit_med` is the fixed field's
+orientation error. Arms:
+
+- `E@F`: the field fitted to the ground-truth orientations (least squares, no CMA), then strain
+  only. Control: the floor when the orientation is limited to an order-1 field.
+- `O@P`: painted start, field leg on the coverage cost with strain fixed at 0 (600 evaluations,
+  step 0.05 deg), then strain only.
+- `Ost@P`: painted start, field leg on the strict cost (no strain model; 200 evaluations, step
+  0.05 deg), then strain only on the coverage cost.
+
+Judging rule (written before any run). Per level and arm, median strain error over 4 grains.
+"Reaches the floor" at a level when the median is at most 1.5 x `E@GT`'s median at that level.
+Better than GO5c `S@P` at a level when the median is below `S@P`'s and at least 3 of the 4 grains
+are better. I41 is answered yes when a painted-start arm reaches the floor at 5e-4 and 1e-3. If
+`E@F` itself misses the floor, the order-1 field is the limit and the painted arms are judged
+against `E@F` instead (same 1.5 x). The 1e-4 level is reported, not judged. One run per arm,
+seed 0.
+
+Budget: about 30 ms per coverage evaluation, strict about 25 ms per voxel; under 30 min in
+total; 3 processes.
+
 ### GO6 onwards
 
 Planned order (each gets a section when it starts): GO6 objective variants (I17 to I22); GO7 richer
