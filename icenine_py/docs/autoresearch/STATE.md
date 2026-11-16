@@ -44,9 +44,9 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
 - Step 14 key WAITS (held2: step 13 or owner). Steps 15 to 19: merged (see STATE_HISTORY); `J5r` in
   `agent-aeba15b7c3850b007`. Step 20 (`ar5t`, N9, cache in `agent-a8b2d0066621fd0f8`):
   held4 PASSED (N10), key `BoundaryPassRepair` MERGED 64aac65a (suite 2239 passed); v56 live.
-  Step 21 (`ar5u`, N11; arm J5S): gate PASSED; held5 runs since 19:51, 15 Nov, in
-  `agent-a8c1c16b70cf43e39`: marker `…/ar5/screen/cache/logs/screen_runs.done`; dead: run-all
-  `screen_run_all.sh --resume` detached. Then SendMessage a8c1c16b70cf43e39 for stats.
+  Step 21 (`ar5u`, N11; arm J5S): gate PASSED; held5 runs ended exit=0 at 22:59, 15 Nov, in
+  `agent-a8c1c16b70cf43e39`; implementer a8c1c16b70cf43e39 asked for stats at 00:55, 16 Nov
+  (report `…-ar5u-held5.md`). Then Opus review, N1 of 16 Nov, phase B, merge, page v57.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
@@ -112,8 +112,8 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   Step 5's result files add about 50 MB to git; say so if you want them pruned.
 
 ## Bookkeeping
-- Next decision ID: D-20261115-N12 (first of a day is N1).
-- Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
-  2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
+- Next decision ID: D-20261116-N1 (first of a day is N1).
+- Wake-up job: session cron id 24092880, every 3 hours at :53, created 2026-11-16, expires
+  2026-11-23. Create it again on or after 2026-11-22 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
   mailbox in `docs/ROADMAP.md`. Its plan approvals are the owner's; so is a "finisher" rename.
