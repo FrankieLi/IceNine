@@ -45,8 +45,8 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   `agent-aeba15b7c3850b007`. Step 20 (`ar5t`, N9, cache in `agent-a8b2d0066621fd0f8`):
   held4 PASSED (N10), key `BoundaryPassRepair` MERGED 64aac65a (suite 2239 passed); v56 live.
   Step 21 (`ar5u`, N11; arm J5S): gate PASSED; held5 runs ended exit=0 at 22:59, 15 Nov, in
-  `agent-a8c1c16b70cf43e39`; implementer a8c1c16b70cf43e39 asked for stats at 00:55, 16 Nov
-  (report `…-ar5u-held5.md`). Then Opus review, N1 of 16 Nov, phase B, merge, page v57.
+  `agent-a8c1c16b70cf43e39`; implementer reports all rules pass on held5 (77ab5f1e; unreviewed).
+  Opus review a20f5e82a35dbef53 since 01:00, 16 Nov. Then N1 of 16 Nov, phase B, merge, v57.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
