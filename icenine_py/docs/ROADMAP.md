@@ -336,6 +336,12 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
   `icenine/boundary_pass.py`, `boundary_repair.py`, `config_file.py`, `orientation_search.py`,
   `reconstructor.py`. Key off: no behaviour change. Suite: 2279 passed, 45 skipped, 1
   deselected.
+- 2026-11-16 merged: AR5 step 22 (task `ar5v`) is merged into `feature/eval-reduction`
+  (566eea3f). It adds one opt-in key, `SeedIndexMCDefer` (default 0, off; needs
+  `SeedIndexMCStallHit`): pause a stalled seed refinement while the seed step has untried
+  candidates. Shared library files touched: `icenine/reconstructor.py`, `ray_indexing.py`,
+  `orientation_search.py`, `config_file.py`. Key off: no behaviour change. Suite: 2333
+  passed, 48 skipped, 1 deselected.
 
 ## From Ilium Agent
 

@@ -1237,3 +1237,29 @@ relative to the neighbours' median). Reviews in the main `.claude/reports/`:
   disclosed.
 - Worktree `agent-a8c1c16b70cf43e39` kept (cache `ar5/screen/cache` with S8, J5, J5C, J5S on held5).
 - Wake-up cron renewed 2026-11-16, id 24092880, expires 2026-11-23.
+
+### AR5 step 22 (defer a stalled seed refinement; task `ar5v`), merged at 566eea3f on 2026-11-16
+
+Suite after the merge: 2333 passed, 48 skipped, 1 deselected. Decisions D-20261116-N2 and
+D-20261116-N4. Reports in the main `.claude/reports/`: `20261116-1309-ar5v-stats.md`,
+`20261116-1451-ar5v-phaseB.md`, reviews `20261116-1310-review-ar5v.md` and
+`20261116-1451-review-ar5v-phaseB.md`.
+
+- Rule DEF: pause a stalled seed refinement while the seed step still has untried candidates.
+  Resume it only if no later candidate reaches hit ratio 0.95. This is arm J5SD (J5S plus DEF).
+  No truth is used.
+- Clean test on held6 (24,570 voxels): evaluations S8 67,502,030; J5 29,194,542; J5S 25,464,972;
+  J5SD 22,690,096. That is 10.90% fewer than J5S and 66.4% fewer than S8. Wrong voxels 80, 58,
+  39, 37. J5SD against J5S: 3 fixed, 1 broken. Median error 0.02199 against 0.02189 degree.
+- Disclosed samples, saving against J5S and broken minus fixed: held5 11.58% +3, held4 12.39%
+  +1, held3 9.28% 0, held 12.04% +2, mid 12.07% +3, grad 1.96% 0, big 6.80% 0. Pooled over
+  eight samples: 9 fixed, 16 broken.
+- Phase B added the library key `SeedIndexMCDefer`, default 0 (off); it needs
+  `SeedIndexMCStallHit`. The library key lacks rule G2b and the aligned draws. On mid, before the
+  boundary pass, it saves 10.8% (7,253,826 against 8,135,786). Accuracy was not measured. No
+  library run combines it with the screen pass and repair.
+- The plan's key-on check was replaced (the library run equals script arm J5Dl, not J5D). It
+  waits for the owner, as do those of steps 20 and 21.
+- Open for the owner: the findings page is not placed. Text is at
+  `.claude/reports/20261116-1506-ar5v-findings_ar5_defer_v2.md`; it goes to
+  `icenine_py/docs/autoresearch/findings_ar5_defer.md`.
