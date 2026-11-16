@@ -46,8 +46,8 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 ## Tracking page and wake job
 
 - Page: https://claude.ai/artifact/B2wANBjWDeTN86JNgmqBKb (publish `benchmarks/grain_opt/page/index.html`).
-- Wake job: session cron `8820401c`, every 3 h at :17, created 2026-11-15 20:55 PST, expires
-  2026-11-22; recreate on 2026-11-21.
+- Wake job: session cron `dc9287aa`, every 3 h at :17, created 2026-11-16 01:50 PST (after a
+  machine restart killed `8820401c`), expires 2026-11-23; recreate on 2026-11-22.
 
 ## Owner items
 
