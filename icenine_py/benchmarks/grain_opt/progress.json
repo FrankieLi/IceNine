@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-15 22:35 PST",
+ "updated": "2026-11-15 22:45 PST",
  "steps": [
   {
    "id": "GO0",
@@ -40,6 +40,14 @@
    "status": "done",
    "date": "2026-11-15",
    "result": "Frontier: grain-field CMA on the strict cost. At 100 objective evaluations per voxel, 3 of 853 voxels > 0.1 deg (the 3 paint errors) vs 18 for AR3 per-voxel CMA, at half its wall time; 400 evaluations: median 0.0062 deg. Per-voxel CMA alone, quadratic fields and Sinkhorn/LS basin stages add nothing from the painted start (Sinkhorn: 700x wall time).",
+   "commit": ""
+  },
+  {
+   "id": "GO4",
+   "title": "Robustness on rand / corr3 (0.5-5 deg RMS), grain-centre start",
+   "status": "done",
+   "date": "2026-11-15",
+   "result": "Local fits recover only voxels within ~0.5 deg of their start. corr3 0.5 deg: 99% to 32% of voxels > 0.1 deg (median 0.414 to 0.071); corr3 1 deg: 53% (LS + field + coarse polish); corr3 2-5 deg and rand >= 1 deg: almost nothing. The linear field alone does not move them; coarse per-voxel steps (0.3 deg) beat fine ones.",
    "commit": ""
   }
  ],

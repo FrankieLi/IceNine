@@ -120,8 +120,48 @@ Wilson intervals); no C reference exists on these samples, so all voxels of the 
 Expected: the field cannot follow white noise; the question is which polish recovers which level.
 Budget: strict arms seconds per grain, the LS arm about 10 s per grain; under 1 h in total.
 
-### GO5 onwards
+### GO4b: reaching far starts (ideas I33, I34)
 
-Planned order (each gets a section when it starts): GO5 strain in the forward
-model and the strained samples (I14 to I16); GO6 objective variants (I17 to I22); GO7 richer
+Question: which per-voxel strategy recovers deformed grains whose voxels start 0.5 to 5 deg from
+their ground truth? Same samples, start, membership and 20-grain benchmarks as GO4. New stages in
+`run_pipeline.py`:
+
+- `N/<evals>/<sigma>` neighbour continuation (I33): voxels ordered by strict cost (best first);
+  each voxel, in breadth-first order from the best 10%, scores its own orientation and the current
+  orientations of its fitted neighbours in the grain (one strict evaluation each), keeps the best,
+  then runs per-voxel CMA (`evals`, step `sigma`). Two sweeps. Every evaluation counts.
+- `L/<evals>` step ladder (I34): per-voxel CMA in three legs of `evals`/3 each at steps 1.0, 0.3
+  and 0.05 deg, each leg from the best so far.
+
+Arms per sample: `L/61`, `L/183`, `N/30/0.3`, `L/61,N/30/0.3`, `Als/150,Astrict/100,L/61,N/30/0.3`.
+Judging: the standing rule per level, against GO4's best arm per level. Budget: under 1 h.
+
+### GO5: strain in the forward model (ideas I14, I15, I16, I30)
+
+Implemented by an `implementer` agent in its own worktree (branch `feature/grain-opt-strain` off
+`feature/grain-opt`), reviewed before merge. Conventions from `findings_cpp_strain.md`: crystal-
+frame symmetric strain eps; M = (I + eps)^-1; g = O M g0; Bragg angle and omega from the strained
+|g|; .mic columns 13-18 hold M (19-column layout), written with at least 9 significant digits.
+
+1. `SpotModel` (grain_fit.py): optional per-voxel strain (n, 6) [e11 e22 e33 e23 e13 e12],
+   default None, bit-identical output when None. Differentiable in eps.
+2. Tests: pure dilation eps = d I gives |g| = |g0|/(1+d) and smaller 2-theta; a small shear
+   moves spots as finite differences predict; None equals the current output exactly.
+3. Stock render path (I15): opt-in per-voxel deformation from the .mic in
+   `forward_simulation.py`, default off and bit-identical; strained-g Bragg filter uses the
+   strained |g| (the C++ bug is not copied). Test against SpotModel spot positions.
+4. Sample generator `make_strained_sample.py`: the `grad` truth plus a per-grain constant strain
+   tensor of RMS 1e-4, 5e-4 or 1e-3 (levels drawn per grain, seed 0); render one sample
+   (`strain`); store as GO3.
+5. Sensitivity (I16, I30): on 5 grains of `strain`, curvature of the mean strict cost and of the
+   intensity-weighted Sinkhorn in each strain component at the ground truth (finite differences),
+   expressed as the strain step that raises the cost by 10%; compare with pixel/distance
+   (4.4e-4, 2.7e-4 for the two detectors).
+
+Budget: implementation about 2 to 3 h of agent time; runs under 30 min. Committed: code, tests,
+the generator, sample records (not the .mic), a short findings section.
+
+### GO6 onwards
+
+Planned order (each gets a section when it starts): GO6 objective variants (I17 to I22); GO7 richer
 simulation (I23, I24); GO8 learned models (I25 to I27).

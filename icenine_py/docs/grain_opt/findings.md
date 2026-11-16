@@ -142,3 +142,39 @@ Sinkhorn 150 first: median 0.0155 (1,391 ms/voxel).
   least squares was kept on 7 of 10 and lowers the median slightly (0.0136 against 0.0153) at 20
   times the wall time. The painted start is already inside the strict basin; GO4 tests starts
   that are not.
+
+## GO4: robustness across kinds of orientation variation (ideas I13, I6)
+
+Question: does the GO2 frontier hold when the voxel-to-voxel variation is random (`rand`) or
+spatially correlated (`corr3`, length 3 voxel sides), 0.5 to 5 deg RMS? Start: each voxel at its
+grain's orientation before deformation (a perfect paint that knows nothing of the variation);
+true grain ids; 20 grains per sample (5 per level), 1,043 voxels. Tables `benchmarks/grain_opt/go4/`.
+
+Reading the table: share of voxels more than 0.1 deg from the ground truth (pooled over the 5
+grains of the level) and the median error (deg), at the start and after each arm. Arms: field =
+`Astrict/100`; + fine = field then per-voxel CMA 61 at step 0.02 deg; + coarse = the same at
+step 0.3 deg; coarse only = per-voxel CMA 61 at 0.3 deg; LS first = `Als/150` then field + coarse.
+
+| sample, level | start | field | + fine | + coarse | coarse only | LS first |
+|---|---|---|---|---|---|---|
+| corr3, 0.5 | 99%, 0.414 | 94%, 0.341 | 69%, 0.224 | 32%, 0.075 | 36%, 0.080 | 32%, 0.071 |
+| corr3, 1 | 100%, 0.878 | 98%, 0.652 | 91%, 0.554 | 59%, 0.154 | 71%, 0.183 | 53%, 0.108 |
+| corr3, 2 | 100%, 1.773 | 100%, 1.686 | 99%, 1.706 | 93%, 1.054 | 95%, 0.959 | 93%, 0.929 |
+| corr3, 5 | 100%, 4.347 | 100%, 4.409 | 100%, 4.374 | 100%, 4.261 | 100%, 4.207 | 99%, 4.191 |
+| rand, 0.5 | 97%, 0.443 | 97%, 0.460 | 90%, 0.452 | 71%, 0.314 | 72%, 0.363 | 68%, 0.334 |
+| rand, 1 | 100%, 0.869 | 99%, 0.867 | 95%, 0.863 | 85%, 0.854 | 85%, 0.853 | 86%, 0.815 |
+| rand, 2 | 100%, 1.818 | 99%, 1.860 | 98%, 1.877 | 95%, 1.862 | 95%, 1.812 | 97%, 1.907 |
+| rand, 5 | 100%, 4.478 | 100%, 4.483 | 100%, 4.475 | 99%, 4.535 | 100%, 4.476 | 98%, 4.684 |
+
+- From a start that ignores the variation, every arm recovers only voxels within about 0.5 deg of
+  their start, the width of the strict cost's basin. On `corr3` at 0.5 deg the share above 0.1
+  deg falls from 99% to 32%; at 1 deg to 53% (LS first); at 2 and 5 deg almost nothing is
+  recovered. On `rand` nothing above 0.5 deg is recovered.
+- The linear field alone barely moves either sample (it cannot represent the variation), so the
+  GO2 winner does not carry over: robustness needs per-voxel freedom with a wider reach.
+- A coarse per-voxel step (0.3 deg) beats the fine one (0.02 deg) everywhere here; least squares
+  as a basin finder helps a little on `corr3` (median 0.154 to 0.108 at 1 deg).
+- The start is pessimistic: a real paint seeds many grain entries in deformed grains (AR3 step 3:
+  24 per level-1 grain), so voxels start nearer their own orientation. GO4b tests strategies that
+  do not need that: continuation from fitted neighbours and a wider per-voxel search (I33, I34),
+  and a real paint start (I35).

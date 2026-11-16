@@ -1,7 +1,7 @@
 # AR6 ideas
 
 One row per idea. Status: proposed, running, done, dropped. Result in one line with its number;
-details in the findings page named in the last column. New ideas get the next free id (I33).
+details in the findings page named in the last column. New ideas get the next free id (I36).
 `build_page.py` reads this table: keep the columns and the `|` layout.
 
 | id | goal | idea | status | result | findings |
@@ -18,7 +18,7 @@ details in the findings page named in the last column. New ideas get the next fr
 | I10 | G1a | Hybrid: grain field (stage A) then per-voxel strict-cost polish only where needed | done | GO2: field 100 + voxel 10/30/61: median 0.0151/0.0130/0.0114; >0.1 stays 3 (paint errors) | findings.md |
 | I11 | G1b | Sample generator: uncorrelated random voxel rotations about the grain mean, 0.5-5 deg | done | `rand` built and rendered (22.4M lit px); 69%/97% of neighbour pairs over 2 deg at 2/5 deg | PLAN.md GO3 |
 | I12 | G1b | Sample generator: spatially correlated random fields (GND-like), correlation 2-10 voxels | done | `corr3` (length 3 voxel sides) built and rendered (19.2M lit px) | PLAN.md GO3 |
-| I13 | G1b | Robustness of the best G1a methods across linear, quadratic, correlated, random fields | proposed | | |
+| I13 | G1b | Robustness of the best G1a methods across linear, quadratic, correlated, random fields | done | GO4: from a grain-centre start, only voxels within ~0.5 deg are recovered; corr3 0.5 deg: 99% to 32% above 0.1 deg; rand >= 1 deg and corr3 >= 2 deg: almost nothing | findings.md |
 | I14 | G1c | Strained reciprocal vectors in SpotModel (opt-in): g' = R (I + eps)^-T g, Bragg from abs g' | proposed | | |
 | I15 | G1c | Strain in the stock forward model render path (opt-in, from the .mic deformation tensor) | proposed | | |
 | I16 | G1c | Strain sensitivity: objective curvature in the 6 strain components; recovery at 1e-4 to 1e-3 (resolution scales with pixel size / distance) | proposed | | |
@@ -38,3 +38,6 @@ details in the findings page named in the last column. New ideas get the next fr
 | I30 | G1c | Borrow HEXRD far-field strain fitting: per-grain lattice-strain fit from spot centroids; sensitivity vs pixel/distance ratio (e.g. a far-field-like detector distance in our config) | proposed | Reference saved (owner, 2026-11-16): hexrd.github.io, local ~/Research/github/hexrd | |
 | I31 | G1c | Survey strain-fitting code in older IceNine C++ branches (GrainFitting, IceNine_v3.0.x, fix_pmc_opt, archive snapshot, master) and ~/Research/IceNine.others/IceNine.Strain | done | Strain only in the C++ image simulator (g = O M g0, M ~ I - eps, Bragg from abs g); no fitter exists; branches identical; reuse convention + .mic cols 13-18 + config keys | findings_cpp_strain.md |
 | I32 | G1a | Boundary pass for grain fits: let wrong voxels (paint errors) try neighbouring grains' fitted fields | proposed | GO2: the 3 voxels left above 0.1 deg are wrong paint voxels | |
+| I33 | G1b | Neighbour continuation: fit voxels in BFS order from the best-fitting ones, each starting from its fitted neighbours' orientations (multi-start) | proposed | GO4: local fits reach only ~0.5 deg; corr3 neighbours differ by 0.3-0.6 deg at 1 deg RMS | |
+| I34 | G1b | Wider per-voxel search: step ladder 0.3 / 1 / 3 deg with larger budgets, or a per-voxel smooth objective (LS) for reach, finished on the strict cost | proposed | | |
+| I35 | G1b | Real paint start on rand / corr3 (AR3 paint key: many grain entries per deformed grain) | proposed | | |
