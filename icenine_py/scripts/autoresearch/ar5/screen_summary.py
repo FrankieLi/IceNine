@@ -18,7 +18,7 @@ from typing import Any, Dict, List
 
 import screen_guard as SG
 import screen_rules as SR
-from screen_freeze import FROZEN, ICE, problems
+from screen_freeze import FROZEN, ICE, current as _current
 
 import numpy as np  # noqa: E402
 
@@ -98,12 +98,39 @@ def validity() -> Dict[str, Any]:
     v["J5C_J5S_same_J5_run"] = bool(
         jl(C / "J5C_held5" / "repair.json")["stored_pass_evals"] == sc["stored_pass_evals"]
     )
-    # the arm reads no truth: the loader of the two arms is called with truth=False
+    # The decision path uses no truth: the arms call the loader with truth=False (a text check of
+    # the source, NOT a statement about the process). In the process, boundary_common.Env("grad")
+    # builds gradient_common.Truth(), which reads held5's truth map, grain map and sample.json
+    # outside the guard (also in the J5 and S8 pass jobs). The flag, the pass and the repair never
+    # use env.T, Rtrue or gmap; a recomputation of the wide flag without truth reproduced the
+    # stored masks (review of 2026-11-16).
     src = (Path(__file__).resolve().parent / "screen_run.py").read_text()
-    v["arms_load_inputs_without_truth"] = bool(
+    v["arms_call_loader_without_truth_flag"] = bool(
         "load_inputs(s, truth=False)" in src and "read_truth" not in src
     )
-    v["freeze_check"] = problems() or "ok"
+    # The library moved in phase B (the key): the freeze check compares scripts and library files
+    # one by one and allows exactly the five library files phase B edits.
+    saved = json.loads(FROZEN.read_text())
+    cur = _current()
+    moved = sorted(k for k, h in cur["library"].items() if saved["library"].get(k) != h)
+    moved += sorted(k for k, h in cur["files"].items() if saved["files"].get(k) != h)
+    allowed = {
+        "icenine/boundary_pass.py",
+        "icenine/boundary_repair.py",
+        "icenine/config_file.py",
+        "icenine/orientation_search.py",
+        "icenine/reconstructor.py",
+    }
+    v["files_moved_since_freeze"] = moved
+    v["freeze_check"] = "ok" if set(moved) <= allowed else "FAILED: " + ", ".join(moved)
+    v["freeze_commit_intact"] = bool(
+        not subprocess.run(
+            ["git", "status", "--porcelain", "--", str(FROZEN)],
+            cwd=str(ICE),
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    )
     t = subprocess.run(
         ["git", "log", "-1", "--format=%ct", "--", str(FROZEN)],
         cwd=str(ICE),
@@ -126,10 +153,10 @@ def validity() -> Dict[str, Any]:
     v["n_held5_output_files"] = len(files)
     v["oldest_held5_output_minus_freeze_s"] = float(min(mt) - froz)
     v["freeze_older_than_every_held5_output"] = bool(min(mt) > froz)
-    # informational (this summary and any reader after the marker raise these): the access times
-    # of the held5 maps were also taken by hand BEFORE any held5 read; see the report
-    # access times of the held5 maps: none after the marker (macOS may not update atime on every
-    # read: this is consistent with, not proof of, no read before the marker)
+    # Informational only, NOT evidence: on this machine a read did not move atime when atime was
+    # not older than mtime (the pass jobs' reads of recon.mic.gz and Env's truth reads left no
+    # trace), and this summary's own reads raise these. The case that nobody read held5 before the
+    # marker rests on run order and the session record.
     maps = [f for f in files if f.suffix in (".npy", ".npz", ".mic", ".gz")]
     late = [f.name for f in maps if f.stat().st_atime > marker_mtime + 1]
     v["n_map_files_checked"] = len(maps)
@@ -160,7 +187,7 @@ def validity() -> Dict[str, Any]:
         and v["J5S_extra_voxels_listed"]
         and v["J5S_flagged_is_contested_plus_extra"]
         and v["J5C_J5S_same_J5_run"]
-        and v["arms_load_inputs_without_truth"]
+        and v["arms_call_loader_without_truth_flag"]
         and v["freeze_check"] == "ok"
         and v["freeze_older_than_every_held5_output"]
     )
@@ -178,7 +205,14 @@ def side(err: np.ndarray) -> Dict[str, Any]:
 
 def pair(w_old: np.ndarray, w_new: np.ndarray) -> Dict[str, int]:
     f, b = SR.fixed_broken(w_old, w_new)
-    return dict(fixed=int(f), broken=int(b), net=int(b - f), both_wrong=int((w_old & w_new).sum()))
+    lo, hi = ST.wilson(int(f), int(f + b)) if f + b else (float("nan"), float("nan"))
+    return dict(
+        fixed=int(f),
+        broken=int(b),
+        net=int(b - f),
+        both_wrong=int((w_old & w_new).sum()),
+        fixed_share_of_discordant_wilson=[float(lo), float(hi)],
+    )
 
 
 def row(s: str) -> Dict[str, Any]:
@@ -487,7 +521,8 @@ def plot(rows: Dict[str, Any]) -> None:
                 capsize=3,
                 label=a,
             )
-            ax.annotate(a, (x, yv), textcoords="offset points", xytext=(4, 4), fontsize=8)
+            dy = {"S8": 4, "J5": 6, "J5C": -10, "J5S": 4}[a]
+            ax.annotate(a, (x, yv), textcoords="offset points", xytext=(6, dy), fontsize=8)
         ax.set_title(s + (" (clean test)" if s == "held5" else " (in-sample)"), fontsize=10)
         ax.set_xlabel("evaluations in the run (millions)")
         ax.set_ylabel("wrong voxels (> 1 degree)")

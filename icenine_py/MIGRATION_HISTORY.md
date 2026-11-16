@@ -13297,8 +13297,12 @@ keep the highest hit ratio, then the lowest cost, then the current end. `frozen.
 Approved D-20261115-N11. Branch `feature/eval-reduction-ar5u`. Arm `J5S` = arm `J5` with every
 boundary-pass try cut to its first evaluation (a screen try: the candidate's start is scored, the
 library's final evaluation is counted, so 2 evaluations a try; the end is the start) and step 20's
-repair (imported, not copied) on a wider flag: contested voxels, plus voxels whose hit ratio is
-under 0.95 and one of whose pass candidates lies more than 1 degree from its kept end. Script
+repair (imported, not copied) on a wider flag: contested voxels, plus voxels whose ratio (the
+voxel's hit ratio over the median hit ratio of its neighbours, step 19's `ratio_of`) is under 0.95
+and one of whose pass candidates lies more than 1 degree from its kept end. (The frozen rule text in
+`screen_rules.RULE` and `frozen.json` says "its hit ratio is under 0.95", which reads as the voxel's
+absolute hit ratio; that is loose wording, the code and every result use the relative ratio. The
+absolute reading would flag 3,760 voxels on `held5`, not 1,645. Frozen files are not edited.) Script
 layer only (`scripts/autoresearch/ar5/screen_*.py`, `screen_*.sh`; `tests/test_ar5_screen.py`,
 `tests/test_ar5_screen_freeze.py`); no library change, no key (phase B). `frozen.json` committed
 (`a10837e0`) before any `J5S` pass or repair ran from the tracked scripts and before `held5` existed.
@@ -13342,6 +13346,22 @@ layer only (`scripts/autoresearch/ar5/screen_*.py`, `screen_*.sh`; `tests/test_a
   The replayed `J5C` map of the gate differs from step 20's at 1 to 8 voxels a sample; every such
   voxel has a start orientation that differs (float64 against float32-orthonormalized, up to 6e-8)
   at itself or a neighbour, consistent with the hard-cost CMA taking another path (the neighbour test
-  is weak, so this is not shown); no wrong / right label changes. Not done: phase B (the key).
+  is weak, so this is not shown); no wrong / right label changes.
+- **Corrections after the review (2026-11-16).** (a) Truth in the process: `screen_run.py` and
+  `screen_pass.py` (and the `J5` and `S8` pass jobs) build `boundary_common.Env("grad")`, which
+  calls `gradient_common.Truth()` and so reads held5's truth map, grain map and `sample.json`
+  outside the guard. The flag, the pass and the repair never use `env.T`, `Rtrue` or `gmap`; a
+  recomputation of the wide flag from the grid, the map before the pass, J5's old scores and the
+  screen tries, with no truth, reproduces both stored masks. The summary's old key "arms read no
+  truth" was a text check of the source and is renamed `arms_call_loader_without_truth_flag`. (b)
+  Access times are not evidence: on this machine a read left atime unchanged when atime was not
+  older than mtime (the pass jobs' reads of `recon.mic.gz`, Env's truth reads). That nobody read
+  held5 results before the marker rests on the run order (gate, build, runs, marker, summary) and
+  the session record. Reads of `S8_held5/recon.mic.gz` and `J5_held5/recon.mic.gz` at 00:42, after
+  the marker, are of unknown origin. (c) Evaluation totals leave out the pass's old-end scores
+  (24,570 evaluations per pass, `score_evals` in `D4_J5/pass.json` and `D4_S8/pass.json`), for every
+  arm alike. (d) J5S against J5C on `held5`: 4 fixed of 6 changed (Wilson 95% 0.30 to 0.90): a small
+  count.
+- Phase B (the key `BoundaryPassScreen`) follows below.
 - Results: `benchmarks/autoresearch/ar5/screen/` (`frozen.json`, `gate.json`, `gate_tables.md`; the
   cache is untracked).
