@@ -2119,3 +2119,18 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   samples; the new sample held6 (generator seed 6) is the only clean test. About 215 million
   evaluations, about 5 hours. The owner may overrule. Where: icenine_py/docs/autoresearch/PLAN.md,
   section AR5 step 22.
+
+### D-20261116-N3 · D-20261116-N3 | Owner task of 16 Nov placed in PLAN; part 1 (C++ check, cppchk) starts beside step 22's close · Owner task of 16 Nov: plans placed, part 1 starts, defaults for the open questions
+- 2026-11-16, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1, on the owner's task given in the session on
+  2026-11-16. Both parts are placed in PLAN (4f5d47fc). Part 1 (task cppchk) starts now, beside
+  the close of AR5 step 22, because it needs little machine time and step 22's runs have ended;
+  part 2 (task fine1) follows part 1's phase A and goes ahead whatever part 1 finds. Defaults
+  taken where the owner has not answered, each theirs to overrule: stock Python is the Python arm
+  of the C++ time study (key_off_fused.config); a one-line C++ evaluation count print is allowed
+  on a task branch with a review; neighbour steps are capped at 0.45 degree and the 0.5 degree
+  bound is still measured; whole-layer runs are timed alone, one after another; a voxel missing
+  from an output map counts as wrong; the recipe is J5S as the owner wrote; the sample is fine7
+  with generator seed 7. Any run projected over 48 hours waits for the owner. Any C++ fix goes on
+  its own branch with a test and an Opus review. Nothing merges to develop. Where:
+  icenine_py/docs/autoresearch/PLAN.md, sections 'Owner task of 16 Nov, part 1' and 'part 2'.
