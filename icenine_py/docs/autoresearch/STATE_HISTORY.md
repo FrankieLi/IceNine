@@ -1182,3 +1182,30 @@ amended before the freeze) and D-20261115-N8 (gate result). Review in the main `
 - Held4 not built, no library key. Review fixes were doc only. The findings page text waits for
   the owner (`20261115-0930-ar5s-findings_ar5_repair.md`).
 - A cheaper repair is being planned as step 20.
+
+### AR5 step 20 (cheap repair of contested voxels; task `ar5t`), merged at 64aac65a on 2026-11-15
+
+Suite after the merge: 2239 passed, 48 skipped, 1 deselected. Decisions D-20261115-N9 (approved)
+and D-20261115-N10 (passes on held4; key phase approved). Reviews in the main `.claude/reports/`:
+`20261115-1600-review-ar5t.md` and `20261115-1705-review-ar5t-phaseB.md`.
+
+- Same contested-voxel flag as step 19, but the repair is cheaper. Each contested voxel gets a
+  120-evaluation CMA local optimization (121 evaluations) from its own end and from each pass
+  candidate, and keeps the best hit ratio. This is arm J5C. No truth is used.
+- Clean test on the new sample held4: wrong voxels S8 49, J5 40, J5C 22. J5C against J5: 18 fixed,
+  0 broken. The repair costs 0.50% of J5's run. J5C uses 59.6% fewer evaluations than S8.
+- In-sample fixed/broken against J5 (flag and form were chosen on these): held3 14/0, held 18/0,
+  mid 15/0, grad 31/0, big 14/0. All frozen rules pass on all six samples.
+- The fixes are candidate ends that replace the voxel's orientation (moves of 13 to 59 degrees),
+  not small refinements. The own-end fits only lower the median error.
+- Phase B added the library key `BoundaryPassRepair`, default 0 (off), which needs `BoundaryPass 1`.
+  A key-on check on mid replaced the planned run equal to J5C, because no stored script arm
+  matches the library's state after the pass. Review fixes: a real missing-cost test, docstring,
+  and the replaced check and the held-sample refusal stated in the history.
+- Review verdicts: first review no critical issues; phase B review no critical issues, small
+  required fixes applied.
+- Open for the owner: the findings page text waits at
+  `.claude/reports/20261115-1708-ar5t-findings_ar5_cmarepair.md`; the replaced phase-B check
+  waits for the owner's acceptance; one unexplained read of `J5_held4/recon.mic.gz` at 12:54:34,
+  before the end marker, is disclosed (cause not found, harmless without a truth comparison).
+- Worktree `agent-a8b2d0066621fd0f8` kept.
