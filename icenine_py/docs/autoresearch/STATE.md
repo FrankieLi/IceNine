@@ -37,17 +37,16 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    refit voxels were never fitted again, all 1,921 local optimizations changed nothing.
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
    goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. Thirteen pages wait now.
-   NOW: AR5 step 21 (`ar5u`; N11): after the gate hand-back, check it and start its run-all
-   script detached (held5 runs, about 4 h). Owner: accept step 20's replaced check; see N11 note.
+   NOW: AR5 step 21 (`ar5u`; N11): after the held5 marker says exit=0, implementer stats, Opus
+   review, decision N12, phase B, merge, page v57. Owner: step 20's replaced check; N11 note.
 
 ## Running jobs
-- AR5 step 14 phase A MERGED f68ab69 (suite 2055 passed, 47 skipped, 1 deselected); J vs H fewer:
-  held 17.34%, mid 5.48%, grad 9.87%. Key WAITS (held2: step 13 or owner). Step 15 failed, merged.
-  Step 16 MERGED 4a1cfb42 (J5 passes on 5 samples). Step 17 (gate failed, N3) MERGED a3a4f1d8;
-  `J5r` in `agent-aeba15b7c3850b007`. Step 18 (gate failed on mid, N5) MERGED 8b456ac5 (suite 2194
-  passed). v55 live. Step 19 (gate failed on cost, N8) MERGED b53e927d. Step 20 (`ar5t`, N9):
+- Step 14 key WAITS (held2: step 13 or owner). Steps 15 to 19: merged (see STATE_HISTORY); `J5r` in
+  `agent-aeba15b7c3850b007`. Step 20 (`ar5t`, N9, cache in `agent-a8b2d0066621fd0f8`):
   held4 PASSED (N10), key `BoundaryPassRepair` MERGED 64aac65a (suite 2239 passed); v56 live.
-  Step 21 (`ar5u`, N11 85c1bd6e; arm J5S): implementer a8c1c16b70cf43e39 on phase A since 19:05.
+  Step 21 (`ar5u`, N11; arm J5S): gate PASSED; held5 runs since 19:51, 15 Nov, in
+  `agent-a8c1c16b70cf43e39`: marker `…/ar5/screen/cache/logs/screen_runs.done`; dead: run-all
+  `screen_run_all.sh --resume` detached. Then SendMessage a8c1c16b70cf43e39 for stats.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
