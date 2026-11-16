@@ -205,6 +205,12 @@ class SearchParameters:
     #   boundary pass a voxel whose own hit ratio (that of its end before the pass) is at least h
     #   gets no try. Off by default and not recommended yet. Needs boundary_pass.
     boundary_pass_skip_hit: float = 0.0
+    # boundary_pass_repair (BoundaryPassRepair, AR5 step 20; off by default): after the boundary
+    #   pass, each contested voxel (hit ratio under 0.95 of its neighbours' median and margin under
+    #   0.15) gets a 120-evaluation local CMA optimization from its own end and from each candidate
+    #   of the map after the pass, and keeps the best end (icenine/boundary_repair.py; its settings
+    #   are constants of that module). Needs boundary_pass.
+    boundary_pass_repair: bool = False
     # seed_rescue_sigma_deg, seed_rescue_evals (SeedRescueCMA sigma evals, AR5 step 9; both 0 =
     #   off, else sigma > 0 degrees and evals >= 2): after an indexed seed step fails the seed test,
     #   the kept end of each refined candidate is tried in order of cost (at most 5) with one CMA
@@ -380,6 +386,7 @@ class SearchParameters:
                 getattr(config, "bfs_neighbor_cma_no_fallback", False)
             ),
             boundary_pass_skip_hit=float(getattr(config, "boundary_pass_skip_hit", 0.0)),
+            boundary_pass_repair=bool(getattr(config, "boundary_pass_repair", False)),
             seed_rescue_sigma_deg=float(getattr(config, "seed_rescue_sigma_deg", 0.0)),
             seed_rescue_evals=int(getattr(config, "seed_rescue_evals", 0)),
             seed_index_mc_stall_hit=int(getattr(config, "seed_index_mc_stall_hit", 0)),
