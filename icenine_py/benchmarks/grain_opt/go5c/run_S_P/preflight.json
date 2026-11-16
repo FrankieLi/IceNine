@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-11-16T11:18:23",
+  "host": "Mac",
+  "loadavg": [
+    2.966796875,
+    2.30126953125,
+    1.87255859375
+  ],
+  "cpu_count": 10,
+  "power": "ac",
+  "omp_num_threads": "1",
+  "mkl_num_threads": "1",
+  "torch_threads": 1,
+  "busy_processes": []
+}

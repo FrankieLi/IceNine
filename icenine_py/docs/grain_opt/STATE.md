@@ -5,17 +5,16 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO5b closed** (2026-11-16 02:20 PST): per-grain strain fit on `strain` (S12, coverage cost,
-  CMA). Strain only at the ground-truth orientation reaches about 2e-4 at every level (5e-4 and
-  1e-3 recovered, 1e-4 below the floor). Field + strain: 3.4-3.8e-4 from the ground truth,
-  5.3-6.7e-4 from the painted start; 19 of 24 joint fits stop above the ground truth's cost
-  (optimizer-limited). Robust start field added (painted outliers). `findings.md` "GO5b".
-- GO4c closed: corr3 recovered to 2 deg by L/366/3; rand and 5 deg need a global search (I36
-  blocked on ray-index cost).
-- **Next action:** plan and run GO5c (I39): a joint strain fit that reaches the cost optimum
-  (staged legs field -> strain only -> joint, CMA restarts or a bigger budget) from the painted
-  start, target the 2e-4 floor; then I40 (sharper sub-pixel cost for 1e-4). Runs take minutes
-  (`fit_strain.py`, about 30 ms per evaluation). Then GO6 or the cached ray index for I36.
+- **GO5c closed** (2026-11-16 11:45 PST): reaching the cost optimum does not recover strain.
+  `J@P` (2400 joint evaluations) ends below the ground truth's cost in 10 of 12 grains but keeps
+  4.5-6.5e-4 strain error: with the orientation field free the coverage cost is
+  objective-limited (0.01 deg rotation trades with 2-4e-4 strain). Staged `S@P` gives 3.4e-4 /
+  3.0e-4 at 5e-4 / 1e-3 (floor 1.9e-4 / 2.0e-4). `findings.md` "GO5c".
+- GO5b closed: strain-only at the ground-truth orientation reaches ~2e-4 (1e-4 below the floor).
+- **Next action:** plan and run GO5d (I41): fix the orientation field from a strain-insensitive
+  fit (e.g. field leg without strain, or the strict cost), then fit strain alone; compare with
+  `S@P` and the `E@GT` floor. Then I40 (sharper sub-pixel cost). Runs take minutes
+  (`fit_strain.py`). Then GO6 or the cached ray index for I36.
 
 ## Running jobs
 
@@ -40,7 +39,7 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Code
 
-- `scripts/grain_opt/fit_strain.py`: GO5b strain fit (arms E@GT, FE@GT, FE@P; coverage cost).
+- `scripts/grain_opt/fit_strain.py`: strain fit (GO5b arms E@GT, FE@GT, FE@P; GO5c J@P, S@P, SR@P, S@GT).
 - `icenine/grain_fit.py` (SpotModel, regions, Sinkhorn / LS objectives, FieldA, GrainProblem);
   tests `tests/test_grain_fit.py` (16 pass).
 - `scripts/grain_opt/`: `common.py` (Sample loader), `run_grains.py` (stage A/B on G20),

@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-16 02:20 PST",
+ "updated": "2026-11-16 11:45 PST",
  "steps": [
   {
    "id": "GO0",
@@ -80,6 +80,14 @@
    "status": "done",
    "date": "2026-11-16",
    "result": "Median strain error (12 grains) at levels 1e-4/5e-4/1e-3: strain only at ground-truth orientation 1.7e-4/1.9e-4/2.0e-4 (floor ~2e-4, half of pixel/distance); field + strain from ground truth 3.1e-4/3.4e-4/3.8e-4; from painted start 6.7e-4/6.3e-4/5.3e-4. Joint fits stop above the ground truth's cost in 19 of 24 grains: optimizer-limited. Orientation stays at 0.010-0.016 deg.",
+   "commit": ""
+  },
+  {
+   "id": "GO5c",
+   "title": "Joint orientation + strain fit that reaches the optimum",
+   "status": "done",
+   "date": "2026-11-16",
+   "result": "Median strain error at 1e-4/5e-4/1e-3 from the painted start: joint 2400 evaluations 6.5/5.7/4.5e-4 with only 2 of 12 grains short of the ground truth's cost (10 of 12 below it): objective-limited, orientation (0.01 deg) trades with strain (2-4e-4). Staged (strain first, then joint) 7.1/3.4/3.0e-4; floor at the ground-truth orientation 1.7/1.9/2.0e-4.",
    "commit": ""
   }
  ],

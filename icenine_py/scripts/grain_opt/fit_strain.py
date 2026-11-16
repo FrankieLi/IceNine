@@ -9,7 +9,10 @@ mass on lit pixels, mean over the grain's spots (GO5 "coverage"). Spot windows a
 strain. Parameters: grain field (FieldA order 1, 9 numbers) and one crystal-frame strain per
 grain (6). CMA with per-coordinate steps 0.05 deg (field) and 5e-4 (strain), strain from 0.
 
-Arms: ``E@GT`` (orientations at the ground truth, strain only, 300 evaluations); ``FE@GT``
+GO5c arms (I39): ``J@P`` (field leg, then one joint leg of ``--evals``); ``S@P`` (field leg,
+strain-only leg ``--evals_e`` at the fixed field, joint leg ``--evals`` at steps 0.02 deg and
+2e-4); ``SR@P`` (``S@P`` plus two joint legs of 300, steps halved each leg); ``S@GT`` (``S@P``
+from the field fitted to the ground truth). GO5b arms: ``E@GT`` (orientations at the ground truth, strain only, 300 evaluations); ``FE@GT``
 (field + strain from the field fitted to the ground truth); ``FE@P`` (painted start: field-only
 CMA, 200 evaluations, then field + strain; the start field ignores painted outliers,
 ``robust_theta0``). One JSON line per grain; all rows in
@@ -133,7 +136,9 @@ def cma_min(f: Any, x0: np.ndarray, stds: np.ndarray, evals: int, seed: int = 0)
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--arm", required=True, choices=["E@GT", "FE@GT", "FE@P"])
+    ap.add_argument(
+        "--arm", required=True, choices=["E@GT", "FE@GT", "FE@P", "J@P", "S@P", "SR@P", "S@GT"]
+    )
     ap.add_argument("--out", default="go5b")
     ap.add_argument("--evals", type=int, default=600)
     ap.add_argument("--evals_e", type=int, default=300)
@@ -142,7 +147,7 @@ def main() -> None:
     a = ap.parse_args()
     out = CM.OUT / a.out
     tag = a.arm.replace("@", "_")
-    start = "paint" if a.arm == "FE@P" else "truth"
+    start = "paint" if a.arm.endswith("@P") else "truth"
     S = CM.Sample(out / f"run_{tag}", start=start, intensity=True, sample="strain")
     T = S.T
     gm = np.asarray(T.gmap)
@@ -189,7 +194,7 @@ def main() -> None:
             eps_fit, R_fit = r["x"], R_gt
         else:
             th0 = prob.theta0
-            if a.arm == "FE@P":
+            if a.arm.endswith("@P"):
                 th0, info["n_outliers"] = robust_theta0(prob, S.sym)
                 rf = cma_min(
                     lambda th: cov(field.orientations(torch.as_tensor(th, dtype=GF.DT)), zero),
@@ -204,9 +209,31 @@ def main() -> None:
             def fj(x: np.ndarray) -> float:
                 return cov(field.orientations(torch.as_tensor(x[:k], dtype=GF.DT)), eps_of(x[k:]))
 
-            x0 = np.concatenate([th0, np.zeros(6)])
-            stds = np.concatenate([np.full(k, STEP_ROT), np.full(6, STEP_EPS)])
-            r = cma_min(fj, x0, stds, a.evals)
+            def stds(rot: float, eps: float) -> np.ndarray:
+                return np.concatenate([np.full(k, rot), np.full(6, eps)])
+
+            if a.arm in ("FE@GT", "FE@P", "J@P"):  # one joint leg
+                r = cma_min(
+                    fj, np.concatenate([th0, np.zeros(6)]), stds(STEP_ROT, STEP_EPS), a.evals
+                )
+            else:  # GO5c staged: strain only at the fixed field, then joint legs
+                th_t = torch.as_tensor(th0, dtype=GF.DT)
+                rs = cma_min(
+                    lambda e: cov(field.orientations(th_t), eps_of(e)),
+                    np.zeros(6),
+                    np.full(6, STEP_EPS),
+                    a.evals_e,
+                )
+                info["strain"] = {k_: rs[k_] for k_ in ("f0", "f", "evals", "stop")}
+                rot, ep = math.radians(0.02), 2e-4
+                legs = [a.evals] + ([300, 300] if a.arm == "SR@P" else [])
+                x = np.concatenate([th0, rs["x"]])
+                info["legs"] = []
+                for i, ev in enumerate(legs):
+                    r = cma_min(fj, x, stds(rot, ep), ev, seed=i)
+                    info["legs"].append({k_: r[k_] for k_ in ("f0", "f", "evals", "stop")})
+                    x = r["x"]
+                    rot, ep = rot / 2, ep / 2
             eps_fit = r["x"][k:]
             with torch.no_grad():
                 R_fit = field.orientations(torch.as_tensor(r["x"][:k], dtype=GF.DT)).numpy()

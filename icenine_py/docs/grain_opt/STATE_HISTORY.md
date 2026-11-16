@@ -37,3 +37,17 @@ became AR6 on 2026-11-16 at the owner's request.
   6 strain numbers, CMA on the coverage or strict-like cost, from the ground-truth orientation
   first, then from the painted start; recovered vs ground-truth strain per level. Then GO6
   (objective variants) or the cached ray index for I36.
+
+## GO5b close (2026-11-16 02:20 PST): STATE "Now" at the time
+
+- **GO5b closed** (2026-11-16 02:20 PST): per-grain strain fit on `strain` (S12, coverage cost,
+  CMA). Strain only at the ground-truth orientation reaches about 2e-4 at every level (5e-4 and
+  1e-3 recovered, 1e-4 below the floor). Field + strain: 3.4-3.8e-4 from the ground truth,
+  5.3-6.7e-4 from the painted start; 19 of 24 joint fits stop above the ground truth's cost
+  (optimizer-limited). Robust start field added (painted outliers). `findings.md` "GO5b".
+- GO4c closed: corr3 recovered to 2 deg by L/366/3; rand and 5 deg need a global search (I36
+  blocked on ray-index cost).
+- **Next action:** plan and run GO5c (I39): a joint strain fit that reaches the cost optimum
+  (staged legs field -> strain only -> joint, CMA restarts or a bigger budget) from the painted
+  start, target the 2e-4 floor; then I40 (sharper sub-pixel cost for 1e-4). Runs take minutes
+  (`fit_strain.py`, about 30 ms per evaluation). Then GO6 or the cached ray index for I36.

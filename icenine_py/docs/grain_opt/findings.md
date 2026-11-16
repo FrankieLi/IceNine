@@ -323,3 +323,40 @@ Verdicts by the rule written before the runs (recovered at most 0.5 x level, par
 - Next (GO5c): reach the cost optimum in the joint fit: staged legs (field, then strain only,
   then joint), CMA restarts or more evaluations; target `E@GT`'s 2e-4 floor from the painted
   start. Below 2e-4 needs a sharper cost (sub-pixel, e.g. intensity-weighted coverage).
+
+## GO5c: joint strain fit that reaches the optimum (idea I39)
+
+Question: GO5b's joint fits stopped above the ground truth's cost; does a longer or staged search
+reach the optimum and bring the painted-start strain error to the `E@GT` floor (1.7e-4 /
+1.9e-4 / 2.0e-4)? Same S12 grains, coverage cost and robust painted start; rows in
+`benchmarks/grain_opt/go5c/*.json`. Contended timing, 5 to 12 minutes per arm.
+
+Reading line: median strain error over 4 grains per level, multiple of the `E@GT` floor in
+brackets; "short" = grains ending above the ground truth's cost.
+
+| arm | evaluations | 1e-4 | 5e-4 | 1e-3 | short |
+|---|---|---|---|---|---|
+| GO5b `FE@P` (field 200, joint 600) | 826 | 6.7e-4 | 6.3e-4 (3.3) | 5.3e-4 (2.6) | 10 of 12 |
+| `J@P` field 200, joint 2400 | 2626 | 6.5e-4 | 5.7e-4 (3.0) | 4.5e-4 (2.2) | 2 of 12 |
+| `S@P` field 200, strain 300, joint 600 (small steps) | 1133 | 7.1e-4 | 3.4e-4 (1.8) | 3.0e-4 (1.45) | 7 of 12 |
+| `SR@P` `S@P` + 2 joint legs of 300 | 1759 | 6.9e-4 | 3.7e-4 (2.0) | 3.4e-4 (1.6) | 5 of 12 |
+| `S@GT` `S@P` legs from the ground-truth field | 922 | 2.0e-4 | 1.3e-4 (0.7) | 3.4e-4 (1.7) | 5 of 12 |
+
+Verdicts by the rule written before the runs:
+
+- No arm answers I39 (at most 4 short and the floor at 5e-4 and 1e-3). `S@P` reaches the floor
+  at 1e-3 only (1.45 x); `S@P` and `SR@P` beat `FE@P` at 1e-3 (3 of 4 grains), not at 5e-4.
+- The main finding corrects GO5b. `J@P` reaches the optimum (2 of 12 short; in 10 of 12 grains
+  its cost is below the ground truth's, median 10% lower) yet keeps strain errors of 4.5e-4 to
+  6.5e-4. With the orientation field free, the coverage cost's minimum is not at the ground-truth
+  strain: the fit is objective-limited, not optimizer-limited. A 0.01 deg rotation (1.7e-4 rad)
+  moves spots about as much as 2e-4 to 4e-4 strain, and the fitted fields sit 0.008 to 0.018 deg
+  from the ground truth, so orientation and strain trade against each other.
+- Staging helps because it stops earlier near a better point (strain first at the fitted field),
+  not because it optimizes better: `S@P` ends above the ground truth's cost more often than
+  `J@P` but with lower errors. From the ground-truth field (`S@GT`) the error is at the floor at
+  1e-4 and 5e-4.
+- Next: break the trade-off rather than search harder: fix the orientation from a cost the
+  strain hardly moves (e.g. spot positions summed over all reflections, or the field from the
+  unstrained fit) and fit strain alone (I41); or a sharper sub-pixel cost (I40) that separates
+  rotation from strain by their different patterns across reflections.
