@@ -37,16 +37,16 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    refit voxels were never fitted again, all 1,921 local optimizations changed nothing.
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
    goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. Thirteen pages wait now.
-   NOW: AR5 step 21 (`ar5u`; N11): after the held5 marker says exit=0, implementer stats, Opus
-   review, decision N12, phase B, merge, page v57. Owner: step 20's replaced check; N11 note.
+   NOW: AR5 step 21 (`ar5u`): after the phase-B hand-back, Opus review of the key, fixes, set
+   branch parent, merge, history agent, page v57, then draft step 22. Owner: replaced checks.
 
 ## Running jobs
 - Step 14 key WAITS (held2: step 13 or owner). Steps 15 to 19: merged (see STATE_HISTORY); `J5r` in
   `agent-aeba15b7c3850b007`. Step 20 (`ar5t`, N9, cache in `agent-a8b2d0066621fd0f8`):
   held4 PASSED (N10), key `BoundaryPassRepair` MERGED 64aac65a (suite 2239 passed); v56 live.
-  Step 21 (`ar5u`, N11; arm J5S): gate PASSED; held5 runs ended exit=0 at 22:59, 15 Nov, in
-  `agent-a8c1c16b70cf43e39`; implementer reports all rules pass on held5 (77ab5f1e; unreviewed).
-  Opus review a20f5e82a35dbef53 since 01:00, 16 Nov. Then N1 of 16 Nov, phase B, merge, v57.
+  Step 21 (`ar5u`, N11; arm J5S): held5 PASSES, review approved (16 Nov N1 1f1f4061); in
+  `agent-a8c1c16b70cf43e39` implementer a8c1c16b70cf43e39 on 5 review fixes + phase B (key
+  `BoundaryPassScreen`) since 01:20, 16 Nov. Then phase-B review, merge, history agent, v57.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
@@ -112,7 +112,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   Step 5's result files add about 50 MB to git; say so if you want them pruned.
 
 ## Bookkeeping
-- Next decision ID: D-20261116-N1 (first of a day is N1).
+- Next decision ID: D-20261116-N2 (first of a day is N1).
 - Wake-up job: session cron id 24092880, every 3 hours at :53, created 2026-11-16, expires
   2026-11-23. Create it again on or after 2026-11-22 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
