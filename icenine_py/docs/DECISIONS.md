@@ -2106,3 +2106,16 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   chosen among about 25 on the six disclosed samples; 4 fixed and 2 broken is a small count. The
   owner may overrule. Where: icenine_py/docs/autoresearch/PLAN.md, section AR5 step 21; review
   .claude/reports/20261116-0100-review-ar5u.md.
+
+### D-20261116-N2 · D-20261116-N2 | AR5 step 22 approved: defer a stalled seed refinement · AR5 step 22 approved: defer a stalled seed refinement while untried candidates remain (arm J5SD)
+- 2026-11-16, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Step 22 is approved as planned. Rule DEF: at a stall
+  check of the seed step's MC refinement that would go on (own hit ratio under 0.95), the
+  refinement is paused if the seed step has an untried candidate; paused refinements resume,
+  exactly where they stopped, only if no later candidate reaches 0.95. No threshold, no model.
+  Sized from stored logs at 8.4% to 15.1% fewer evaluations than J5S on the held samples, 8.8% to
+  11.9% on mid, about 2% on grad and 5% on big. 172 to 251 seed steps per held sample change path,
+  so growth changes and only live runs judge it. The rule was chosen on the seven disclosed
+  samples; the new sample held6 (generator seed 6) is the only clean test. About 215 million
+  evaluations, about 5 hours. The owner may overrule. Where: icenine_py/docs/autoresearch/PLAN.md,
+  section AR5 step 22.
