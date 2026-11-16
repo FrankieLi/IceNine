@@ -5,22 +5,26 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO4b closed** (2026-11-15 22:55 PST): per-voxel step ladder L/183 recovers corr3 up to 2 deg
-  (9/11/47% above 0.1 deg at 0.5/1/2); rand is a search problem. `findings.md` "GO4b".
-- **GO4c closed** (23:25 PST): L/366/3 recovers corr3 to 3/9/31% above 0.1 deg at 0.5/1/2 deg;
-  rand about half; 5 deg needs a global search (I36 blocked on ray-index cost).
-- **GO5 (strain) delegated** to an implementer agent, branch `feature/grain-opt-strain`. On
-  hand-back: verify tests, review the diff, merge `--no-ff` into `feature/grain-opt`, place its
-  findings text, close GO5.
-- **Next action:** wait for the GO5 hand-back (merge after tests and review). Then plan GO6 (objective variants: I18 Poisson, I19 moments, I3 soft pixel-touched model)
-  or GO4d (cached ray index for I36), whichever the results point to.
+- **GO5 closed** (2026-11-16 00:00 PST): opt-in strain in SpotModel and the stock renderer
+  (g = O M g0), merged after tests and review (fixes: strain follows symmetry swaps in
+  GrainProblem; crystal-frame test). Sample `strain` built. `findings.md` "GO5".
+- GO4c closed: corr3 recovered to 2 deg by L/366/3; rand and 5 deg need a global search (I36
+  blocked on ray-index cost).
+- **Next action:** plan and run GO5b: per-grain strain fit on `strain` (I38): grain field +
+  6 strain numbers, CMA on the coverage or strict-like cost, from the ground-truth orientation
+  first, then from the painted start; recovered vs ground-truth strain per level. Then GO6
+  (objective variants) or the cached ray index for I36.
 
 ## Running jobs
 
-- Implementer agent for GO5 (branch `feature/grain-opt-strain`). If the session died: check that
-  branch's commits and resume from them; never start a second agent on the branch.
+- None.
 
 ## Data (git-ignored, in this worktree; link, do not copy)
+
+- `strain` sample images are symlinks into the GO5 agent worktree
+  `.claude/worktrees/agent-a58fece2962bad42f` (stack, `strain/` folder, sample `truth.mic` and
+  `grid.mic`): do not remove that worktree.
+- `rand`, `corr3` stacks and stores: `.../stacks/<tag>_clean.npy`, `.../<tag>/intensity_clean.npz`.
 
 - `Examples/Example2.ManyGrains/ScatteringData_PhaseD/stacks/grad_clean.npy`: `grad` binary
   stack (rebuilt 2026-11-15 from a fresh render; equals the stored record).

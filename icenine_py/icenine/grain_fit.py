@@ -87,6 +87,24 @@ def align_to(R: np.ndarray, Rref: np.ndarray, sym: np.ndarray) -> np.ndarray:
     return np.einsum("nij,njk->nik", R, sym[s])
 
 
+def align_ops(R: np.ndarray, Rref: np.ndarray, sym: np.ndarray) -> np.ndarray:
+    """The symmetry operators S (n, 3, 3) with ``R S`` closest to ``Rref`` (as ``align_to``)."""
+    R = np.asarray(R, dtype=np.float64).reshape(-1, 3, 3)
+    M = np.einsum("ji,njk->nik", Rref, R)
+    tr = M.reshape(-1, 9) @ sym.transpose(0, 2, 1).reshape(len(sym), 9).T
+    return sym[np.argmax(tr, axis=1)]
+
+
+def rotate_strain(strain: np.ndarray, S: np.ndarray) -> np.ndarray:
+    """Crystal-frame strain (n, 6) [e11 e22 e33 e23 e13 e12] re-expressed for the symmetry-
+    equivalent orientation R S: eps' = S^T eps S (then g = (R S) M' (S^T g0) = R M g0)."""
+    e = np.asarray(strain, np.float64).reshape(-1, 6)
+    E = np.stack([e[:, 0], e[:, 5], e[:, 4], e[:, 5], e[:, 1], e[:, 3], e[:, 4], e[:, 3], e[:, 2]],
+                 1).reshape(-1, 3, 3)
+    E2 = np.einsum("nji,njk,nkl->nil", S, E, S)
+    return np.stack([E2[:, 0, 0], E2[:, 1, 1], E2[:, 2, 2], E2[:, 1, 2], E2[:, 0, 2], E2[:, 0, 1]], 1)
+
+
 def mean_orientation(R: np.ndarray, sym: np.ndarray, Rref: Optional[np.ndarray] = None) -> np.ndarray:
     """Mean orientation of ``R`` (n, 3, 3): symmetry-aligned to ``Rref`` (default the first), then
     the projection of the mean matrix onto SO(3)."""
@@ -924,6 +942,10 @@ class GrainProblem:
         self.R_start = align_to(R_m, R_m[0], sym)
         R_al = np.array(R_map, dtype=np.float64, copy=True)
         R_al[self.members] = self.R_start
+        if strain is not None:  # the strain follows the members' new symmetry representative
+            strain = np.array(strain, dtype=np.float64, copy=True)
+            strain[self.members] = rotate_strain(strain[self.members], align_ops(R_m, R_m[0], sym))
+            self.strain = torch.as_tensor(strain[self.members], dtype=DT)
         self.region = build_region(
             model, images, R_al, V, self.members, self.shell, self.bary,
             **dict(region_kw or {}, strain=strain),

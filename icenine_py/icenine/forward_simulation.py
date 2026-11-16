@@ -524,6 +524,10 @@ class ForwardSimulation:
 
                 # ---- Stage 1: batched Bragg solving ----
                 if self.apply_deformation:
+                    # voxels without a deformation carry an explicit identity here, so their
+                    # float32 positions can differ from the unstrained branch by ~5e-3 px (the
+                    # serial path takes the unstrained branch instead); 19-column .mic files
+                    # always carry M, so both paths take the strained branch in practice
                     m_p = deform_all[chunk_start:chunk_end][phase_mask]
                     g_lab = torch.bmm(
                         torch.bmm(orient_p, m_p),

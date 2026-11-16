@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-15 23:25 PST",
+ "updated": "2026-11-16 00:00 PST",
  "steps": [
   {
    "id": "GO0",
@@ -64,6 +64,14 @@
    "status": "done",
    "date": "2026-11-15",
    "result": "L/366/3 (4 legs x 91, 401 eval/voxel): corr3 0.5/1/2/5 deg -> 3/9/31/72% of voxels > 0.1 deg (medians ~0.01 deg up to 2 deg); rand 48/53/77/83%. 5 deg needs a global per-voxel search (I36, blocked on ray-index cost).",
+   "commit": ""
+  },
+  {
+   "id": "GO5",
+   "title": "Strain in the forward model (SpotModel and stock renderer) and the strained sample",
+   "status": "done",
+   "date": "2026-11-16",
+   "result": "Opt-in strain, g = O M g0 with M = (I+eps)^-1, tests pin the sign and frame; default bit-identical. Sample `strain` (RMS 1e-4 / 5e-4 / 1e-3 per grain). Near field: 0.2-0.5 px spot shift per 1e-3 strain; intensity Sinkhorn rises 10% at ~1e-3 per component; leaving strain out raises it 14-44% at 1e-3, 0.3% at 1e-4.",
    "commit": ""
   }
  ],

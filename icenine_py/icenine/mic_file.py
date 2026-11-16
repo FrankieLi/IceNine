@@ -338,6 +338,9 @@ class MicFile:
 
         Writes format matching C++ MicIO.h lines 363-429.
 
+        Note: ``Voxel.deformation`` is held as float32 on read (about 6e-8 near 1), so more than
+        about 8 digits gains nothing after a read-write round trip.
+
         ``deformation_digits`` (default 6, the historical ``13.6E``, output unchanged) sets the
         digits after the point of the six deformation columns (13-18); use 8 or more (at least
         9 significant digits) when they hold a strain M near 1 (a 1e-4 strain is 1e-4 of M).

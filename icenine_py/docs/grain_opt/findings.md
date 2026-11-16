@@ -243,3 +243,45 @@ deg from the ground truth, median error (deg) and share wrong (above 1 deg) per 
   ladder's first legs still start from the grain centre.
 - The 5 deg level (both samples) needs a global search per voxel; I36 (gated seed path) waits for
   a cached ray index.
+
+## GO5: strain in the forward model (ideas I14, I15, I16, I30)
+
+Built by an implementer agent (branch `feature/grain-opt-strain`, merged after tests and an
+independent review). `SpotModel` takes an optional per-voxel crystal-frame strain (6 numbers):
+g = O M g0 with M = (I + eps)^-1, so the Bragg angle, omega and sin(2 theta) come from the strained
+|g|. Tests pin the convention: a pure dilation d gives |g| = |g0|/(1 + d) and a smaller 2-theta; a
+uniaxial e11 equals replacing every reciprocal vector by M g0 and differs from applying M in the
+sample frame (added after review); a shear matches finite differences. The stock renderer has the
+same option (`apply_deformation`, `render_full.py --strain`), default off and bit-identical;
+rendered strained spots match `SpotModel` within 0.05 px. The `.mic` file holds M in columns 13 to
+18, optionally written with 9 digits (M is held as float32 on read: about 6e-8 near 1). After
+review, `GrainProblem` re-expresses the strain when it swaps a member orientation for a symmetry
+equivalent (eps' = S^T eps S); before, strain fitting on such members would have been wrong.
+
+Sample `strain`: the `grad` ground truth plus one constant strain tensor per grain (tensor RMS
+sqrt(tr(eps^2)/3) of 1e-4, 5e-4 or 1e-3; 154, 156 and 187 grains). Rendered clean (84 s).
+
+Reading line: for 5 grains at their ground-truth orientation and strain, the median strain step
+(one component moved at a time) that raises a cost by 10%, and the spot shift per 1e-3 strain.
+
+| component | coverage off lit pixels | intensity-weighted Sinkhorn | pixels per 1e-3 (det0 / det1) |
+|---|---|---|---|
+| e11 | 9e-5 | 2.2e-3 | 0.20 / 0.30 |
+| e22 | 1.0e-4 | 1.5e-3 | 0.20 / 0.30 |
+| e33 | 1.1e-4 | 8.7e-4 | 0.24 / 0.36 |
+| e23 | 5.6e-5 | 8.8e-4 | 0.34 / 0.51 |
+| e13 | 7.6e-5 | 9.0e-4 | 0.35 / 0.52 |
+| e12 | 5.9e-5 | 1.2e-3 | 0.30 / 0.44 |
+
+- In this near-field geometry a 1 px spot shift needs about 2e-3 to 5e-3 strain (0.2 to 0.5 px per
+  1e-3): pixel/distance (4.4e-4, 2.7e-4) divided by a lever arm of order 2 tan(theta). Far field
+  (HEXRD) gains by a much larger distance; here strain below about 1e-3 moves spots by well under
+  a pixel.
+- The Sinkhorn cost is flat to strain (a 10% rise needs about 1e-3 per component), as it was flat
+  to sub-0.04 deg rotations (GO1). The coverage cost reacts near 1e-4, but those steps sit at the
+  2e-5 grid floor of the scan: read them as at most 1e-4, not as a resolution.
+- Leaving the strain out raises the Sinkhorn cost by 0.3% (a 1e-4 grain), 1.5% and 7.4% (5e-4)
+  and 14% and 44% (1e-3): strain of 1e-3 is visible to the objective; 1e-4 hardly.
+- Next (G1c): fit strain per grain with the strict cost (or the coverage cost) on `strain`, with
+  orientation free, and measure recovered strain against the ground truth per level; per-grain
+  fitting pools many spots, as the grain field did for orientation (GO2).

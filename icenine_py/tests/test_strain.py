@@ -87,8 +87,8 @@ def test_pure_dilation_scales_g_and_shrinks_two_theta() -> None:
     assert torch.allclose(strained.col, ref.col, atol=1e-6)
     assert torch.allclose(strained.row, ref.row, atol=1e-6)
     # the spots really moved relative to the unstrained prediction
-    if torch.equal(base.refl, strained.refl):
-        assert float((base.col - strained.col).abs().max()) > 1e-2
+    assert torch.equal(base.refl, strained.refl)
+    assert float((base.col - strained.col).abs().max()) > 1e-2
 
 
 def test_shear_matches_finite_differences() -> None:
@@ -123,3 +123,66 @@ def test_shear_matches_finite_differences() -> None:
         if torch.equal(rb.refl, r0.refl):
             lin = 1e-4 * fd
             assert float((pb - p0 - lin).abs().max()) < 0.05 * float(lin.abs().max()) + 1e-3
+
+
+
+def test_uniaxial_strain_is_applied_in_the_crystal_frame() -> None:
+    """g = O M g0 (crystal frame), not M O g0 (sample frame): a uniaxial crystal strain e11 equals
+    replacing every reciprocal vector by M g0, and differs from applying M in the sample frame."""
+    _sc, model, Rs, Vs = _setup()
+    R1, V1 = Rs[:1], Vs[:1]
+    eps = _eps(1, e11=2e-3)
+    M = GF.strain_to_m(eps)[0]
+    strained = model.predict(R1, V1, eps)
+    saved = (model.g_hkl, model.g_mag, model._consts)
+    try:
+        g_c = (M @ saved[0].T).T  # crystal frame: M g0
+        model.g_hkl, model.g_mag, model._consts = g_c, torch.linalg.norm(g_c, dim=1), {}
+        ref = model.predict(R1, V1)
+        O = R1[0].to(g_c.dtype)
+        g_s = (O.T @ M @ O @ saved[0].T).T  # sample frame: O g'' = M O g0
+        model.g_hkl, model.g_mag, model._consts = g_s, torch.linalg.norm(g_s, dim=1), {}
+        alt = model.predict(R1, V1)
+    finally:
+        model.g_hkl, model.g_mag, model._consts = saved
+    assert torch.equal(strained.refl, ref.refl)
+    assert torch.allclose(strained.col, ref.col, atol=1e-6)
+    assert torch.allclose(strained.fpos, ref.fpos, atol=1e-9)
+    # |g| of (h00) shrinks by 1/(1+e11); (00l) is unchanged
+    gm = torch.linalg.norm(g_c, dim=1)
+    g0 = saved[0]
+    h00 = (g0[:, 1].abs() < 1e-9) & (g0[:, 2].abs() < 1e-9) & (g0[:, 0].abs() > 0)
+    l00 = (g0[:, 0].abs() < 1e-9) & (g0[:, 1].abs() < 1e-9) & (g0[:, 2].abs() > 0)
+    if bool(h00.any()):
+        assert torch.allclose(gm[h00], saved[1][h00] / (1 + 2e-3), rtol=1e-9)
+    if bool(l00.any()):
+        assert torch.allclose(gm[l00], saved[1][l00], rtol=1e-9)
+    # the sample-frame variant predicts different spots
+    if torch.equal(alt.refl, strained.refl):
+        assert float((alt.col - strained.col).abs().max()) > 1e-3
+    else:
+        assert not torch.equal(alt.refl, strained.refl)
+
+
+def test_grain_problem_rotates_strain_with_the_symmetry_representative() -> None:
+    from icenine.ray_indexing import proper_rotations
+    from icenine.symmetry import create_cubic_symmetry
+
+    sym = proper_rotations(create_cubic_symmetry(3.6))
+    rng = np.random.default_rng(0)
+    e = rng.normal(0, 1e-3, (5, 6))
+    S = sym[rng.integers(0, len(sym), 5)]
+    e2 = GF.rotate_strain(e, S)
+    # strain matrices transform as S^T E S: the invariants are kept
+    def mat(v: np.ndarray) -> np.ndarray:
+        return np.array([[v[0], v[5], v[4]], [v[5], v[1], v[3]], [v[4], v[3], v[2]]])
+    for a, b, s_ in zip(e, e2, S):
+        assert np.allclose(mat(b), s_.T @ mat(a) @ s_)
+        assert np.isclose(np.trace(mat(a)), np.trace(mat(b)))
+    # and g = (R S) M' (S^T g0) equals R M g0
+    R = np.linalg.qr(rng.normal(size=(3, 3)))[0]
+    R *= np.sign(np.linalg.det(R))
+    g0 = rng.normal(size=3)
+    M = np.linalg.inv(np.eye(3) + mat(e[0]))
+    M2 = np.linalg.inv(np.eye(3) + mat(e2[0]))
+    assert np.allclose(R @ M @ g0, (R @ S[0]) @ M2 @ (S[0].T @ g0))

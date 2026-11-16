@@ -2,6 +2,13 @@
 
 Finished steps and old notes, newest first. Not read on a wake.
 
+## GO4, GO4b, GO4c, GO5 (2026-11-15/16)
+
+GO4/4b/4c tables in `benchmarks/grain_opt/go4*/`; GO5 built by an implementer agent (branch
+feature/grain-opt-strain, merge d7b06158), reviewed by a code-reviewer agent: one latent bug (strain
+not rotated with symmetry swaps) fixed, one test gap (frame of M) closed. The gated global search
+(I36) was tried and blocked on cost.
+
 ## GO2 (2026-11-15): optimizer Pareto on G20
 
 Tables `benchmarks/grain_opt/go2/`; findings "GO2". Sinkhorn arms cut to one 20-grain arm plus
