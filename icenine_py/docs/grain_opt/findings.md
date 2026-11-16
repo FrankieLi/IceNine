@@ -474,3 +474,39 @@ Verdicts by the rule written before the runs:
 - Next (I43): a hybrid, coverage for the orientation field and the centroid cost for strain:
   either the sum (centroid + weighted coverage) or staged (field on coverage, then strain and
   mean orientation on centroids), with merged spots down-weighted.
+
+## GO5g: hybrid cost, coverage for orientation and centroids for strain (idea I43)
+
+Question: does `cen` + lambda x coverage keep GO5f's strain from the painted start and
+coverage's orientation? Benchmark S12; rows in `benchmarks/grain_opt/go5g/*.json`. 3 minutes for
+`E@GT`, 9 to 11 minutes per painted-start run (about 60 ms per evaluation, contended).
+
+Reading line: median strain error over 4 grains per level, median voxel orientation error (deg)
+in brackets; the rule's limits are 1.9e-4 / 3.3e-4 / 2.5e-4 and 0.02 deg.
+
+| arm | 1e-4 | 5e-4 | 1e-3 | short |
+|---|---|---|---|---|
+| GO5c coverage `S@P` | 7.1e-4 (0.015) | 3.4e-4 (0.012) | 3.0e-4 (0.012) | 7 of 12 |
+| GO5f `cen` `S@P` | 1.4e-4 (0.058) | 2.2e-4 (0.059) | 3.7e-4 (0.085) | 0 of 12 |
+| `hyb` lambda 2 `E@GT` (ground-truth orientation) | 9.9e-5 | 1.4e-4 | 1.1e-4 | 1 of 12 |
+| `hyb` lambda 2 `S@P` | 1.3e-4 (0.007) | 1.2e-4 (0.009) | 2.5e-4 (0.021) | 3 of 12 |
+| `hyb` lambda 8 `S@P` | 1.9e-4 (0.009) | 1.5e-4 (0.008) | 2.2e-4 (0.012) | 8 of 12 |
+| `Sx@P` (coverage field, `cen` strain, `hyb` 2 joint) | 1.4e-4 (0.006) | 1.5e-4 (0.009) | 2.5e-4 (0.021) | 2 of 12 |
+
+Verdicts by the rule written before the runs:
+
+- I43 is answered yes by `hyb` lambda 8 `S@P`: strain 1.5e-4 and 2.2e-4 at 5e-4 and 1e-3 (limits
+  3.3e-4, 2.5e-4), orientation 0.008-0.012 deg at every level, and better than `cen` `S@P` at
+  1e-3 on 4 of 4 grains (2.2e-4 against 3.7e-4). It is the best arm meeting the rule (the only
+  one).
+- lambda 2 (`S@P` and `Sx@P`) misses at 1e-3 by a hair (2.5e-4 and 0.021 deg; grains 237 and 54
+  keep 0.025-0.046 deg): more coverage weight holds the field in place on the strongly strained
+  grains. The by-role staging adds nothing over the plain hybrid.
+- Against GO5c, from the same painted start: strain error 1.9 / 1.5 / 2.2e-4 instead of 7.1 /
+  3.4 / 3.0e-4, with the orientation as good or better (0.008-0.012 deg). At the ground-truth
+  orientation the hybrid is below the coverage band at every level (9.9e-5 / 1.4e-4 / 1.1e-4).
+  The two costs see different things: coverage pins the orientation field and the spot shapes,
+  centroids pin the sub-pixel spot positions that strain moves.
+- Caveats: 4 grains per level, one seed; the rule margin at 1e-3 is small (2.2e-4 against 2.5e-4).
+  Next (I44): confirm on more grains (12 per level) with lambda 8 and 16, then a faster solver
+  on the centroid residuals (I7 / I19, Gauss-Newton) in place of CMA.

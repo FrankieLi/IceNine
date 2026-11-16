@@ -9,6 +9,9 @@ mass on lit pixels, mean over the grain's spots (GO5 "coverage"). Spot windows a
 strain. Parameters: grain field (FieldA order 1, 9 numbers) and one crystal-frame strain per
 grain (6). CMA with per-coordinate steps 0.05 deg (field) and 5e-4 (strain), strain from 0.
 
+GO5g (I43): ``--cost hyb --lam L`` (``cen`` + L x coverage); arm ``Sx@P`` (field leg on coverage,
+strain-only leg on ``cen``, joint leg on ``hyb`` with L = 2).
+
 GO5e (I40): ``--cost sd|int`` replaces the coverage cost by a sub-pixel cost (``SubPix``: signed
 distance to the lit set, or clean intensity) in any arm; ``--seed`` offsets every CMA seed.
 
@@ -177,6 +180,19 @@ class SubPix:
         return 1.0 - f if self.kind == "int" else f
 
 
+class Hybrid:
+    """GO5g: ``cen`` + lam x coverage (centroids for strain, coverage for the orientation field)."""
+
+    def __init__(self, prob: Any, lam: float) -> None:
+        self.prob, self.lam = prob, lam
+        self.cov, self.cen = Coverage(prob), SubPix(prob, "cen")
+
+    def __call__(self, R: torch.Tensor, strain: torch.Tensor) -> float:
+        f = self.cen(R, strain) + self.lam * self.cov(R, strain)
+        self.prob.n_evals -= 1  # one hybrid evaluation, two predictions
+        return f
+
+
 def robust_theta0(prob: Any, sym: np.ndarray, tol_deg: float = 1.5) -> Any:
     """Field fit of the start that ignores painted outliers: the medoid voxel (most members within
     ``tol_deg``) is the anchor; members farther than ``tol_deg`` from it are set to it before the
@@ -231,22 +247,35 @@ def main() -> None:
     ap.add_argument(
         "--arm",
         required=True,
-        choices=["E@GT", "FE@GT", "FE@P", "J@P", "S@P", "SR@P", "S@GT", "E@F", "O@P", "Ost@P"],
+        choices=[
+            "E@GT",
+            "FE@GT",
+            "FE@P",
+            "J@P",
+            "S@P",
+            "SR@P",
+            "S@GT",
+            "E@F",
+            "O@P",
+            "Ost@P",
+            "Sx@P",
+        ],
     )
     ap.add_argument("--out", default="go5b")
     ap.add_argument("--evals", type=int, default=600)
     ap.add_argument("--evals_e", type=int, default=300)
     ap.add_argument("--evals_f", type=int, default=200)
     ap.add_argument("--only", type=int, default=None)
-    ap.add_argument("--cost", default="cov", choices=["cov", "sd", "int", "cen", "ch"])
+    ap.add_argument("--cost", default="cov", choices=["cov", "sd", "int", "cen", "ch", "hyb"])
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--lam", type=float, default=2.0)
     a = ap.parse_args()
     global SEED
     SEED = a.seed
     out = CM.OUT / a.out
     tag = a.arm.replace("@", "_")
     if a.cost != "cov":
-        tag += f"_{a.cost}"
+        tag += f"_{a.cost}" + (f"{a.lam:g}" if a.cost == "hyb" else "")
     if a.seed:
         tag += f"_s{a.seed}"
     start = "paint" if a.arm.endswith("@P") else "truth"
@@ -275,7 +304,13 @@ def main() -> None:
             spec=GF.ObjectiveSpec(kind="sinkhorn"),
             strain=np.zeros((S.n, 6)),
         )
-        cov = Coverage(prob) if a.cost == "cov" else SubPix(prob, a.cost)
+        if a.cost == "hyb":
+            cov: Any = Hybrid(prob, a.lam)
+        else:
+            cov = Coverage(prob) if a.cost == "cov" else SubPix(prob, a.cost)
+        cov_f = cov_e = cov_j = cov  # field leg, strain-only leg, joint legs
+        if a.arm == "Sx@P":  # GO5g by role: field on coverage, strain on centroids, joint hybrid
+            cov_f, cov_e, cov_j = Coverage(prob), SubPix(prob, "cen"), Hybrid(prob, 2.0)
         zero = torch.zeros((n, 6), dtype=GF.DT)
         # ground truth in the fitted symmetry representative (that of prob.R_start), the same
         # re-expression GrainProblem applies to a strain when it swaps representatives
@@ -308,7 +343,7 @@ def main() -> None:
                 else:
 
                     def f_field(th: np.ndarray) -> float:
-                        return cov(field.orientations(torch.as_tensor(th, dtype=GF.DT)), zero)
+                        return cov_f(field.orientations(torch.as_tensor(th, dtype=GF.DT)), zero)
 
                 rf = cma_min(
                     f_field,
@@ -321,7 +356,7 @@ def main() -> None:
             k = len(th0)
 
             def fj(x: np.ndarray) -> float:
-                return cov(field.orientations(torch.as_tensor(x[:k], dtype=GF.DT)), eps_of(x[k:]))
+                return cov_j(field.orientations(torch.as_tensor(x[:k], dtype=GF.DT)), eps_of(x[k:]))
 
             def stds(rot: float, eps: float) -> np.ndarray:
                 return np.concatenate([np.full(k, rot), np.full(6, eps)])
@@ -329,7 +364,7 @@ def main() -> None:
             if a.arm in ("E@F", "O@P", "Ost@P"):  # GO5d: strain only at the fixed field
                 th_t = torch.as_tensor(th0, dtype=GF.DT)
                 rs = cma_min(
-                    lambda e: cov(field.orientations(th_t), eps_of(e)),
+                    lambda e: cov_e(field.orientations(th_t), eps_of(e)),
                     np.zeros(6),
                     np.full(6, STEP_EPS),
                     a.evals_e,
@@ -342,7 +377,7 @@ def main() -> None:
             else:  # GO5c staged: strain only at the fixed field, then joint legs
                 th_t = torch.as_tensor(th0, dtype=GF.DT)
                 rs = cma_min(
-                    lambda e: cov(field.orientations(th_t), eps_of(e)),
+                    lambda e: cov_e(field.orientations(th_t), eps_of(e)),
                     np.zeros(6),
                     np.full(6, STEP_EPS),
                     a.evals_e,
@@ -367,6 +402,7 @@ def main() -> None:
         row = dict(
             arm=a.arm,
             cost=a.cost,
+            lam=a.lam if a.cost == "hyb" else None,
             seed=a.seed,
             grain=int(g),
             level=float(T.strain_level_of[g]),

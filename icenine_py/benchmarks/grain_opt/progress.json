@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-16 15:20 PST",
+ "updated": "2026-11-16 15:35 PST",
  "steps": [
   {
    "id": "GO0",
@@ -112,6 +112,14 @@
    "status": "done",
    "date": "2026-11-16",
    "result": "Centroid match per spot: at the ground-truth orientation 1.3/2.2/1.7e-4 at 1e-4/5e-4/1e-3 with repeat scatter 5e-6 (coverage 1.7/1.6/2.7e-4); sharper at 1e-3 only, so I42 no by the rule. From the painted start (staged) 1.4/2.2/3.7e-4 against coverage 7.1/3.4/3.0e-4, but the orientation drifts to 0.06 deg (coverage 0.012). Chamfer cost biased. Next: hybrid, coverage for orientation and centroids for strain (I43).",
+   "commit": ""
+  },
+  {
+   "id": "GO5g",
+   "title": "Hybrid cost: coverage for orientation, centroids for strain",
+   "status": "done",
+   "date": "2026-11-16",
+   "result": "cen + 8 x coverage, staged from the painted start: median strain error 1.9/1.5/2.2e-4 at 1e-4/5e-4/1e-3 (coverage 7.1/3.4/3.0e-4, centroids alone 1.4/2.2/3.7e-4) with orientation 0.008-0.012 deg (centroids alone 0.06-0.09). I43 yes. At the ground-truth orientation 9.9e-5/1.4e-4/1.1e-4. Next: confirm on 12 grains per level (I44).",
    "commit": ""
   }
  ],
