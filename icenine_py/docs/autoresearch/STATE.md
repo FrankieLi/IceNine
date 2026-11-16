@@ -36,9 +36,9 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    Not a speed comparison: the C++ run left 416 of 2,000 pilot voxels wrong, Python 24; 393
    refit voxels were never fitted again, all 1,921 local optimizations changed nothing.
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
-   goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. Sixteen pages wait (new: ar5v, cppchk).
-   NOW: (a) step 22 (`ar5v`): PASSED (N4); key reviewed, fixed (1194c68d); merge runs (finish_ar5v.out).
-   (b) OWNER TASK (N3, N5): part 1 fix done (e5c2fd44; C4 311 wrong vs 416); review a055ff0b37b1d5aeb;
+   goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. 16 pages wait (+ar5v, cppchk).
+   NOW: (a) step 22 (`ar5v`): PASSED (N4); key reviewed (1194c68d); merge runs (finish_ar5v.out).
+   (b) OWNER TASK: part 1 fix done (e5c2fd44; C4 311 vs 416 wrong); review a055ff0b37b1d5aeb;
    part 2 `fine1`: slices run (CS, J5S, PS); then SendMessage a22702f36dfefa989 to project; caps.
 
 ## Running jobs
