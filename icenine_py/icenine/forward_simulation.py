@@ -85,6 +85,11 @@ class ForwardSimulation:
         # peak just before its per-detector triangles are drawn. Task D (spot pairing) uses it to
         # attribute lit pixels to (voxel, reflection) pairs; it changes no physics or output.
         self.peak_hook: Optional[Callable[[int, int, int, float], None]] = None
+        # Opt-in elastic strain (default False = off, output bit-identical): when True each voxel's
+        # ``deformation`` M (the .mic columns 13-18; crystal frame, M = (I + eps)^-1) maps the
+        # reciprocal vectors, g = O M g0; the Bragg angle, omega and the sin(2 theta) of the
+        # intensity filter all use the strained |g|. A voxel without a deformation counts as I.
+        self.apply_deformation: bool = False
 
     def simulate_detector_images(
         self,
@@ -292,11 +297,21 @@ class ForwardSimulation:
 
             # Transform all reciprocal vectors to lab frame at once (torch, batched)
             voxel_orientation = torch.from_numpy(voxel.orientation).float()
-            g_lab_batch = (voxel_orientation @ g_hkl_batch.T).T  # (N_refl, 3)
+            if self.apply_deformation and voxel.deformation is not None:
+                m_vox = torch.from_numpy(np.asarray(voxel.deformation, np.float32))
+                g_lab_batch = (voxel_orientation @ m_vox @ g_hkl_batch.T).T  # g = O M g0
+                g_mag_use = torch.linalg.norm(g_lab_batch, dim=1)
+                sin_2theta_use = torch.sin(
+                    2.0 * torch.asin((g_mag_use / (2.0 * wavenumber)).clamp(max=1.0))
+                ).tolist()
+            else:
+                g_lab_batch = (voxel_orientation @ g_hkl_batch.T).T  # (N_refl, 3)
+                g_mag_use = g_mag_batch
+                sin_2theta_use = sin_2theta_list
 
             # Batch Bragg solving for ALL reflections at once
             bragg_result = get_scattering_omegas_torch(
-                g_lab_batch, g_mag_batch, beam_energy, beam_deflection
+                g_lab_batch, g_mag_use, beam_energy, beam_deflection
             )
 
             # Extract observable results to plain Python lists
@@ -319,7 +334,7 @@ class ForwardSimulation:
                 obs_data.append((
                     sdx, sdy, sdz,
                     float(omega1_np[idx]), float(omega2_np[idx]),
-                    intensities_list[idx], sin_2theta_list[idx]
+                    intensities_list[idx], sin_2theta_use[idx]
                 ))
 
             # Pre-compute voxel vertices as plain floats
@@ -473,6 +488,7 @@ class ForwardSimulation:
             det_tensors, beam_dir, beam_energy, beam_deflection,
             eta_limit, omega_lookup,
         ) = self._prepare_batched_data(sample, detector_list, range_map)
+        wavenumber = KEV_OVER_HBAR_C_IN_ANG * self.exp_setup.beam_energy
 
         V = orientations.shape[0]
         if batch_size is None:
@@ -481,6 +497,8 @@ class ForwardSimulation:
         num_detectors = len(detector_list)
         t_prep = time.time() - t0
         print(f"  Batched data prep: {t_prep:.2f}s  ({V} voxels)")
+
+        deform_all = self._deformations(sample) if self.apply_deformation else None
 
         # ---- Chunk loop ----
         total_rasterized = 0
@@ -505,13 +523,24 @@ class ForwardSimulation:
                 R = g_hkl.shape[0]
 
                 # ---- Stage 1: batched Bragg solving ----
-                g_lab = torch.bmm(
-                    orient_p,
-                    g_hkl.unsqueeze(0).expand(Vp, -1, -1).transpose(1, 2),
-                ).transpose(1, 2)  # (Vp, R, 3)
-
+                if self.apply_deformation:
+                    m_p = deform_all[chunk_start:chunk_end][phase_mask]
+                    g_lab = torch.bmm(
+                        torch.bmm(orient_p, m_p),
+                        g_hkl.unsqueeze(0).expand(Vp, -1, -1).transpose(1, 2),
+                    ).transpose(1, 2)  # (Vp, R, 3), g = O M g0
+                    g_mag_s = torch.linalg.norm(g_lab, dim=2)  # strained |g|, (Vp, R)
+                    g_mag_flat = g_mag_s.reshape(Vp * R)
+                    sin_2theta_vr = torch.sin(
+                        2.0 * torch.asin((g_mag_s / (2.0 * wavenumber)).clamp(max=1.0))
+                    )
+                else:
+                    g_lab = torch.bmm(
+                        orient_p,
+                        g_hkl.unsqueeze(0).expand(Vp, -1, -1).transpose(1, 2),
+                    ).transpose(1, 2)  # (Vp, R, 3)
+                    g_mag_flat = g_mag.unsqueeze(0).expand(Vp, R).reshape(Vp * R)
                 g_lab_flat = g_lab.reshape(Vp * R, 3)
-                g_mag_flat = g_mag.unsqueeze(0).expand(Vp, R).reshape(Vp * R)
 
                 bragg = get_scattering_omegas_torch(
                     g_lab_flat, g_mag_flat, beam_energy, beam_deflection
@@ -581,7 +610,10 @@ class ForwardSimulation:
 
                 # ---- Stage 4: batched eta filter ----
                 valid_intensities = intensities[refl_idx]
-                valid_sin2theta = sin_2theta[refl_idx]
+                if self.apply_deformation:
+                    valid_sin2theta = sin_2theta_vr[voxel_idx, refl_idx]
+                else:
+                    valid_sin2theta = sin_2theta[refl_idx]
                 eta_accept, intensity = batch_eta_filter(
                     ray_dir, eta_limit, valid_intensities, valid_sin2theta
                 )
@@ -686,6 +718,19 @@ class ForwardSimulation:
 
         t_total = time.time() - t0
         print(f"  Batched simulation: {t_total:.2f}s, {total_rasterized} triangles rasterized")
+
+    @staticmethod
+    def _deformations(sample: Sample) -> torch.Tensor:
+        """(V, 3, 3) float32 per-voxel deformation M of the .mic (identity when absent)."""
+        eye = np.eye(3, dtype=np.float32)
+        return torch.from_numpy(
+            np.stack(
+                [
+                    eye if v.deformation is None else np.asarray(v.deformation, np.float32)
+                    for v in sample.get_mic().voxels
+                ]
+            )
+        )
 
     def _prepare_batched_data(self, sample, detector_list, range_map):
         """Stage 0: collect all data into contiguous tensors."""

@@ -177,6 +177,23 @@ class SpotRows:
     hit: Tensor
 
 
+def strain_to_m(strain: Tensor) -> Tensor:
+    """M = (I + eps)^-1 (n, 3, 3) from crystal-frame symmetric strain (n, 6)
+    [e11 e22 e33 e23 e13 e12]; differentiable."""
+    e = strain
+    z = torch.stack(
+        [e[:, 0], e[:, 5], e[:, 4], e[:, 5], e[:, 1], e[:, 3], e[:, 4], e[:, 3], e[:, 2]], dim=1
+    ).reshape(-1, 3, 3)
+    return torch.linalg.inv(torch.eye(3, dtype=z.dtype) + z)
+
+
+def m_to_strain(M: np.ndarray) -> np.ndarray:
+    """Inverse of ``strain_to_m``: eps = M^-1 - I as (n, 6) [e11 e22 e33 e23 e13 e12]."""
+    E = np.linalg.inv(np.asarray(M, np.float64).reshape(-1, 3, 3)) - np.eye(3)
+    E = 0.5 * (E + np.swapaxes(E, 1, 2))
+    return np.stack([E[:, 0, 0], E[:, 1, 1], E[:, 2, 2], E[:, 1, 2], E[:, 0, 2], E[:, 0, 1]], 1)
+
+
 class SpotModel:
     """``SmoothCost.predict`` vectorised over voxels (own orientation and triangle per voxel).
 
@@ -197,14 +214,25 @@ class SpotModel:
             )
         return c
 
-    def predict(self, R: Tensor, V: Tensor) -> SpotRows:
-        """Rows of orientations ``R`` (N, 3, 3) on triangles ``V`` (N, 3, 3) (sample frame)."""
+    def predict(self, R: Tensor, V: Tensor, strain: Optional[Tensor] = None) -> SpotRows:
+        """Rows of orientations ``R`` (N, 3, 3) on triangles ``V`` (N, 3, 3) (sample frame).
+
+        ``strain`` (optional, (N, 6) [e11 e22 e33 e23 e13 e12], crystal-frame symmetric strain):
+        g = R M g0 with M = (I + eps)^-1, and the Bragg angle and omega come from the strained
+        |g| (a pure dilation eps = d I gives |g| = |g0| / (1 + d)). Differentiable in ``strain``.
+        ``None`` (default) is the unstrained model, bit for bit."""
         sc = self.sc
         R = R.to(DT)
         V = V.to(DT)
         N, K = int(R.shape[0]), self.K
-        g_lab = torch.einsum("bij,kj->bki", R, self.g_hkl).reshape(N * K, 3)
-        br = scattering_omegas_fixed_beam(g_lab, self._bragg(N))
+        if strain is None:
+            g_lab = torch.einsum("bij,kj->bki", R, self.g_hkl).reshape(N * K, 3)
+            consts = self._bragg(N)
+        else:
+            A = R @ strain_to_m(strain.to(DT))
+            g_lab = torch.einsum("bij,kj->bki", A, self.g_hkl).reshape(N * K, 3)
+            consts = BraggConstants(torch.linalg.norm(g_lab, dim=1), sc.energy, sc.chi)
+        br = scattering_omegas_fixed_beam(g_lab, consts)
         om = torch.stack([br.omega1, br.omega2], dim=1)
         obs = br.observable[:, None].expand(N * K, 2)
         nrm = g_lab / torch.linalg.norm(g_lab, dim=1, keepdim=True)
@@ -421,6 +449,7 @@ def build_region(
     min_obs: int = 1,
     keep_px: Optional[int] = 3,
     ratio: Optional[Tuple[float, float]] = (0.8, 1.6),
+    strain: Optional[np.ndarray] = None,
 ) -> GrainRegion:
     """Spots of the grain ``members`` at their start orientations ``R_start`` (n_all, 3, 3) over
     the layer's triangles ``V`` (n_all, 3, 3), and the shell prediction in their windows.
@@ -433,12 +462,19 @@ def build_region(
     (counted with 8 x 8 sub-triangles per voxel, as the stock render lights every pixel a spot
     touches); a
     spot outside them is dropped (overlap with another grain's spot, or a spot cut by a detector
-    edge or a gap). The ratio of every spot is kept in ``Spot.ratio``. None keeps all."""
+    edge or a gap). The ratio of every spot is kept in ``Spot.ratio``. None keeps all.
+
+    ``strain`` (optional, (n_all, 6), see ``SpotModel.predict``): the start prediction of members
+    and shell is made with it (default None: unstrained, unchanged)."""
+    st = None if strain is None else torch.as_tensor(np.asarray(strain), dtype=DT)
     members = [int(v) for v in members]
     shell = [int(v) for v in shell]
     fine = torch.as_tensor(subtriangle_bary(8))
     with torch.no_grad():
-        rows = model.predict(torch.as_tensor(R_start[members]), torch.as_tensor(V[members]))
+        rows = model.predict(
+            torch.as_tensor(R_start[members]), torch.as_tensor(V[members]),
+            None if st is None else st[members],
+        )
     spots: List[Spot] = []
     H, W = images.stack.shape[1], images.stack.shape[2]
     for det in range(model.n_det):
@@ -479,7 +515,10 @@ def build_region(
     region.shell_mass = [np.zeros(0) for _ in spots]
     if shell and spots:
         with torch.no_grad():
-            srows = model.predict(torch.as_tensor(R_start[shell]), torch.as_tensor(V[shell]))
+            srows = model.predict(
+                torch.as_tensor(R_start[shell]), torch.as_tensor(V[shell]),
+                None if st is None else st[shell],
+            )
             for det in range(model.n_det):
                 pc, pr, m, ok = _rows_points(srows, bary, det)
                 for j, s in enumerate(spots):
@@ -858,8 +897,13 @@ class GrainProblem:
         max_points: int = 240,
         chunk_elems: int = 3_000_000,
         strict_fn: Optional[Any] = None,
+        strain: Optional[np.ndarray] = None,
     ) -> None:
         self.model = model
+        # optional crystal-frame strain (n_voxels_total, 6), used by the region and ``objective``
+        self.strain = (
+            None if strain is None else torch.as_tensor(np.asarray(strain)[list(members)], dtype=DT)
+        )
         # strict_fn(R (n, 3, 3) numpy, members) -> per-voxel strict costs; used by kind "strict"
         self.strict_fn = strict_fn
         self.n_strict = 0
@@ -881,7 +925,8 @@ class GrainProblem:
         R_al = np.array(R_map, dtype=np.float64, copy=True)
         R_al[self.members] = self.R_start
         self.region = build_region(
-            model, images, R_al, V, self.members, self.shell, self.bary, **(region_kw or {})
+            model, images, R_al, V, self.members, self.shell, self.bary,
+            **dict(region_kw or {}, strain=strain),
         )
         o_max = max((len(sp.obs) for sp in self.region.spots), default=0)
         self.bin_px = 1
@@ -907,7 +952,7 @@ class GrainProblem:
             self.n_strict += len(self.members)
             c = self.strict_fn(R.detach().numpy(), self.members)
             return torch.as_tensor(float(np.mean(c)), dtype=DT)
-        rows = self.model.predict(R, self.V)
+        rows = self.model.predict(R, self.V, self.strain)
         x, a = pack_predicted(self.region, rows, self.bary, self.model.n_det)
         if sp.kind == "sinkhorn" and sp.dilate > 0:
             off = torch.tensor([[1, 1], [1, -1], [-1, 1], [-1, -1]], dtype=DT) * sp.dilate

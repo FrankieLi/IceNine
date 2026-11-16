@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-11-15T23:02:50",
+  "host": "Mac",
+  "loadavg": [
+    3.98046875,
+    5.02734375,
+    4.6494140625
+  ],
+  "cpu_count": 10,
+  "power": "ac",
+  "omp_num_threads": null,
+  "mkl_num_threads": null,
+  "torch_threads": 4,
+  "busy_processes": [
+    {
+      "pid": 1103,
+      "cpu": 32.9,
+      "command": "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/corespotlightd"
+    },
+    {
+      "pid": 17301,
+      "cpu": 29.9,
+      "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+    }
+  ]
+}
