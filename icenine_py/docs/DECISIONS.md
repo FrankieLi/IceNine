@@ -2153,3 +2153,23 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   waits for the owner with those two. Where: icenine_py/docs/autoresearch/PLAN.md 'AR5 step 22';
   review .claude/reports/20261116-1310-review-ar5v.md; branch feature/eval-reduction-ar5v
   f2486521.
+
+### D-20261116-N5 · D-20261116-N5 | Owner task part 1: fix C++ Reset on branch cppfix (test, review, rerun C4); part 2 (fine1) phase A starts · Owner task of 16 Nov: C++ Reset fix on its own branch; part 2 starts
+- 2026-11-16, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1 and the owner's task text ('Any C++ fix goes on a
+  branch with a test and a review. Part 2 goes ahead whatever this part finds'). Part 1 found:
+  inputs equal, scoring correct, settings equal. The C++ local optimization is not broken: the
+  traced one starts 33.5 degrees from the truth, tries 656 samples within 5 degrees and random
+  restarts, and finds none lower, so it returns its start; C++ and Python both give the truth the
+  lower cost on 10 of 10 chosen voxels. One bug by the plan's definition: Reset
+  (Src/ReconstructionStrategies.tmpl.cpp:314-326) clears only the queue while its comment says
+  marks go back to NON_VISITED, so 322 of 393 REFIT voxels that border a later fit are never
+  queued again. The fix goes on feature/eval-reduction-cppfix with a test, an Opus review and a
+  rerun C4; C3 and C4 are both kept; whether the refits come out right is the test, not assumed.
+  Stock C++ stays the unfixed build; the fixed build is the extra labelled run CF in part 2. Also
+  noted, not fixed: C++ and Python costs differ by over 0.006 on 12 of 40 pairs (max 0.0198, order
+  never changed); 85 global searches against 77 seeds with local records is unexplained. Part 2
+  (task fine1) phase A (grid, sample fine7, gradient gate, render, freeze) starts now; no method
+  runs before the freeze. Nothing merges to develop. Where: reports
+  .claude/reports/20261116-1335-cppchk-phaseA.md and 20261116-1429-cppchk-phaseB.md; branches
+  feature/eval-reduction-cppchk 748d0111, feature/eval-reduction-cpptrace ae912cf9.
