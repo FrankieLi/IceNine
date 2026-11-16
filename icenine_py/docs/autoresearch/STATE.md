@@ -38,7 +38,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
    goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. 16 pages wait (+ar5v, cppchk).
    NOW: (a) step 22 MERGED 566eea3f; v58 live (15:34, 16 Nov); v59 after C5, slices.
-   (b) OWNER TASK: part 1: fix reviewed (C4 311 vs 416); aa5599885ce689568 on fix 2, C5;
+   (b) OWNER TASK: part 1: fix 2 done (973b57b5): C5 56 wrong (C4 311, C3 416); review af0fc74035f694d0f;
    part 2 `fine1`: slices run (CS, J5S, PS); then SendMessage a22702f36dfefa989 to project; caps.
    (c) restart distance, C++ config: done (reports 20261116-*); next: local-opt. schedule step.
 
