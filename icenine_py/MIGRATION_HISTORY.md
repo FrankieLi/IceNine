@@ -13331,8 +13331,17 @@ layer only (`scripts/autoresearch/ar5/screen_*.py`, `screen_*.sh`; `tests/test_a
 - **Validity.** The live screen tries equal the re-run's gain trace cut at one evaluation, try by
   try, on all six samples (0 of 385,943 differ in cost, hit ratio or end; every try 2 evaluations;
   every end equal to the candidate's start bit for bit).
-- **Not done here.** `held5` (not built; the run-all script `screen_run_all.sh` builds it, runs a
-  pilot, then `S8`, `J5`, `J5C`, `J5S`, 3 heavy processes at most, caps 480 / 300 minutes, marker
-  `logs/screen_runs.done`); the summary, plot and tables; phase B (the key).
+- **held5 (the clean test; `held` with generator seed 5, built by `screen_run_all.sh`, marker
+  `exit=0` at 22:59).** `J5S` 22,706,889 evaluations against `J5C` 26,386,526 (13.9% fewer) and `S8`
+  75,879,690 (70.1% fewer); pass 169,606, repair 1,439,416 (5.48% of `J5`), flagged 1,645 (82
+  contested, 1,563 wide-only), 11,896 fits, 1,627 changed. Wrong voxels of 24,570: `S8` 62, `J5` 46,
+  `J5C` 33, `J5S` 31 (Wilson 95% [0.089%, 0.179%]). `J5S` against `J5C` fixed 4, broken 2; against
+  `J5` 16 / 1; against `S8` 37 / 6 (net -31; `J5C` -29). Median error over all 24,570 voxels 0.02301
+  degree (`J5C` 0.02568). Rules 1 to 4 pass on `held5` and on the six in-sample samples; the stop
+  line is not reached; predictions 2 and 3 met. Plot and tables: `ar5_screen.png`, `tables.md`.
+  The replayed `J5C` map of the gate differs from step 20's at 1 to 8 voxels a sample; every such
+  voxel has a start orientation that differs (float64 against float32-orthonormalized, up to 6e-8)
+  at itself or a neighbour, consistent with the hard-cost CMA taking another path (the neighbour test
+  is weak, so this is not shown); no wrong / right label changes. Not done: phase B (the key).
 - Results: `benchmarks/autoresearch/ar5/screen/` (`frozen.json`, `gate.json`, `gate_tables.md`; the
   cache is untracked).
