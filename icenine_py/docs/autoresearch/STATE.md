@@ -37,8 +37,8 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    refit voxels were never fitted again, all 1,921 local optimizations changed nothing.
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
    goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. Twelve pages wait now.
-   NOW: AR5 step 20 (`ar5t`; N9): after the held4 marker says exit=0, SendMessage a8b2d0066621fd0f8
-   for stats, then Opus review, phase B, merge, page. See Running jobs.
+   NOW: AR5 step 20 (`ar5t`; N9, N10 passed on held4): after the phase-B hand-back, check it, set
+   the branch parent, merge, bookkeeping agent, page v56, then plan step 21. See Running jobs.
 
 ## Running jobs
 - AR5 step 14 phase A MERGED f68ab69 (suite 2055 passed, 47 skipped, 1 deselected); J vs H fewer:
@@ -46,8 +46,8 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   Step 16 MERGED 4a1cfb42 (J5 passes on 5 samples). Step 17 (gate failed, N3) MERGED a3a4f1d8;
   `J5r` in `agent-aeba15b7c3850b007`. Step 18 (gate failed on mid, N5) MERGED 8b456ac5 (suite 2194
   passed). v55 live. Step 19 (gate failed on cost, N8) MERGED b53e927d. Step 20 (`ar5t`, N9):
-  gate PASSED; held4 runs ended exit=0 at 13:04, 15 Nov (`agent-a8b2d0066621fd0f8`); implementer
-  reports all rules pass on held4 (2e91ff54; unreviewed). Opus review a8bd475e6d1878455 since 16:00.
+  held4 PASSES all rules, review approved (N10 64b8c7ad; `agent-a8b2d0066621fd0f8`); implementer
+  a8b2d0066621fd0f8 on review fixes + phase B (key) since 16:15. Then check, merge, page v56.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
@@ -113,7 +113,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   Step 5's result files add about 50 MB to git; say so if you want them pruned.
 
 ## Bookkeeping
-- Next decision ID: D-20261115-N10 (first of a day is N1).
+- Next decision ID: D-20261115-N11 (first of a day is N1).
 - Wake-up job: session cron id b645c248, every 3 hours at :23, created 2026-11-10, expires
   2026-11-17. Create it again on or after 2026-11-16 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
