@@ -39,15 +39,15 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. Fifteen pages wait (new: ar5v).
    NOW: (a) step 22 (`ar5v`): PASSED (N4); key done (ba2314f1); review a8f333acf4527da88; merge.
    (b) OWNER TASK (N3, N5): part 1 fix `cppfix` (aa5599885ce689568), review fixes relayed;
-   part 2 `fine1` phase A (a22702f36dfefa989): after its freeze I start the slices, then project.
+   part 2 `fine1`: slices run (CS, J5S, PS); then SendMessage a22702f36dfefa989 to project; caps.
 
-## Running jobs
-- Step 14 key WAITS (held2: step 13 or owner). Steps 15 to 21: merged (see STATE_HISTORY); `J5r`
-  in `agent-aeba15b7c3850b007`; step 20 cache in `agent-a8b2d0066621fd0f8`, step 21 cache in
-  `agent-a8c1c16b70cf43e39` (merge 50628763, suite 2279 passed); v57 live.
-  Step 22 (`ar5v`, N2; arm J5SD): gate met (65e63d6c); all runs incl. `held6` ended 12:24,
+- Step 14 key WAITS (held2). Steps 15 to 21 merged (STATE_HISTORY; caches: `J5r` `agent-aeba15b…`,
+  step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v57 live.
+  Step 22 (`ar5v`; arm J5SD; worktree `agent-aba6e1bdb95dff72a`): held6 PASSED (N4): 10.90%
+  fewer than J5S, wrong 37 vs 39; key built, in review.
   16 Nov (worktree `agent-aba6e1bdb95dff72a`). held6: 10.90% fewer than J5S, wrong 37 vs 39.
-  Owner task (PLAN 4f5d47fc): part 1 trace done (ae912cf9): local opt. no bug, `Reset` bug (N5).
+  Owner task: part 1 trace done (ae912cf9), `Reset` fix runs. Part 2 `fine7` frozen (ac76bdd6);
+  slices started 14:55, 16 Nov (worktree `agent-a22702f36dfefa989`; `fine1_launch_slice.sh`).
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
