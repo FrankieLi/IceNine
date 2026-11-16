@@ -74,7 +74,8 @@ merge to develop.
    `icenine/`, run the tests and a short review (`code-reviewer` agent) before merging the task
    branch into `feature/grain-opt` (`git merge --no-ff`).
 4. **Close**: update `findings.md` (one section per step: question, result with numbers, what
-   it means for the next step), `IDEAS.md` statuses and results, Pareto rows in
+   it means for the next step), `IDEAS.md` statuses and results, a `COSTS.md` row for every new
+   cost (owner, 2026-11-16; the page shows it), Pareto rows in
    `benchmarks/grain_opt/pareto_rows.json`; rewrite `STATE.md` (move the old notes to
    `STATE_HISTORY.md`); `uv run python scripts/grain_opt/build_page.py`; commit and push; one
    shmem fact; republish the page (Artifact publish of `benchmarks/grain_opt/page/index.html`

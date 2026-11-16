@@ -56,6 +56,30 @@ def state_now() -> List[str]:
     return [ln for ln in (m.group(1) if m else "").strip().splitlines() if ln.strip()]
 
 
+def costs() -> List[List[str]]:
+    """Rows of the table in docs/grain_opt/COSTS.md (header and separator dropped)."""
+    p = DOCS / "COSTS.md"
+    if not p.exists():
+        return []
+    out = []
+    for line in p.read_text().splitlines():
+        if not line.startswith("| ") or line.startswith("| cost |"):
+            continue
+        out.append([c.strip() for c in line.strip().strip("|").split("|")])
+    return out
+
+
+def verdict_class(v: str) -> str:
+    w = v.lower()
+    if w.startswith("dropped"):
+        return "dropped"
+    if w.startswith("running"):
+        return "running"
+    if w.startswith("basin"):
+        return "proposed"
+    return "done"
+
+
 def md_inline(s: str) -> str:
     s = esc(s)
     s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
@@ -260,6 +284,24 @@ border-radius:6px;padding:3px 10px;cursor:pointer}.filters button[aria-pressed="
         f'/{len(prog["steps"])}</b><span>steps done</span></div></div>',
         "<h2>Now</h2>",
         '<div class="now">' + "".join(f"<p>{md_inline(ln.lstrip('- '))}</p>" for ln in now) + "</div>",
+        "<h2>Cost functions tried</h2>",
+        '<p class="note">One row per cost. Strain errors are medians over 4 grains at strain levels '
+        "1e-4 / 5e-4 / 1e-3 (tensor RMS), strain only at the ground-truth orientation; "
+        '"@P" = from the painted start. Source: <code>docs/grain_opt/COSTS.md</code>.</p>',
+        '<div class="tbl"><table><thead><tr><th>cost</th><th>compares</th><th>used for</th><th>steps</th>'
+        "<th>orientation (deg from ground truth)</th><th>strain error</th><th>bias / sharpness</th>"
+        "<th>verdict</th></tr></thead><tbody>"
+        + "".join(
+            "<tr>"
+            + "".join(f"<td>{md_inline(c)}</td>" for c in r[:7])
+            + f'<td><span class="pill {verdict_class(r[7])}">{md_inline(r[7].split(" (")[0].split(":")[0])}</span>'
+            + (f'<br><span class="note">{md_inline(r[7][len(r[7].split(" (")[0].split(":")[0]):].lstrip(": ").strip("()"))}</span>'
+               if len(r[7]) > len(r[7].split(" (")[0].split(":")[0]) else "")
+            + "</td></tr>"
+            for r in costs()
+            if len(r) >= 8
+        )
+        + "</tbody></table></div>",
         "<h2>Goals</h2>",
         '<ul class="goals">' + "".join(f"<li><code>{k}</code> {esc(v)}</li>" for k, v in GOALS.items()) + "</ul>",
         "<h2>Steps</h2>",
@@ -308,7 +350,7 @@ border-radius:6px;padding:3px 10px;cursor:pointer}.filters button[aria-pressed="
     parts.append("</tbody></table></div>")
     parts.append(
         '<p class="note">Source files: <code>icenine_py/docs/grain_opt/IDEAS.md</code>, <code>STATE.md</code>, '
-        "<code>findings.md</code>, <code>benchmarks/grain_opt/progress.json</code>.</p></div>"
+        "<code>COSTS.md</code>, <code>findings.md</code>, <code>benchmarks/grain_opt/progress.json</code>.</p></div>"
     )
     parts.append(
         "<script>document.querySelectorAll('.filters button').forEach(b=>b.addEventListener('click',()=>{"
