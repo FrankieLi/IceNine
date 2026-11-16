@@ -2079,3 +2079,16 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   default off, after the three wording fixes of the review. Limits: one clean sample; the cause of
   the gain is untested. The owner may overrule. Where: icenine_py/docs/autoresearch/PLAN.md,
   section AR5 step 20; review .claude/reports/20261115-1600-review-ar5t.md.
+
+### D-20261115-N11 · D-20261115-N11 | AR5 step 21 approved: one-evaluation pass tries, wider repair · AR5 step 21 approved: score each pass candidate once, wider repair (arm J5S)
+- 2026-11-15, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Step 21 is approved as planned: every boundary-pass
+  try stops after one evaluation, and step 20's CMA-120 repair runs on a wider flag (contested
+  voxels, plus voxels under hit ratio 0.95 with a pass candidate more than 1 degree from their
+  kept end). Sized in replay at 14.1% to 31.7% fewer evaluations than J5C on the six disclosed
+  samples, with fixed/broken 3/2, 4/2, 9/3, 3/3, 2/2, 3/1. The form was chosen on all six
+  disclosed samples, so the new sample held5 (generator seed 5) is the only clean test. Note for
+  the owner: this is not step 13's pass skip, since every boundary voxel still scores all its
+  candidates and may change, but it also uses the 0.95 hit ratio to decide which voxels get a
+  local optimization; the owner may overrule and stop it. Where:
+  icenine_py/docs/autoresearch/PLAN.md, section AR5 step 21.
