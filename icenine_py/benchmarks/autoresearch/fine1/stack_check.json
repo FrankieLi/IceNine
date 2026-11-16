@@ -1,0 +1,21 @@
+{
+ "stack": "cache/stacks/fine7_clean.npy",
+ "built_now": true,
+ "stack_shape": [
+  360,
+  2048,
+  2048
+ ],
+ "n_frames": 360,
+ "n_frames_different": 0,
+ "different": [],
+ "lit_pixels_ascii": 12054858,
+ "lit_pixels_stack": 12054858,
+ "render_lit_clean_total": 12054858,
+ "render_spots_total": 155339,
+ "render_wall_s": 396.8202979564667,
+ "render_workers": 2,
+ "render_timing_label": "contended (2 workers; machine quiet at start: False)",
+ "stack_sha256": "efcb77781bc01a9dc5bb0cc17e225128018bacc6f73cc7d769d5e93dcc416484",
+ "ok": true
+}

@@ -28,7 +28,7 @@ import fine1_lib as F  # noqa: E402
 import fine1_paths as P  # noqa: E402
 
 ICE = P.ICE
-OWN_SUFFIXES = (".py", ".sh")
+OWN_SUFFIXES = (".py", ".sh", ".cpp")
 EARLIER = [  # scripts of earlier steps that the fine1 runs and launchers import or call, unchanged
     "scripts/autoresearch/cpptime/make_config.py",
     "scripts/autoresearch/cpptime/guard.py",

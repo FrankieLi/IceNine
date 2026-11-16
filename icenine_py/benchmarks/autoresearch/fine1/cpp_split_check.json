@@ -1,0 +1,31 @@
+{
+ "min_side_length": 0.0046875,
+ "source_grid_split_by_cpp": {
+  "rc": 0,
+  "stdout": [
+   "read 24570 voxels, initial side 0.6",
+   "after 98280 voxels"
+  ],
+  "n_a": 98280,
+  "n_b": 98280,
+  "max_abs_position_diff_mm": 5.060000000112197e-07,
+  "n_direction_differs": 0,
+  "n_generation_differs": 0,
+  "ok": true
+ },
+ "fine_grid_again": {
+  "rc": 0,
+  "stdout": [
+   "read 98280 voxels, initial side 0.6",
+   "after 98280 voxels"
+  ],
+  "n_a": 98280,
+  "n_b": 98280,
+  "max_abs_position_diff_mm": 5.060000000112197e-07,
+  "n_direction_differs": 0,
+  "n_generation_differs": 0,
+  "ok": true
+ },
+ "binary_sha256": "84b6744774bca18b3f0da6056593f78824ecdbcbed61e12aeb471a7b180af046",
+ "ok": true
+}
