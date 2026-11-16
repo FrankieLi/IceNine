@@ -37,7 +37,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    refit voxels were never fitted again, all 1,921 local optimizations changed nothing.
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
    goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. Fourteen pages wait now.
-   NOW: (a) step 22 (`ar5v`): implementer aba6e1bdb95dff72a does stats; then review, N4, key.
+   NOW: (a) step 22 (`ar5v`): stats say PASS; Opus review a2067c210f4100d01 runs; then N4, key.
    (b) OWNER TASK part 1 (`cppchk`, N3): implementer aa5599885ce689568 on phase A; then part 2.
 
 ## Running jobs
@@ -45,7 +45,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   in `agent-aeba15b7c3850b007`; step 20 cache in `agent-a8b2d0066621fd0f8`, step 21 cache in
   `agent-a8c1c16b70cf43e39` (merge 50628763, suite 2279 passed); v57 live.
   Step 22 (`ar5v`, N2; arm J5SD): gate met (65e63d6c); all runs incl. `held6` ended 12:24,
-  16 Nov (worktree `agent-aba6e1bdb95dff72a`); stats asked 13:06.
+  16 Nov (worktree `agent-aba6e1bdb95dff72a`). held6: 10.90% fewer than J5S, wrong 37 vs 39.
   Owner task (N3 8dc07da5; PLAN 4f5d47fc): part 1 `cppchk` phase A started 13:07, 16 Nov.
 
 ## Queue
