@@ -26,7 +26,12 @@ class _Sink:
 
     def add_triangle_scanline(self, v0: Any, v1: Any, v2: Any, intensity: float) -> None:
         self.log.append(
-            (self.ctx["peak"], self.det, np.array([tuple(v0), tuple(v1), tuple(v2)], dtype=np.float64), intensity)
+            (
+                self.ctx["peak"],
+                self.det,
+                np.array([tuple(v0), tuple(v1), tuple(v2)], dtype=np.float64),
+                intensity,
+            )
         )
 
 
@@ -118,7 +123,12 @@ def test_strained_render_matches_spot_model_positions() -> None:
         assert len(log) > 20
 
         sc = SmoothCost(
-            sim.simulator, dets, rmap, None, sample, sample.get_structure_list(),
+            sim.simulator,
+            dets,
+            rmap,
+            None,
+            sample,
+            sample.get_structure_list(),
             eta_limit=sim.exp_setup.get_eta_limit(),
         )
         model = GF.SpotModel(sc, phase=int(mic.voxels[0].phase))
@@ -153,7 +163,9 @@ def test_mic_writer_default_unchanged_and_digits_option(tmp_path: Path) -> None:
 
     mic = MicFile.read(str(EX / "SimInput" / "rand_500grains_1mm_neworient_s0.mic"))
     mic.voxels = mic.voxels[:3]
-    M = np.linalg.inv(np.eye(3) + np.diag([1e-4, -2e-4, 3e-4]) + 1e-4 * (np.ones((3, 3)) - np.eye(3)))
+    M = np.linalg.inv(
+        np.eye(3) + np.diag([1e-4, -2e-4, 3e-4]) + 1e-4 * (np.ones((3, 3)) - np.eye(3))
+    )
     for v in mic.voxels:
         v.deformation = M
     a, b, c = tmp_path / "a.mic", tmp_path / "b.mic", tmp_path / "c.mic"

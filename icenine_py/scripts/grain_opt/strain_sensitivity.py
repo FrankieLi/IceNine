@@ -88,8 +88,9 @@ def make_costs(S: Any, prob: Any, R: torch.Tensor, V: torch.Tensor, base: np.nda
     return at
 
 
-def shift_px_per_1e3(S: Any, R: torch.Tensor, V: torch.Tensor, base_m: torch.Tensor, comp: int
-                     ) -> Dict[str, float]:
+def shift_px_per_1e3(
+    S: Any, R: torch.Tensor, V: torch.Tensor, base_m: torch.Tensor, comp: int
+) -> Dict[str, float]:
     """Mean |shift| (pixels) of the predicted vertices per 1e-3 of one strain component, per
     detector (central difference at 1e-5, rows present in both)."""
     h = 1e-5
@@ -101,7 +102,9 @@ def shift_px_per_1e3(S: Any, R: torch.Tensor, V: torch.Tensor, base_m: torch.Ten
     assert torch.equal(rp.refl, rm.refl) and torch.equal(rp.vox, rm.vox)
     out: Dict[str, float] = {}
     for det in range(S.model.n_det):
-        d = torch.sqrt((rp.col[:, det] - rm.col[:, det]) ** 2 + (rp.row[:, det] - rm.row[:, det]) ** 2)
+        d = torch.sqrt(
+            (rp.col[:, det] - rm.col[:, det]) ** 2 + (rp.row[:, det] - rm.row[:, det]) ** 2
+        )
         ok = (rp.hit[:, det].all(1)) & (rm.hit[:, det].all(1))
         out[f"det{det}"] = float(d[ok].mean() / (2 * h) * 1e-3)
     return out
@@ -136,8 +139,18 @@ def main() -> None:
         members = [int(v) for v in np.nonzero(gm == g)[0]]
         shell = GF.shell_of(members, S.nb)
         prob = GF.GrainProblem(
-            S.model, S.images, S.T.R, S.V, S.xy, members, shell, S.sym,
-            n_sub=2, order=1, spec=spec, strain=T.strain,
+            S.model,
+            S.images,
+            S.T.R,
+            S.V,
+            S.xy,
+            members,
+            shell,
+            S.sym,
+            n_sub=2,
+            order=1,
+            spec=spec,
+            strain=T.strain,
         )
         R = torch.as_tensor(prob.R_start, dtype=GF.DT)
         # the strain is in the crystal frame of the ground-truth orientations: they must not
@@ -156,9 +169,16 @@ def main() -> None:
         c0 = at(0.0, 0)
         eps_g = base[members[0]]
         rec: Dict[str, Any] = dict(
-            grain=int(g), strain_level=float(np.sqrt((eps_g[:3] ** 2).sum() + 2 * (eps_g[3:] ** 2).sum()) / np.sqrt(3)),
-            eps=eps_g.tolist(), n_vox=len(members), n_spots=prob.n_spots,
-            cost0=c0, cost_unstrained_model=unstr, components={},
+            grain=int(g),
+            strain_level=float(
+                np.sqrt((eps_g[:3] ** 2).sum() + 2 * (eps_g[3:] ** 2).sum()) / np.sqrt(3)
+            ),
+            eps=eps_g.tolist(),
+            n_vox=len(members),
+            n_spots=prob.n_spots,
+            cost0=c0,
+            cost_unstrained_model=unstr,
+            components={},
         )
         st_gt = torch.as_tensor(base[members], dtype=GF.DT)
         for k, name in enumerate(COMPONENTS):
@@ -173,23 +193,41 @@ def main() -> None:
                 cv = np.array(curves[c])
                 entry[c] = dict(
                     curve_sym=cv.tolist(),
-                    curvature=float((pm[0][c] + pm[1][c] - 2 * c0[c]) / H_CURV ** 2),
+                    curvature=float((pm[0][c] + pm[1][c] - 2 * c0[c]) / H_CURV**2),
                     step10=step_for_rise(cv, c0[c]),
                 )
             entry["shift_px_per_1e-3"] = shift_px_per_1e3(S, R, V, st_gt, k)
             rec["components"][name] = entry
         rec["t_s"] = time.time() - t0
         res.append(rec)
-        print(json.dumps(dict(
-            grain=g, level=rec["strain_level"], n_vox=len(members), n_spots=prob.n_spots,
-            cost0=c0, unstrained=unstr,
-            step10={n: (e["coverage"]["step10"], e["sinkhorn"]["step10"])
-                    for n, e in rec["components"].items()},
-        ), default=float), flush=True)
-    doc = dict(sample=a.sample, grid=GRID.tolist(), h_curv=H_CURV, components=list(COMPONENTS),
-               spec=dict(kind="sinkhorn", intensity=True, reach_px=3.0, blur_px=1.0),
-               reference_pixel_over_distance=[4.4e-4, 2.7e-4], grains=res,
-               timing=CM.C.preflight_label(out / "run"))
+        print(
+            json.dumps(
+                dict(
+                    grain=g,
+                    level=rec["strain_level"],
+                    n_vox=len(members),
+                    n_spots=prob.n_spots,
+                    cost0=c0,
+                    unstrained=unstr,
+                    step10={
+                        n: (e["coverage"]["step10"], e["sinkhorn"]["step10"])
+                        for n, e in rec["components"].items()
+                    },
+                ),
+                default=float,
+            ),
+            flush=True,
+        )
+    doc = dict(
+        sample=a.sample,
+        grid=GRID.tolist(),
+        h_curv=H_CURV,
+        components=list(COMPONENTS),
+        spec=dict(kind="sinkhorn", intensity=True, reach_px=3.0, blur_px=1.0),
+        reference_pixel_over_distance=[4.4e-4, 2.7e-4],
+        grains=res,
+        timing=CM.C.preflight_label(out / "run"),
+    )
     (out / "sensitivity.json").write_text(json.dumps(doc, indent=1, default=float) + "\n")
 
 

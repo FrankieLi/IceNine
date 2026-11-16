@@ -84,7 +84,9 @@ def main() -> None:
     sha = hashlib.sha256((out_dir / "truth.mic").read_bytes()).hexdigest()
     info = dict(base)
     info.update(
-        tag=a.tag, strain_seed=a.seed, strain_levels=list(LEVELS),
+        tag=a.tag,
+        strain_seed=a.seed,
+        strain_levels=list(LEVELS),
         strain_level_meaning="tensor RMS sqrt(trace(eps^2)/3); eps = [e11 e22 e33 e23 e13 e12], "
         "crystal frame; M = (I + eps)^-1, g = O M g0",
         truth_sha256=sha,
@@ -97,10 +99,18 @@ def main() -> None:
     ]
     (out_dir / "sample.json").write_text(json.dumps(info) + "\n")
     np.save(out_dir / "grainmap.npy", gmap)
-    print(json.dumps(dict(tag=a.tag, n_voxels=n, n_grains=len(gids),
-                          n_by_strain_level=info["n_by_strain_level"],
-                          max_eps_roundtrip_error=info["max_eps_roundtrip_error"],
-                          sha256=sha[:12])))
+    print(
+        json.dumps(
+            dict(
+                tag=a.tag,
+                n_voxels=n,
+                n_grains=len(gids),
+                n_by_strain_level=info["n_by_strain_level"],
+                max_eps_roundtrip_error=info["max_eps_roundtrip_error"],
+                sha256=sha[:12],
+            )
+        )
+    )
 
 
 if __name__ == "__main__":
