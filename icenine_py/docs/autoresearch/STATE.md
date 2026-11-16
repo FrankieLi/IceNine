@@ -38,7 +38,8 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
    goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. Fourteen pages wait now.
    NOW: (a) step 22 (`ar5v`): PASSED (N4 2a0604d0); implementer on fixes + key; then review, merge.
-   (b) OWNER TASK part 1 (`cppchk`, N3): aa5599885ce689568 on phase B (trace); then review, part 2.
+   (b) OWNER TASK (N3, N5): part 1 fix `cppfix` (aa5599885ce689568) + review a3baed25fd25abcd9;
+   part 2 `fine1` phase A (a22702f36dfefa989): after its freeze I start the slices, then project.
 
 ## Running jobs
 - Step 14 key WAITS (held2: step 13 or owner). Steps 15 to 21: merged (see STATE_HISTORY); `J5r`
@@ -46,7 +47,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   `agent-a8c1c16b70cf43e39` (merge 50628763, suite 2279 passed); v57 live.
   Step 22 (`ar5v`, N2; arm J5SD): gate met (65e63d6c); all runs incl. `held6` ended 12:24,
   16 Nov (worktree `agent-aba6e1bdb95dff72a`). held6: 10.90% fewer than J5S, wrong 37 vs 39.
-  Owner task (N3 8dc07da5; PLAN 4f5d47fc): part 1 `cppchk` phase A done (748d0111; C3 = C1).
+  Owner task (PLAN 4f5d47fc): part 1 trace done (ae912cf9): local opt. no bug, `Reset` bug (N5).
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
@@ -112,7 +113,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   Step 5's result files add about 50 MB to git; say so if you want them pruned.
 
 ## Bookkeeping
-- Next decision ID: D-20261116-N5 (first of a day is N1).
+- Next decision ID: D-20261116-N6 (first of a day is N1).
 - Wake-up job: session cron id 24092880, every 3 hours at :53, created 2026-11-16, expires
   2026-11-23. Create it again on or after 2026-11-22 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
