@@ -207,6 +207,31 @@ moves spots 0.2 to 0.5 px). One run per arm, seed 0; no p-values.
 Budget: under 1 h of compute (measured per evaluation before the full run); at most 3
 processes (one per arm). Committed: the script, `go5b/*.json` (per-grain rows), findings.
 
+### GO5c: joint strain fit that reaches the optimum (idea I39)
+
+Question: GO5b's joint fits (field + strain, 15 numbers) stopped above the ground truth's cost in
+19 of 24 grains. Does a staged or longer search reach the optimum and bring the painted-start
+strain error down to the strain-only floor of `E@GT` (median 1.7e-4 / 1.9e-4 / 2.0e-4)?
+
+Same benchmark S12, cost, robust painted start and measures as GO5b (`fit_strain.py`, output
+`benchmarks/grain_opt/go5c/`). Arms:
+
+- `J@P`: painted start, field leg 200, then one joint leg of 2400 evaluations (budget control).
+- `S@P`: painted start, field leg 200, strain-only leg 300 (field fixed), joint leg 600 with
+  smaller steps (0.02 deg, 2e-4): 1100 evaluations.
+- `SR@P`: `S@P`, then two more joint legs of 300 from the best point, steps halved each leg:
+  1700 evaluations.
+- `S@GT`: `S@P`'s strain and joint legs from the field fitted to the ground truth (no field leg).
+
+Judging rule (written before any run). Per level and arm, median strain error over 4 grains.
+"Reaches the floor" at a level when the median is at most 1.5 x `E@GT`'s median at that level.
+Better than GO5b `FE@P` at a level when the median is below `FE@P`'s / 1.5 and at least 3 of the
+4 grains are better. "Short" (final cost above the ground truth's) is counted per arm; the step
+answers I39 when an arm has at most 4 of 12 short and reaches the floor at 5e-4 and 1e-3. The
+1e-4 level is reported, not judged (below the floor, I40). One run per arm, seed 0.
+
+Budget: about 30 ms per evaluation, under 30 min in total; 4 processes at most.
+
 ### GO6 onwards
 
 Planned order (each gets a section when it starts): GO6 objective variants (I17 to I22); GO7 richer
