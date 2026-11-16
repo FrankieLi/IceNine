@@ -154,7 +154,7 @@ def pareto_svg(points: List[Dict[str, Any]]) -> str:
     out.append(f'<text x="{(L+W-R)/2:.0f}" y="{H-8}" class="axis" text-anchor="middle">'
                "num objective eval / voxel (log scale; 0 = no fit)</text>")
     out.append(f'<text x="16" y="{(T+H-B)/2:.0f}" class="axis" text-anchor="middle" '
-               f'transform="rotate(-90 16 {(T+H-B)/2:.0f})">share of voxels above 0.1 deg (%)</text>')
+               f'transform="rotate(-90 16 {(T+H-B)/2:.0f})">voxels &gt; 0.1 deg from ground truth (% of set, pooled)</text>')
     # frontier over the G20 points (excluding the reference set)
     g20 = [(p["renders_per_voxel"], c) for p, (c, _l, _h) in zip(points, ys) if group_of(p) != "ref"]
     fr = frontier(g20)
@@ -289,7 +289,7 @@ border-radius:6px;padding:3px 10px;cursor:pointer}.filters button[aria-pressed="
         for i, p in enumerate(prog["pareto"], 1)
     )
     parts.append('<div class="tbl" style="margin-top:10px"><table><thead><tr><th>#</th><th>arm</th>'
-                 '<th>voxels</th><th>num objective eval / voxel</th><th>above 0.1 deg</th><th>median deg</th>'
+                 '<th>voxels</th><th>num objective eval / voxel</th><th>voxels &gt; 0.1 deg from ground truth (pooled)</th><th>median deg</th>'
                  f'</tr></thead><tbody>{key_rows}</tbody></table></div>')
     parts.append("<h2>Ideas</h2>")
     parts.append('<div class="filters" role="group" aria-label="Filter ideas by status">'

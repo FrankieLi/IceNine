@@ -43,7 +43,7 @@
    "commit": ""
   }
  ],
- "pareto_note": "Share of voxels above 0.1 deg against the number of objective evaluations per voxel. Grey: reference points on all 19,013 painted voxels of grad. Coloured: GO2 arms on the 853 voxels of the 20 benchmark grains (G20) that have an AR3 C record (start 84 of 853, C 18 of 853 on these voxels).",
+ "pareto_note": "Vertical axis: voxels more than 0.1 deg from the ground truth, as a percentage of all voxels in the set, pooled over grains (not a per-grain average). Horizontal axis: objective evaluations per voxel. Grey: reference points, set = all 19,013 painted voxels of grad. Coloured: GO2 arms, set = the 853 voxels of the 20 benchmark grains (G20) that have an AR3 C record (start 84 of 853, C 18 of 853).",
  "pareto": [
   {
    "label": "painted start",
