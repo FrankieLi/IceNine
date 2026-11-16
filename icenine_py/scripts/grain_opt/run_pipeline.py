@@ -8,6 +8,9 @@ of the group's voxels do not get worse):
   on objective ``obj`` in {sink, sinki (intensity-weighted Sinkhorn), ls, strict}, at most
   ``evals`` evaluations.
 * ``B<obj>/<steps>``: Adam on free per-voxel offsets with smoothness (``obj`` sink or ls).
+* ``N/<evals>[/<sigma>]``: neighbour continuation (two breadth-first sweeps from the best 10%;
+  candidates = own + fitted in-grain neighbours' orientations; then per-voxel CMA polish).
+* ``L/<evals>``: per-voxel CMA step ladder 1.0 / 0.3 / 0.05 deg, ``evals``/3 per leg.
 * ``V/<evals>[/<sigma>]``: per-voxel CMA on that voxel's strict cost (3 numbers, sigma 0.02 deg
   unless given), at most
   ``evals`` strict evaluations per voxel (AR3 C used 61 from the painted start).
@@ -46,10 +49,12 @@ def parse(p: str) -> List[Tuple[str, str, int, int]]:
         head, n = parts[0], int(parts[1])
         order = 2 if len(parts) > 2 and parts[2] == "o2" else 1
         kind, obj = head[0], head[1:]
-        if kind == "V" and len(parts) > 2:  # V/<evals>/<sigma deg>
+        if kind in "VNL" and len(parts) > 2:  # V/<evals>/<sigma deg>
             obj = parts[2]
-        assert kind in "ABV", st
-        if kind != "V":
+        assert kind in "ABVNL", st
+        if kind in "NL" and len(parts) > 2:
+            obj = parts[2]
+        if kind in "AB":
             assert obj in OBJ, st
         out.append((kind, obj, n, order))
     return out
@@ -77,6 +82,64 @@ def voxel_cma(S: Any, R0: np.ndarray, v: int, evals: int, sigma_deg: float = 0.0
         if F[i] < fb:
             fb, best = F[i], np.asarray(X[i], float)
     return GF.rotvec_to_matrix(torch.as_tensor(best)).numpy() @ R0, n
+
+
+def voxel_ladder(S: Any, R0: np.ndarray, v: int, evals: int) -> Tuple[np.ndarray, int]:
+    """Per-voxel CMA in three legs (steps 1.0, 0.3, 0.05 deg), each from the best so far."""
+    R, n = np.asarray(R0, float), 0
+    fb = float(S.strict(R[None], [v])[0])
+    n += 1
+    for sig in (1.0, 0.3, 0.05):
+        Rn, k = voxel_cma(S, R, v, max(evals // 3, 7), sig)
+        n += k
+        fn = float(S.strict(Rn[None], [v])[0])
+        n += 1
+        if fn <= fb:
+            R, fb = Rn, fn
+    return R, n
+
+
+def neighbour_continuation(
+    S: Any, R_now: np.ndarray, s_now: np.ndarray, members: List[int], evals: int, sigma: float,
+    sweeps: int = 2,
+) -> Tuple[np.ndarray, np.ndarray, float]:
+    """Breadth-first from the best-fitting 10% of voxels: each voxel scores its own and its fitted
+    in-grain neighbours' orientations (one strict evaluation each), keeps the best, then a
+    per-voxel CMA polish. Returns (orientations, strict costs, evaluations per voxel)."""
+    from collections import deque
+
+    pos = {v: i for i, v in enumerate(members)}
+    R = R_now.copy()
+    sc = s_now.copy()
+    n_ev = 0
+    for _sweep in range(sweeps):
+        order = np.argsort(sc)
+        seeds = list(order[: max(1, len(order) // 10)])
+        done = set(int(i) for i in seeds)
+        q = deque(int(i) for i in seeds)
+        while q:
+            i = q.popleft()
+            for u in S.nb[members[i]]:
+                j = pos.get(int(u))
+                if j is None or j in done:
+                    continue
+                done.add(j)
+                cands = [R[j]] + [R[pos[int(w)]] for w in S.nb[members[j]]
+                                  if int(w) in pos and pos[int(w)] in done and pos[int(w)] != j]
+                cs = S.strict(np.stack(cands), [members[j]] * len(cands))
+                n_ev += len(cands)
+                k = int(np.argmin(cs))
+                Rb, fb = cands[k], float(cs[k])
+                Rp, m = voxel_cma(S, Rb, members[j], evals, sigma)
+                n_ev += m
+                fp = float(S.strict(Rp[None], [members[j]])[0])
+                n_ev += 1
+                if fp <= fb:
+                    Rb, fb = Rp, fp
+                if fb <= sc[j]:
+                    R[j], sc[j] = Rb, fb
+                q.append(j)
+    return R, sc, n_ev / len(members)
 
 
 def main() -> None:
@@ -146,6 +209,18 @@ def main() -> None:
                 f_old, f_new = prob.value(R_now), prob.value(R_new)
                 used = prob.n_evals - e0
                 info.update(inf, f_old=f_old, f_new=f_new)
+            elif kind == "N":
+                R_new, _sn, used = neighbour_continuation(S, R_now, s_now, members, n,
+                                                          float(obj) if obj else 0.3)
+                f_old = f_new = float("nan")
+            elif kind == "L":
+                R_new = R_now.copy()
+                used_v = []
+                for i, v in enumerate(members):
+                    R_new[i], k = voxel_ladder(S, R_now[i], v, n)
+                    used_v.append(k)
+                used = float(np.mean(used_v))
+                f_old = f_new = float("nan")
             else:  # per-voxel strict CMA
                 R_new = R_now.copy()
                 used_v = []
@@ -155,7 +230,7 @@ def main() -> None:
                 used = float(np.mean(used_v))
                 f_old = f_new = float("nan")
             s_new = S.strict(R_new, members)
-            if kind == "V":  # per voxel: keep a voxel's fit only if its strict cost did not rise
+            if kind in "VNL":  # per voxel: keep a voxel's fit only if its strict cost did not rise
                 keep = s_new <= s_now
                 R_new = np.where(keep[:, None, None], R_new, R_now)
                 s_new = np.where(keep, s_new, s_now)

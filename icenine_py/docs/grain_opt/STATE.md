@@ -5,19 +5,22 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO2 closed** (2026-11-15 22:35 PST): the frontier is the grain field on the strict cost (100
-  objective evaluations per voxel: 3 of 853 voxels > 0.1 deg against 18 for AR3 C); smooth basin
-  stages add nothing from the painted start. `findings.md` "GO2", `benchmarks/grain_opt/go2/`.
-- **GO4 (robustness on `rand`, `corr3`) running**: `scripts/grain_opt/go4_arms.sh` (10 runs),
-  started 22:40 PST; PLAN.md "GO4".
-- **Next action:** when GO4 ends: `summarize.py go4_rand_* --out go4/rand` (and corr3), per-level
-  tables into a GO4 findings section, Pareto rows per sample (new chart group or note), close GO4.
-  Then plan GO5 (strain: SpotModel opt-in strained g, pure-dilation sign test, strained sample
-  render; sources `findings_cpp_strain.md`, HEXRD reference in shmem "ref-hexrd").
+- **GO4 closed** (2026-11-15 22:45 PST): from a grain-centre start, local fits recover only voxels
+  within about 0.5 deg of their start. `findings.md` "GO4".
+- **GO4b (far starts: neighbour continuation N, step ladder L) running**: `go4b_arms.sh` (10 runs),
+  started 22:36 PST. Smoke: corr3 grain 20 (1 deg) median 0.923 to 0.163 deg at 103 eval/voxel.
+- **GO5 (strain) delegated** to an implementer agent in its own worktree, branch
+  `feature/grain-opt-strain` (PLAN "GO5"). On hand-back: verify tests, review the diff (code under
+  `icenine/`), merge `--no-ff` into `feature/grain-opt`, place its findings text.
+- **Next action:** when GO4b ends: summarize (`--out go4b/<sample>`), per-level table against
+  GO4's best arm, close GO4b. When GO5 hands back: check and merge as above.
 
 ## Running jobs
 
-- `go4_arms.sh` (GO4, 10 runs in sequence); log `benchmarks/grain_opt/runs_go4.log`.
+- `go4b_arms.sh` (GO4b, 10 runs); log `benchmarks/grain_opt/runs_go4b.log`.
+- Implementer agent for GO5 (background; worktree under `.claude/worktrees/agent-*`, branch
+  `feature/grain-opt-strain`). If the session died: check that branch's commits and resume the
+  step from them; never start a second agent on the branch.
 
 ## Data (git-ignored, in this worktree; link, do not copy)
 
