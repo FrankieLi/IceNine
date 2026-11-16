@@ -42,7 +42,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    part 2 `fine1`: slices run (CS, J5S, PS); then SendMessage a22702f36dfefa989 to project; caps.
 
 ## Running jobs
-- Step 14 key WAITS (held2). Steps 15 to 21 merged (STATE_HISTORY; caches: `J5r` `agent-aeba15b7c3850b007`,
+- Step 14 key WAITS (held2). Steps 15 to 21 merged (caches: `J5r` `agent-aeba15b7c3850b007`,
   step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v57 live.
   Step 22 (`ar5v`; arm J5SD; worktree `agent-aba6e1bdb95dff72a`): held6 PASSED (N4): 10.90%
   fewer than J5S, wrong 37 vs 39; key built, in review.
