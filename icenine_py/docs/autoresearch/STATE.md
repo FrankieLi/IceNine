@@ -36,17 +36,17 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    Not a speed comparison: the C++ run left 416 of 2,000 pilot voxels wrong, Python 24; 393
    refit voxels were never fitted again, all 1,921 local optimizations changed nothing.
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
-   goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. Thirteen pages wait now.
-   NOW: AR5 step 21 (`ar5u`): after the phase-B hand-back, Opus review of the key, fixes, set
-   branch parent, merge, history agent, page v57, then draft step 22. Owner: replaced checks.
+   goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. Fourteen pages wait now.
+   NOW: AR5 step 22 (`ar5v`; N2): after the gate hand-back start `defer_run_all.sh --stage gate`
+   detached; then implementer judges g2, g3; then `--stage rest` (held6). Owner: replaced checks.
 
 ## Running jobs
 - Step 14 key WAITS (held2: step 13 or owner). Steps 15 to 19: merged (see STATE_HISTORY); `J5r` in
   `agent-aeba15b7c3850b007`. Step 20 (`ar5t`, N9, cache in `agent-a8b2d0066621fd0f8`):
   held4 PASSED (N10), key `BoundaryPassRepair` MERGED 64aac65a (suite 2239 passed); v56 live.
-  Step 21 (`ar5u`, N11; arm J5S): held5 PASSES, review approved (16 Nov N1 1f1f4061); in
-  `agent-a8c1c16b70cf43e39` implementer a8c1c16b70cf43e39 on 5 review fixes + phase B (key
-  `BoundaryPassScreen`) since 01:20, 16 Nov. Then phase-B review, merge, history agent, v57.
+  Step 21 (`ar5u`; arm J5S; cache in `agent-a8c1c16b70cf43e39`): held5 PASSED (16 Nov N1), key
+  `BoundaryPassScreen` MERGED 50628763 (suite 2279 passed); v57 live. Step 22 (`ar5v`, N2
+  5fa628c9; arm J5SD): implementer aba6e1bdb95dff72a on phase A (to g0, g1) since 03:25, 16 Nov.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
@@ -112,7 +112,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   Step 5's result files add about 50 MB to git; say so if you want them pruned.
 
 ## Bookkeeping
-- Next decision ID: D-20261116-N2 (first of a day is N1).
+- Next decision ID: D-20261116-N3 (first of a day is N1).
 - Wake-up job: session cron id 24092880, every 3 hours at :53, created 2026-11-16, expires
   2026-11-23. Create it again on or after 2026-11-22 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
