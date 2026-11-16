@@ -37,17 +37,18 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    refit voxels were never fitted again, all 1,921 local optimizations changed nothing.
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
    goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. Fourteen pages wait now.
-   NOW: AR5 step 22 (`ar5v`; N2): gate stage runs. At marker `exit=0` SendMessage implementer
-   aba6e1bdb95dff72a to judge g2, g3; if passed start `--stage rest` (held6). Owner: checks.
+   NOW: AR5 step 22 (`ar5v`; N2): rest stage runs (~5 h). At marker `exit=0` SendMessage
+   implementer aba6e1bdb95dff72a for stats, plot, READY FOR KEY; then Opus review. Owner: checks.
 
 ## Running jobs
 - Step 14 key WAITS (held2: step 13 or owner). Steps 15 to 21: merged (see STATE_HISTORY); `J5r`
   in `agent-aeba15b7c3850b007`; step 20 cache in `agent-a8b2d0066621fd0f8`, step 21 cache in
   `agent-a8c1c16b70cf43e39` (merge 50628763, suite 2279 passed); v57 live.
-  Step 22 (`ar5v`, N2 5fa628c9; arm J5SD): g0, g1 met (d37440aa). Gate stage (J5D, J5SD on
-  `mid`, `held`) started detached 03:19, 16 Nov, in worktree `agent-aba6e1bdb95dff72a`,
-  `icenine_py/`. Marker `benchmarks/autoresearch/ar5/defer/cache/logs/defer_gate.done`. Restart:
-  `scripts/autoresearch/ar5/defer_run_all.sh --stage gate --resume` (detached, see RUNBOOK).
+  Step 22 (`ar5v`, N2 5fa628c9; arm J5SD): gate g0 to g3 met (65e63d6c; `mid` 12.07% fewer than
+  J5S, 0 fixed 3 broken, at the limit; `held` 12.04%, 3/5). Rest stage (five samples, `held6`)
+  started detached 07:07, 16 Nov, worktree `agent-aba6e1bdb95dff72a`, `icenine_py/`. Marker
+  `benchmarks/autoresearch/ar5/defer/cache/logs/defer_runs.done`. Restart, detached (RUNBOOK):
+  `scripts/autoresearch/ar5/defer_run_all.sh --stage rest --resume`.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
