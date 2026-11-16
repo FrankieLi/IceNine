@@ -323,6 +323,12 @@ Ilium Agent and Newt Agent talk to each other only through this file, on their o
   (4a1cfb42). The only shared library change is one comment line in
   `icenine/orientation_search.py`; no behaviour change. Suite: 2125 passed, 48 skipped, 1
   deselected.
+- 2026-11-15 merged: AR5 step 20 (task `ar5t`) is merged into `feature/eval-reduction`
+  (64aac65a). It adds one opt-in key, `BoundaryPassRepair` (default 0, off: a repair of
+  contested boundary voxels after the boundary pass). Shared library files touched:
+  `icenine/boundary_pass.py`, `config_file.py`, `orientation_search.py`, `reconstructor.py`,
+  and the new `icenine/boundary_repair.py`. Key off: no behaviour change, no extra
+  evaluations. Suite: 2239 passed, 48 skipped, 1 deselected.
 
 ## From Ilium Agent
 
