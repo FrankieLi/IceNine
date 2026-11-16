@@ -285,3 +285,41 @@ Reading line: for 5 grains at their ground-truth orientation and strain, the med
 - Next (G1c): fit strain per grain with the strict cost (or the coverage cost) on `strain`, with
   orientation free, and measure recovered strain against the ground truth per level; per-grain
   fitting pools many spots, as the grain field did for orientation (GO2).
+
+## GO5b: per-grain strain fit (idea I38)
+
+Question: can a per-grain fit recover the elastic strain of sample `strain` from clean images?
+Benchmark S12: 12 grains (4 per strain level, 25 to 70 voxels). Cost: the GO5 coverage cost (1
+minus the share of predicted coverage mass on lit pixels). Parameters: grain field (9 numbers)
+and one crystal-frame strain (6 numbers), CMA, strain from 0. Script `fit_strain.py`; rows in
+`benchmarks/grain_opt/go5b/*.json`. Timing contended (Newt running), about 30 ms per evaluation;
+the three arms took 2 to 4 minutes each.
+
+Reading line: median over 4 grains of the strain error (tensor RMS of fitted minus ground-truth
+strain), as a multiple of the level in brackets; "short" counts grains whose final cost is above
+the cost at the ground truth (the optimizer stopped before the ground truth's cost).
+
+| arm | 1e-4 | 5e-4 | 1e-3 | short | orientation median |
+|---|---|---|---|---|---|
+| `E@GT` strain only, orientation at ground truth, 300 ev. | 1.7e-4 (1.73) | 1.9e-4 (0.37) | 2.0e-4 (0.20) | 5 of 12 | (fixed) |
+| `FE@GT` field + strain from the ground truth, 600 ev. | 3.1e-4 (3.05) | 3.4e-4 (0.69) | 3.8e-4 (0.38) | 9 of 12 | 0.010 deg |
+| `FE@P` field 200 ev. + joint 600 ev., painted start | 6.7e-4 (6.7) | 6.3e-4 (1.26) | 5.3e-4 (0.53) | 10 of 12 | 0.012-0.016 deg |
+
+Verdicts by the rule written before the runs (recovered at most 0.5 x level, partial 0.5 to 1):
+
+- `E@GT`: 1e-4 not recovered, 5e-4 and 1e-3 recovered. The error sits near 2e-4 at every
+  level: the resolution of the coverage cost on clean images, about half of pixel/distance
+  (2.7e-4 to 4.4e-4). 1e-4 is below it: two grains end at a lower cost than the ground truth with
+  a large error (objective shortfall, the cost is flat there, often already 0).
+- `FE@GT`: 1e-4 not, 5e-4 partial, 1e-3 recovered. `FE@P`: 1e-4 and 5e-4 not, 1e-3 partial.
+  `FE@P` is worse than `FE@GT` at 5e-4 (1.8 x, 3 of 4 grains), not at 1e-3 (1.4 x).
+- In the joint fits 19 of 24 grains stop above the ground truth's cost: 15-number CMA with 600
+  evaluations is optimizer-limited, not objective-limited, at 5e-4 and 1e-3. The orientation
+  stays good (median 0.010 to 0.016 deg from the ground truth); strain error is what is left.
+- Start bug found and fixed: with true-grain membership, 2 or 3 painted voxels that are off by
+  many degrees pulled the least-squares start field (start cost 0.79 and 0.99 on two 1e-3
+  grains). A robust start (medoid voxel; members over 1.5 deg from it set to it) fixed both
+  (1e-3 median 9.3e-4 to 5.3e-4); the first run is kept as `FE_P_naive_start.json`.
+- Next (GO5c): reach the cost optimum in the joint fit: staged legs (field, then strain only,
+  then joint), CMA restarts or more evaluations; target `E@GT`'s 2e-4 floor from the painted
+  start. Below 2e-4 needs a sharper cost (sub-pixel, e.g. intensity-weighted coverage).

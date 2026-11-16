@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-11-16T01:52:40",
+  "host": "Mac",
+  "loadavg": [
+    3.6123046875,
+    4.7900390625,
+    4.3525390625
+  ],
+  "cpu_count": 10,
+  "power": "ac",
+  "omp_num_threads": "1",
+  "mkl_num_threads": "1",
+  "torch_threads": 1,
+  "busy_processes": [
+    {
+      "pid": 697,
+      "cpu": 399.8,
+      "command": "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/corespotlightd"
+    }
+  ]
+}

@@ -25,3 +25,15 @@ GO3 (samples) and I31 (C++ strain survey) were done while GO1 ran.
 Grouping, regions, coverage renderer, objectives. Numbers in `findings.md` "Work item (1)".
 The `grad` stack was rebuilt from a fresh render. The coordinator's brief (work items 1 to 4)
 became AR6 on 2026-11-16 at the owner's request.
+
+## GO5 close (2026-11-16 00:00 PST): STATE "Now" at the time
+
+- **GO5 closed** (2026-11-16 00:00 PST): opt-in strain in SpotModel and the stock renderer
+  (g = O M g0), merged after tests and review (fixes: strain follows symmetry swaps in
+  GrainProblem; crystal-frame test). Sample `strain` built. `findings.md` "GO5".
+- GO4c closed: corr3 recovered to 2 deg by L/366/3; rand and 5 deg need a global search (I36
+  blocked on ray-index cost).
+- **Next action:** plan and run GO5b: per-grain strain fit on `strain` (I38): grain field +
+  6 strain numbers, CMA on the coverage or strict-like cost, from the ground-truth orientation
+  first, then from the painted start; recovered vs ground-truth strain per level. Then GO6
+  (objective variants) or the cached ray index for I36.

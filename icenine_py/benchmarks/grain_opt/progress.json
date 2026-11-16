@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-16 00:00 PST",
+ "updated": "2026-11-16 02:20 PST",
  "steps": [
   {
    "id": "GO0",
@@ -72,6 +72,14 @@
    "status": "done",
    "date": "2026-11-16",
    "result": "Opt-in strain, g = O M g0 with M = (I+eps)^-1, tests pin the sign and frame; default bit-identical. Sample `strain` (RMS 1e-4 / 5e-4 / 1e-3 per grain). Near field: 0.2-0.5 px spot shift per 1e-3 strain; intensity Sinkhorn rises 10% at ~1e-3 per component; leaving strain out raises it 14-44% at 1e-3, 0.3% at 1e-4.",
+   "commit": ""
+  },
+  {
+   "id": "GO5b",
+   "title": "Per-grain strain fit (field + 6 strain numbers) on the coverage cost",
+   "status": "done",
+   "date": "2026-11-16",
+   "result": "Median strain error (12 grains) at levels 1e-4/5e-4/1e-3: strain only at ground-truth orientation 1.7e-4/1.9e-4/2.0e-4 (floor ~2e-4, half of pixel/distance); field + strain from ground truth 3.1e-4/3.4e-4/3.8e-4; from painted start 6.7e-4/6.3e-4/5.3e-4. Joint fits stop above the ground truth's cost in 19 of 24 grains: optimizer-limited. Orientation stays at 0.010-0.016 deg.",
    "commit": ""
   }
  ],
