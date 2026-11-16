@@ -37,7 +37,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    refit voxels were never fitted again, all 1,921 local optimizations changed nothing.
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
    goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. Fourteen pages wait now.
-   NOW: (a) step 22 (`ar5v`): stats say PASS; Opus review a2067c210f4100d01 runs; then N4, key.
+   NOW: (a) step 22 (`ar5v`): PASSED (N4 2a0604d0); implementer on fixes + key; then review, merge.
    (b) OWNER TASK part 1 (`cppchk`, N3): implementer aa5599885ce689568 on phase A; then part 2.
 
 ## Running jobs
@@ -112,7 +112,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   Step 5's result files add about 50 MB to git; say so if you want them pruned.
 
 ## Bookkeeping
-- Next decision ID: D-20261116-N4 (first of a day is N1).
+- Next decision ID: D-20261116-N5 (first of a day is N1).
 - Wake-up job: session cron id 24092880, every 3 hours at :53, created 2026-11-16, expires
   2026-11-23. Create it again on or after 2026-11-22 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
