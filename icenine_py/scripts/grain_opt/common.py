@@ -70,6 +70,12 @@ class SampleTruth:
         self.R_centre = np.stack([self.Rc[int(g)] for g in self.gmap])
         self.n = len(self.R)
         self.grid_mic = d / "grid.mic"
+        # GO5: per-grain crystal-frame strain [e11 e22 e33 e23 e13 e12] (None on unstrained samples)
+        self.eps_of = {g["id"]: np.array(g["eps"]) for g in info["grains"] if "eps" in g}
+        self.strain_level_of = {g["id"]: g["strain_level"] for g in info["grains"] if "eps" in g}
+        self.strain = (
+            np.stack([self.eps_of[int(g)] for g in self.gmap]) if self.eps_of else None
+        )
 
     def err(self, R: np.ndarray, idx: Any = slice(None)) -> np.ndarray:
         from icenine.ray_indexing import misorientation_deg

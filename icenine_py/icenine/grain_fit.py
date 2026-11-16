@@ -449,6 +449,7 @@ def build_region(
     min_obs: int = 1,
     keep_px: Optional[int] = 3,
     ratio: Optional[Tuple[float, float]] = (0.8, 1.6),
+    strain: Optional[np.ndarray] = None,
 ) -> GrainRegion:
     """Spots of the grain ``members`` at their start orientations ``R_start`` (n_all, 3, 3) over
     the layer's triangles ``V`` (n_all, 3, 3), and the shell prediction in their windows.
@@ -461,12 +462,19 @@ def build_region(
     (counted with 8 x 8 sub-triangles per voxel, as the stock render lights every pixel a spot
     touches); a
     spot outside them is dropped (overlap with another grain's spot, or a spot cut by a detector
-    edge or a gap). The ratio of every spot is kept in ``Spot.ratio``. None keeps all."""
+    edge or a gap). The ratio of every spot is kept in ``Spot.ratio``. None keeps all.
+
+    ``strain`` (optional, (n_all, 6), see ``SpotModel.predict``): the start prediction of members
+    and shell is made with it (default None: unstrained, unchanged)."""
+    st = None if strain is None else torch.as_tensor(np.asarray(strain), dtype=DT)
     members = [int(v) for v in members]
     shell = [int(v) for v in shell]
     fine = torch.as_tensor(subtriangle_bary(8))
     with torch.no_grad():
-        rows = model.predict(torch.as_tensor(R_start[members]), torch.as_tensor(V[members]))
+        rows = model.predict(
+            torch.as_tensor(R_start[members]), torch.as_tensor(V[members]),
+            None if st is None else st[members],
+        )
     spots: List[Spot] = []
     H, W = images.stack.shape[1], images.stack.shape[2]
     for det in range(model.n_det):
@@ -507,7 +515,10 @@ def build_region(
     region.shell_mass = [np.zeros(0) for _ in spots]
     if shell and spots:
         with torch.no_grad():
-            srows = model.predict(torch.as_tensor(R_start[shell]), torch.as_tensor(V[shell]))
+            srows = model.predict(
+                torch.as_tensor(R_start[shell]), torch.as_tensor(V[shell]),
+                None if st is None else st[shell],
+            )
             for det in range(model.n_det):
                 pc, pr, m, ok = _rows_points(srows, bary, det)
                 for j, s in enumerate(spots):
@@ -889,8 +900,7 @@ class GrainProblem:
         strain: Optional[np.ndarray] = None,
     ) -> None:
         self.model = model
-        # optional crystal-frame strain (n_voxels_total, 6), used by ``objective`` (the region's
-        # spot windows are built unstrained: a 1e-3 strain moves spots by a few pixels)
+        # optional crystal-frame strain (n_voxels_total, 6), used by the region and ``objective``
         self.strain = (
             None if strain is None else torch.as_tensor(np.asarray(strain)[list(members)], dtype=DT)
         )
@@ -915,7 +925,8 @@ class GrainProblem:
         R_al = np.array(R_map, dtype=np.float64, copy=True)
         R_al[self.members] = self.R_start
         self.region = build_region(
-            model, images, R_al, V, self.members, self.shell, self.bary, **(region_kw or {})
+            model, images, R_al, V, self.members, self.shell, self.bary,
+            **dict(region_kw or {}, strain=strain),
         )
         o_max = max((len(sp.obs) for sp in self.region.spots), default=0)
         self.bin_px = 1
