@@ -41,11 +41,11 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    (b) OWNER TASK (N3, N5): part 1 fix `cppfix` (aa5599885ce689568), review fixes relayed;
    part 2 `fine1`: slices run (CS, J5S, PS); then SendMessage a22702f36dfefa989 to project; caps.
 
-- Step 14 key WAITS (held2). Steps 15 to 21 merged (STATE_HISTORY; caches: `J5r` `agent-aeba15b…`,
+## Running jobs
+- Step 14 key WAITS (held2). Steps 15 to 21 merged (STATE_HISTORY; caches: `J5r` `agent-aeba15b7c3850b007`,
   step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v57 live.
   Step 22 (`ar5v`; arm J5SD; worktree `agent-aba6e1bdb95dff72a`): held6 PASSED (N4): 10.90%
   fewer than J5S, wrong 37 vs 39; key built, in review.
-  16 Nov (worktree `agent-aba6e1bdb95dff72a`). held6: 10.90% fewer than J5S, wrong 37 vs 39.
   Owner task: part 1 trace done (ae912cf9), `Reset` fix runs. Part 2 `fine7` frozen (ac76bdd6);
   slices started 14:55, 16 Nov (worktree `agent-a22702f36dfefa989`; `fine1_launch_slice.sh`).
 
