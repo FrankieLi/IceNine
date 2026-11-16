@@ -78,3 +78,16 @@ became AR6 on 2026-11-16 at the owner's request.
   ground-truth orientation (`E@GT`, floor band 1-3e-4), then in the staged joint fit from the
   painted start (`S@P`). Runs take minutes (`fit_strain.py`). Then GO6 or the cached ray index
   for I36.
+
+## Now as of GO5e close (2026-11-16 15:15 PST)
+
+- **GO5e closed** (2026-11-16 15:15 PST): one-sided sub-pixel costs (signed distance to the lit
+  set, clean intensity) are sharp (repeat scatter 6e-5) but biased: at the ground-truth
+  orientation the strain error is 0.9-2.5e-3 (coverage 1.6-2.7e-4); they reward pulling the
+  predicted footprint into the spot. I40 no; painted-start fit not run. `findings.md` "GO5e".
+- GO5d: a field fit without strain takes up strain as rotation (I41 no). GO5c: the joint
+  coverage fit is objective-limited.
+- **Next action:** plan and run GO5f (I42): a two-sided cost, per-spot centroid match (predicted
+  mass centroid vs observed intensity centroid, HEXRD-style) and/or symmetric signed distance;
+  judge first at the ground-truth orientation (`E@GT`, two seeds) against the coverage band,
+  then the staged painted-start fit. `fit_strain.py --cost`. Then GO6 or the cached ray index.

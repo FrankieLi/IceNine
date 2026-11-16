@@ -106,14 +106,17 @@ class SubPix:
         from scipy import ndimage
 
         self.prob, self.kind = prob, kind
-        self.maps, self.lo = [], []
+        self.maps, self.lo, self.obs, self.w = [], [], [], []
         for sp in prob.region.spots:
             shape = (sp.f1 - sp.f0, sp.r1 - sp.r0, sp.c1 - sp.c0)
             o = np.floor(np.asarray(sp.obs)).astype(np.int64)
             fi = np.clip(o[:, 2] - sp.f0, 0, shape[0] - 1)
             ri = np.clip(o[:, 1] - sp.r0, 0, shape[1] - 1)
             ci = np.clip(o[:, 0] - sp.c0, 0, shape[2] - 1)
-            if kind == "sd":
+            w = np.asarray(sp.obs_val, float)
+            self.obs.append(np.asarray(sp.obs, float))
+            self.w.append(w / max(float(w.sum()), 1e-12))
+            if kind in ("sd", "ch"):
                 lit = np.zeros(shape, bool)
                 lit[fi, ri, ci] = True
                 if lit.any():
@@ -146,17 +149,32 @@ class SubPix:
             ok = a[j] > 0
             if not ok.any():
                 continue
+            w = a[j][ok]
+            if self.kind == "cen":  # GO5f: predicted mass centroid vs observed intensity centroid
+                cp = (w[:, None] * x[j][ok]).sum(0) / w.sum()
+                co = (self.w[j][:, None] * self.obs[j]).sum(0)
+                vals.append(min(float(((cp - co) ** 2).sum()), 4.0))
+                continue
             c = x[j][ok][:, ::-1] - self.lo[j]  # (frame, row, col) in map index units
+            if self.kind == "ch":  # GO5f: predicted mass off the lit set + lit pixels uncovered
+                from scipy.spatial import cKDTree
+
+                v = np.clip(ndimage.map_coordinates(m, c.T, order=1, mode="nearest"), 0.0, 5.0)
+                t1 = float((w * v).sum() / w.sum())
+                if len(self.obs[j]):
+                    dist, _ = cKDTree(x[j][ok]).query(self.obs[j])
+                    t1 += float((self.w[j] * np.minimum(dist, 5.0)).sum())
+                vals.append(t1)
+                continue
             if self.kind == "sd":
                 v = ndimage.map_coordinates(m, c.T, order=1, mode="nearest")
             else:
                 v = ndimage.map_coordinates(m, c.T, order=1, mode="constant", cval=0.0)
-            w = a[j][ok]
             vals.append(float((w * v).sum() / w.sum()))
         if not vals:
             return 5.0 if self.kind == "sd" else 1.0
         f = float(np.mean(vals))
-        return f if self.kind == "sd" else 1.0 - f
+        return 1.0 - f if self.kind == "int" else f
 
 
 def robust_theta0(prob: Any, sym: np.ndarray, tol_deg: float = 1.5) -> Any:
@@ -220,7 +238,7 @@ def main() -> None:
     ap.add_argument("--evals_e", type=int, default=300)
     ap.add_argument("--evals_f", type=int, default=200)
     ap.add_argument("--only", type=int, default=None)
-    ap.add_argument("--cost", default="cov", choices=["cov", "sd", "int"])
+    ap.add_argument("--cost", default="cov", choices=["cov", "sd", "int", "cen", "ch"])
     ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args()
     global SEED

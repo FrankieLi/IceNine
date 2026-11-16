@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-16 15:15 PST",
+ "updated": "2026-11-16 15:20 PST",
  "steps": [
   {
    "id": "GO0",
@@ -104,6 +104,14 @@
    "status": "done",
    "date": "2026-11-16",
    "result": "Strain-only at the ground-truth orientation, median error at 1e-4/5e-4/1e-3: signed distance 1.8/1.2/0.9e-3, intensity 2.5/1.9/1.5e-3, against coverage 1.7/1.6/2.7e-4. Both are sharp (repeat scatter 6e-5 and 1e-4) but biased: one-sided costs reward pulling the predicted footprint into the spot. Painted-start fit not run (rule). Next: a two-sided cost (centroid match or symmetric distance), I42.",
+   "commit": ""
+  },
+  {
+   "id": "GO5f",
+   "title": "Two-sided sub-pixel strain cost",
+   "status": "done",
+   "date": "2026-11-16",
+   "result": "Centroid match per spot: at the ground-truth orientation 1.3/2.2/1.7e-4 at 1e-4/5e-4/1e-3 with repeat scatter 5e-6 (coverage 1.7/1.6/2.7e-4); sharper at 1e-3 only, so I42 no by the rule. From the painted start (staged) 1.4/2.2/3.7e-4 against coverage 7.1/3.4/3.0e-4, but the orientation drifts to 0.06 deg (coverage 0.012). Chamfer cost biased. Next: hybrid, coverage for orientation and centroids for strain (I43).",
    "commit": ""
   }
  ],

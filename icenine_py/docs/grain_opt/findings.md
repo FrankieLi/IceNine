@@ -435,3 +435,42 @@ Verdicts by the rule written before the runs:
   observed intensity centroid, in pixel and frame units, the far-field HEXRD approach), or the
   symmetric signed distance (`sd` plus the observed pixels' distance to the predicted
   footprint).
+
+## GO5f: a two-sided sub-pixel strain cost (idea I42)
+
+Question: does a cost that compares predicted and observed spots from both sides beat the
+coverage band at the ground-truth orientation (reference 1.66e-4 / 1.57e-4 / 2.67e-4), and then
+in the painted-start staged fit? Costs: `cen` (per-spot squared distance between the predicted
+mass centroid and the observed clean-intensity centroid, truncated at 4 px^2) and `ch` (chamfer:
+predicted mass off the lit set plus lit pixels' distance to the nearest predicted point; the
+plan's "minus its value at the ground truth" offset was left out, as a constant per spot it does
+not move the minimum). Rows in `benchmarks/grain_opt/go5f/*.json`; 2 minutes per `E@GT` run,
+5 minutes for `S@P`.
+
+| cost, arm | 1e-4 | 5e-4 | 1e-3 | repeat scatter | orientation (deg) |
+|---|---|---|---|---|---|
+| coverage `E@GT` (reference) | 1.7e-4 | 1.6e-4 | 2.7e-4 | 3.5e-5 | (ground truth) |
+| `cen` `E@GT` (mean of 2 seeds) | 1.3e-4 | 2.2e-4 | 1.7e-4 | 4.7e-6 | (ground truth) |
+| `ch` `E@GT` (mean of 2 seeds) | 1.7e-3 | 9.0e-4 | 7.4e-4 | 3.9e-5 | (ground truth) |
+| coverage `S@P` (GO5c) | 7.1e-4 | 3.4e-4 | 3.0e-4 | | 0.012 |
+| `cen` `S@P` | 1.4e-4 | 2.2e-4 | 3.7e-4 | | 0.058 / 0.059 / 0.085 |
+
+Verdicts by the rule written before the runs:
+
+- I42 is answered no: `cen` is sharper only at 1e-3 (1.7e-4 against the needed 1.8e-4), not at
+  1e-4 (1.3e-4 against 1.1e-4) or 5e-4; `ch` at no level. `ch` is biased like GO5e's costs.
+- `cen` is the most consistent cost so far: repeat scatter 5e-6, no grain above 2.6e-4 at the
+  ground-truth orientation (coverage had 7.7e-4 and 8.0e-4 on grains 111 and 435), every fit
+  ends below the ground truth's cost (a small bias of about 1-2e-4, not a flat band). At the
+  ground truth the per-axis centroid differences have medians near 0 (grain 47: column -0.01,
+  row 0.00, frame -0.03 px); the large mean comes from spots merged with a neighbour's.
+- `S@P` was run because `cen` was sharper at one level (my reading of "only if a cost is
+  sharper"). From the painted start it reaches the `cen` floor at 1e-4 and 5e-4 and beats the
+  coverage `S@P` there on 4 of 4 grains (1.4e-4 and 2.2e-4 against 7.1e-4 and 3.4e-4); at 1e-3
+  it misses (3.7e-4, 1 of 4 better; grain 237 runs off to 0.29 deg and 1.5e-3).
+- The price is the orientation: 0.06-0.09 deg median voxel error against 0.012 deg for coverage.
+  A centroid fixes each spot's position, which depends on the grain's mean orientation, not on
+  the field's gradient, so the gradient drifts.
+- Next (I43): a hybrid, coverage for the orientation field and the centroid cost for strain:
+  either the sum (centroid + weighted coverage) or staged (field on coverage, then strain and
+  mean orientation on centroids), with merged spots down-weighted.
