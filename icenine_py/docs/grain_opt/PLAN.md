@@ -372,6 +372,32 @@ the lowest mean strain median over 5e-4 and 1e-3.
 
 Budget: about 60 ms per hybrid evaluation; four runs of 2 to 8 minutes; 3 processes at most.
 
+### GO5h: confirm the hybrid strain fit on more grains (idea I44)
+
+Question: GO5g's hybrid (`cen` + 8 x coverage, staged from the painted start) met its rule on 4
+grains per level with a small margin at 1e-3. Does it hold on 12 grains per level, and is a
+heavier coverage weight (lambda 16) better?
+
+Benchmark S36: 12 grains per strain level, sizes at quantiles 1/13 to 12/13 of the level
+(`fit_strain.py --per_level 12`; it overlaps S12). Painted start, robust start field, GO5c staged
+protocol (field leg 200 at zero strain, strain only 300, joint 600 at 0.02 deg and 2e-4), seed 0.
+Output `benchmarks/grain_opt/go5h/`. Arms:
+
+- `S@P` coverage (baseline on the same grains).
+- `S@P` `hyb` lambda 8.
+- `S@P` `hyb` lambda 16.
+
+Judging rule (written before any run). Per level and arm, median strain error over 12 grains and
+median voxel orientation error. A hybrid arm "confirms" when at 5e-4 and at 1e-3 its strain
+median is at most the coverage arm's median / 1.5 on the same grains with at least 8 of 12 grains
+better, and its orientation median is at most 0.02 deg at every level. I44 (first part) is
+answered yes when a hybrid arm confirms; the better lambda is the confirming arm with the lower
+mean strain median over 5e-4 and 1e-3. 1e-4 strain is reported, not judged. Grains whose
+orientation ends above 0.05 deg are counted and named.
+
+Budget: about 60 ms per hybrid evaluation, 1,100 evaluations per grain: about 25-35 minutes per
+hybrid arm, 15 for coverage; 3 processes in parallel, under 45 minutes.
+
 ### GO6 onwards
 
 Planned order (each gets a section when it starts): GO6 objective variants (I17 to I22); GO7 richer
