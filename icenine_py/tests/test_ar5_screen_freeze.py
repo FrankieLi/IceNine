@@ -41,3 +41,15 @@ def test_the_freeze_does_not_depend_on_step_20s_check() -> None:
     text = (AR5 / "screen_common.py").read_text()
     assert "cmarepair_freeze" not in text.replace("``cmarepair_freeze``", "")
     assert "import cmarepair" not in text
+
+
+def test_held5_is_built_as_held_with_generator_seed_5(monkeypatch) -> None:  # type: ignore
+    import screen_samples as SS
+
+    assert SS.SEEDS["held5"] == 5 and SS.SEEDS["held3"] == 3 and SS.SEEDS["held4"] == 4
+    src = SS.patched_source("make", "held5")
+    assert "SEED = 5" in src and '{"held": 1, "held2": 2}' not in src
+    assert 'K = "held5"' in SS.patched_source("stack", "held5")
+    monkeypatch.setenv("AR3_SAMPLE", "held5")
+    monkeypatch.setenv("RESEED_SAMPLE", "held5")
+    assert SS.wanted() and SS.which_sample() == "held5"

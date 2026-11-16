@@ -19,6 +19,8 @@ every sample (the stop rule: nothing runs before ``frozen.json`` is committed).
 
 import argparse
 import json
+import os
+import signal
 import time
 from typing import Any, Dict
 
@@ -65,6 +67,7 @@ def main() -> int:
     ap.add_argument("--arm", required=True, choices=("J5C", "J5S"))
     ap.add_argument("--source", default="stored", choices=("stored", "full"))
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--cap-min", type=float, default=0.0, help="stop rule: exit 3 at the cap")
     a = ap.parse_args()
     s = SC.SAMPLE
     if not s:
@@ -75,6 +78,14 @@ def main() -> int:
     if (out / "repair.json").exists():
         raise SystemExit(f"refusing: {out / 'repair.json'} exists")
     out.mkdir(parents=True, exist_ok=True)
+    if a.cap_min > 0:  # a run at its cap writes capped.json and exits 3 (the stop rule)
+
+        def _cap(_sig: int, _frm: Any) -> None:
+            (out / "capped.json").write_text(json.dumps(dict(cap_min=a.cap_min)) + "\n")
+            os._exit(3)
+
+        signal.signal(signal.SIGALRM, _cap)
+        signal.alarm(int(a.cap_min * 60))
     d = SD.load_inputs(s, truth=False)
     y = d["sym"]
     import boundary_common as B  # noqa: E402  (after screen_common: the sample is set)
