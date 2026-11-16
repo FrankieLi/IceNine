@@ -1,0 +1,96 @@
+<title>Grain Fit Research</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<style>
+:root{--bg:#f6f7f9;--panel:#ffffff;--fg:#1c2330;--muted:#5d6879;--line:#dde2ea;
+--accent:#2f6f9f;--run:#b26b00;--done:#2e7d4f;--drop:#8a8f98;--prop:#4a5a73;
+--ref:#8a8f98;--sans:"IBM Plex Sans",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11151b;--panel:#171c24;
+--fg:#e3e8ef;--muted:#9aa5b5;--line:#2a313c;--accent:#6fb0de;--run:#e3a33f;--done:#5cbf86;
+--drop:#7c838d;--prop:#a9b6cb;--ref:#7c838d;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#11151b;--panel:#171c24;--fg:#e3e8ef;--muted:#9aa5b5;--line:#2a313c;
+--accent:#6fb0de;--run:#e3a33f;--done:#5cbf86;--drop:#7c838d;--prop:#a9b6cb;--ref:#7c838d;
+color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.5}
+.wrap{max-width:1040px;margin:0 auto;padding-block:28px 48px;
+padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-size:26px;margin:0 0 4px;text-wrap:balance}h2{font-size:18px;margin:32px 0 10px}
+.sub{color:var(--muted);margin:0 0 18px}
+.tiles{display:flex;flex-wrap:wrap;gap:10px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;min-width:110px}
+.tile b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+.tile span{color:var(--muted);font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+.now{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);
+border-radius:6px;padding:12px 16px}.now p{margin:4px 0}
+.goals{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8px;margin:0;padding:0;list-style:none}
+.goals li{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 12px;font-size:14px}
+.goals code{font-weight:600}
+.tbl{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+td.id{font-family:var(--mono);white-space:nowrap}td.res{color:var(--muted);min-width:180px}
+.pill{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.running{color:var(--run)}.done{color:var(--done)}.dropped{color:var(--drop)}.proposed{color:var(--prop)}
+code{font-family:var(--mono);font-size:.92em}
+.chart{width:100%;height:auto;max-width:720px;background:var(--panel);border:1px solid var(--line);border-radius:8px}
+.chart .grid{stroke:var(--line);stroke-width:1}.chart .tick{fill:var(--muted);font-size:11px;font-family:var(--mono)}
+.chart .axis{fill:var(--muted);font-size:12px}.chart .lab{fill:var(--fg);font-size:11px}
+.chart .dot{fill:var(--accent)}.chart .dot.reference{fill:var(--ref)}
+.chart .whisk{stroke:var(--accent);stroke-width:2}.chart .whisk.reference{stroke:var(--ref)}
+.note{color:var(--muted);font-size:13px;max-width:70ch}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}
+.filters button{font:inherit;font-size:13px;background:var(--panel);color:var(--fg);border:1px solid var(--line);
+border-radius:6px;padding:3px 10px;cursor:pointer}.filters button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.filters button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+</style>
+<div class="wrap">
+<h1>Grain fit research (AR6)</h1>
+<p class="sub">Fitting every voxel of a grain together against the detector images. Branch <code>feature/grain-opt</code>. Updated 2026-11-16.</p>
+<div class="tiles"><div class="tile"><b class="running">4</b><span>running</span></div><div class="tile"><b class="proposed">23</b><span>proposed</span></div><div class="tile"><b class="done">0</b><span>done</span></div><div class="tile"><b class="dropped">0</b><span>dropped</span></div><div class="tile"><b>1/2</b><span>steps done</span></div></div>
+<h2>Now</h2>
+<div class="now"><p><strong>Step GO1 (objective bias, ideas I1 I2 I17 I21) is running.</strong> <code>probe_bias.py --grains 381 302</code></p><p>(7 arms, CMA over the grain rotation from the truth). Started 2026-11-15 20:24 PST under a</p><p>40-minute <code>timeout</code>; rows go to the console only (rerun the missing arms with</p><p><code>--grains ... --variants ...</code> if it was cut off), and <code>benchmarks/grain_opt/probe/bias.json</code> at</p><p>the end.</p><p><strong>Next action:</strong> read the GO1 rows; pick the objective with the smallest offset (rule in PLAN</p><p>GO1: below 0.01 deg on both grains). If one qualifies: plan GO2 (optimizer Pareto on G20). If</p><p>none: plan a cause study (I3 soft pixel-touched model, I4 noise floor) first.</p><p>Open issue: the objective&#x27;s minimum sat about 0.05 deg from the truth in the smoke test; the</p><p>strict-cost gate rejected both updates.</p></div>
+<h2>Goals</h2>
+<ul class="goals"><li><code>G1a</code> Pareto frontier of evaluations against quality, fixed objective</li><li><code>G1b</code> Robustness: linear gradients to random voxel-to-voxel misorientation (0-5 deg)</li><li><code>G1c</code> Sensitivity to elastic strain (lattice deformation)</li><li><code>G2a</code> Ways to use intensity</li><li><code>G2b</code> Richer diffraction simulation</li><li><code>G2c</code> Learned and neural models</li></ul>
+<h2>Steps</h2>
+<div class="tbl"><table><thead><tr><th>step</th><th>what</th><th>status</th><th>result</th></tr></thead><tbody>
+<tr><td class="id">GO1</td><td>Objective bias: where each objective&#x27;s minimum sits against the truth<br><span class="note">2026-11-16 </span></td><td><span class="pill running">running</span></td><td class="res">Smoke test: stage A lowered Sinkhorn while moving voxels 0.016 to 0.050 deg away from the truth (strict-cost gate rejected).</td></tr>
+<tr><td class="id">GO0</td><td>Grouping, regions, coverage renderer, Sinkhorn and LS objectives (work item 1)<br><span class="note">2026-11-15 5a3162d2</span></td><td><span class="pill done">done</span></td><td class="res">Coverage mass on stock-rendered lit pixels at the truth: median 99.6% (min 95.2%) over 20 grad grains; truth map groups into exactly the 497 grains; Sinkhorn at truth 0.4-0.7 px^2 after component + ratio filters and reach 3 px.</td></tr>
+</tbody></table></div>
+<h2>Cost against quality</h2>
+<p class="note">Share of voxels above 0.1 deg against renders per voxel (grain-objective evaluations, or strict evaluations per voxel for per-voxel fits). Reference points are on all 19,013 painted voxels of grad; G20 points on the voxels of the 20 benchmark grains that have a C record. Whiskers: Wilson 95% intervals.</p>
+<svg viewBox="0 0 640 300" role="img" aria-label="Pareto chart" class="chart"><line x1="56" x2="624" y1="256.0" y2="256.0" class="grid"/><text x="48" y="260.0" class="tick" text-anchor="end">0%</text><line x1="56" x2="624" y1="170.1" y2="170.1" class="grid"/><text x="48" y="174.1" class="tick" text-anchor="end">5%</text><line x1="56" x2="624" y1="84.2" y2="84.2" class="grid"/><text x="48" y="88.2" class="tick" text-anchor="end">10%</text><text x="60.0" y="274" class="tick" text-anchor="middle">0</text><text x="90.1" y="274" class="tick" text-anchor="middle">1</text><text x="273.7" y="274" class="tick" text-anchor="middle">10</text><text x="457.2" y="274" class="tick" text-anchor="middle">100</text><text x="340" y="294" class="axis" text-anchor="middle">renders per voxel (log)</text><text x="14" y="135" class="axis" text-anchor="middle" transform="rotate(-90 14 135)">voxels above 0.1 deg</text><line x1="60.0" x2="60.0" y1="61.3" y2="45.6" class="whisk reference"/><circle cx="60.0" cy="53.6" r="4.5" class="dot reference"><title>painted start: 11.78% (11.33 to 12.25), 0 renders/voxel, grad painted voxels</title></circle><text x="68.0" y="47.6" class="lab">painted start</text><line x1="609.5" x2="609.5" y1="62.2" y2="46.5" class="whisk reference"/><circle cx="609.5" cy="54.5" r="4.5" class="dot reference"><title>AR3 stock MC fit: 11.73% (11.28 to 12.19), 675 renders/voxel, grad painted voxels</title></circle><text x="617.5" y="48.5" class="lab">AR3 stock MC fit</text><line x1="417.8" x2="417.8" y1="228.9" y2="222.4" class="whisk reference"/><circle cx="417.8" cy="225.8" r="4.5" class="dot reference"><title>AR3 per-voxel CMA (C): 1.76% (1.58 to 1.95), 61 renders/voxel, grad painted voxels</title></circle><text x="425.8" y="219.8" class="lab">AR3 per-voxel CMA (C)</text></svg>
+<h2>Ideas</h2>
+<div class="filters" role="group" aria-label="Filter ideas by status"><button id="f-all" data-f="all" aria-pressed="true">all</button><button id="f-running" data-f="running" aria-pressed="false">running</button><button id="f-proposed" data-f="proposed" aria-pressed="false">proposed</button><button id="f-done" data-f="done" aria-pressed="false">done</button><button id="f-dropped" data-f="dropped" aria-pressed="false">dropped</button></div>
+<div class="tbl"><table id="ideas"><thead><tr><th>id</th><th>goal</th><th>idea</th><th>status</th><th>result</th></tr></thead><tbody>
+<tr data-s="running"><td class="id">I1</td><td class="id">G1a</td><td>Bias study: where each objective&#x27;s minimum sits against the truth (6 variants + LS)</td><td><span class="pill running">running</span></td><td class="res">Smoke test: stage A moved voxels 0.016 to 0.050 deg away while lowering Sinkhorn</td></tr>
+<tr data-s="running"><td class="id">I2</td><td class="id">G2a</td><td>Pixel-box dilation of the prediction (lit pixels are those a spot touches)</td><td><span class="pill running">running</span></td><td class="res">in GO1</td></tr>
+<tr data-s="running"><td class="id">I17</td><td class="id">G2a</td><td>Intensity-weighted Sinkhorn (observed mass = clean intensity)</td><td><span class="pill running">running</span></td><td class="res">in GO1</td></tr>
+<tr data-s="running"><td class="id">I21</td><td class="id">G2a</td><td>Least squares with per-reflection scale on intensity (baseline arm)</td><td><span class="pill running">running</span></td><td class="res">in GO1</td></tr>
+<tr data-s="proposed"><td class="id">I3</td><td class="id">G2b</td><td>Soft &quot;pixel touched&quot; model: sigmoid of signed distance pixel-square to spot union</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I4</td><td class="id">G1a</td><td>Sub-pixel noise floor: objective curvature vs strict cost curvature, per spot</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I5</td><td class="id">G1a</td><td>Stage A CMA: budget sweep 50 / 100 / 200 / 400 evaluations, sigma0 0.02 / 0.05 deg</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I6</td><td class="id">G1a</td><td>Stage B Adam / L-BFGS on per-voxel offsets with smoothness weight sweep</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I7</td><td class="id">G1a</td><td>Gauss-Newton / LM on per-spot centroid (and second-moment) residuals, autograd Jacobian</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I8</td><td class="id">G1a</td><td>Coarse-to-fine blur (eps annealing) and warm-started Sinkhorn potentials</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I9</td><td class="id">G1a</td><td>Per-voxel CMA on the strict cost (AR3 C) and on the grain objective, same voxels</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I10</td><td class="id">G1a</td><td>Hybrid: grain field (stage A) then per-voxel strict-cost polish only where needed</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I11</td><td class="id">G1b</td><td>Sample generator: uncorrelated random voxel rotations about the grain mean, 0.5-5 deg</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I12</td><td class="id">G1b</td><td>Sample generator: spatially correlated random fields (GND-like), correlation 2-10 voxels</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I13</td><td class="id">G1b</td><td>Robustness of the best G1a methods across linear, quadratic, correlated, random fields</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I14</td><td class="id">G1c</td><td>Strained reciprocal vectors in SpotModel (opt-in): g&#x27; = R (I + eps)^-T g, Bragg from abs g&#x27;</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I15</td><td class="id">G1c</td><td>Strain in the stock forward model render path (opt-in, from the .mic deformation tensor)</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I16</td><td class="id">G1c</td><td>Strain sensitivity: objective curvature in the 6 strain components; recovery at 1e-4 to 1e-3</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I18</td><td class="id">G2a</td><td>Poisson NLL on pixel counts with a per-reflection scale and background</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I19</td><td class="id">G2a</td><td>Per-spot moment matching (centroid + covariance), as objective and as LM residual</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I20</td><td class="id">G2a</td><td>MMD with a Gaussian kernel per spot</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I22</td><td class="id">G2a</td><td>Use structure factor x Lorentz to predict relative spot intensity across reflections</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I23</td><td class="id">G2b</td><td>Rocking curve alpha &gt; 0: spots spread over frames; sub-frame omega from frame ratios</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I24</td><td class="id">G2b</td><td>Partial-volume coverage per pixel and a detector point-spread function in the render</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I25</td><td class="id">G2c</td><td>GNLayerNet (orientation_nn_design.md) as a per-voxel start inside a grain</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I26</td><td class="id">G2c</td><td>Learned residual / amortised Gauss-Newton step for the grain field (todo_hybrid_nn)</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+<tr data-s="proposed"><td class="id">I27</td><td class="id">G2c</td><td>Neural field for orientation (and strain) over the grain, render-and-compare (nerf note)</td><td><span class="pill proposed">proposed</span></td><td class="res"></td></tr>
+</tbody></table></div>
+<p class="note">Source files: <code>icenine_py/docs/grain_opt/IDEAS.md</code>, <code>STATE.md</code>, <code>findings.md</code>, <code>benchmarks/grain_opt/progress.json</code>.</p></div>
+<script>document.querySelectorAll('.filters button').forEach(b=>b.addEventListener('click',()=>{const f=b.dataset.f;document.querySelectorAll('.filters button').forEach(x=>x.setAttribute('aria-pressed',x===b));document.querySelectorAll('#ideas tbody tr').forEach(r=>{r.hidden=!(f==='all'||r.dataset.s===f)})}));</script>

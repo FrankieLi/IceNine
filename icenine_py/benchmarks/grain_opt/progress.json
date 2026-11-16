@@ -1,0 +1,14 @@
+{
+ "program": "AR6 grainopt",
+ "updated": "2026-11-16",
+ "steps": [
+  {"id": "GO0", "title": "Grouping, regions, coverage renderer, Sinkhorn and LS objectives (work item 1)", "status": "done", "date": "2026-11-15", "result": "Coverage mass on stock-rendered lit pixels at the truth: median 99.6% (min 95.2%) over 20 grad grains; truth map groups into exactly the 497 grains; Sinkhorn at truth 0.4-0.7 px^2 after component + ratio filters and reach 3 px.", "commit": "5a3162d2"},
+  {"id": "GO1", "title": "Objective bias: where each objective's minimum sits against the truth", "status": "running", "date": "2026-11-16", "result": "Smoke test: stage A lowered Sinkhorn while moving voxels 0.016 to 0.050 deg away from the truth (strict-cost gate rejected).", "commit": ""}
+ ],
+ "pareto_note": "Share of voxels above 0.1 deg against renders per voxel (grain-objective evaluations, or strict evaluations per voxel for per-voxel fits). Reference points are on all 19,013 painted voxels of grad; G20 points on the voxels of the 20 benchmark grains that have a C record.",
+ "pareto": [
+  {"label": "painted start", "family": "reference", "set": "grad painted voxels", "renders_per_voxel": 0, "k": 2240, "n": 19013},
+  {"label": "AR3 stock MC fit", "family": "reference", "set": "grad painted voxels", "renders_per_voxel": 675, "k": 2230, "n": 19013},
+  {"label": "AR3 per-voxel CMA (C)", "family": "reference", "set": "grad painted voxels", "renders_per_voxel": 61, "k": 334, "n": 19013}
+ ]
+}
