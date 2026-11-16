@@ -39,7 +39,7 @@ EARLIER = [  # scripts of earlier steps that the fine1 runs and launchers import
     "scripts/autoresearch/ar2/key_on_fused.config",
     "scripts/autoresearch/ar3/ar3_common.py",
     "scripts/phase_d/render_full.py",
-    "scripts/dev/timing_preflight.py",
+    "../scripts/dev/timing_preflight.py",
 ]
 ARM_TEXT = {
     "PS": "stock Python: grid search for every seed, stock MC local optimization "
@@ -141,7 +141,12 @@ def write(cs_binary: str) -> None:
         decision_rules=DECISION_RULES,
         stop_rule=STOP_RULE,
         proposed_cs_binary=dict(
-            path=cs_binary, sha256=P.sha256(Path(cs_binary)) if cs_binary else None
+            name=Path(cs_binary).name if cs_binary else None,
+            sha256=P.sha256(Path(cs_binary)) if cs_binary else None,
+            note="the build of branch feature/eval-reduction-cpptrace at commit f47bf032 (it "
+            "prints the client cost-evaluation count; its map is byte-equal to the stored "
+            "binary's on the pilot), kept in the main checkout under icenine_py/benchmarks/"
+            "autoresearch/cppchk/cache/; the path is an argument of the launcher",
         ),
         sha256=data_hashes(full=True),
         scripts=script_hashes(),
