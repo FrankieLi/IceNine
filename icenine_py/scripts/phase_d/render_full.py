@@ -86,6 +86,7 @@ def _worker(args: Dict[str, Any]) -> Dict[str, Any]:
     if args["max_q"]:
         cfg.max_q = args["max_q"]
     sim = ForwardSimulation(cfg)
+    sim.apply_deformation = bool(args.get("strain", False))  # opt-in: .mic columns 13-18
     sim.exp_setup.initialize_experiment()
     omega_ranges = sim.exp_setup.get_omega_range_list()
     file_ranges = sim.exp_setup.get_file_range_list()
@@ -179,6 +180,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="noise variant of the realistic images (nodrop: p_miss 0, the default; "
         "toy: p_miss 0.1, the existing realistic/ images)",
     )
+    ap.add_argument(
+        "--strain",
+        action="store_true",
+        help="apply the per-voxel deformation M of the .mic (columns 13-18, g = O M g0); "
+        "default off (output unchanged)",
+    )
     ap.add_argument("--out-root", default=str(EX / "ScatteringData_PhaseD"))
     ap.add_argument(
         "--overwrite",
@@ -233,6 +240,7 @@ def main() -> None:
             "noise_seed": args.noise_seed,
             "noise": args.noise,
             "max_q": args.max_q,
+            "strain": args.strain,
             "variants": args.variants.split(","),
         }
         for w in range(args.workers)
@@ -253,6 +261,7 @@ def main() -> None:
         "noise_variant": args.noise,
         "noise_params": asdict(NoiseParams.named(args.noise)),
         "n_voxels": results[0]["n_voxels"],
+        "strain": bool(args.strain),
         "workers": args.workers,
         "timing_label": f"contended ({args.workers} workers; machine quiet at start: {quiet})",
         "wall_s": wall,

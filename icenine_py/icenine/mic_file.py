@@ -329,7 +329,7 @@ class MicFile:
 
         return cls(voxels=voxels, initial_side_length=initial_side_length)
 
-    def write(self, filename: str):
+    def write(self, filename: str, deformation_digits: int = 6):
         """
         Write .mic file (triangular mesh format).
 
@@ -337,6 +337,10 @@ class MicFile:
         converts rotation matrices to Euler angles (degrees).
 
         Writes format matching C++ MicIO.h lines 363-429.
+
+        ``deformation_digits`` (default 6, the historical ``13.6E``, output unchanged) sets the
+        digits after the point of the six deformation columns (13-18); use 8 or more (at least
+        9 significant digits) when they hold a strain M near 1 (a 1e-4 strain is 1e-4 of M).
 
         Args:
             filename: Path to output .mic file
@@ -378,22 +382,15 @@ class MicFile:
                 f.write(f" {0.0:13.6E}")  # fitting_time placeholder
 
                 # Write deformation tensor (symmetric 3x3)
+                dd = int(deformation_digits)
+                ds = f"{dd + 7}.{dd}E"
                 if voxel.deformation is not None:
                     D = voxel.deformation
-                    f.write(f" {D[0,0]:13.6E}")
-                    f.write(f" {D[1,1]:13.6E}")
-                    f.write(f" {D[2,2]:13.6E}")
-                    f.write(f" {D[1,0]:13.6E}")  # off-diagonal
-                    f.write(f" {D[1,2]:13.6E}")
-                    f.write(f" {D[2,0]:13.6E}")
+                    vals = (D[0, 0], D[1, 1], D[2, 2], D[1, 0], D[1, 2], D[2, 0])
                 else:
-                    # Identity matrix
-                    f.write(f" {1.0:13.6E}")
-                    f.write(f" {1.0:13.6E}")
-                    f.write(f" {1.0:13.6E}")
-                    f.write(f" {0.0:13.6E}")
-                    f.write(f" {0.0:13.6E}")
-                    f.write(f" {0.0:13.6E}")
+                    vals = (1.0, 1.0, 1.0, 0.0, 0.0, 0.0)  # identity
+                for dv in vals:
+                    f.write(f" {dv:{ds}}")
 
                 f.write("\n")
 
