@@ -581,6 +581,27 @@ intensity weights (1.8e-4 / 2.7e-4 / 3.7e-4) is the before.
 
 Budget: about 27 s per grain, two arms in parallel, under 25 minutes.
 
+### GO5o: intensity-weighted centroids without isolated pixels (idea I50)
+
+Question: GO5n showed the intensity weights are what make the observed centroid sub-pixel. If
+they are kept and only isolated lit pixels (fewer than 2 lit 8-neighbours among the spot's
+pixels in the frame: hot pixels, stray flips) are removed, does the fast fit hold on noisy
+images without losing its clean accuracy?
+
+Centroid variant `intclean` (`fit_strain.py --cen_w intclean`): clean-intensity weights, isolated
+lit pixels removed, in every centroid use. Benchmark S36, painted start, `GP4@P`, `hyb` lambda
+8; output `benchmarks/grain_opt/go5o/`. Arms: `GP4@P --cen_w intclean` on the noisy images
+(`--stack strainrn_clean.npy`) and on the clean images.
+
+Judging rule (written before any run). Noisy: the arm "holds" when at 5e-4 and 1e-3 its strain
+median is at most 1.25 x GO5m's noisy CMA hybrid (1.9e-4, 2.8e-4), its orientation median is at
+most 0.03 deg at every level, and its mean wall time per grain is at most half the noisy CMA
+hybrid's (25.5 s). Clean: no loss when at 5e-4 and 1e-3 its strain median is at most 1.25 x
+GO5l's clean `GP4@P` (1.3e-4, 2.1e-4) and its orientation median at most 0.02 deg at every
+level. I50 is answered yes when both hold. 1e-4 strain is reported, not judged.
+
+Budget: about 27 s per grain, two arms in parallel, under 25 minutes.
+
 ### GO6 onwards
 
 Planned order (each gets a section when it starts): GO6 objective variants (I17 to I22); GO7 richer
