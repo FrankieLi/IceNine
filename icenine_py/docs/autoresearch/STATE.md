@@ -39,7 +39,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    NOW: (a) step 22 MERGED 566eea3f; v58 live; v59 after the slices. (c) restart distance and
    (b) OWNER TASK part 1: both C++ changes reviewed (a7e220e7; C5 56 wrong). TODO when no fine1
    run is active: SendMessage aa5599885ce689568 to run `tests/test_cppchk_fix.py` on fixed2.
-   part 2 `fine1`: slices run (CS, J5S, PS); then SendMessage a22702f36dfefa989 to project; caps.
+   part 2 `fine1`: CS slice done (2,595 s, contended); J5S, PS, CF slices run; then project; caps.
    C++ config done (reports 20261116-*); next study step: local-optimization schedule.
 
 ## Running jobs
@@ -47,7 +47,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v58 live.
   Step 22 (`ar5v`; cache in `agent-aba6e1bdb95dff72a`): MERGED 566eea3f, key `SeedIndexMCDefer`.
   Owner task: part 1 trace done (ae912cf9), `Reset` fix runs. Part 2 `fine7` frozen (ac76bdd6);
-  slices restarted 15:38, 16 Nov with `--allow-contended` (first try refused: machine busy).
+  CS slice ended 16:21, launcher stopped (not quiet); J5S, PS, CF restarted 19:06: `launch_slice3.out`.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
