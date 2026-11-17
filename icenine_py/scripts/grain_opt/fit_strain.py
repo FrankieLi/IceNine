@@ -52,13 +52,14 @@ def tensor_rms(e: np.ndarray) -> float:
     return float(np.sqrt(((e[:3] ** 2).sum() + 2 * (e[3:] ** 2).sum()) / 3.0))
 
 
-def pick_grains(T: Any) -> List[int]:
+def pick_grains(T: Any, per_level: int = 4) -> List[int]:
     gm = np.asarray(T.gmap)
     out = []
     for lv in LEVELS:
         gids = [int(g) for g, v in T.strain_level_of.items() if abs(float(v) - lv) < 1e-12]
         gids = sorted(gids, key=lambda g: (int((gm == g).sum()), g))
-        out += [gids[int(q * (len(gids) - 1))] for q in QUANTILES]
+        qs = QUANTILES if per_level == 4 else [(i + 1) / (per_level + 1) for i in range(per_level)]
+        out += [gids[int(q * (len(gids) - 1))] for q in qs]
     return out
 
 
@@ -269,6 +270,7 @@ def main() -> None:
     ap.add_argument("--cost", default="cov", choices=["cov", "sd", "int", "cen", "ch", "hyb"])
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--lam", type=float, default=2.0)
+    ap.add_argument("--per_level", type=int, default=4)
     a = ap.parse_args()
     global SEED
     SEED = a.seed
@@ -278,12 +280,14 @@ def main() -> None:
         tag += f"_{a.cost}" + (f"{a.lam:g}" if a.cost == "hyb" else "")
     if a.seed:
         tag += f"_s{a.seed}"
+    if a.per_level != 4:
+        tag += f"_S{3 * a.per_level}"
     start = "paint" if a.arm.endswith("@P") else "truth"
     S = CM.Sample(out / f"run_{tag}", start=start, intensity=True, sample="strain")
     T = S.T
     gm = np.asarray(T.gmap)
     label = CM.C.preflight_label(out / f"run_{tag}")
-    grains = pick_grains(T) if a.only is None else [a.only]
+    grains = pick_grains(T, a.per_level) if a.only is None else [a.only]
     rows_out: List[Dict[str, Any]] = []
     for g in grains:
         t0 = time.time()

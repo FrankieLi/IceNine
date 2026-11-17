@@ -104,3 +104,15 @@ became AR6 on 2026-11-16 at the owner's request.
   centroids for strain (weighted sum, or staged: field on coverage, then strain and mean
   orientation on centroids), merged spots down-weighted; painted start, judged against `cen`
   `E@GT` and coverage `S@P`, plus orientation error. Then GO6 or the cached ray index.
+
+## Now as of GO5g close (2026-11-16 15:35 PST)
+
+- **GO5g closed** (2026-11-16 15:35 PST): the hybrid cost `cen` + 8 x coverage (`--cost hyb
+  --lam 8`), staged from the painted start, recovers strain at 1.9 / 1.5 / 2.2e-4 (1e-4 / 5e-4 /
+  1e-3) with orientation 0.008-0.012 deg; coverage alone 7.1 / 3.4 / 3.0e-4. I43 yes.
+  `findings.md` "GO5g"; costs table `COSTS.md`.
+- GO5f: centroids alone good strain, orientation drifts. GO5c-e: coverage objective-limited,
+  one-sided sub-pixel costs biased.
+- **Next action:** plan and run GO5h (I44): confirm the hybrid on 12 grains per level (S36),
+  lambda 8 and 16, painted start, judged against coverage `S@P` on the same grains; then
+  Gauss-Newton on centroid residuals (I7 / I19). Then GO6 or the cached ray index.

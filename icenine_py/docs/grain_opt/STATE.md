@@ -5,15 +5,16 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO5g closed** (2026-11-16 15:35 PST): the hybrid cost `cen` + 8 x coverage (`--cost hyb
-  --lam 8`), staged from the painted start, recovers strain at 1.9 / 1.5 / 2.2e-4 (1e-4 / 5e-4 /
-  1e-3) with orientation 0.008-0.012 deg; coverage alone 7.1 / 3.4 / 3.0e-4. I43 yes.
-  `findings.md` "GO5g"; costs table `COSTS.md`.
-- GO5f: centroids alone good strain, orientation drifts. GO5c-e: coverage objective-limited,
-  one-sided sub-pixel costs biased.
-- **Next action:** plan and run GO5h (I44): confirm the hybrid on 12 grains per level (S36),
-  lambda 8 and 16, painted start, judged against coverage `S@P` on the same grains; then
-  Gauss-Newton on centroid residuals (I7 / I19). Then GO6 or the cached ray index.
+- **GO5h closed** (2026-11-16 16:10 PST): the hybrid strain fit holds on 36 grains (12 per
+  level, painted start, staged): lambda 8 gives 2.3 / 1.5 / 2.1e-4 against coverage 4.6 / 2.8 /
+  6.3e-4 on the same grains, orientation 0.009-0.017 deg; lambda 16 equal within scatter.
+  Remaining: a tail of 1e-3 grains at 4-9e-4; about 50 s per grain with CMA. `findings.md` "GO5h".
+- GO5g: hybrid introduced (I43 yes). GO5c-f: coverage objective-limited, one-sided sub-pixel
+  costs biased, centroids alone let the orientation drift.
+- **Next action:** plan and run GO5i (I44 second part): Gauss-Newton (or LM) on per-spot centroid
+  residuals for strain and mean rotation, the field gradient fixed from the coverage field leg;
+  judge on S36 against `hyb` lambda 8 (strain, orientation, wall time). Then GO6 or the cached
+  ray index.
 
 ## Running jobs
 

@@ -510,3 +510,36 @@ Verdicts by the rule written before the runs:
 - Caveats: 4 grains per level, one seed; the rule margin at 1e-3 is small (2.2e-4 against 2.5e-4).
   Next (I44): confirm on more grains (12 per level) with lambda 8 and 16, then a faster solver
   on the centroid residuals (I7 / I19, Gauss-Newton) in place of CMA.
+
+## GO5h: confirm the hybrid strain fit on more grains (idea I44, first part)
+
+Question: does GO5g's hybrid (`cen` + lambda x coverage, staged from the painted start) hold on
+12 grains per level (S36), and is lambda 16 better than 8? Rows in
+`benchmarks/grain_opt/go5h/*_S36.json`; 16 minutes for coverage, 32 minutes per hybrid arm (3
+processes, contended).
+
+Reading line: median strain error over 12 grains (75th percentile in brackets), grains better
+than coverage on the same grain, median voxel orientation error (deg).
+
+| arm | 1e-4 | 5e-4 | 1e-3 | orientation |
+|---|---|---|---|---|
+| coverage `S@P` | 4.6e-4 (6.9e-4) | 2.8e-4 (4.3e-4) | 6.3e-4 (8.7e-4) | 0.018 / 0.009 / 0.020 |
+| `hyb` lambda 8 | 2.3e-4 (2.5e-4), 10 of 12 | 1.5e-4 (2.1e-4), 9 of 12 | 2.1e-4 (5.7e-4), 9 of 12 | 0.011 / 0.009 / 0.017 |
+| `hyb` lambda 16 | 2.3e-4 (3.2e-4), 10 of 12 | 1.6e-4 (1.8e-4), 9 of 12 | 2.3e-4 (5.0e-4), 11 of 12 | 0.011 / 0.009 / 0.019 |
+
+Verdicts by the rule written before the runs:
+
+- Both hybrid arms confirm (limits: coverage / 1.5 = 1.9e-4 at 5e-4 and 4.2e-4 at 1e-3, at
+  least 8 of 12 better, orientation at most 0.02 deg): I44's first part is yes. The better
+  lambda by the rule is 8 (mean of the 5e-4 and 1e-3 medians 1.8e-4 against 1.9e-4); the two are
+  within run scatter, and lambda 16 has the shorter tail at 1e-3 (75th percentile 5.0e-4 against
+  5.7e-4, 11 of 12 better).
+- Grains whose orientation ends above 0.05 deg: coverage 1 (485, 0.155 deg); lambda 8 two (485
+  and 0, 0.059 deg); lambda 16 two (485 0.062, 432 0.055). Grain 485 is hard for every cost.
+- On 36 grains the coverage fit is worse than on S12 at 1e-3 (6.3e-4 against 3.0e-4), the hybrid
+  about the same (2.1e-4 against 2.2e-4): the S12 coverage numbers were on the lucky side.
+- The hybrid's remaining weak spot is a tail of strongly strained (1e-3) grains at 4-9e-4.
+- Next (I44 second part): replace CMA (about 50 s per grain, 1,100 evaluations of about 60 ms)
+  by Gauss-Newton on the centroid residuals for strain and mean rotation, with the orientation
+  field's gradient from the coverage fit; judge on S36 against `hyb` lambda 8 for accuracy and
+  wall time.
