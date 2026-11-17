@@ -434,6 +434,33 @@ strain is reported, not judged.
 Budget: about 6 s field leg plus 3-5 s Gauss-Newton per grain (`GN@P`), plus about 18 s for
 `GNH@P`; both arms under 20 minutes; 2 processes.
 
+### GO5j: alternate field-gradient refit and Gauss-Newton (idea I45)
+
+Question: GO5i's Gauss-Newton left the orientation field's gradient as the zero-strain coverage
+leg fitted it, which is biased in proportion to the strain (0.039 deg at 1e-3). If the gradient
+is refitted on coverage at the Gauss-Newton strain and mean rotation, then Gauss-Newton is run
+again, does the fit match the CMA hybrid on strain and orientation at half its time or less?
+
+Method: GO5i's `GN@P` (coverage field leg 200 at zero strain, Gauss-Newton with Tukey cut-off
+3 / 1.5 / 1 px), then per round: CMA of 100 evaluations on coverage over the gradient only
+(`theta[3:]`, 6 numbers, step 0.01 deg) with the mean rotation and strain held at the
+Gauss-Newton values, then Gauss-Newton again from there (same annealing). Benchmark S36,
+painted start, `--cost hyb --lam 8` for `f_fit`; output `benchmarks/grain_opt/go5j/`. Arms:
+
+- `GA1@P`: one round.
+- `GA2@P`: two rounds.
+
+Judging rule (written before any run; the same as GO5i). Reference: GO5h `hyb` lambda 8 on the
+same grains (strain 2.3e-4 / 1.5e-4 / 2.1e-4, orientation 0.011 / 0.009 / 0.017 deg, 53 s per
+grain). An arm "matches" when at 5e-4 and 1e-3 its strain median is at most 1.25 x the
+reference's, its orientation median is at most 0.02 deg at every level, and its mean wall time
+per grain is at most half the reference's (26.7 s; load reported). I45 is answered yes when an
+arm matches; the faster matching arm is preferred. 1e-4 strain is reported, not judged; grains
+above 0.05 deg are named.
+
+Budget: about 10 s (`GN@P`) plus 3 s coverage and 3-5 s Gauss-Newton per round, per grain:
+both arms under 15 minutes; 2 processes.
+
 ### GO6 onwards
 
 Planned order (each gets a section when it starts): GO6 objective variants (I17 to I22); GO7 richer
