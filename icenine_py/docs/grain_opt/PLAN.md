@@ -756,6 +756,28 @@ truth on both grains (written before any run). Output `benchmarks/grain_opt/go9b
 
 Budget: a few minutes.
 
+### GO4e: neighbour pass after the gated seed path (goal G1b, idea I51)
+
+Question: GO4d's ladder + gated seed path (`L/366/3,G/15/0.15`) left rand at 2 deg with 52% of
+voxels above 0.1 deg (and 44% at 5 deg), many near but outside the basin with a strict cost below
+the gate, others seeded from a neighbouring grain. Do the voxels the seed path fixed help their
+neighbours through a neighbour continuation (candidates = own and fitted in-grain neighbours'
+orientations, then per-voxel CMA), and does a second seed pass afterwards pick up more?
+
+Arms (`run_pipeline.py --start centre --group true`, corr3 and rand, output
+`benchmarks/grain_opt/go4e/`):
+
+- `L/366/3,G/15/0.15,N/30/0.3`.
+- `L/366/3,G/15/0.15,N/30/0.3,G/15/0.15`.
+
+Judging rule (written before any run). Reference: GO4d `L/366/3,G/15/0.15` on the same sample.
+I51 is answered yes for an arm when on rand the share above 0.1 deg at 2 deg falls by at least a
+third (52% -> at most 35%) and no level on either sample gets worse by more than 2 points; the
+cheaper passing arm is preferred. Shares, wrong (above 1 deg) and ms per voxel reported.
+
+Budget: GO4d took 5-12 minutes per run; N/30 adds about 0.01 s per voxel and a second seed pass
+up to the first's cost; 4 runs in parallel, under 30 minutes.
+
 ### GO6 onwards
 
 Program balance (owner via the coordinator, 2026-11-16): GO5b to GO5o were all G1c strain. After
