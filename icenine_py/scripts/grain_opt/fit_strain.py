@@ -115,7 +115,7 @@ class Coverage:
         return 1.0 - float(((a * on).sum(1)[ok] / tot[ok]).mean())
 
 
-CEN_W = "int"  # GO5n: observed-centroid weights, "int" | "bin" | "binclean" (--cen_w)
+CEN_W = "int"  # GO5n/o: observed-centroid weights, "int" | "bin" | "binclean" | "intclean"
 
 
 def isolated_mask(ob: np.ndarray) -> np.ndarray:
@@ -148,9 +148,10 @@ class SubPix:
             ci = np.clip(o[:, 0] - sp.c0, 0, shape[2] - 1)
             w = np.asarray(sp.obs_val, float)
             ob = np.asarray(sp.obs, float)
-            if kind == "cen" and CEN_W != "int":  # GO5n: noise-robust observed centroid
-                w = np.ones(len(ob))
-                if CEN_W == "binclean" and len(ob):
+            if kind == "cen" and CEN_W != "int":  # GO5n/GO5o: noise-robust observed centroid
+                if CEN_W in ("bin", "binclean"):
+                    w = np.ones(len(ob))
+                if CEN_W in ("binclean", "intclean") and len(ob):
                     keep = isolated_mask(ob)
                     if keep.any():
                         ob, w = ob[keep], w[keep]
@@ -412,7 +413,7 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--lam", type=float, default=2.0)
     ap.add_argument("--per_level", type=int, default=4)
-    ap.add_argument("--cen_w", default="int", choices=["int", "bin", "binclean"])
+    ap.add_argument("--cen_w", default="int", choices=["int", "bin", "binclean", "intclean"])
     ap.add_argument("--stack", default=None, help="GO5m: stack file in place of strain_clean.npy")
     a = ap.parse_args()
     global SEED, CEN_W

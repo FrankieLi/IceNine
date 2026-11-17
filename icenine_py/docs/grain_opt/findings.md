@@ -723,3 +723,33 @@ Verdicts by the rule written before the runs:
   the noise does.
 - Next (I50): keep intensity weights and remove only isolated lit pixels (`intclean`), checked
   on both noisy and clean images.
+
+## GO5o: intensity-weighted centroids without isolated pixels (idea I50)
+
+Question: with intensity weights kept and only isolated lit pixels removed from the observed
+centroid (`--cen_w intclean`), does the fast fit hold on noisy images without losing its clean
+accuracy? S36, painted start, `GP4@P`; rows in `benchmarks/grain_opt/go5o/` (noisy) and
+`go5o_clean/`; load 2.3-3.8 (higher than GO5m's 2.3-2.8).
+
+| arm | 1e-4 | 5e-4 | 1e-3 | orientation | s per grain |
+|---|---|---|---|---|---|
+| noisy CMA hybrid (GO5m, reference) | 2.5e-4 | 1.9e-4 | 2.8e-4 | 0.012 / 0.012 / 0.028 | 51 |
+| noisy fast fit, intensity centroids (GO5m) | 1.8e-4 | 2.7e-4 | 3.7e-4 | 0.014 / 0.017 / 0.025 | 27 |
+| noisy fast fit, `intclean` | 2.2e-4 | 2.3e-4 | 3.3e-4 | 0.016 / 0.022 / 0.025 | 26.4 |
+| clean fast fit (GO5l) | 1.3e-4 | 1.3e-4 | 2.1e-4 | 0.009 / 0.015 / 0.020 | 25 |
+| clean fast fit, `intclean` | 1.3e-4 | 1.4e-4 | 2.3e-4 | 0.010 / 0.014 / 0.018 | 24.9 |
+
+Verdicts by the rule written before the runs:
+
+- Noisy: strain within the limits (2.3e-4 and 3.3e-4 against 2.4e-4 and 3.5e-4), orientation
+  within 0.03 deg, but the mean time per grain is 26.4 s against the limit of 25.3 s (half the
+  noisy CMA hybrid's 50.5 s): the arm misses by 1.1 s (4%), at a higher machine load than the
+  reference run. Clean: no loss (1.4e-4 and 2.3e-4 against 1.7e-4 and 2.7e-4; orientation at
+  most 0.018 deg). I50 is answered no, on time alone.
+- Removing isolated pixels is the right direction: it takes the noisy strain at 5e-4 from 2.7e-4
+  to 2.3e-4 and at 1e-3 from 3.7e-4 to 3.3e-4 at no clean cost, but the fast fit on noisy images
+  is only about 1.2 x the noisy CMA hybrid's error at half its time, not better. On noisy images
+  the CMA hybrid (2.5 / 1.9 / 2.8e-4, 51 s) and the fast fit `intclean` (2.2 / 2.3 / 3.3e-4,
+  26 s) sit on the same frontier.
+- The strain line is time-boxed here (program balance, PLAN "GO6 onwards"). Open strain ideas
+  for later: a noise-aware residual weight per spot, windows rebuilt at the fitted strain.
