@@ -410,8 +410,12 @@ row, frame; 3 per spot), over the spots that have predicted mass at the start. P
 field's mean rotation (`theta[:3]`) and one strain (6); the field's gradient (`theta[3:]`) is
 fixed from the coverage field leg. Levenberg-Marquardt (Marquardt diagonal scaling, damping x10
 on a rejected step, /3 on an accepted one), finite-difference Jacobian (steps 1e-5 rad and
-1e-5, 9 extra predictions per iteration), Huber weights per spot (weight 1 up to 2 px, 2/|d|
-beyond), at most 15 iterations, stop when the step is below 1e-7.
+1e-5, 9 extra predictions per iteration), per-spot weights, at most 15 iterations per stage, stop
+when the step is below 1e-7. Weights: Tukey biweight with the cut-off annealed over three stages,
+3, 1.5 and 1 px (amendment before the judged runs: a one-grain smoke test with the first
+choice, Huber at 2 px, ended at a centroid cost below the ground truth's with 6e-4 strain error;
+spots merged with a neighbour's still pull under Huber; Tukey at 1 px gave 1.5-2.4e-4 on grains
+47, 111 and 237).
 
 Benchmark S36, painted start, robust start field; output `benchmarks/grain_opt/go5i/`. Arms
 (`--cost hyb --lam 8` so that `f_fit` and `f_gt` are hybrid costs):
