@@ -316,6 +316,51 @@ def test_stack_check_reads_the_ascii_frame_as_row_column(tmp_path: Path) -> None
     assert sorted(map(tuple, lit.tolist())) == [(7, 5), (1344, 886)]  # (k = row, j = column)
 
 
+import fine1_projection as PJ  # noqa: E402
+
+
+def test_eval_count_line_of_the_cpptrace_build_is_read() -> None:
+    text = "noise\n[cost evaluations] client 1: 43702331\nmore\n"
+    assert PJ.parse_eval_count(text) == 43702331
+    two = "[cost evaluations] client 1: 5\n[cost evaluations] client 2: 7\n"
+    assert PJ.parse_eval_count(two) == 12  # clients add up
+    assert PJ.parse_eval_count("a stock build prints nothing\n") is None
+
+
+def test_projection_formula_and_the_two_g_values() -> None:
+    p = PJ.project(t_g=10.0, n_slice_global=100, t_r=40.0, n_grains=250, n_touch=5)
+    assert p["G_low"] == 100 * 250 / 5 and p["G_high"] == pytest.approx(100 * 49.14)
+    # T = t_g G + t_r x 49.14, in hours
+    assert p["T_low_h"] == pytest.approx((10.0 * 5000 + 40.0 * 49.14) / 3600)
+    assert p["T_high_h"] == pytest.approx((10.0 * 4914 + 40.0 * 49.14) / 3600)
+    assert p["cap_h"] == pytest.approx(1.5 * p["T_high_h"])
+
+
+def test_launcher_has_a_flag_to_go_on_after_a_not_quiet_arm() -> None:
+    text = LAUNCH.read_text()
+    assert "--continue-contended" in text
+    # default unchanged: without the flag a not-quiet arm still stops with exit 5
+    assert "exit 5" in text
+
+
+def test_launcher_dry_run_reports_the_continue_flag(tmp_path: Path) -> None:
+    out = subprocess.run(
+        [
+            "bash",
+            str(LAUNCH),
+            "--stage",
+            "slice",
+            "--arms",
+            "PS",
+            "--dry-run",
+            "--continue-contended",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert out.returncode == 0 and "continue-contended on" in out.stdout
+
+
 def test_launcher_syntax_and_argument_guards() -> None:
     assert subprocess.run(["bash", "-n", str(LAUNCH)]).returncode == 0
     bad = subprocess.run(["bash", str(LAUNCH), "--stage", "mid"], capture_output=True)

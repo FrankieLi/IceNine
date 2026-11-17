@@ -101,7 +101,7 @@ def data_hashes(full: bool) -> Dict[str, Any]:
     return out
 
 
-def write(cs_binary: str) -> None:
+def write(cs_binary: str, refreeze_of: str = "", refreeze_note: str = "") -> None:
     gc = json.loads(P.GRID_CHECK.read_text())
     gr = json.loads(P.GRADIENT_CHECK.read_text())
     info = json.loads(P.SAMPLE_JSON.read_text())
@@ -155,6 +155,10 @@ def write(cs_binary: str) -> None:
         note="no method (PS, CS, J5S, CF) was run on fine7 or its slice, and no log or map of "
         "fine7 exists, before this file was committed",
     )
+    if refreeze_of:
+        old = json.loads(P.FROZEN.read_text())
+        d["proposed_cs_binary"] = old["proposed_cs_binary"]
+        d["refreeze"] = dict(previous_freeze_commit=refreeze_of, note=refreeze_note)
     P.FROZEN.write_text(json.dumps(d, indent=1) + "\n")
     print("wrote", P.FROZEN)
 
@@ -198,9 +202,9 @@ def problems(full: bool, outputs: bool) -> str:
                 return "an image frame differs from the frozen hash"
         elif saved["sha256"][k] != v:
             return f"{k} differs from the frozen hash"
-    if outputs and P.RUNS.exists():
+    if outputs and (P.RUNS / "whole").exists():  # the slice runs predate a re-freeze, by design
         t = commit_time()
-        for p in P.RUNS.rglob("*"):
+        for p in (P.RUNS / "whole").rglob("*"):
             if p.is_file() and int(p.stat().st_mtime) < t:
                 return f"{p} is older than the freeze commit"
     return ""
@@ -220,9 +224,11 @@ def main() -> None:
     ap.add_argument("--full", action="store_true", help="--check: hash every image frame")
     ap.add_argument("--outputs", action="store_true", help="--check: no output older than freeze")
     ap.add_argument("--cs-binary", default="", help="--write: the C++ binary proposed for CS")
+    ap.add_argument("--refreeze-of", default="", help="--write: commit of the freeze replaced")
+    ap.add_argument("--refreeze-note", default="", help="--write: why and what changed")
     a = ap.parse_args()
     if a.write:
-        write(a.cs_binary)
+        write(a.cs_binary, a.refreeze_of, a.refreeze_note)
     elif a.check:
         check_or_exit(a.full, a.outputs)
         print("freeze check passed")

@@ -19,6 +19,8 @@
 #   --pause S             seconds of rest before each timed run (default 120)
 #   --allow-contended     start a run even if the timing preflight refuses (labelled contended);
 #                         default: the preflight refusal stops the launcher (exit 3)
+#   --continue-contended  after a not-quiet arm (marker exit 5) go on to the next arm; the launcher
+#                         then exits 5 at the end (default: stop at once)
 #   --resume              skip arms whose <arm>.done marker exists; an arm that was started and has
 #                         no marker is moved to interrupted_<time>/ and run again from the start
 #                         (neither program can restart half-way: a run is one piece)
@@ -41,7 +43,7 @@
 set -u
 cd "$(dirname "$0")/../../.." || exit 99   # icenine_py/
 
-STAGE=""; ARMS=""; CPP_BIN=""; CF_BIN=""; CAPS=""; PAUSE=120; ALLOW=0; RESUME=0; DRY=0
+STAGE=""; ARMS=""; CPP_BIN=""; CF_BIN=""; CAPS=""; PAUSE=120; ALLOW=0; RESUME=0; DRY=0; CONT=0; NOTQUIET=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --stage) STAGE=$2; shift 2;;
@@ -51,6 +53,7 @@ while [ $# -gt 0 ]; do
     --cap-h) CAPS=$2; shift 2;;
     --pause) PAUSE=$2; shift 2;;
     --allow-contended) ALLOW=1; shift;;
+    --continue-contended) CONT=1; shift;;
     --resume) RESUME=1; shift;;
     --dry-run) DRY=1; shift;;
     *) echo "unknown argument $1" >&2; exit 64;;
@@ -101,7 +104,7 @@ marker() { # arm rc reason label
 }
 
 # ---- preconditions
-say "fine1 launch: stage $STAGE grid $GRID arms $ARMS dry=$DRY resume=$RESUME host load $(uptime | sed 's/.*averages: //')"
+say "fine1 launch: stage $STAGE grid $GRID arms $ARMS dry=$DRY resume=$RESUME continue-contended $([ "$CONT" = 1 ] && echo on || echo off) host load $(uptime | sed 's/.*averages: //')"
 uv run python $F1/fine1_freeze.py --check --full $([ "$DRY" = 1 ] || echo --outputs) \
   > "$LOGS/freeze_check_$STAGE.log" 2>&1
 RC=$?
@@ -228,7 +231,9 @@ run_arm() { # arm
   else
     LABEL="contended (the run was not quiet: load limit $LIMIT, see $R/quiet.json)"
     marker "$arm" 5 "not quiet; relabelled contended; stop, no rerun" "$LABEL"
-    say "arm $arm: $LABEL"; exit 5
+    say "arm $arm: $LABEL"
+    if [ "$CONT" = 1 ]; then NOTQUIET=1; return 0; fi
+    exit 5
   fi
   marker "$arm" 0 "done" "$LABEL"
   say "arm $arm: DONE ($(cat "$RUNS/$arm.done"))"
@@ -238,5 +243,6 @@ for arm in $(echo "$ARMS" | tr ',' ' '); do
   run_arm "$arm"
 done
 say "all arms of stage $STAGE finished"
+[ "$NOTQUIET" = 1 ] && { say "at least one arm was not quiet (labelled contended)"; exit 5; }
 [ "$DRY" = 1 ] && say "dry run: nothing was started"
 exit 0
