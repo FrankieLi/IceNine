@@ -2173,3 +2173,16 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   runs before the freeze. Nothing merges to develop. Where: reports
   .claude/reports/20261116-1335-cppchk-phaseA.md and 20261116-1429-cppchk-phaseB.md; branches
   feature/eval-reduction-cppchk 748d0111, feature/eval-reduction-cpptrace ae912cf9.
+
+### D-20261116-N6 · Owner task 16 Nov part 2: slice cap · fine1: stock Python slice rerun with an 8-hour cap
+- 2026-11-16, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. The stock Python (PS) slice on fine7 hit the
+  launcher's default 1-hour slice cap (3,632 s; all 2,000 voxels recorded by 3,002 s, then still
+  in reseeds, 125 so far). The 1-hour cap was a guess of the plan, not a cap from a projection.
+  The owner's spec needs a finished slice to project the whole-layer time, so PS is run again from
+  the start with an 8-hour cap; the capped run is kept (PS.cap1h.marker, slice_PS.cap1h.log) and
+  reported. Then the fixed C++ slice (CF, fixed2 build, 2-hour cap). One run at a time (owner, 16
+  Nov). Slices done: CS 2,595 s, J5S 65 s (184,661 evaluations in its stages), both labelled
+  contended. A PS slice over 1 hour makes a whole-layer PS run over 48 hours likely: the owner is
+  asked before it starts. Where: icenine_py/docs/autoresearch/PLAN.md (Owner task of 16 Nov, part
+  2).
