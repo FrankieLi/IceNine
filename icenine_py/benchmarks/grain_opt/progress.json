@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-16 19:40 PST",
+ "updated": "2026-11-16 19:50 PST",
  "steps": [
   {
    "id": "GO0",
@@ -192,6 +192,14 @@
    "status": "done",
    "date": "2026-11-16",
    "result": "Ray pairing cached per sample (corr3 19 min, rand 48 min, once; loads in 0.01 s). Ladder + seed path on voxels with strict cost > 0.15: voxels above 0.1 deg at 0.5/1/2/5 deg corr3 3/5/9/36% (was 3/9/31/72%), rand 26/15/52/44% (was 48/53/77/83%), at 0.3/0.6 s per voxel. I36 yes.",
+   "commit": ""
+  },
+  {
+   "id": "GO7",
+   "title": "Rocking curve on the images (G2b, part 1)",
+   "status": "done",
+   "date": "2026-11-16",
+   "result": "Emulated rocking (alpha 0.3 and 1.0 deg; 11% and 100% of lit pixels spread past one frame): grain-field strict fit on G20 keeps its median (0.0149, 0.0134 against 0.0146 deg) but loses one grain to the acceptance gate (20 of 853 voxels above 0.1 deg against 3). Harm by the rule; the model needs no rocking curve to find orientations, the strict-cost gate becomes less reliable.",
    "commit": ""
   }
  ],

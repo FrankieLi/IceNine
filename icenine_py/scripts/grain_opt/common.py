@@ -106,7 +106,7 @@ class Sample:
         self.tag = sample
         if sample == "grad":
             self.T: Any = G.Truth()
-            grid, stack_name = G.GRID_MIC, G.STACK
+            grid, stack_name = G.GRID_MIC, stack or G.STACK
         else:
             self.T = SampleTruth(sample)
             grid, stack_name = self.T.grid_mic, stack or f"{sample}_clean.npy"

@@ -158,6 +158,7 @@ def main() -> None:
     ap.add_argument("--name", required=True)
     ap.add_argument("--pipeline", required=True)
     ap.add_argument("--sample", default="grad")
+    ap.add_argument("--stack", default=None, help="GO7: image stack in place of the sample's clean one")
     ap.add_argument("--start", default="paint")
     ap.add_argument("--grains", type=int, default=20)
     ap.add_argument("--true-grains", type=int, nargs="*", default=None)
@@ -169,7 +170,7 @@ def main() -> None:
     a = ap.parse_args()
     stages = parse(a.pipeline)
     out = CM.OUT / "runs" / a.name
-    S = CM.Sample(out, start=a.start, sample=a.sample)
+    S = CM.Sample(out, start=a.start, sample=a.sample, stack=a.stack)
     T = S.T
     gm = np.asarray(T.gmap)
     lab = GF.group_grains(S.R0, S.nb, S.sym, 2.0) if a.group == "flood" else gm.copy()

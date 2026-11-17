@@ -1,0 +1,50 @@
+{
+ "go7_clean_As100": {
+  "stages": "Astrict/100",
+  "renders_per_voxel": 113.0,
+  "wall_s": 3.397934675216675,
+  "ms_per_voxel": 3.140420217390642,
+  "accepted": [
+   17
+  ],
+  "n": 853,
+  "k_gt01": 3,
+  "median": 0.014558597293219178,
+  "p95": 0.03496901604374043,
+  "k_wrong": 3,
+  "n_all": 1082,
+  "k_gt01_all": 8
+ },
+ "go7_grad_rock03_As100": {
+  "stages": "Astrict/100",
+  "renders_per_voxel": 113.0,
+  "wall_s": 3.4330077171325684,
+  "ms_per_voxel": 3.172835228403483,
+  "accepted": [
+   16
+  ],
+  "n": 853,
+  "k_gt01": 20,
+  "median": 0.014878754657933708,
+  "p95": 0.040501734571850495,
+  "k_wrong": 3,
+  "n_all": 1082,
+  "k_gt01_all": 28
+ },
+ "go7_grad_rock10_As100": {
+  "stages": "Astrict/100",
+  "renders_per_voxel": 113.0,
+  "wall_s": 3.4381039142608643,
+  "ms_per_voxel": 3.1775452072651245,
+  "accepted": [
+   18
+  ],
+  "n": 853,
+  "k_gt01": 20,
+  "median": 0.01343991365522749,
+  "p95": 0.0405153999394467,
+  "k_wrong": 3,
+  "n_all": 1082,
+  "k_gt01_all": 28
+ }
+}

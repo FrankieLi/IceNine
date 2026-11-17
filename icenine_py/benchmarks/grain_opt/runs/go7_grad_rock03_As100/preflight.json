@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-11-16T19:34:46",
+  "host": "ilium.local",
+  "loadavg": [
+    3.27978515625,
+    2.9541015625,
+    3.31884765625
+  ],
+  "cpu_count": 10,
+  "power": "ac",
+  "omp_num_threads": "1",
+  "mkl_num_threads": "1",
+  "torch_threads": 1,
+  "busy_processes": [
+    {
+      "pid": 20247,
+      "cpu": 84.0,
+      "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+    }
+  ]
+}

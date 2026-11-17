@@ -213,3 +213,18 @@ became AR6 on 2026-11-16 at the owner's request.
   ray-indexing seed path is cheap, then the gated global search for voxels whose strict cost
   stays high after the ladder, on `rand` / `corr3` at 2 and 5 deg (GO4c: L/366/3 leaves 31% and
   72% of corr3 voxels above 0.1 deg there).
+
+## Now as of GO4d close (2026-11-16 19:40 PST)
+
+- **GO4d closed** (2026-11-16 19:40 PST, G1b): the ray pairing is cached per sample
+  (`ray_cache.py`; `observed_rays.npz` in `corr3/` and `rand/`); `L/366/3,G/15/0.15` takes the
+  share of voxels above 0.1 deg at 0.5 / 1 / 2 / 5 deg to 3 / 5 / 9 / 36% on corr3 (was 3 / 9 /
+  31 / 72%) and 26 / 15 / 52 / 44% on rand (was 48 / 53 / 77 / 83%), 0.3 / 0.6 s per voxel. I36
+  yes. `findings.md` "GO4d".
+- Strain line time-boxed after GO5o (CMA hybrid; fast fit `GP4@P`; `COSTS.md`, strain chart).
+- **Program order** (owner via the coordinator, 2026-11-16; PLAN "GO6 onwards"): (1) G1b done
+  for now (I51 open), (2) G2b (I23, I24), (3) G2c (I25-I27), (4) G2a (I18, I22).
+- **Next action:** plan and run GO7 (G2b, I23): rocking curve alpha > 0, spots spread over
+  frames; first find whether the renderer and `SpotModel` support it, then render a sample with
+  alpha > 0 and measure what the grain fit and the strict cost lose and whether sub-frame omega
+  from frame ratios helps.

@@ -1,0 +1,1 @@
+{"tag": "grad", "alpha_deg": 0.3, "frame_width_deg": 1.0000000000000013, "threshold": 62203.0, "lit_clean": 9444080, "lit_rock": 10113665, "share_pixels_window_over_1_frame": 0.11486026486914795, "stack": "/Users/sfli/Research/IceNine/.claude/worktrees/grain-opt/Examples/Example2.ManyGrains/ScatteringData_PhaseD/stacks/grad_rock03_clean.npy"}

@@ -794,3 +794,34 @@ Verdicts by the rule written before the runs:
   and the strict cost there is often below the gate.
 - Next for G1b (later): a second pass with the improved neighbours as candidates (N stage after
   G), and a gate on the neighbour disagreement as well as the strict cost.
+
+## GO7: rocking curve on the images (goal G2b, idea I23, part 1)
+
+Question: how much does the orientation fit lose when the images have a rocking curve (spots
+spread over omega frames by alpha / |sin eta|) but the forward model does not? Images emulated
+from the clean `grad` intensities (`rock_stack.py`: overlap-weighted spread over frames, window
+centred on the frame centre, capped at 8 frames, threshold at the 5th percentile of the clean
+intensities). G20, painted start, `Astrict/100`; tables `benchmarks/grain_opt/go7/g20.md`.
+
+| images | lit pixels | pixels spread past 1 frame | above 0.1 deg (853 C voxels) | median deg | grains rejected by the gate |
+|---|---|---|---|---|---|
+| clean | 9.44M | 0 | 3 (0.1 to 1.0%) | 0.0146 | 3 (37, 493, 64) |
+| alpha 0.3 deg | 10.11M | 11% | 20 (1.5 to 3.6%) | 0.0149 | 4 (37, 493, 64, 197) |
+| alpha 1.0 deg | 12.61M | 100% | 20 (1.5 to 3.6%) | 0.0134 | 2 (64, 197) |
+
+Verdicts by the rule written before the runs:
+
+- By the rule the rocking curve harms the fit at both alphas: the share above 0.1 deg has a
+  Wilson interval entirely above the clean arm's (20 of 853 against 3). The median does not move
+  (0.0149 and 0.0134 against 0.0146).
+- The whole difference is one grain: grain 197 (54 voxels, 20 of them above 0.1 deg at the
+  painted start) has its fitted stage rejected by the acceptance gate (mean strict cost must not
+  get worse) under both rocking images, so it stays at the painted start. Every accepted grain
+  fits as well as on clean images; at alpha 1.0 two grains the gate rejected on clean images
+  (37, 493) are accepted.
+- The mean strict cost rises with alpha (0.084 clean, 0.107, 0.144 after the fit): spreading
+  weak spots over frames drops them below the threshold, so more predicted pixels land on unlit
+  pixels. The single-frame model still finds the right orientation; the gate, which compares
+  strict costs, is what becomes less reliable.
+- Part 2 (a forward model with a rocking curve, sub-frame omega from frame ratios) changes
+  `icenine/` and needs the owner's approval; given how little part 1 lost, it is low priority.
