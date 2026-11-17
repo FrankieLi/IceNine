@@ -964,3 +964,29 @@ Verdicts by the rule written before the runs:
 - rand at 2 deg keeps 43% wrong (above 1 deg) after all of this. Next (G1b, a diagnosis step):
   are those voxels gated, and is their strict cost at the ground truth lower than at their end
   (is it the search or the objective that fails)?
+
+## GO4f: why voxels stay wrong after the G1b pipeline (diagnosis)
+
+For the voxels still more than 1 deg from the ground truth after `L/366/3,G/15/0.15,N/30/0.3`
+(`go4f_diag.py`; `benchmarks/grain_opt/go4f/`): gated by the seed path, lowered by it, and
+strict cost at the ground truth against the end (medians).
+
+| sample, level | wrong / n | gated | strict lowered by the seed path | ground truth lower than the end | strict at the ground truth / end |
+|---|---|---|---|---|---|
+| rand, 0.5 deg | 5 / 269 | 4 | 3 | 5 | 0.087 / 0.178 |
+| rand, 1 deg | 20 / 277 | 20 | 15 | 20 | 0.083 / 0.277 |
+| rand, 2 deg | 106 / 244 | 106 | 57 | 106 | 0.079 / 0.393 |
+| rand, 5 deg | 98 / 253 | 98 | 81 | 98 | 0.065 / 0.405 |
+| corr3, 2 deg | 9 / 244 | 9 | 8 | 9 | 0.068 / 0.398 |
+| corr3, 5 deg | 68 / 253 | 68 | 56 | 68 | 0.066 / 0.399 |
+
+- Every remaining wrong voxel (but one at rand 0.5 deg) was gated, and for every one the strict
+  cost at the ground truth is far lower than at its end (about 0.07-0.09 against 0.18-0.41): the
+  failures are search failures, not objective failures. The strict cost would accept the ground
+  truth; the seed path's candidates (top 20 from indexing, strict cost on 5, finisher on 2) do not
+  contain it, often because a voxel's attached rays are dominated by its neighbours' spots.
+- The seed path lowered the strict cost of about half (rand 2 deg) to most (5 deg) of these
+  voxels without reaching the ground truth: it lands on a better wrong orientation.
+- Next (I54): widen the search for gated voxels the seed path leaves above the gate: more
+  indexing candidates through the strict cost (top 20 all costed, finisher on 5), then the
+  reconstructor's grid-search fallback (`grid_seed`) for those still above the gate.

@@ -778,6 +778,15 @@ cheaper passing arm is preferred. Shares, wrong (above 1 deg) and ms per voxel r
 Budget: GO4d took 5-12 minutes per run; N/30 adds about 0.01 s per voxel and a second seed pass
 up to the first's cost; 4 runs in parallel, under 30 minutes.
 
+### GO4f: why voxels stay wrong after the G1b pipeline (goal G1b, diagnosis)
+
+Diagnosis only, no arms and no judging rule (this section was written at the step's close; the
+question was set in STATE.md before the run): for the voxels still more than 1 deg from the
+ground truth after `L/366/3,G/15/0.15,N/30/0.3` (GO4e), were they gated by the seed path, did it
+lower their strict cost, and is the strict cost at the ground truth lower than at their end
+(search failure) or not (objective failure)? `scripts/grain_opt/go4f_diag.py`, output
+`benchmarks/grain_opt/go4f/`.
+
 ### GO6 onwards
 
 Program balance (owner via the coordinator, 2026-11-16): GO5b to GO5o were all G1c strain. After

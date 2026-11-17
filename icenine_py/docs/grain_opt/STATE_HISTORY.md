@@ -284,3 +284,16 @@ became AR6 on 2026-11-16 at the owner's request.
 - **Next action:** while G2c waits, plan and run GO4e (G1b, I51): after the gated seed path, a
   neighbour continuation from the improved voxels (`L/366/3,G/15/0.15,N/30/0.3`) and/or a gate on
   neighbour disagreement, on corr3 / rand (GO4d left rand 2 deg at 52%).
+
+## Now as of GO4e close (2026-11-16 20:35 PST)
+
+- **GO4e closed** (2026-11-16 20:35 PST, G1b I51): a neighbour pass after the gated seed path
+  gains 1-4 points everywhere (best pipeline now `L/366/3,G/15/0.15,N/30/0.3`: corr3 2 / 4 / 9 /
+  33%, rand 25 / 13 / 48 / 41% above 0.1 deg at 0.5 / 1 / 2 / 5 deg); a second seed pass adds
+  nothing. I51 no.
+- GO9/GO9b (G2a): Poisson deviance best smooth objective, I18 / I22 no. GO7-7c (G2b).
+- **Owner item:** G2c (I25 GNLayerNet) needs a dataset, training and an implementer (approval in
+  DECISIONS.md); asked 2026-11-16 20:15 PST. Waiting.
+- **Next action:** GO4f (G1b diagnosis): on rand at 2 deg after the best pipeline, for the voxels
+  still wrong: were they gated, did the seed path return a candidate, and is the strict cost at
+  the ground truth lower than at their end (search failure or objective failure)?

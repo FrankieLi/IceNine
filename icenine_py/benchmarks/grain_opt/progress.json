@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-16 20:35 PST",
+ "updated": "2026-11-16 20:45 PST",
  "steps": [
   {
    "id": "GO0",
@@ -240,6 +240,14 @@
    "status": "done",
    "date": "2026-11-16",
    "result": "Adding N/30/0.3 after L/366/3,G/15/0.15: corr3 2/4/9/33% and rand 25/13/48/41% above 0.1 deg at 0.5/1/2/5 deg (was 3/5/9/36% and 26/15/52/44%), +1% time; a second seed pass adds nothing. I51 no (rand 2 deg target 35%).",
+   "commit": ""
+  },
+  {
+   "id": "GO4f",
+   "title": "Why voxels stay wrong after the G1b pipeline (diagnosis)",
+   "status": "done",
+   "date": "2026-11-16",
+   "result": "Every voxel still wrong after ladder + seed path + neighbour pass was gated, and its strict cost at the ground truth is far lower than at its end (rand 2 deg: 0.079 against 0.393): search failures, not objective failures. The seed candidates miss the ground truth. Next: wider search (I54).",
    "commit": ""
   }
  ],
