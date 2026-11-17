@@ -129,3 +129,14 @@ became AR6 on 2026-11-16 at the owner's request.
   residuals for strain and mean rotation, the field gradient fixed from the coverage field leg;
   judge on S36 against `hyb` lambda 8 (strain, orientation, wall time). Then GO6 or the cached
   ray index.
+
+## Now as of GO5i close (2026-11-16 16:30 PST)
+
+- **GO5i closed** (2026-11-16 16:30 PST): Gauss-Newton on centroid residuals (`--arm GN@P`,
+  Tukey weights 3 / 1.5 / 1 px) gives strain 1.2 / 1.3 / 2.9e-4 on S36 at 10 s per grain (CMA
+  hybrid 2.3 / 1.5 / 2.1e-4 at 53 s), but orientation 0.021 / 0.039 deg at 5e-4 / 1e-3: the
+  field gradient comes from the zero-strain coverage leg. I44 second part no. `findings.md`.
+- GO5h: CMA hybrid confirmed on 36 grains. GO5g: hybrid introduced.
+- **Next action:** plan and run GO5j (I45): alternate a field-gradient refit on coverage at the
+  Gauss-Newton strain with Gauss-Newton (two rounds); S36, judged like GO5i against the CMA
+  hybrid (strain, orientation at most 0.02 deg, half the time). Then GO6 or the cached ray index.

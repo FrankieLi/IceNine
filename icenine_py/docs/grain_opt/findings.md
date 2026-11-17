@@ -575,3 +575,35 @@ Verdicts by the rule written before the runs:
   0.25 deg, 485 0.16 deg).
 - Next (I45): alternate, refit the field gradient on coverage at the Gauss-Newton strain, then
   Gauss-Newton again (two rounds); judged like GO5i.
+
+## GO5j: alternate field-gradient refit and Gauss-Newton (idea I45)
+
+Question: does refitting the field gradient on coverage at the Gauss-Newton strain (CMA 100 over
+`theta[3:]`), then Gauss-Newton again, fix GO5i's orientation and match the CMA hybrid at half
+its time? S36, painted start; rows in `benchmarks/grain_opt/go5j/*_S36.json`; load 2.3-2.8.
+
+| arm | 1e-4 | 5e-4 | 1e-3 | orientation | s per grain |
+|---|---|---|---|---|---|
+| GO5h CMA hybrid (reference) | 2.3e-4 | 1.5e-4 | 2.1e-4 (p75 5.7e-4) | 0.011 / 0.009 / 0.017 | 53 |
+| GO5i `GN@P` | 1.2e-4 | 1.3e-4 | 2.9e-4 (p75 7.6e-4) | 0.010 / 0.021 / 0.039 | 10 |
+| `GA1@P` one round | 1.2e-4 | 1.4e-4 | 3.1e-4 (p75 7.6e-4) | 0.011 / 0.013 / 0.032 | 17 |
+| `GA2@P` two rounds | 1.2e-4 | 1.2e-4 | 3.1e-4 (p75 7.5e-4) | 0.009 / 0.014 / 0.034 | 24 |
+
+Verdicts by the rule written before the runs:
+
+- I45 is answered no: both arms meet the time and the 5e-4 limits (orientation 0.013-0.014 deg,
+  fixed by the gradient refit) but miss at 1e-3 (strain 3.1e-4 against 2.7e-4, orientation
+  0.032-0.034 deg against 0.02).
+- At 1e-3 the failures are a few grains, and their pattern points at the Gauss-Newton loss, not
+  the gradient: grains 452, 0, 485 and 349 end with strain errors 6e-4 to 4.5e-3 while the
+  weighted centroid cost falls to about 0. The Tukey weights are recomputed every iteration, so
+  Gauss-Newton can "escape" by pushing residuals past the 1 px cut-off, where they no longer
+  count. These grains also have few usable spots (18 to 35, against 50 to 90 elsewhere): strain
+  of 1e-3 moves many spots out of the windows built at the unstrained start.
+- On the grains with enough spots, Gauss-Newton with the gradient refit is as good as the CMA
+  hybrid or better (e.g. 439 8e-5 against 1.5e-4, 167 8e-5 against 2.0e-4) at less than half
+  the time.
+- Next (I46): stop the escape. Freeze each stage's inlier set and weights at the stage start,
+  require at least half the spots as inliers (else keep the previous stage), and fall back to
+  the CMA hybrid for grains with too few spots; also rebuild the spot windows at the fitted
+  strain.

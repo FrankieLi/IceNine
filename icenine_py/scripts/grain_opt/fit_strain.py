@@ -9,6 +9,9 @@ mass on lit pixels, mean over the grain's spots (GO5 "coverage"). Spot windows a
 strain. Parameters: grain field (FieldA order 1, 9 numbers) and one crystal-frame strain per
 grain (6). CMA with per-coordinate steps 0.05 deg (field) and 5e-4 (strain), strain from 0.
 
+GO5j (I45): ``GA1@P`` / ``GA2@P``: ``GN@P`` plus one or two rounds of (gradient-only CMA 100 on
+coverage at the Gauss-Newton strain, then Gauss-Newton again).
+
 GO5i (I44): arms ``GN@P`` (coverage field leg, then Levenberg-Marquardt on per-spot centroid
 residuals over the mean rotation and strain, ``gn_fit``) and ``GNH@P`` (then one joint CMA leg of
 300 on the main cost at 0.01 deg and 1e-4).
@@ -297,6 +300,7 @@ def robust_theta0(prob: Any, sym: np.ndarray, tol_deg: float = 1.5) -> Any:
     return prob.field.fit_theta(Rc, sym), int(out.sum())
 
 
+GN_ARMS = ("GN@P", "GNH@P", "GA1@P", "GA2@P")
 SEED = 0  # GO5e: offset added to every CMA seed (--seed)
 
 
@@ -347,6 +351,8 @@ def main() -> None:
             "Sx@P",
             "GN@P",
             "GNH@P",
+            "GA1@P",
+            "GA2@P",
         ],
     )
     ap.add_argument("--out", default="go5b")
@@ -402,7 +408,7 @@ def main() -> None:
         cov_f = cov_e = cov_j = cov  # field leg, strain-only leg, joint legs
         if a.arm == "Sx@P":  # GO5g by role: field on coverage, strain on centroids, joint hybrid
             cov_f, cov_e, cov_j = Coverage(prob), SubPix(prob, "cen"), Hybrid(prob, 2.0)
-        if a.arm in ("GN@P", "GNH@P"):  # GO5i: field leg on coverage, then Gauss-Newton
+        if a.arm in GN_ARMS:  # GO5i: field leg on coverage, then Gauss-Newton
             cov_f = Coverage(prob)
         zero = torch.zeros((n, 6), dtype=GF.DT)
         # ground truth in the fitted symmetry representative (that of prob.R_start), the same
@@ -454,20 +460,28 @@ def main() -> None:
             def stds(rot: float, eps: float) -> np.ndarray:
                 return np.concatenate([np.full(k, rot), np.full(6, eps)])
 
-            if a.arm in ("GN@P", "GNH@P"):  # GO5i: Gauss-Newton on centroid residuals
-                cen_o, q, info["gn"] = (
-                    SubPix(prob, "cen"),
-                    np.concatenate([th0[:3], np.zeros(6)]),
-                    [],
-                )
-                for c_px in (3.0, 1.5, 1.0):  # Tukey cut-off annealed (plan amendment)
-                    th_c = np.array(th0, float)
-                    th_c[:3] = q[:3]
-                    q, gi = gn_fit(cen_o, field, th_c, q[3:], n, c=c_px)
-                    info["gn"].append(dict(gi, c=c_px))
-                th_g = np.array(th0, float)
-                th_g[:3] = q[:3]
-                xg = np.concatenate([th_g, q[3:]])
+            if a.arm in GN_ARMS:  # GO5i: Gauss-Newton on centroid residuals (GO5j: + rounds)
+                cen_o, th_cur = SubPix(prob, "cen"), np.array(th0, float)
+                q, info["gn"], info["grad"] = np.concatenate([th0[:3], np.zeros(6)]), [], []
+                for rd in range({"GA1@P": 1, "GA2@P": 2}.get(a.arm, 0) + 1):
+                    if rd > 0:  # GO5j: gradient refit on coverage at the Gauss-Newton strain
+                        eps_t, base = eps_of(q[3:]), th_cur.copy()
+
+                        def fgrad(gv: np.ndarray, base: Any = base, eps_t: Any = eps_t) -> float:
+                            t = base.copy()
+                            t[3:] = gv
+                            return cov_f(field.orientations(torch.as_tensor(t, dtype=GF.DT)), eps_t)
+
+                        rg = cma_min(fgrad, base[3:], np.full(k - 3, math.radians(0.01)), 100)
+                        th_cur[3:] = rg["x"]
+                        info["grad"].append({k_: rg[k_] for k_ in ("f0", "f", "evals", "stop")})
+                    for c_px in (3.0, 1.5, 1.0):  # Tukey cut-off annealed (GO5i amendment)
+                        th_c = th_cur.copy()
+                        th_c[:3] = q[:3]
+                        q, gi = gn_fit(cen_o, field, th_c, q[3:], n, c=c_px)
+                        info["gn"].append(dict(gi, c=c_px, round=rd))
+                    th_cur[:3] = q[:3]
+                xg = np.concatenate([th_cur, q[3:]])
                 if a.arm == "GNH@P":
                     r = cma_min(fj, xg, stds(math.radians(0.01), 1e-4), 300)
                 else:
