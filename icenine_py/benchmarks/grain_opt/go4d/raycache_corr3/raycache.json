@@ -1,0 +1,13 @@
+{
+ "sample": "corr3",
+ "rays": 426061,
+ "n_spots": [
+  475861,
+  530208
+ ],
+ "n_candidates": 1752524,
+ "seconds": 1152.438925125,
+ "loaded": false,
+ "reload_equal": true,
+ "file": "/Users/sfli/Research/IceNine/.claude/worktrees/grain-opt/Examples/Example2.ManyGrains/ScatteringData_PhaseD/corr3/observed_rays.npz"
+}

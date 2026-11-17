@@ -228,8 +228,12 @@ def main() -> None:
             elif kind == "G":  # gated global search (ray-indexing seed path) for high-cost voxels
                 thr = float(obj) if obj else float(n) / 100.0
                 if hooks is None:
+                    import ray_cache as RC  # GO4d: paired rays from the per-sample cache
+
                     from icenine import grain_paint as GP
 
+                    _sc, t_rc, loaded = RC.ensure(S, a.sample)
+                    print(json.dumps(dict(ray_cache_s=t_rc, loaded=loaded)), flush=True)
                     hooks = GP.ReconstructorHooks(S.bfs, S.mic, np.random.default_rng(0))
                 R_new = R_now.copy()
                 ev_tot, n_gate, n_found = 0, 0, 0

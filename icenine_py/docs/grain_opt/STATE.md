@@ -5,20 +5,18 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO5o closed** (2026-11-16 18:35 PST): intensity-weighted centroids with isolated lit pixels
-  removed (`--cen_w intclean`) bring the noisy fast fit to 2.2 / 2.3 / 3.3e-4 (clean unchanged),
-  but at 26.4 s per grain against the 25.3 s limit: I50 no, on time alone. Strain line
-  time-boxed. Strain chart on the page (`strain_pareto.py` -> `strain_pareto.json`).
-- Strain summary: CMA hybrid `cen` + 8 x coverage (clean 2.2 / 1.5 / 2.1e-4, noisy 2.5 / 1.9 /
-  2.8e-4, 51 s); fast fit `GP4@P` (clean 1.3 / 1.3 / 2.1e-4, 25 s; noisy with `intclean` 2.2 /
-  2.3 / 3.3e-4, 26 s). `COSTS.md`.
-- **Program order** (owner via the coordinator, 2026-11-16; PLAN "GO6 onwards"): (1) G1b, (2) G2b
-  (I23, I24), (3) G2c (I25-I27), (4) G2a (I18, I22). At most one more strain step unless a
-  result demands it.
-- **Next action:** plan and run GO4d (G1b, I36): cache the ray index per sample so the
-  ray-indexing seed path is cheap, then the gated global search for voxels whose strict cost
-  stays high after the ladder, on `rand` / `corr3` at 2 and 5 deg (GO4c: L/366/3 leaves 31% and
-  72% of corr3 voxels above 0.1 deg there).
+- **GO4d closed** (2026-11-16 19:40 PST, G1b): the ray pairing is cached per sample
+  (`ray_cache.py`; `observed_rays.npz` in `corr3/` and `rand/`); `L/366/3,G/15/0.15` takes the
+  share of voxels above 0.1 deg at 0.5 / 1 / 2 / 5 deg to 3 / 5 / 9 / 36% on corr3 (was 3 / 9 /
+  31 / 72%) and 26 / 15 / 52 / 44% on rand (was 48 / 53 / 77 / 83%), 0.3 / 0.6 s per voxel. I36
+  yes. `findings.md` "GO4d".
+- Strain line time-boxed after GO5o (CMA hybrid; fast fit `GP4@P`; `COSTS.md`, strain chart).
+- **Program order** (owner via the coordinator, 2026-11-16; PLAN "GO6 onwards"): (1) G1b done
+  for now (I51 open), (2) G2b (I23, I24), (3) G2c (I25-I27), (4) G2a (I18, I22).
+- **Next action:** plan and run GO7 (G2b, I23): rocking curve alpha > 0, spots spread over
+  frames; first find whether the renderer and `SpotModel` support it, then render a sample with
+  alpha > 0 and measure what the grain fit and the strict cost lose and whether sub-frame omega
+  from frame ratios helps.
 
 ## Running jobs
 
@@ -30,6 +28,8 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
   `.claude/worktrees/agent-a58fece2962bad42f` (stack, `strain/` folder, sample `truth.mic` and
   `grid.mic`): do not remove that worktree.
 - `rand`, `corr3` stacks and stores: `.../stacks/<tag>_clean.npy`, `.../<tag>/intensity_clean.npz`.
+- Ray caches (GO4d): `.../corr3/observed_rays.npz`, `.../rand/observed_rays.npz` (paired observed
+  rays; rebuild with `ray_cache.py --sample <s>`, 19 / 48 min).
 - `strainrn` (GO5m): noisy `strain` images, `.../stacks/strainrn_clean.npy` and
   `.../strainrn/intensity_clean.npz`, built in this worktree with `build_store.py --tag strain
   --variant realistic_nodrop --out_tag strainrn` (reads the GO5 worktree's render; 3 s).

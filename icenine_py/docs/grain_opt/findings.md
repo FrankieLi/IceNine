@@ -753,3 +753,44 @@ Verdicts by the rule written before the runs:
   26 s) sit on the same frontier.
 - The strain line is time-boxed here (program balance, PLAN "GO6 onwards"). Open strain ideas
   for later: a noise-aware residual weight per spot, windows rebuilt at the fitted strain.
+
+## GO4d: cached ray index and the gated global search (goal G1b, idea I36)
+
+Question: with the paired observed rays cached per sample, does the reconstructor's ray-indexing
+seed path, run on voxels whose strict cost stays high after the ladder, recover the deformed
+grains the ladder leaves wrong at 2 and 5 deg?
+
+Part A (`ray_cache.py`): the one-time pairing took 1,152 s on `corr3` (426,061 rays from
+475,861 + 530,208 spots) and 2,873 s on `rand` (623,313 rays); the saved arrays reload equal and
+load in 0.01 s, so `index_seed` no longer pays the pairing per process.
+
+Part B: `run_pipeline.py --start centre --group true`, 1,043 voxels per sample; tables
+`benchmarks/grain_opt/go4d/{corr3,rand}.md`. Reading line: share of voxels more than 0.1 deg from
+the ground truth (wrong, above 1 deg) per level; ms per voxel for the whole pipeline.
+
+| sample, arm | 0.5 deg | 1 deg | 2 deg | 5 deg | gated / improved | ms / voxel |
+|---|---|---|---|---|---|---|
+| corr3, `L/366/3` (GO4c) | 3% (0%) | 9% (0%) | 31% (10%) | 72% (69%) | | 35 |
+| corr3, `L/366/3,G/15/0.15` | 3% (0.4%) | 5% (0.4%) | 9% (4%) | 36% (28%) | 290 / 262 | 285 |
+| corr3, `L/366/3,G/10/0.10` | 2% (0.4%) | 4% (0.4%) | 9% (4%) | 36% (28%) | 420 / 321 | 373 |
+| rand, `L/366/3` (GO4c) | 48% (3%) | 53% (36%) | 77% (75%) | 83% (83%) | | 36 |
+| rand, `L/366/3,G/15/0.15` | 26% (2%) | 15% (7%) | 52% (47%) | 44% (42%) | 637 / 541 | 592 |
+| rand, `L/366/3,G/10/0.10` | 20% (2%) | 15% (7%) | 52% (47%) | 44% (42%) | 751 / 594 | 686 |
+
+Verdicts by the rule written before the runs:
+
+- I36 is answered yes for both arms: at 5 deg the share above 0.1 deg falls from 72% to 36% on
+  corr3 (limit 48%) and from 83% to 44% on rand (limit 55%), and every level improves (rand at 1
+  deg 53% -> 15%; corr3 at 2 deg 31% -> 9%). The cheaper arm, threshold 0.15, is preferred: the
+  lower threshold gates 30% more voxels and changes only rand at 0.5 deg (26% -> 20%).
+- Cost: about 0.3 s (corr3) and 0.6 s (rand) per voxel of the sample, against 0.035 s for the
+  ladder alone; the seed path is about 1 s per gated voxel. The objective-evaluation count per
+  voxel is large (1,100 and 3,500: the finisher runs FindOptimal), so this arm sits far right on
+  the Pareto chart; wall time is the fairer measure.
+- What remains: corr3 5 deg 28% wrong, rand 2 deg 47% and 5 deg 42% wrong. The 95th percentile
+  error rises to 45 deg: some gated voxels take a seed from another grain (a lower strict cost
+  at a wrong orientation, often a voxel the neighbours' spots dominate). rand at 2 deg is the
+  weakest level (52%, worse than its 5 deg), where the ladder's end is near but outside the basin
+  and the strict cost there is often below the gate.
+- Next for G1b (later): a second pass with the improved neighbours as candidates (N stage after
+  G), and a gate on the neighbour disagreement as well as the strict cost.

@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-16 18:35 PST",
+ "updated": "2026-11-16 19:40 PST",
  "steps": [
   {
    "id": "GO0",
@@ -184,6 +184,14 @@
    "status": "done",
    "date": "2026-11-16",
    "result": "Fast fit with isolated lit pixels removed from intensity-weighted centroids: noisy strain 2.2/2.3/3.3e-4 (before 1.8/2.7/3.7e-4), orientation <= 0.025 deg, but 26.4 s per grain against the 25.3 s limit; clean unchanged (1.3/1.4/2.3e-4). I50 no, on time alone. Strain line time-boxed; next G1b.",
+   "commit": ""
+  },
+  {
+   "id": "GO4d",
+   "title": "Cached ray index and gated global search (G1b)",
+   "status": "done",
+   "date": "2026-11-16",
+   "result": "Ray pairing cached per sample (corr3 19 min, rand 48 min, once; loads in 0.01 s). Ladder + seed path on voxels with strict cost > 0.15: voxels above 0.1 deg at 0.5/1/2/5 deg corr3 3/5/9/36% (was 3/9/31/72%), rand 26/15/52/44% (was 48/53/77/83%), at 0.3/0.6 s per voxel. I36 yes.",
    "commit": ""
   }
  ],

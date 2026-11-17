@@ -1,0 +1,13 @@
+{
+ "sample": "rand",
+ "rays": 623313,
+ "n_spots": [
+  715735,
+  776579
+ ],
+ "n_candidates": 3455461,
+ "seconds": 2873.265531875,
+ "loaded": false,
+ "reload_equal": true,
+ "file": "/Users/sfli/Research/IceNine/.claude/worktrees/grain-opt/Examples/Example2.ManyGrains/ScatteringData_PhaseD/rand/observed_rays.npz"
+}

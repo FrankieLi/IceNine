@@ -196,3 +196,20 @@ became AR6 on 2026-11-16 at the owner's request.
 - **Next action:** plan and run GO5o (I50): intensity weights with isolated lit pixels removed
   (`--cen_w intclean`), fast fit on noisy and on clean images, against the CMA hybrid on each.
   Then GO6 or the cached ray index.
+
+## Now as of GO5o close (2026-11-16 18:35 PST)
+
+- **GO5o closed** (2026-11-16 18:35 PST): intensity-weighted centroids with isolated lit pixels
+  removed (`--cen_w intclean`) bring the noisy fast fit to 2.2 / 2.3 / 3.3e-4 (clean unchanged),
+  but at 26.4 s per grain against the 25.3 s limit: I50 no, on time alone. Strain line
+  time-boxed. Strain chart on the page (`strain_pareto.py` -> `strain_pareto.json`).
+- Strain summary: CMA hybrid `cen` + 8 x coverage (clean 2.2 / 1.5 / 2.1e-4, noisy 2.5 / 1.9 /
+  2.8e-4, 51 s); fast fit `GP4@P` (clean 1.3 / 1.3 / 2.1e-4, 25 s; noisy with `intclean` 2.2 /
+  2.3 / 3.3e-4, 26 s). `COSTS.md`.
+- **Program order** (owner via the coordinator, 2026-11-16; PLAN "GO6 onwards"): (1) G1b, (2) G2b
+  (I23, I24), (3) G2c (I25-I27), (4) G2a (I18, I22). At most one more strain step unless a
+  result demands it.
+- **Next action:** plan and run GO4d (G1b, I36): cache the ray index per sample so the
+  ray-indexing seed path is cheap, then the gated global search for voxels whose strict cost
+  stays high after the ladder, on `rand` / `corr3` at 2 and 5 deg (GO4c: L/366/3 leaves 31% and
+  72% of corr3 voxels above 0.1 deg there).
