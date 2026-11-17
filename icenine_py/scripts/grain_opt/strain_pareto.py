@@ -41,6 +41,8 @@ ARMS = [
     ("go5m/GP4_P_hyb8_S36.json", "fast fit GP4@P, noisy", "fast", True),
     ("go5n/GP4_P_hyb8_S36_bin.json", "fast fit, binary centroids, noisy", "fast", True),
     ("go5o/GP4_P_hyb8_S36_intclean.json", "fast fit, intclean centroids, noisy", "fast", True),
+    ("go7b/strain_psf10/GP4_P_hyb8_S36.json", "fast fit, 1 px PSF images", "fast", True),
+    ("go7c/GP4_P_hyb8_S36_psf1.json", "fast fit + PSF-aware coverage, 1 px PSF images", "fast", True),
 ]
 
 

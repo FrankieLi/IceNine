@@ -857,3 +857,31 @@ Verdicts by the rule written before the runs:
 - Next (I52, inside the scripts, no library change): a PSF-aware predicted coverage in the strain
   costs (the predicted coverage points spread by the same Gaussian before scoring) on the 1.0 px
   images.
+
+## GO7c: PSF-aware predicted coverage in the strain costs (goal G2b, idea I52)
+
+Question: on the 1 px PSF images, does blurring the predicted coverage by the same PSF (4
+Gaussian copies of each coverage point) restore the fast strain fit? S36, `GP4@P`; rows in
+`benchmarks/grain_opt/go7c/`.
+
+| arm | 1e-4 | 5e-4 | 1e-3 | orientation | s per grain |
+|---|---|---|---|---|---|
+| clean images (GO5l) | 1.3e-4 | 1.3e-4 | 2.1e-4 | 0.009 / 0.015 / 0.020 | 25 |
+| 1 px PSF images, sharp prediction (GO7b) | 2.3e-4 | 2.7e-4 | 5.7e-4 | 0.029 / 0.039 / 0.061 | 18 |
+| 1 px PSF images, PSF-aware coverage | 2.3e-4 | 2.6e-4 | 6.8e-4 | 0.033 / 0.046 / 0.094 | 17 |
+
+Split by path (strain median, orientation median): Gauss-Newton-only grains clean 1.3e-4 /
+0.011 deg, PSF 2.4e-4 / 0.032-0.035 deg with or without the PSF-aware coverage; fallback (CMA)
+grains clean 2.2e-4 / 0.023 deg, PSF 6.4-7.5e-4 / 0.058-0.096 deg.
+
+Verdicts by the rule written before the runs:
+
+- I52 is answered no: no change in strain (gain 1.0 x at 1e-4 and 5e-4, worse at 1e-3) and
+  orientation worse; the no-harm limits are missed at every level.
+- The premise was wrong: the Gauss-Newton-only grains degrade just as much, and Gauss-Newton
+  scores centroids, which a symmetric blur leaves unbiased. The likely cause is spot merging: a
+  1 px blur before the threshold joins nearby spots into one connected component, so the
+  observed centroid (and the lit set the coverage term scores) mixes neighbours. The fallback
+  grains (fewer spots, more overlap) suffer most.
+- Next for this line (not now; G2b is time-boxed like strain): split merged components by the
+  predicted spot positions before taking centroids.

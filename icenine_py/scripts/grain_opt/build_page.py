@@ -287,7 +287,7 @@ def strain_section() -> List[str]:
     items = [f'<li><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">'
              f'{marker(f[2], 9, 9, 4.5, f[3])}</svg>{esc(f[1])}</li>' for f in used]
     items.append('<li><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">'
-                 f'{marker("circle", 9, 9, 4.5, "--muted", chr(102)+chr(105)+"ll-opacity=" + chr(34) + "0" + chr(34))}</svg>Hollow: noisy images</li>')
+                 f'{marker("circle", 9, 9, 4.5, "--muted", chr(102)+chr(105)+"ll-opacity=" + chr(34) + "0" + chr(34))}</svg>Hollow: perturbed images (detector noise or PSF)</li>')
     items.append('<li><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">'
                  '<circle cx="9" cy="9" r="7" fill="none" stroke="var(--bad)" stroke-width="1.6"/></svg>'
                  "Ring: orientation error above 0.02 deg at some level</li>")

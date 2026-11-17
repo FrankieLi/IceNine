@@ -9,6 +9,9 @@ mass on lit pixels, mean over the grain's spots (GO5 "coverage"). Spot windows a
 strain. Parameters: grain field (FieldA order 1, 9 numbers) and one crystal-frame strain per
 grain (6). CMA with per-coordinate steps 0.05 deg (field) and 5e-4 (strain), strain from 0.
 
+GO7c (I52): ``--psf_sigma S``: the coverage cost scores K = 4 Gaussian copies (sigma S px) of each
+predicted coverage point (a PSF on the prediction).
+
 GO5n (I49): ``--cen_w bin|binclean``: observed centroids with binary weights (and isolated lit
 pixels removed) in every centroid use; ``--stack`` (GO5m) reads another image stack.
 
@@ -106,6 +109,13 @@ class Coverage:
                 prob.region, rows, prob.bary, prob.model.n_det, with_shell=False
             )
         x, a = x.numpy(), a.numpy()
+        if PSF_SIGMA > 0:  # GO7c: K Gaussian copies of each point (column, row), fixed seed
+            rng = np.random.default_rng(0)
+            off = rng.normal(0.0, PSF_SIGMA, size=(PSF_K,) + x.shape[:2] + (2,))
+            xk = np.repeat(x[None], PSF_K, 0)
+            xk[..., :2] += off
+            x = np.concatenate(list(xk), axis=1)
+            a = np.concatenate([a / PSF_K] * PSF_K, axis=1)
         p = np.clip(np.floor(x).astype(np.int64), 0, self.W - 1)
         on = np.isin(self._enc(np.arange(self.S)[:, None], p), self.lit)
         tot = a.sum(1)
@@ -115,6 +125,7 @@ class Coverage:
         return 1.0 - float(((a * on).sum(1)[ok] / tot[ok]).mean())
 
 
+PSF_SIGMA, PSF_K = 0.0, 4  # GO7c: PSF-aware coverage (--psf_sigma)
 CEN_W = "int"  # GO5n/o: observed-centroid weights, "int" | "bin" | "binclean" | "intclean"
 
 
@@ -413,12 +424,14 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--lam", type=float, default=2.0)
     ap.add_argument("--per_level", type=int, default=4)
+    ap.add_argument("--psf_sigma", type=float, default=0.0)
     ap.add_argument("--cen_w", default="int", choices=["int", "bin", "binclean", "intclean"])
     ap.add_argument("--stack", default=None, help="GO5m: stack file in place of strain_clean.npy")
     a = ap.parse_args()
-    global SEED, CEN_W
+    global SEED, CEN_W, PSF_SIGMA
     SEED = a.seed
     CEN_W = a.cen_w
+    PSF_SIGMA = a.psf_sigma
     out = CM.OUT / a.out
     tag = a.arm.replace("@", "_")
     if a.cost != "cov":
@@ -429,6 +442,8 @@ def main() -> None:
         tag += f"_S{3 * a.per_level}"
     if a.cen_w != "int":
         tag += f"_{a.cen_w}"
+    if a.psf_sigma > 0:
+        tag += f"_psf{a.psf_sigma:g}"
     start = "paint" if a.arm.endswith("@P") else "truth"
     S = CM.Sample(out / f"run_{tag}", start=start, intensity=True, sample="strain", stack=a.stack)
     T = S.T
@@ -627,6 +642,7 @@ def main() -> None:
             cost=a.cost,
             lam=a.lam if a.cost == "hyb" else None,
             cen_w=a.cen_w,
+            psf_sigma=a.psf_sigma,
             stack=a.stack,
             seed=a.seed,
             grain=int(g),

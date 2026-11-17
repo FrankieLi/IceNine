@@ -242,3 +242,16 @@ became AR6 on 2026-11-16 at the owner's request.
 - **Next action:** plan and run GO7b (G2b, I24): detector point-spread function on the images
   (emulated: blur the clean intensities with a Gaussian PSF, sigma 0.5 and 1 px, threshold), the
   same `Astrict/100` G20 test, plus the fast strain fit on the `strain` sample with the PSF.
+
+## Now as of GO7b close (2026-11-16 20:00 PST)
+
+- **GO7b closed** (2026-11-16 20:00 PST, G2b I24 images part): Gaussian PSF on the images
+  (`psf_stack.py`): 0.5 px harmless to the fast strain fit; 1.0 px breaks it (strain 2.3 / 2.7 /
+  5.7e-4, orientation up to 0.06 deg) and raises the orientation-fit median 1.3 x. Grain 197
+  again lost to the strict-cost gate. `findings.md` "GO7b".
+- GO7: rocking-curve images cost one grain via the gate. GO4d (G1b): I36 yes.
+- **Program order** (owner via the coordinator, 2026-11-16): (2) G2b in progress (I52 next, then
+  model-side I23/I24 parts need owner approval), (3) G2c (I25-I27), (4) G2a (I18, I22).
+- **Next action:** plan and run GO7c (I52): PSF-aware predicted coverage in the strain costs
+  (`fit_strain.py`, predicted coverage points spread by the PSF Gaussian, Monte Carlo copies),
+  fast fit on `strain_psf10`, judged against the clean fast fit. Then G2c.

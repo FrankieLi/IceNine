@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-16 20:00 PST",
+ "updated": "2026-11-16 20:10 PST",
  "steps": [
   {
    "id": "GO0",
@@ -208,6 +208,14 @@
    "status": "done",
    "date": "2026-11-16",
    "result": "Gaussian PSF before the threshold: sigma 0.5 px leaves the fast strain fit at 1.4/1.3/2.8e-4; sigma 1.0 px breaks it (2.3/2.7/5.7e-4, orientation up to 0.06 deg) and raises the orientation-fit median from 0.0146 to 0.0192 deg; both sigmas lose grain 197 to the strict-cost gate. Next: PSF-aware predicted coverage (I52).",
+   "commit": ""
+  },
+  {
+   "id": "GO7c",
+   "title": "PSF-aware predicted coverage (G2b)",
+   "status": "done",
+   "date": "2026-11-16",
+   "result": "On 1 px PSF images the fast strain fit with PSF-aware coverage gives 2.3/2.6/6.8e-4 (sharp coverage 2.3/2.7/5.7e-4): no gain. Gauss-Newton-only grains degrade as much, so merged spots (contaminated centroids) are the cause. I52 no.",
    "commit": ""
   }
  ],
