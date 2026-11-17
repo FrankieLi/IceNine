@@ -689,6 +689,31 @@ library work for the owner to approve.
 Budget: stacks about 2 minutes each; orientation arms 2 minutes; strain arms about 15 minutes;
 4 processes at most.
 
+### GO7c: PSF-aware predicted coverage in the strain costs (goal G2b, idea I52)
+
+Question: with a 1 px PSF on the images the fast strain fit breaks (GO7b: 2.3 / 2.7 / 5.7e-4,
+orientation up to 0.06 deg), most likely because the observed spots grow by about a pixel while
+the predicted coverage stays sharp, flattening the coverage term. If the predicted coverage is
+blurred by the same PSF before it is scored, does the fit recover?
+
+Method (`fit_strain.py --psf_sigma S`, scripts only): in the coverage cost every predicted
+coverage point is replaced by K = 4 copies displaced in column and row by Gaussian offsets of
+sigma S px (fixed seed, so the cost is deterministic), each with a quarter of the mass. The
+centroid cost is unchanged (a symmetric blur keeps the centroid). This affects the coverage leg,
+the gradient refits and the hybrid polish and fallback of `GP4@P`.
+
+Arm: `GP4@P --cost hyb --lam 8 --per_level 12 --stack strain_psf10_clean.npy --psf_sigma 1.0`;
+output `benchmarks/grain_opt/go7c/`.
+
+Judging rule (written before any run). Reference: GO5l clean `GP4@P` (1.3e-4 / 1.3e-4 /
+2.1e-4) and GO7b `GP4@P` on the same 1 px images without the PSF model (2.3e-4 / 2.7e-4 /
+5.7e-4). I52 is answered yes when the PSF-aware arm has no harm by GO7b's rule (strain median at
+5e-4 and 1e-3 at most 1.5 x clean, orientation median at most 0.03 deg at every level), and
+partly when it improves both strain medians at 5e-4 and 1e-3 by at least 1.5 x against GO7b
+without meeting the no-harm limits. 1e-4 is reported, not judged; wall time per grain reported.
+
+Budget: about 30-40 s per grain (four times the coverage points), under 25 minutes.
+
 ### GO6 onwards
 
 Program balance (owner via the coordinator, 2026-11-16): GO5b to GO5o were all G1c strain. After
