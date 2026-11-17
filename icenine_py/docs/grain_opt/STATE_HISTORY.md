@@ -152,3 +152,14 @@ became AR6 on 2026-11-16 at the owner's request.
 - **Next action:** plan and run GO5k (I46): freeze inliers and weights per Gauss-Newton stage,
   at least half the spots inliers, fall back to the CMA hybrid for grains with few spots (and/or
   rebuild windows at the fitted strain); S36, judged like GO5i/j. Then GO6 or the cached ray index.
+
+## Now as of GO5k close (2026-11-16 17:00 PST)
+
+- **GO5k closed** (2026-11-16 17:00 PST): frozen Gauss-Newton weights plus a CMA-hybrid fallback
+  for grains with fewer than 40 spots (`--arm GFF@P`) give strain 1.3 / 1.3 / 2.4e-4 on S36 at
+  19 s per grain, orientation 0.009 / 0.015 / 0.028 deg (limit 0.02 at 1e-3). Two grains stall
+  (all stages skipped, strain left at 0). I46 no. `findings.md` "GO5k".
+- GO5j: gradient refit fixes 5e-4. GO5h: CMA hybrid confirmed (2.3 / 1.5 / 2.1e-4, 53 s).
+- **Next action:** plan and run GO5l (I47): `GFF@P` plus fallback when Gauss-Newton skips its
+  stages, plus a short joint hybrid CMA polish only for grains with fitted strain RMS > 6e-4;
+  S36, judged like GO5i-k. Then GO6 or the cached ray index.

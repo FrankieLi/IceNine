@@ -9,6 +9,9 @@ mass on lit pixels, mean over the grain's spots (GO5 "coverage"). Spot windows a
 strain. Parameters: grain field (FieldA order 1, 9 numbers) and one crystal-frame strain per
 grain (6). CMA with per-coordinate steps 0.05 deg (field) and 5e-4 (strain), strain from 0.
 
+GO5l (I47): ``GP4@P`` / ``GP6@P``: ``GFF@P`` plus a fallback when every first-round stage is
+skipped, and a joint CMA polish (400 / 600, 0.02 deg and 1e-4) when the strain RMS exceeds 6e-4.
+
 GO5k (I46): ``GF2@P`` (``GA2@P`` with per-stage frozen Tukey weights, a stage skipped below
 half inliers) and ``GFF@P`` (plus the GO5h CMA hybrid for grains with fewer than 40 spots).
 
@@ -317,7 +320,8 @@ def robust_theta0(prob: Any, sym: np.ndarray, tol_deg: float = 1.5) -> Any:
     return prob.field.fit_theta(Rc, sym), int(out.sum())
 
 
-GN_ARMS = ("GN@P", "GNH@P", "GA1@P", "GA2@P", "GF2@P", "GFF@P")
+GN_ARMS = ("GN@P", "GNH@P", "GA1@P", "GA2@P", "GF2@P", "GFF@P", "GP4@P", "GP6@P")
+GP_ARMS = {"GP4@P": 400, "GP6@P": 600}  # GO5l: polish budget
 SEED = 0  # GO5e: offset added to every CMA seed (--seed)
 
 
@@ -372,6 +376,8 @@ def main() -> None:
             "GA2@P",
             "GF2@P",
             "GFF@P",
+            "GP4@P",
+            "GP6@P",
         ],
     )
     ap.add_argument("--out", default="go5b")
@@ -482,16 +488,23 @@ def main() -> None:
             if a.arm in GN_ARMS:  # GO5i: Gauss-Newton on centroid residuals (GO5j: + rounds)
                 cen_o, th_cur = SubPix(prob, "cen"), np.array(th0, float)
                 q, info["gn"], info["grad"] = np.concatenate([th0[:3], np.zeros(6)]), [], []
-                frz = a.arm in ("GF2@P", "GFF@P")  # GO5k: frozen weights per stage
+                frz = a.arm in ("GF2@P", "GFF@P") or a.arm in GP_ARMS  # GO5k: frozen weights
                 th0_t = torch.as_tensor(th0, dtype=GF.DT)
                 n_act0 = int(centroid_residuals(cen_o, field.orientations(th0_t), zero)[1].sum())
                 info["n_active0"] = n_act0
-                fallback = a.arm == "GFF@P" and n_act0 < 40
+                fallback = (a.arm == "GFF@P" or a.arm in GP_ARMS) and n_act0 < 40
                 info["fallback"] = fallback
                 n_rounds = (
                     0
                     if fallback
-                    else {"GA1@P": 1, "GA2@P": 2, "GF2@P": 2, "GFF@P": 2}.get(a.arm, 0)
+                    else {
+                        "GA1@P": 1,
+                        "GA2@P": 2,
+                        "GF2@P": 2,
+                        "GFF@P": 2,
+                        "GP4@P": 2,
+                        "GP6@P": 2,
+                    }.get(a.arm, 0)
                 )
                 for rd in range(n_rounds + (0 if fallback else 1)):
                     if rd > 0:  # GO5j: gradient refit on coverage at the Gauss-Newton strain
@@ -513,6 +526,13 @@ def main() -> None:
                         )
                         info["gn"].append(dict(gi, c=c_px, round=rd))
                     th_cur[:3] = q[:3]
+                    if (
+                        rd == 0
+                        and a.arm in GP_ARMS
+                        and all(g_.get("skipped") for g_ in info["gn"] if g_["round"] == 0)
+                    ):  # GO5l: Gauss-Newton stalled, fall back
+                        fallback = info["fallback"] = info["stall"] = True
+                        break
                 xg = np.concatenate([th_cur, q[3:]])
                 if fallback:  # GO5k: GO5h CMA hybrid protocol from the coverage field leg
                     rs = cma_min(
@@ -527,6 +547,9 @@ def main() -> None:
                         stds(math.radians(0.02), 2e-4),
                         a.evals,
                     )
+                elif a.arm in GP_ARMS and tensor_rms(q[3:]) > 6e-4:  # GO5l: polish
+                    info["polish"] = True
+                    r = cma_min(fj, xg, stds(math.radians(0.02), 1e-4), GP_ARMS[a.arm])
                 elif a.arm == "GNH@P":
                     r = cma_min(fj, xg, stds(math.radians(0.01), 1e-4), 300)
                 else:

@@ -636,3 +636,33 @@ Verdicts by the rule written before the runs:
 - Next (I47): fall back also when Gauss-Newton skips its stages, and polish with a short joint
   CMA leg on the hybrid only for grains whose fitted strain is large (RMS above 6e-4), so the
   time stays near half the reference.
+
+## GO5l: fallback on stalls, polish large strains (idea I47)
+
+Question: GO5k's `GFF@P` plus a CMA-hybrid fallback when Gauss-Newton skips every first-round
+stage, and a joint hybrid CMA polish (400 or 600 evaluations, 0.02 deg and 1e-4) only for grains
+whose Gauss-Newton strain RMS exceeds 6e-4: does it match the CMA hybrid within half its time?
+S36, painted start; rows in `benchmarks/grain_opt/go5l/*_S36.json`; load 2.4-3.4.
+
+| arm | 1e-4 | 5e-4 | 1e-3 | orientation | s per grain |
+|---|---|---|---|---|---|
+| GO5h CMA hybrid (reference) | 2.3e-4 | 1.5e-4 | 2.1e-4 (p75 5.7e-4) | 0.011 / 0.009 / 0.017 | 53 |
+| GO5k `GFF@P` | 1.3e-4 | 1.3e-4 | 2.4e-4 (p75 6.9e-4) | 0.009 / 0.015 / 0.028 | 19 |
+| `GP4@P` (polish 400) | 1.3e-4 | 1.3e-4 | 2.1e-4 (p75 3.5e-4) | 0.009 / 0.015 / 0.020 | 25 |
+| `GP6@P` (polish 600) | 1.3e-4 | 1.3e-4 | 2.1e-4 (p75 3.5e-4) | 0.009 / 0.015 / 0.019 | 26 |
+
+Verdicts by the rule written before the runs:
+
+- I47 is answered yes: both arms match (strain at most 1.25 x the reference at 5e-4 and 1e-3,
+  orientation at most 0.02 deg at every level, at most 26.7 s per grain). The faster, `GP4@P`,
+  is preferred. Its orientation at 1e-3 (0.0197 deg) is just inside the limit.
+- Grains: 9 fall back to the CMA hybrid (5 with fewer than 40 spots; 4 stalls: 140, 376, 273,
+  232), 5 are polished (432, 439, 21, 351, 167, all at 1e-3), 22 use Gauss-Newton alone. Grain
+  485 (0.175 deg) is the one left above 0.05 deg.
+- Against the CMA hybrid: strain lower at 1e-4 (1.3e-4 against 2.3e-4) and 5e-4, equal at 1e-3
+  with a shorter tail (75th percentile 3.5e-4 against 5.7e-4), orientation a little worse at
+  5e-4 (0.015 against 0.009 deg), in half the time.
+- The fast strain fit is now: robust start field, coverage field leg 200, Gauss-Newton on
+  centroid residuals with frozen Tukey weights (3 / 1.5 / 1 px) and two coverage gradient
+  refits, CMA hybrid where Gauss-Newton has too few spots or stalls, hybrid polish for strain
+  above 6e-4 (`fit_strain.py --arm GP4@P --cost hyb --lam 8`).
