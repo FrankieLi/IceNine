@@ -232,7 +232,7 @@ def strain_points() -> List[Dict[str, Any]]:
 
 
 def strain_svg(points: List[Dict[str, Any]], li: int, level: str) -> str:
-    W, H, L, R, T, B = 340, 250, 46, 10, 26, 44
+    W, H, L, R, T, B = 700, 300, 58, 14, 24, 44  # drawn near display size (owner: smaller text)
     fam = {f[0]: f for f in SFAM}
     xmin, xmax = 200.0, 4000.0
     ymax = max(p["err"][li] for p in points) * 1e4 * 1.12
@@ -244,6 +244,7 @@ def strain_svg(points: List[Dict[str, Any]], li: int, level: str) -> str:
         return T + (H - T - B) * (1 - v / ymax)
 
     out = [f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="Strain error against evaluations, level {level}" class="chart">']
+    rm = 3.2  # marker radius
     out.append(f'<text x="{L}" y="15" class="axis">strain level {level} (tensor RMS)</text>')
     step = 1 if ymax <= 8 else 2
     v = 0.0
@@ -264,16 +265,16 @@ def strain_svg(points: List[Dict[str, Any]], li: int, level: str) -> str:
         f = fam.get(p["family"], SFAM[-1])
         x, y = X(max(p["evals"], xmin)), Y(p["err"][li] * 1e4)
         if p["noisy"]:
-            m = marker(f[2], x, y, 4.5, f[3], 'fill-opacity="0" stroke-width="1.8"')
+            m = marker(f[2], x, y, rm, f[3], 'fill-opacity="0" stroke-width="1.4"')
         else:
-            m = marker(f[2], x, y, 4.5, f[3])
-        ring = (f'<circle cx="{x:.1f}" cy="{y:.1f}" r="8" fill="none" stroke="var(--bad)" stroke-width="1.6"/>'
+            m = marker(f[2], x, y, rm, f[3])
+        ring = (f'<circle cx="{x:.1f}" cy="{y:.1f}" r="6" fill="none" stroke="var(--bad)" stroke-width="1.2"/>'
                 if p["orient_fail"] else "")
         tip = (f'<title>{idx}. {esc(p["label"])}: strain error {p["err"][li]*1e4:.2f}e-4, orientation '
                f'{p["mis"][li]:.3f} deg, {p["evals"]:.0f} evaluations and {p["t_s"]:.0f} s per grain, '
                f'{p["n_grains"]} grains</title>')
         out.append(f"<g>{ring}{m}{tip}</g>")
-        out.append(f'<text x="{x+7:.1f}" y="{y-6:.1f}" class="lab">{idx}</text>')
+        out.append(f'<text x="{x+5:.1f}" y="{y-4:.1f}" class="lab">{idx}</text>')
     out.append("</svg>")
     return "".join(out)
 
@@ -308,9 +309,8 @@ def strain_section() -> List[str]:
         "median absolute strain error over the grains of that level. From the painted start unless "
         "the marker is grey (strain only at the ground-truth orientation). 36 grains (12 per level) "
         "where run, else 12 (4 per level; see the table).</p>",
-        '<div style="display:flex;flex-wrap:wrap;gap:10px">'
-        + "".join(f'<div style="flex:1 1 300px;max-width:360px">{strain_svg(pts, i, lv)}</div>'
-                  for i, lv in enumerate(["1e-4", "5e-4", "1e-3"]))
+        '<div class="strainstack">'
+        + "".join(f'<div>{strain_svg(pts, i, lv)}</div>' for i, lv in enumerate(["1e-4", "5e-4", "1e-3"]))
         + "</div>",
         f'<ul class="legend">{"".join(items)}</ul>',
         '<p class="note">How to read: lower and further left is better (smaller strain error for '
@@ -377,6 +377,11 @@ code{font-family:var(--mono);font-size:.92em}
 .filters button{font:inherit;font-size:13px;background:var(--panel);color:var(--fg);border:1px solid var(--line);
 border-radius:6px;padding:3px 10px;cursor:pointer}.filters button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
 .filters button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.strainstack{display:flex;flex-direction:column;gap:14px}.strainstack>div{width:100%;max-width:720px}
+.strainstack .chart .tick{font-size:10px}.strainstack .chart .axis{font-size:11px}.strainstack .chart .lab{font-size:9px}
+.chart g[data-tip]{cursor:pointer}.chart g[data-tip]:hover>*,.chart g[data-tip].on>*{stroke-width:2.5}
+#tip{position:fixed;z-index:10;pointer-events:none;max-width:320px;background:var(--panel);color:var(--fg);
+border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-size:13px;line-height:1.35;box-shadow:0 4px 14px rgba(0,0,0,.18)}
 """
     parts = [
         "<title>Grain Fit Research</title>",
@@ -468,6 +473,25 @@ border-radius:6px;padding:3px 10px;cursor:pointer}.filters button[aria-pressed="
         "<script>document.querySelectorAll('.filters button').forEach(b=>b.addEventListener('click',()=>{"
         "const f=b.dataset.f;document.querySelectorAll('.filters button').forEach(x=>x.setAttribute('aria-pressed',x===b));"
         "document.querySelectorAll('#ideas tbody tr').forEach(r=>{r.hidden=!(f==='all'||r.dataset.s===f)})}));</script>"
+    )
+    # hover / tap / keyboard tooltips for chart markers (SVG <title> tooltips do not show in the viewer)
+    parts.append(
+        '<div id="tip" hidden></div>'
+        "<script>(()=>{const tip=document.getElementById('tip');let cur=null;"
+        "document.querySelectorAll('svg.chart g').forEach(g=>{const t=g.querySelector(':scope>title');if(!t)return;"
+        "g.dataset.tip=t.textContent;t.remove();g.setAttribute('tabindex','0');});"
+        "function show(g,x,y){if(cur&&cur!==g)cur.classList.remove('on');cur=g;g.classList.add('on');"
+        "tip.textContent=g.dataset.tip;tip.hidden=false;const w=tip.offsetWidth,h=tip.offsetHeight;"
+        "let L=x+14,T=y+14;if(L+w>innerWidth-8)L=x-w-14;if(L<8)L=8;if(T+h>innerHeight-8)T=y-h-14;"
+        "tip.style.left=L+'px';tip.style.top=T+'px';}"
+        "function hide(){if(cur)cur.classList.remove('on');cur=null;tip.hidden=true;}"
+        "document.addEventListener('pointermove',e=>{const g=e.target.closest&&e.target.closest('g[data-tip]');"
+        "if(g)show(g,e.clientX,e.clientY);else if(e.pointerType==='mouse')hide();});"
+        "document.addEventListener('pointerdown',e=>{const g=e.target.closest&&e.target.closest('g[data-tip]');"
+        "if(g)show(g,e.clientX,e.clientY);else hide();});"
+        "document.addEventListener('focusin',e=>{const g=e.target.closest&&e.target.closest('g[data-tip]');"
+        "if(g){const r=g.getBoundingClientRect();show(g,r.right,r.top);}});"
+        "addEventListener('scroll',hide,{passive:true});})();</script>"
     )
     return "\n".join(parts)
 
