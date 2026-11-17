@@ -787,6 +787,35 @@ lower their strict cost, and is the strict cost at the ground truth lower than a
 (search failure) or not (objective failure)? `scripts/grain_opt/go4f_diag.py`, output
 `benchmarks/grain_opt/go4f/`.
 
+### GO4g: wider search for the voxels the seed path misses (goal G1b, idea I54)
+
+Question: GO4f showed every remaining wrong voxel is a search failure (the strict cost at the
+ground truth is far lower than at the end; the seed path's candidates miss it). Does a wider
+search on the gated voxels still above the gate recover them?
+
+Stages added to `run_pipeline.py` (each runs only on voxels whose strict cost is still above the
+threshold and keeps a result only if it lowers the strict cost):
+
+- `W/<n>/<threshold>`: the seed path with every indexing candidate costed (`n_cost` 20 = the
+  indexer's top 20) and the finisher on the 5 lowest (`n_refine` 5; GO4d used 5 and 2).
+- `X/<n>/<threshold>`: the reconstructor's per-voxel grid search (`reconstruct_voxel`, the
+  painting fallback, `grid_seed`).
+
+Arms (corr3 and rand, `--start centre --group true`, output `benchmarks/grain_opt/go4g/`):
+
+- `L/366/3,G/15/0.15,N/30/0.3,W/20/0.15`.
+- `L/366/3,G/15/0.15,N/30/0.3,W/20/0.15,X/1/0.15`.
+
+Judging rule (written before any run). Reference: GO4e `L/366/3,G/15/0.15,N/30/0.3` on the same
+sample. I54 is answered yes for an arm when the share above 0.1 deg falls by at least a third at
+2 deg on rand (48% -> at most 32%) and at 5 deg on both samples (corr3 33% -> at most 22%, rand
+41% -> at most 27%), with no level worse by more than 2 points; the cheaper passing arm is
+preferred. Voxels searched and improved per stage, and wall time per voxel, are reported. A run
+over 2 hours is stopped and reported as over budget.
+
+Budget: `W` about 2-3 times the seed path per searched voxel (about 3 s); `X` unknown (measured
+on a smoke grain first; if above 10 s per voxel, `X` runs on rand only).
+
 ### GO6 onwards
 
 Program balance (owner via the coordinator, 2026-11-16): GO5b to GO5o were all G1c strain. After
