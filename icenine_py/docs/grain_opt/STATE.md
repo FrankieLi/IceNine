@@ -5,15 +5,14 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO5l closed** (2026-11-16 17:15 PST): the fast strain fit `--arm GP4@P --cost hyb --lam 8`
-  (Gauss-Newton on centroids, frozen Tukey weights, two coverage gradient refits, CMA-hybrid
-  fallback for few spots or stalls, hybrid polish for strain above 6e-4) matches the CMA hybrid
-  on S36: strain 1.3 / 1.3 / 2.1e-4, orientation 0.009 / 0.015 / 0.020 deg, 25 s per grain
-  (CMA 53 s). I47 yes. `findings.md` "GO5l"; `COSTS.md`.
-- GO5g-k: hybrid cost, confirmation on 36 grains, Gauss-Newton and its failure modes.
-- **Next action:** plan and run GO5m (I48): the strain fits on noisy data (Poisson counts plus
-  background on the clean intensity store, thresholded into a new binary stack and store); S36,
-  `GP4@P` and the CMA hybrid against their clean results. Then GO6 or the cached ray index.
+- **GO5m closed** (2026-11-16 17:50 PST): on images with the detector noise model
+  (`--stack strainrn_clean.npy`, built from the `strain` sample's `realistic_nodrop` render)
+  the CMA hybrid is robust (2.5 / 1.9 / 2.8e-4, clean 2.3 / 1.5 / 2.1e-4) and the fast fit is
+  not (1.8 / 2.7 / 3.7e-4, clean 1.3 / 1.3 / 2.1e-4). I48 no. `findings.md` "GO5m".
+- GO5l: fast fit `GP4@P` matches the CMA hybrid on clean images in half the time.
+- **Next action:** plan and run GO5n (I49): noise-robust observed centroids for Gauss-Newton
+  (binary weights; isolated lit pixels removed), fast fit on the noisy images against the noisy
+  CMA hybrid. Then GO6 or the cached ray index.
 
 ## Running jobs
 
@@ -25,6 +24,9 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
   `.claude/worktrees/agent-a58fece2962bad42f` (stack, `strain/` folder, sample `truth.mic` and
   `grid.mic`): do not remove that worktree.
 - `rand`, `corr3` stacks and stores: `.../stacks/<tag>_clean.npy`, `.../<tag>/intensity_clean.npz`.
+- `strainrn` (GO5m): noisy `strain` images, `.../stacks/strainrn_clean.npy` and
+  `.../strainrn/intensity_clean.npz`, built in this worktree with `build_store.py --tag strain
+  --variant realistic_nodrop --out_tag strainrn` (reads the GO5 worktree's render; 3 s).
 
 - `Examples/Example2.ManyGrains/ScatteringData_PhaseD/stacks/grad_clean.npy`: `grad` binary
   stack (rebuilt 2026-11-15 from a fresh render; equals the stored record).

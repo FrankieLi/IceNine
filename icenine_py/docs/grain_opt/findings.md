@@ -666,3 +666,35 @@ Verdicts by the rule written before the runs:
   centroid residuals with frozen Tukey weights (3 / 1.5 / 1 px) and two coverage gradient
   refits, CMA hybrid where Gauss-Newton has too few spots or stalls, hybrid polish for strain
   above 6e-4 (`fit_strain.py --arm GP4@P --cost hyb --lam 8`).
+
+## GO5m: strain fits on noisy images (idea I48)
+
+Question: do the CMA hybrid and the fast fit keep their accuracy on images with the project's
+detector noise model (`realistic_nodrop`: per spot, 5% edge-pixel flips, a hot pixel with
+probability 0.05, a 2-4 px blob with probability 0.1; about 5% of lit pixels dropped and 4-5%
+added per frame)? S36, painted start, `hyb` lambda 8; noisy stack built in this worktree
+(`build_store.py --out_tag strainrn`); rows in `benchmarks/grain_opt/go5m/*_S36.json`.
+
+Reading line: median strain error over 12 grains, clean -> noisy; median voxel orientation error
+(deg) on noisy images.
+
+| fit | 1e-4 | 5e-4 | 1e-3 | orientation (noisy) | s per grain |
+|---|---|---|---|---|---|
+| CMA hybrid | 2.3e-4 -> 2.5e-4 | 1.5e-4 -> 1.9e-4 | 2.1e-4 -> 2.8e-4 | 0.012 / 0.012 / 0.028 | 51 |
+| fast fit `GP4@P` | 1.3e-4 -> 1.8e-4 | 1.3e-4 -> 2.7e-4 | 2.1e-4 -> 3.7e-4 | 0.014 / 0.017 / 0.025 | 27 |
+
+Verdicts by the rule written before the runs:
+
+- The CMA hybrid is robust to noise: its noisy strain is within 1.5 x its clean strain at 5e-4
+  and 1e-3 (1.25 x and 1.3 x), orientation at most 0.03 deg (0.028 at 1e-3).
+- The fast fit is not: its strain doubles at 5e-4 (2.7e-4 against the limit 2.0e-4) and grows
+  1.7 x at 1e-3 (3.7e-4 against 3.2e-4); it no longer holds against the noisy CMA hybrid (2.7e-4
+  and 3.7e-4 against 1.25 x 1.9e-4 and 2.8e-4). I48 is answered no. Its orientation stays within
+  0.03 deg. Fallbacks 7, polished 8 (clean: 9 and 5).
+- Reading: Gauss-Newton works at sub-pixel precision (1e-4 strain is about 0.03 px), so it feels
+  the centroid noise. The noise model copies a neighbour's intensity into each added edge pixel
+  and adds hot pixels and blobs near the spot; with intensity weights these move the observed
+  centroid by a few hundredths of a pixel. The hybrid's coverage term does not care about a few
+  pixels at the edge.
+- Next (I49): a noise-robust observed centroid for Gauss-Newton: binary weights, and isolated
+  lit pixels removed (fewer than 2 lit 8-neighbours in the frame), on the same noisy images.

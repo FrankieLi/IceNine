@@ -28,10 +28,16 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--tag", required=True)
     ap.add_argument("--variant", default="clean")
+    ap.add_argument("--out_tag", default=None, help="write stacks/<out_tag>_clean.npy and "
+                    "<out_tag>/intensity_clean.npz instead (GO5m: a noisy variant read as a clean tag)")
     a = ap.parse_args()
     src = PHASE_D / a.tag / a.variant
     stack_path = PHASE_D / "stacks" / f"{a.tag}_{a.variant}.npy"
     store_path = PHASE_D / a.tag / f"intensity_{a.variant}.npz"
+    if a.out_tag:
+        stack_path = PHASE_D / "stacks" / f"{a.out_tag}_clean.npy"
+        store_path = PHASE_D / a.out_tag / "intensity_clean.npz"
+        store_path.parent.mkdir(parents=True, exist_ok=True)
     stack_path.parent.mkdir(parents=True, exist_ok=True)
     stack = np.lib.format.open_memmap(
         str(stack_path), mode="w+", dtype=np.uint8, shape=(N_OMEGA * N_DET, NROW, NCOL)

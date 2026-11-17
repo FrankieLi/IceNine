@@ -163,3 +163,15 @@ became AR6 on 2026-11-16 at the owner's request.
 - **Next action:** plan and run GO5l (I47): `GFF@P` plus fallback when Gauss-Newton skips its
   stages, plus a short joint hybrid CMA polish only for grains with fitted strain RMS > 6e-4;
   S36, judged like GO5i-k. Then GO6 or the cached ray index.
+
+## Now as of GO5l close (2026-11-16 17:15 PST)
+
+- **GO5l closed** (2026-11-16 17:15 PST): the fast strain fit `--arm GP4@P --cost hyb --lam 8`
+  (Gauss-Newton on centroids, frozen Tukey weights, two coverage gradient refits, CMA-hybrid
+  fallback for few spots or stalls, hybrid polish for strain above 6e-4) matches the CMA hybrid
+  on S36: strain 1.3 / 1.3 / 2.1e-4, orientation 0.009 / 0.015 / 0.020 deg, 25 s per grain
+  (CMA 53 s). I47 yes. `findings.md` "GO5l"; `COSTS.md`.
+- GO5g-k: hybrid cost, confirmation on 36 grains, Gauss-Newton and its failure modes.
+- **Next action:** plan and run GO5m (I48): the strain fits on noisy data (Poisson counts plus
+  background on the clean intensity store, thresholded into a new binary stack and store); S36,
+  `GP4@P` and the CMA hybrid against their clean results. Then GO6 or the cached ray index.

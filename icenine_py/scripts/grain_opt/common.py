@@ -88,8 +88,15 @@ class Sample:
     ``benchmarks/grain_opt/samples/`` (``rand``, ``corr3``, ...)."""
 
     def __init__(
-        self, out: Path, start: str = "paint", intensity: bool = True, sample: str = "grad"
+        self,
+        out: Path,
+        start: str = "paint",
+        intensity: bool = True,
+        sample: str = "grad",
+        stack: Any = None,
     ) -> None:
+        """``stack``: another stack file name in place of ``<sample>_clean.npy`` (GO5m, noisy
+        images of the same sample; its store is read from ``<stack tag>/intensity_clean.npz``)."""
         from icenine import grain_fit as GF
         from icenine.reconstructor import _get_voxel_vertices
         from icenine.smooth_cost import _build_smooth_cost
@@ -102,7 +109,7 @@ class Sample:
             grid, stack_name = G.GRID_MIC, G.STACK
         else:
             self.T = SampleTruth(sample)
-            grid, stack_name = self.T.grid_mic, f"{sample}_clean.npy"
+            grid, stack_name = self.T.grid_mic, stack or f"{sample}_clean.npy"
         self.setup, self.bfs, self.t_setup = C.build(C.CONFIG, out, sample=grid, stack_name=stack_name)
         os.chdir(cwd)
         self.mic = self.setup.sample.get_mic()

@@ -389,6 +389,7 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--lam", type=float, default=2.0)
     ap.add_argument("--per_level", type=int, default=4)
+    ap.add_argument("--stack", default=None, help="GO5m: stack file in place of strain_clean.npy")
     a = ap.parse_args()
     global SEED
     SEED = a.seed
@@ -401,7 +402,7 @@ def main() -> None:
     if a.per_level != 4:
         tag += f"_S{3 * a.per_level}"
     start = "paint" if a.arm.endswith("@P") else "truth"
-    S = CM.Sample(out / f"run_{tag}", start=start, intensity=True, sample="strain")
+    S = CM.Sample(out / f"run_{tag}", start=start, intensity=True, sample="strain", stack=a.stack)
     T = S.T
     gm = np.asarray(T.gmap)
     label = CM.C.preflight_label(out / f"run_{tag}")
