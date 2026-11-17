@@ -255,3 +255,18 @@ became AR6 on 2026-11-16 at the owner's request.
 - **Next action:** plan and run GO7c (I52): PSF-aware predicted coverage in the strain costs
   (`fit_strain.py`, predicted coverage points spread by the PSF Gaussian, Monte Carlo copies),
   fast fit on `strain_psf10`, judged against the clean fast fit. Then G2c.
+
+## Now as of GO7c close (2026-11-16 20:10 PST)
+
+- **GO7c closed** (2026-11-16 20:10 PST, G2b I52): PSF-aware predicted coverage does not rescue
+  the strain fit on 1 px PSF images (2.3 / 2.6 / 6.8e-4); Gauss-Newton-only grains degrade as
+  much, so merged spots (contaminated centroids) are the cause (I53 open). G2b time-boxed here.
+- GO7b: 1 px PSF breaks the fast strain fit, 0.5 px harmless. GO7: rocking costs one grain via
+  the gate. GO4d (G1b): I36 yes.
+- **Program order** (owner via the coordinator, 2026-11-16): (3) G2c (I25-I27) next, then (4)
+  G2a (I18, I22). Model-side rocking / PSF (library changes) wait for owner approval.
+- **Next action:** scope and run the first G2c step (GO8). I25: `GNLayerNet`
+  (`docs/orientation_nn_design.md`; learned per-voxel Gauss-Newton refiner, offsets up to 1 deg;
+  no trained weights in this worktree) as a per-voxel refiner inside grains on `rand` / `corr3`
+  at 0.5 and 1 deg after the ladder; first check where the model code and training data live,
+  and the training cost (each run under 2 h).

@@ -27,8 +27,9 @@ def enc(j: np.ndarray, p: np.ndarray) -> np.ndarray:
 
 
 class Poisson:
-    def __init__(self, prob: object, gain: float, b: float) -> None:
+    def __init__(self, prob: object, gain: float, b: float, I_spot: object = None) -> None:
         self.prob, self.b = prob, b
+        self.I = None if I_spot is None else np.asarray(I_spot, float)  # GO9b: s_j = c I_j
         ks, ys = [], []
         for j, sp in enumerate(prob.region.spots):
             p = np.floor(np.asarray(sp.obs)).astype(np.int64)
@@ -54,20 +55,51 @@ class Poisson:
         spot = uk // (W * W * W)
         sm = np.bincount(spot, weights=mm, minlength=self.S)
         sy = np.bincount(spot, weights=yy, minlength=self.S)
-        s = np.where(sm > 0, sy / np.maximum(sm, 1e-12), 0.0)
+        if self.I is None:
+            s = np.where(sm > 0, sy / np.maximum(sm, 1e-12), 0.0)
+        else:  # GO9b: one constant per grain times the predicted relative intensity
+            c = sy.sum() / max(float((self.I * sm).sum()), 1e-12)
+            s = c * self.I
         mu = s[spot] * mm + self.b
         dev = mu - yy + np.where(yy > 0, yy * np.log(np.maximum(yy, 1e-12) / mu), 0.0)
         return float(2.0 * dev.sum())
+
+
+def spot_intensities(S: object, prob: object) -> np.ndarray:
+    """GO9b: I_j = F / (|sin eta| sin 2theta) per spot: F the reflection's form intensity (the
+    structure's reflection list filtered by Q-max, as SmoothCost), eta and 2 theta from the lab
+    direction of the spot's observed centroid (sample origin)."""
+    from icenine import spot_pairing as sp
+
+    st = S.setup.sample.get_structure_list()[S.phase]
+    rv = st.get_reflection_vectors()
+    mq = float(S.setup.config.max_q)
+    if mq > 0:
+        rv = [r for r in rv if r.q_mag <= mq]
+    assert len(rv) == S.model.K, (len(rv), S.model.K)
+    F = np.array([float(r.intensity) for r in rv])
+    geoms = sp.geometry_from_detectors(S.setup.exp_setup.get_detector_list())
+    out = []
+    for spt in prob.region.spots:
+        refl, _br, det = spt.key
+        c = np.asarray(spt.obs, float).mean(0)
+        d = sp.pixel_to_lab(geoms[det], c[0], c[1])
+        d = d / np.linalg.norm(d)
+        s_eta = abs(d[1]) / max(np.hypot(d[1], d[2]), 1e-12)
+        out.append(F[refl] / (s_eta * np.hypot(d[1], d[2]) + 1e-10))
+    return np.array(out)
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--grains", type=int, nargs="+", default=[381, 302])
     ap.add_argument("--evals", type=int, default=150)
+    ap.add_argument("--variants", nargs="+", default=["pois", "pois_b5"])
+    ap.add_argument("--out", default="go9")
     a = ap.parse_args()
     import cma
 
-    S = CM.Sample(CM.OUT / "go9" / "run")
+    S = CM.Sample(CM.OUT / a.out / "run")
     T = S.T
     gm = np.asarray(T.gmap)
     allv = np.concatenate([S.images.store["val"]]) if getattr(S.images, "store", None) else None
@@ -83,8 +115,11 @@ def main() -> None:
         w_t = GF.matrix_to_rotvec(Rt_al[:1] @ prob.field.R_ref.T)[0]
         th0 = np.zeros(prob.field.n_params)
         th0[:3] = w_t
-        for name, b in (("pois", 0.5), ("pois_b5", 5.0)):
-            obj = Poisson(prob, gain, b)
+        I_spot = spot_intensities(S, prob) if "pois_sf" in a.variants else None
+        table = {"pois": (0.5, None), "pois_b5": (5.0, None), "pois_sf": (0.5, I_spot)}
+        for name in a.variants:
+            b, I_use = table[name]
+            obj = Poisson(prob, gain, b, I_use)
 
             def f(w: np.ndarray) -> float:
                 th = th0.copy()
@@ -107,7 +142,7 @@ def main() -> None:
                        strict_opt=float(S.strict(R_opt, members).mean()), t_s=time.time() - t0)
             print(json.dumps(row), flush=True)
             out.append(row)
-    (CM.OUT / "go9" / "poisson.json").write_text(json.dumps(out, indent=1) + "\n")
+    (CM.OUT / a.out / "poisson.json").write_text(json.dumps(out, indent=1) + "\n")
 
 
 if __name__ == "__main__":

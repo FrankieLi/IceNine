@@ -5,18 +5,17 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO7c closed** (2026-11-16 20:10 PST, G2b I52): PSF-aware predicted coverage does not rescue
-  the strain fit on 1 px PSF images (2.3 / 2.6 / 6.8e-4); Gauss-Newton-only grains degrade as
-  much, so merged spots (contaminated centroids) are the cause (I53 open). G2b time-boxed here.
-- GO7b: 1 px PSF breaks the fast strain fit, 0.5 px harmless. GO7: rocking costs one grain via
-  the gate. GO4d (G1b): I36 yes.
-- **Program order** (owner via the coordinator, 2026-11-16): (3) G2c (I25-I27) next, then (4)
-  G2a (I18, I22). Model-side rocking / PSF (library changes) wait for owner approval.
-- **Next action:** scope and run the first G2c step (GO8). I25: `GNLayerNet`
-  (`docs/orientation_nn_design.md`; learned per-voxel Gauss-Newton refiner, offsets up to 1 deg;
-  no trained weights in this worktree) as a per-voxel refiner inside grains on `rand` / `corr3`
-  at 0.5 and 1 deg after the ladder; first check where the model code and training data live,
-  and the training cost (each run under 2 h).
+- **GO9 / GO9b closed** (2026-11-16 20:35 PST, G2a): Poisson deviance with free per-reflection
+  scales is the closest smooth objective at the ground truth (0.0101 / 0.0060 deg on grains 381 /
+  302; strict 0.0060 / 0.0082), missing the rule by 0.0001 deg (I18 no); tying the scales to the
+  structure factor makes grain 302 worse (0.030; I22 no). `probe_poisson.py`.
+- GO7-GO7c (G2b): rocking costs a grain via the gate; 1 px PSF breaks the strain fit (merged
+  spots). GO4d (G1b): cached ray pairing, I36 yes.
+- **Owner item:** G2c (I25 GNLayerNet) needs a dataset, training and an implementer (approval in
+  DECISIONS.md); asked 2026-11-16 20:15 PST, options sent. Waiting.
+- **Next action:** while G2c waits, plan and run GO4e (G1b, I51): after the gated seed path, a
+  neighbour continuation from the improved voxels (`L/366/3,G/15/0.15,N/30/0.3`) and/or a gate on
+  neighbour disagreement, on corr3 / rand (GO4d left rand 2 deg at 52%).
 
 ## Running jobs
 

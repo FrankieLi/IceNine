@@ -914,3 +914,28 @@ Verdicts by the rule written before the runs:
 - Next (I22): constrain the per-reflection scales by the predicted relative intensities
   (structure factor x Lorentz-polarisation) so a reflection cannot absorb misfit with its own
   scale, then the same bias test.
+
+## GO9b: Poisson likelihood with structure-factor scales (goal G2a, idea I22)
+
+Question: with the per-reflection scales tied to the renderer's intensity law, s_j = c F_j /
+(|sin eta_j| sin 2theta_j) (one constant per grain; eta and 2 theta from each spot's observed
+centroid direction), does the Poisson optimum move to the ground truth? GO1 protocol, grains 381
+and 302; rows in `benchmarks/grain_opt/go9b/poisson.json` (the `pois` control reproduces GO9
+exactly).
+
+| objective | offset 381 (deg) | offset 302 (deg) | deviance at the ground truth (381 / 302) |
+|---|---|---|---|
+| Poisson, free scale per reflection (GO9) | 0.0101 | 0.0060 | 4.45M / 11.41M |
+| Poisson, structure-factor scales | 0.0092 | 0.0303 | 6.65M / 12.92M |
+
+Verdicts by the rule written before the runs:
+
+- I22 is answered no: grain 381 moves inside the 0.01 deg limit (0.0092) but grain 302 moves out
+  to 0.030 deg.
+- The tied scales fit the observed relative intensities worse (deviance at the ground truth 1.5 x
+  and 1.13 x the free-scale value): the predicted coverage mass is an area, while a rendered
+  pixel's value is the reflection intensity times the number of voxel triangles whose
+  rasterisation covers the pixel centre, and the centroid-based eta and 2 theta are approximate,
+  so per-spot misfit is left for the orientation to absorb.
+- G2a (I18, I22) closes with the Poisson deviance with free scales as the best smooth objective
+  (`COSTS.md`), still short of the strict cost's rule.
