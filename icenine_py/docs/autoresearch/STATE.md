@@ -36,7 +36,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    Not a speed comparison (C++ 416 of 2,000 wrong, Python 24; explained by the 16 Nov check).
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
    goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. 16 pages wait (+ar5v, cppchk).
-   NOW: (a) step 22 MERGED 566eea3f; v58 live; v59 after the whole-layer start. (c) restart distance
+   NOW: (a) step 22 MERGED 566eea3f; v59 live (01:18, 17 Nov); v60 after the runs. (c) restart distance
    and C++ config done (reports 20261116-*); next study step: local-optimization schedule.
    (b) OWNER TASK part 1: both C++ changes reviewed (a7e220e7; C5 56 wrong); fixed2 sub-grid test
    PASSED (2 passed, 261 s). Part 2 `fine1`: projection (c501c238, re-freeze 2943a5e6), hours:
@@ -44,7 +44,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
 
 ## Running jobs
 - Step 14 key WAITS (held2). Steps 15 to 21 merged (caches: `J5r` `agent-aeba15b7c3850b007`,
-  step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v58 live.
+  step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v59 live.
   Step 22 (`ar5v`; cache in `agent-aba6e1bdb95dff72a`): MERGED 566eea3f, key `SeedIndexMCDefer`.
   Whole-layer CS, J5S, CF since 01:13, 17 Nov: `fine1/cache/logs/launch_whole1.out`; PS waits.
 
