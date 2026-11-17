@@ -228,3 +228,17 @@ became AR6 on 2026-11-16 at the owner's request.
   frames; first find whether the renderer and `SpotModel` support it, then render a sample with
   alpha > 0 and measure what the grain fit and the strict cost lose and whether sub-frame omega
   from frame ratios helps.
+
+## Now as of GO7 close (2026-11-16 19:50 PST)
+
+- **GO7 closed** (2026-11-16 19:50 PST, G2b I23 part 1): emulated rocking curve on the `grad`
+  images (`rock_stack.py`, alpha 0.3 / 1.0 deg; `run_pipeline.py --stack`): the strict-field fit
+  keeps its median (0.0149 / 0.0134 deg against 0.0146) but one grain (197) is rejected by the
+  acceptance gate: 20 of 853 voxels above 0.1 deg against 3. Harm by the rule. Part 2 (model with
+  a rocking curve) needs owner approval (library change); low priority.
+- GO4d (G1b): cached ray pairing + gated seed path, I36 yes.
+- **Program order** (owner via the coordinator, 2026-11-16): (1) G1b done for now, (2) G2b (I23
+  part 1 done; I24 next), (3) G2c (I25-I27), (4) G2a (I18, I22).
+- **Next action:** plan and run GO7b (G2b, I24): detector point-spread function on the images
+  (emulated: blur the clean intensities with a Gaussian PSF, sigma 0.5 and 1 px, threshold), the
+  same `Astrict/100` G20 test, plus the fast strain fit on the `strain` sample with the PSF.

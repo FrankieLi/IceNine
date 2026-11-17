@@ -29,7 +29,8 @@ details in the findings page named in the last column. New ideas get the next fr
 | I21 | G2a | Least squares with per-reflection scale on intensity (baseline arm) | done | GO1: 0.012 / 0.042 deg; basin-finder arm in GO2 | findings.md |
 | I22 | G2a | Use structure factor x Lorentz to predict relative spot intensity across reflections | proposed | | |
 | I23 | G2b | Rocking curve alpha > 0: spots spread over frames; sub-frame omega from frame ratios | proposed | GO7 (part 1): rocking images (alpha 0.3, 1.0 deg) cost the strict-field fit one grain (gate rejection; 20 of 853 voxels above 0.1 deg against 3); median unchanged. Part 2 (model) needs owner approval (library change) | findings.md |
-| I24 | G2b | Partial-volume coverage per pixel and a detector point-spread function in the render | running (GO7b) | | |
+| I24 | G2b | Partial-volume coverage per pixel and a detector point-spread function in the render | proposed | GO7b (images part): PSF 0.5 px harmless to the strain fit; 1.0 px breaks it (strain 2.3/2.7/5.7e-4, orientation 0.06 deg) and raises the orientation-fit median 1.3 x; model part open | findings.md |
+| I52 | GO7b | PSF-aware predicted coverage in the strain costs (predicted coverage points spread by the PSF Gaussian before scoring), on the 1.0 px PSF images | proposed | | |
 | I25 | G2c | GNLayerNet (orientation_nn_design.md) as a per-voxel start inside a grain | proposed | | |
 | I26 | G2c | Learned residual / amortised Gauss-Newton step for the grain field (todo_hybrid_nn) | proposed | | |
 | I27 | G2c | Neural field for orientation (and strain) over the grain, render-and-compare (nerf note) | proposed | | |

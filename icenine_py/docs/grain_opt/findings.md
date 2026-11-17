@@ -825,3 +825,35 @@ Verdicts by the rule written before the runs:
   strict costs, is what becomes less reliable.
 - Part 2 (a forward model with a rocking curve, sub-frame omega from frame ratios) changes
   `icenine/` and needs the owner's approval; given how little part 1 lost, it is low priority.
+
+## GO7b: detector point-spread function on the images (goal G2b, idea I24)
+
+Question: how much do the orientation fit and the fast strain fit lose when the images are
+blurred by a Gaussian PSF before the threshold, while the forward model has none? Images from
+the clean intensities (`psf_stack.py`; sigma 0.5 px adds 3% lit pixels, 1.0 px adds 25%).
+Orientation: G20 `Astrict/100`, table `benchmarks/grain_opt/go7b/g20.md`. Strain: `GP4@P` on S36,
+rows in `benchmarks/grain_opt/go7b/strain_psf*/`.
+
+| images | orientation: above 0.1 deg (853), median | strain median 1e-4 / 5e-4 / 1e-3 | strain-fit orientation (deg) | s per grain |
+|---|---|---|---|---|
+| clean | 3, 0.0146 | 1.3 / 1.3 / 2.1e-4 | 0.009 / 0.015 / 0.020 | 25 |
+| PSF sigma 0.5 px | 20, 0.0151 | 1.4 / 1.3 / 2.8e-4 | 0.013 / 0.020 / 0.026 | 21 |
+| PSF sigma 1.0 px | 22, 0.0192 | 2.3 / 2.7 / 5.7e-4 | 0.029 / 0.039 / 0.061 | 18 |
+
+Verdicts by the rule written before the runs:
+
+- Orientation: harm at both sigmas by the share above 0.1 deg (Wilson intervals above the clean
+  arm's); as in GO7 it comes from grain 197, which the strict-cost gate rejects (rejected grains
+  37, 493, 64, 197 at 0.5 px; 37, 64, 197 at 1.0 px). At 1.0 px the median also rises 1.3 x
+  (0.0192 against 0.0146; below the 1.5 x limit) and the 95th percentile from 0.035 to 0.063 deg.
+- Strain: no harm at 0.5 px (within 1.5 x clean, orientation within 0.03 deg). Harm at 1.0 px:
+  strain 2.7e-4 and 5.7e-4 at 5e-4 and 1e-3 (limits 2.0e-4, 3.2e-4) and orientation 0.039 and
+  0.061 deg. 11 grains fall back to CMA (clean 9).
+- Reading: a 1 px PSF is the first image nuisance in this program that clearly breaks the strain
+  fit. Blur-then-threshold grows each observed spot by about a pixel while the predicted coverage
+  keeps the sharp footprint, so the coverage term of the hybrid no longer has its optimum at the
+  ground truth; the centroid term stays nearly unbiased (symmetric blur). The fit gets faster
+  because more grains go to Gauss-Newton fallback and polish thresholds differently.
+- Next (I52, inside the scripts, no library change): a PSF-aware predicted coverage in the strain
+  costs (the predicted coverage points spread by the same Gaussian before scoring) on the 1.0 px
+  images.

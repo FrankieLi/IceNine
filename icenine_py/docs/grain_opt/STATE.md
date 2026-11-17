@@ -5,17 +5,16 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO7 closed** (2026-11-16 19:50 PST, G2b I23 part 1): emulated rocking curve on the `grad`
-  images (`rock_stack.py`, alpha 0.3 / 1.0 deg; `run_pipeline.py --stack`): the strict-field fit
-  keeps its median (0.0149 / 0.0134 deg against 0.0146) but one grain (197) is rejected by the
-  acceptance gate: 20 of 853 voxels above 0.1 deg against 3. Harm by the rule. Part 2 (model with
-  a rocking curve) needs owner approval (library change); low priority.
-- GO4d (G1b): cached ray pairing + gated seed path, I36 yes.
-- **Program order** (owner via the coordinator, 2026-11-16): (1) G1b done for now, (2) G2b (I23
-  part 1 done; I24 next), (3) G2c (I25-I27), (4) G2a (I18, I22).
-- **Next action:** plan and run GO7b (G2b, I24): detector point-spread function on the images
-  (emulated: blur the clean intensities with a Gaussian PSF, sigma 0.5 and 1 px, threshold), the
-  same `Astrict/100` G20 test, plus the fast strain fit on the `strain` sample with the PSF.
+- **GO7b closed** (2026-11-16 20:00 PST, G2b I24 images part): Gaussian PSF on the images
+  (`psf_stack.py`): 0.5 px harmless to the fast strain fit; 1.0 px breaks it (strain 2.3 / 2.7 /
+  5.7e-4, orientation up to 0.06 deg) and raises the orientation-fit median 1.3 x. Grain 197
+  again lost to the strict-cost gate. `findings.md` "GO7b".
+- GO7: rocking-curve images cost one grain via the gate. GO4d (G1b): I36 yes.
+- **Program order** (owner via the coordinator, 2026-11-16): (2) G2b in progress (I52 next, then
+  model-side I23/I24 parts need owner approval), (3) G2c (I25-I27), (4) G2a (I18, I22).
+- **Next action:** plan and run GO7c (I52): PSF-aware predicted coverage in the strain costs
+  (`fit_strain.py`, predicted coverage points spread by the PSF Gaussian, Monte Carlo copies),
+  fast fit on `strain_psf10`, judged against the clean fast fit. Then G2c.
 
 ## Running jobs
 
@@ -29,6 +28,8 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 - `rand`, `corr3` stacks and stores: `.../stacks/<tag>_clean.npy`, `.../<tag>/intensity_clean.npz`.
 - Rocking stacks (GO7): `.../stacks/grad_rock03_clean.npy`, `grad_rock10_clean.npy` (and stores in
   `grad_rock03/`, `grad_rock10/`); rebuild with `rock_stack.py --alpha A --out <name>` (about 3 min).
+- PSF stacks (GO7b): `grad_psf05`, `grad_psf10`, `strain_psf05`, `strain_psf10` (stacks and stores);
+  rebuild with `psf_stack.py --tag T --sigma S --out <name>` (about 2 min).
 - Ray caches (GO4d): `.../corr3/observed_rays.npz`, `.../rand/observed_rays.npz` (paired observed
   rays; rebuild with `ray_cache.py --sample <s>`, 19 / 48 min).
 - `strainrn` (GO5m): noisy `strain` images, `.../stacks/strainrn_clean.npy` and

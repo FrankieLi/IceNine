@@ -1,0 +1,8 @@
+{
+ "tag": "grad",
+ "sigma_px": 1.0,
+ "threshold": 62203.0,
+ "lit_clean": 9444080,
+ "lit_psf": 11768506,
+ "stack": "/Users/sfli/Research/IceNine/.claude/worktrees/grain-opt/Examples/Example2.ManyGrains/ScatteringData_PhaseD/stacks/grad_psf10_clean.npy"
+}

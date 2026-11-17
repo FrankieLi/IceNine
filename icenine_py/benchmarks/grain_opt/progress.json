@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-16 19:50 PST",
+ "updated": "2026-11-16 20:00 PST",
  "steps": [
   {
    "id": "GO0",
@@ -200,6 +200,14 @@
    "status": "done",
    "date": "2026-11-16",
    "result": "Emulated rocking (alpha 0.3 and 1.0 deg; 11% and 100% of lit pixels spread past one frame): grain-field strict fit on G20 keeps its median (0.0149, 0.0134 against 0.0146 deg) but loses one grain to the acceptance gate (20 of 853 voxels above 0.1 deg against 3). Harm by the rule; the model needs no rocking curve to find orientations, the strict-cost gate becomes less reliable.",
+   "commit": ""
+  },
+  {
+   "id": "GO7b",
+   "title": "Detector PSF on the images (G2b)",
+   "status": "done",
+   "date": "2026-11-16",
+   "result": "Gaussian PSF before the threshold: sigma 0.5 px leaves the fast strain fit at 1.4/1.3/2.8e-4; sigma 1.0 px breaks it (2.3/2.7/5.7e-4, orientation up to 0.06 deg) and raises the orientation-fit median from 0.0146 to 0.0192 deg; both sigmas lose grain 197 to the strict-cost gate. Next: PSF-aware predicted coverage (I52).",
    "commit": ""
   }
  ],

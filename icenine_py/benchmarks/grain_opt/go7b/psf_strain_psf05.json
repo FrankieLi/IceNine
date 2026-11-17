@@ -1,0 +1,8 @@
+{
+ "tag": "strain",
+ "sigma_px": 0.5,
+ "threshold": 62194.30078125,
+ "lit_clean": 9445763,
+ "lit_psf": 9732647,
+ "stack": "/Users/sfli/Research/IceNine/.claude/worktrees/grain-opt/Examples/Example2.ManyGrains/ScatteringData_PhaseD/stacks/strain_psf05_clean.npy"
+}

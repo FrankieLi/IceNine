@@ -1,0 +1,50 @@
+{
+ "go7_clean_As100": {
+  "stages": "Astrict/100",
+  "renders_per_voxel": 113.0,
+  "wall_s": 3.397934675216675,
+  "ms_per_voxel": 3.140420217390642,
+  "accepted": [
+   17
+  ],
+  "n": 853,
+  "k_gt01": 3,
+  "median": 0.014558597293219178,
+  "p95": 0.03496901604374043,
+  "k_wrong": 3,
+  "n_all": 1082,
+  "k_gt01_all": 8
+ },
+ "go7b_grad_psf05_As100": {
+  "stages": "Astrict/100",
+  "renders_per_voxel": 113.0,
+  "wall_s": 3.698364734649658,
+  "ms_per_voxel": 3.4180820098425677,
+  "accepted": [
+   16
+  ],
+  "n": 853,
+  "k_gt01": 20,
+  "median": 0.015052317054458102,
+  "p95": 0.04316948023966595,
+  "k_wrong": 3,
+  "n_all": 1082,
+  "k_gt01_all": 28
+ },
+ "go7b_grad_psf10_As100": {
+  "stages": "Astrict/100",
+  "renders_per_voxel": 113.0,
+  "wall_s": 3.7065863609313965,
+  "ms_per_voxel": 3.4256805553894605,
+  "accepted": [
+   17
+  ],
+  "n": 853,
+  "k_gt01": 22,
+  "median": 0.019211863424645835,
+  "p95": 0.06251714751056132,
+  "k_wrong": 3,
+  "n_all": 1082,
+  "k_gt01_all": 37
+ }
+}
