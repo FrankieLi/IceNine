@@ -140,3 +140,15 @@ became AR6 on 2026-11-16 at the owner's request.
 - **Next action:** plan and run GO5j (I45): alternate a field-gradient refit on coverage at the
   Gauss-Newton strain with Gauss-Newton (two rounds); S36, judged like GO5i against the CMA
   hybrid (strain, orientation at most 0.02 deg, half the time). Then GO6 or the cached ray index.
+
+## Now as of GO5j close (2026-11-16 16:45 PST)
+
+- **GO5j closed** (2026-11-16 16:45 PST): Gauss-Newton plus gradient refits (`--arm GA2@P`)
+  gives strain 1.2 / 1.2 / 3.1e-4 and orientation 0.009 / 0.014 / 0.034 deg on S36 at 24 s per
+  grain (CMA hybrid 2.3 / 1.5 / 2.1e-4, 0.011 / 0.009 / 0.017 deg, 53 s). 5e-4 fixed; at 1e-3
+  Gauss-Newton escapes past the Tukey cut-off on grains with few spots (452, 0, 485, 349).
+  I45 no. `findings.md` "GO5j".
+- GO5i: Gauss-Newton 5x faster than CMA, gradient biased. GO5h: CMA hybrid confirmed.
+- **Next action:** plan and run GO5k (I46): freeze inliers and weights per Gauss-Newton stage,
+  at least half the spots inliers, fall back to the CMA hybrid for grains with few spots (and/or
+  rebuild windows at the fitted strain); S36, judged like GO5i/j. Then GO6 or the cached ray index.

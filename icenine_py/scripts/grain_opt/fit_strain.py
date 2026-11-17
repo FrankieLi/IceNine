@@ -9,6 +9,9 @@ mass on lit pixels, mean over the grain's spots (GO5 "coverage"). Spot windows a
 strain. Parameters: grain field (FieldA order 1, 9 numbers) and one crystal-frame strain per
 grain (6). CMA with per-coordinate steps 0.05 deg (field) and 5e-4 (strain), strain from 0.
 
+GO5k (I46): ``GF2@P`` (``GA2@P`` with per-stage frozen Tukey weights, a stage skipped below
+half inliers) and ``GFF@P`` (plus the GO5h CMA hybrid for grains with fewer than 40 spots).
+
 GO5j (I45): ``GA1@P`` / ``GA2@P``: ``GN@P`` plus one or two rounds of (gradient-only CMA 100 on
 coverage at the Gauss-Newton strain, then Gauss-Newton again).
 
@@ -217,7 +220,15 @@ def robust_w(d: np.ndarray, c: float) -> np.ndarray:
 
 
 def gn_fit(
-    cen: Any, field: Any, th: np.ndarray, eps0: np.ndarray, n: int, iters: int = 15, c: float = 0.0
+    cen: Any,
+    field: Any,
+    th: np.ndarray,
+    eps0: np.ndarray,
+    n: int,
+    iters: int = 15,
+    c: float = 0.0,
+    freeze: bool = False,
+    min_share: float = 0.0,
 ) -> Any:
     """GO5i: Levenberg-Marquardt on the centroid residuals over the field's mean rotation
     (theta[:3]) and one strain (6); the field gradient theta[3:] stays fixed. Finite-difference
@@ -233,10 +244,14 @@ def gn_fit(
 
     q = np.concatenate([np.asarray(th[:3], float), np.asarray(eps0, float)])
     res, active = resid(q)
+    w0 = robust_w(np.linalg.norm(res, axis=1), c)  # GO5k: frozen weights of the stage start
+    n_in = int(((w0 > 0) & active).sum())
+    if freeze and n_in < min_share * active.sum():  # GO5k: too few inliers, skip the stage
+        return q, dict(iters=0, skipped=True, n_in=n_in, n_active=int(active.sum()))
     mu, it, c_start = 1e-3, 0, None
     for it in range(1, iters + 1):
         d = np.linalg.norm(res, axis=1)
-        sw = np.sqrt(robust_w(d, c))[:, None]
+        sw = np.sqrt(w0 if freeze else robust_w(d, c))[:, None]
 
         def rv(r: np.ndarray) -> np.ndarray:
             return (sw * r)[active].ravel()
@@ -264,9 +279,11 @@ def gn_fit(
         if not accepted or np.all(np.abs(delta) < 1e-7):
             break
     d = np.linalg.norm(res, axis=1)
-    w = robust_w(d, c)
+    w = w0 if freeze else robust_w(d, c)
     c_end = float((w * d**2)[active].sum())
-    return q, dict(iters=it, cost0=c_start, cost=c_end, n_active=int(active.sum()), mu=mu)
+    return q, dict(
+        iters=it, cost0=c_start, cost=c_end, n_active=int(active.sum()), n_in=n_in, mu=mu
+    )
 
 
 class Hybrid:
@@ -300,7 +317,7 @@ def robust_theta0(prob: Any, sym: np.ndarray, tol_deg: float = 1.5) -> Any:
     return prob.field.fit_theta(Rc, sym), int(out.sum())
 
 
-GN_ARMS = ("GN@P", "GNH@P", "GA1@P", "GA2@P")
+GN_ARMS = ("GN@P", "GNH@P", "GA1@P", "GA2@P", "GF2@P", "GFF@P")
 SEED = 0  # GO5e: offset added to every CMA seed (--seed)
 
 
@@ -353,6 +370,8 @@ def main() -> None:
             "GNH@P",
             "GA1@P",
             "GA2@P",
+            "GF2@P",
+            "GFF@P",
         ],
     )
     ap.add_argument("--out", default="go5b")
@@ -463,7 +482,18 @@ def main() -> None:
             if a.arm in GN_ARMS:  # GO5i: Gauss-Newton on centroid residuals (GO5j: + rounds)
                 cen_o, th_cur = SubPix(prob, "cen"), np.array(th0, float)
                 q, info["gn"], info["grad"] = np.concatenate([th0[:3], np.zeros(6)]), [], []
-                for rd in range({"GA1@P": 1, "GA2@P": 2}.get(a.arm, 0) + 1):
+                frz = a.arm in ("GF2@P", "GFF@P")  # GO5k: frozen weights per stage
+                th0_t = torch.as_tensor(th0, dtype=GF.DT)
+                n_act0 = int(centroid_residuals(cen_o, field.orientations(th0_t), zero)[1].sum())
+                info["n_active0"] = n_act0
+                fallback = a.arm == "GFF@P" and n_act0 < 40
+                info["fallback"] = fallback
+                n_rounds = (
+                    0
+                    if fallback
+                    else {"GA1@P": 1, "GA2@P": 2, "GF2@P": 2, "GFF@P": 2}.get(a.arm, 0)
+                )
+                for rd in range(n_rounds + (0 if fallback else 1)):
                     if rd > 0:  # GO5j: gradient refit on coverage at the Gauss-Newton strain
                         eps_t, base = eps_of(q[3:]), th_cur.copy()
 
@@ -478,11 +508,26 @@ def main() -> None:
                     for c_px in (3.0, 1.5, 1.0):  # Tukey cut-off annealed (GO5i amendment)
                         th_c = th_cur.copy()
                         th_c[:3] = q[:3]
-                        q, gi = gn_fit(cen_o, field, th_c, q[3:], n, c=c_px)
+                        q, gi = gn_fit(
+                            cen_o, field, th_c, q[3:], n, c=c_px, freeze=frz, min_share=0.5
+                        )
                         info["gn"].append(dict(gi, c=c_px, round=rd))
                     th_cur[:3] = q[:3]
                 xg = np.concatenate([th_cur, q[3:]])
-                if a.arm == "GNH@P":
+                if fallback:  # GO5k: GO5h CMA hybrid protocol from the coverage field leg
+                    rs = cma_min(
+                        lambda e: cov(field.orientations(th0_t), eps_of(e)),
+                        np.zeros(6),
+                        np.full(6, STEP_EPS),
+                        a.evals_e,
+                    )
+                    r = cma_min(
+                        fj,
+                        np.concatenate([th0, rs["x"]]),
+                        stds(math.radians(0.02), 2e-4),
+                        a.evals,
+                    )
+                elif a.arm == "GNH@P":
                     r = cma_min(fj, xg, stds(math.radians(0.01), 1e-4), 300)
                 else:
                     fg = fj(xg)

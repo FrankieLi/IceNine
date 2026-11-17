@@ -5,15 +5,14 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO5j closed** (2026-11-16 16:45 PST): Gauss-Newton plus gradient refits (`--arm GA2@P`)
-  gives strain 1.2 / 1.2 / 3.1e-4 and orientation 0.009 / 0.014 / 0.034 deg on S36 at 24 s per
-  grain (CMA hybrid 2.3 / 1.5 / 2.1e-4, 0.011 / 0.009 / 0.017 deg, 53 s). 5e-4 fixed; at 1e-3
-  Gauss-Newton escapes past the Tukey cut-off on grains with few spots (452, 0, 485, 349).
-  I45 no. `findings.md` "GO5j".
-- GO5i: Gauss-Newton 5x faster than CMA, gradient biased. GO5h: CMA hybrid confirmed.
-- **Next action:** plan and run GO5k (I46): freeze inliers and weights per Gauss-Newton stage,
-  at least half the spots inliers, fall back to the CMA hybrid for grains with few spots (and/or
-  rebuild windows at the fitted strain); S36, judged like GO5i/j. Then GO6 or the cached ray index.
+- **GO5k closed** (2026-11-16 17:00 PST): frozen Gauss-Newton weights plus a CMA-hybrid fallback
+  for grains with fewer than 40 spots (`--arm GFF@P`) give strain 1.3 / 1.3 / 2.4e-4 on S36 at
+  19 s per grain, orientation 0.009 / 0.015 / 0.028 deg (limit 0.02 at 1e-3). Two grains stall
+  (all stages skipped, strain left at 0). I46 no. `findings.md` "GO5k".
+- GO5j: gradient refit fixes 5e-4. GO5h: CMA hybrid confirmed (2.3 / 1.5 / 2.1e-4, 53 s).
+- **Next action:** plan and run GO5l (I47): `GFF@P` plus fallback when Gauss-Newton skips its
+  stages, plus a short joint hybrid CMA polish only for grains with fitted strain RMS > 6e-4;
+  S36, judged like GO5i-k. Then GO6 or the cached ray index.
 
 ## Running jobs
 
@@ -38,7 +37,7 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Code
 
-- `scripts/grain_opt/fit_strain.py`: strain fit (GO5b arms E@GT, FE@GT, FE@P; GO5c J@P, S@P, SR@P, S@GT; GO5d E@F, O@P, Ost@P; GO5e-g `--cost sd|int|cen|ch|hyb`, `--lam`, `--seed`; GO5g Sx@P; GO5i GN@P, GNH@P with `gn_fit`; GO5j GA1@P, GA2@P).
+- `scripts/grain_opt/fit_strain.py`: strain fit (GO5b arms E@GT, FE@GT, FE@P; GO5c J@P, S@P, SR@P, S@GT; GO5d E@F, O@P, Ost@P; GO5e-g `--cost sd|int|cen|ch|hyb`, `--lam`, `--seed`; GO5g Sx@P; GO5i GN@P, GNH@P with `gn_fit`; GO5j GA1@P, GA2@P; GO5k GF2@P, GFF@P).
 - `icenine/grain_fit.py` (SpotModel, regions, Sinkhorn / LS objectives, FieldA, GrainProblem);
   tests `tests/test_grain_fit.py` (16 pass).
 - `scripts/grain_opt/`: `common.py` (Sample loader), `run_grains.py` (stage A/B on G20),

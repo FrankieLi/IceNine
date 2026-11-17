@@ -607,3 +607,32 @@ Verdicts by the rule written before the runs:
   require at least half the spots as inliers (else keep the previous stage), and fall back to
   the CMA hybrid for grains with too few spots; also rebuild the spot windows at the fitted
   strain.
+
+## GO5k: stop the Gauss-Newton escape (idea I46)
+
+Question: with per-stage frozen Tukey weights (a stage skipped below half inliers) and a CMA
+hybrid fallback for grains with fewer than 40 spots, does the fast fit match the CMA hybrid at
+every level? S36, painted start; rows in `benchmarks/grain_opt/go5k/*_S36.json`; load 2.5-3.8.
+
+| arm | 1e-4 | 5e-4 | 1e-3 | orientation | s per grain |
+|---|---|---|---|---|---|
+| GO5h CMA hybrid (reference) | 2.3e-4 | 1.5e-4 | 2.1e-4 (p75 5.7e-4) | 0.011 / 0.009 / 0.017 | 53 |
+| GO5j `GA2@P` | 1.2e-4 | 1.2e-4 | 3.1e-4 (p75 7.5e-4) | 0.009 / 0.014 / 0.034 | 24 |
+| `GF2@P` frozen weights | 1.3e-4 | 1.3e-4 | 5.1e-4 (p75 1.0e-3) | 0.009 / 0.015 / 0.041 | 17 |
+| `GFF@P` frozen weights + fallback (5 grains) | 1.3e-4 | 1.3e-4 | 2.4e-4 (p75 6.9e-4) | 0.009 / 0.015 / 0.028 | 19 |
+
+Verdicts by the rule written before the runs:
+
+- I46 is answered no: `GFF@P` meets the strain limits (2.4e-4 at 1e-3 against 2.7e-4) and the
+  time (19 s against 27 s) but its orientation at 1e-3 is 0.028 deg (limit 0.02). `GF2@P` fails
+  strain and orientation at 1e-3.
+- Frozen weights stop the escape, but where too few spots stay inliers every stage is skipped
+  and the strain stays at 0 (error = 1e-3): grains 452 and 0 in `GF2@P`, and grains 273 and 232
+  (48 and 56 spots, above the fallback threshold) in `GFF@P`. The fallback grains (485, 479, 452,
+  349, 0) end close to the CMA reference, and are quick (10-20 s: they are small).
+- On the Gauss-Newton grains at 1e-3 the orientation stays 0.03-0.04 deg (432, 351, 273, 232)
+  where CMA reaches 0.006-0.021: the gradient refit (CMA 100 on coverage) and the mean rotation
+  from centroids do not pin the field as well as the joint hybrid.
+- Next (I47): fall back also when Gauss-Newton skips its stages, and polish with a short joint
+  CMA leg on the hybrid only for grains whose fitted strain is large (RMS above 6e-4), so the
+  time stays near half the reference.

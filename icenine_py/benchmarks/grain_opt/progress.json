@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-16 16:45 PST",
+ "updated": "2026-11-16 17:00 PST",
  "steps": [
   {
    "id": "GO0",
@@ -144,6 +144,14 @@
    "status": "done",
    "date": "2026-11-16",
    "result": "36 grains, painted start: with one or two gradient refits Gauss-Newton gives strain 1.2/1.2/3.1e-4 and orientation 0.009/0.014/0.034 deg at 24 s per grain (CMA hybrid 2.3/1.5/2.1e-4, 0.011/0.009/0.017 deg, 53 s). 5e-4 fixed, 1e-3 not: on grains with few spots Gauss-Newton escapes past the Tukey cut-off. Rule not met; next: freeze inliers, fall back (I46).",
+   "commit": ""
+  },
+  {
+   "id": "GO5k",
+   "title": "Stop the Gauss-Newton escape",
+   "status": "done",
+   "date": "2026-11-16",
+   "result": "36 grains, painted start: frozen per-stage weights plus a CMA-hybrid fallback for grains with fewer than 40 spots (5 grains) give strain 1.3/1.3/2.4e-4 at 19 s per grain (CMA hybrid 2.3/1.5/2.1e-4, 53 s), orientation 0.009/0.015/0.028 deg: 1e-3 orientation over the 0.02 limit. Two grains stall (all stages skipped). Next: fall back on stalls, polish large-strain grains (I47).",
    "commit": ""
   }
  ],
