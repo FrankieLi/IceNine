@@ -939,3 +939,28 @@ Verdicts by the rule written before the runs:
   so per-spot misfit is left for the orientation to absorb.
 - G2a (I18, I22) closes with the Poisson deviance with free scales as the best smooth objective
   (`COSTS.md`), still short of the strict cost's rule.
+
+## GO4e: neighbour pass after the gated seed path (goal G1b, idea I51)
+
+Question: after GO4d's ladder + gated seed path, do a neighbour continuation (`N/30/0.3`) and a
+second seed pass recover more voxels, above all rand at 2 deg (52% above 0.1 deg)? Tables
+`benchmarks/grain_opt/go4e/{corr3,rand}.md`. Share above 0.1 deg (wrong, above 1 deg).
+
+| sample, arm | 0.5 deg | 1 deg | 2 deg | 5 deg | ms / voxel |
+|---|---|---|---|---|---|
+| corr3, GO4d `L/366/3,G/15/0.15` | 3% (0.4%) | 5% (0.4%) | 9% (4%) | 36% (28%) | 285 |
+| corr3, + `N/30/0.3` | 2% (0.4%) | 4% (0%) | 9% (4%) | 33% (27%) | 289 |
+| corr3, + `N/30/0.3,G/15/0.15` | 2% (0.4%) | 4% (0%) | 9% (4%) | 33% (27%) | 394 |
+| rand, GO4d `L/366/3,G/15/0.15` | 26% (2%) | 15% (7%) | 52% (47%) | 44% (42%) | 592 |
+| rand, + `N/30/0.3` | 25% (2%) | 13% (7%) | 48% (43%) | 41% (39%) | 596 |
+| rand, + `N/30/0.3,G/15/0.15` | 25% (2%) | 13% (7%) | 48% (43%) | 41% (39%) | 851 |
+
+Verdicts by the rule written before the runs:
+
+- I51 is answered no: rand at 2 deg falls from 52% to 48%, not to 35%. No level gets worse.
+- The neighbour pass is a small, cheap gain everywhere (1-4 points, +1% time); it is worth
+  keeping after the seed path. The second seed pass changes nothing (the same voxels are gated
+  and none finds a lower strict cost) at 30-45% more time.
+- rand at 2 deg keeps 43% wrong (above 1 deg) after all of this. Next (G1b, a diagnosis step):
+  are those voxels gated, and is their strict cost at the ground truth lower than at their end
+  (is it the search or the objective that fails)?

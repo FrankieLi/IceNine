@@ -5,17 +5,16 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO9 / GO9b closed** (2026-11-16 20:35 PST, G2a): Poisson deviance with free per-reflection
-  scales is the closest smooth objective at the ground truth (0.0101 / 0.0060 deg on grains 381 /
-  302; strict 0.0060 / 0.0082), missing the rule by 0.0001 deg (I18 no); tying the scales to the
-  structure factor makes grain 302 worse (0.030; I22 no). `probe_poisson.py`.
-- GO7-GO7c (G2b): rocking costs a grain via the gate; 1 px PSF breaks the strain fit (merged
-  spots). GO4d (G1b): cached ray pairing, I36 yes.
+- **GO4e closed** (2026-11-16 20:35 PST, G1b I51): a neighbour pass after the gated seed path
+  gains 1-4 points everywhere (best pipeline now `L/366/3,G/15/0.15,N/30/0.3`: corr3 2 / 4 / 9 /
+  33%, rand 25 / 13 / 48 / 41% above 0.1 deg at 0.5 / 1 / 2 / 5 deg); a second seed pass adds
+  nothing. I51 no.
+- GO9/GO9b (G2a): Poisson deviance best smooth objective, I18 / I22 no. GO7-7c (G2b).
 - **Owner item:** G2c (I25 GNLayerNet) needs a dataset, training and an implementer (approval in
-  DECISIONS.md); asked 2026-11-16 20:15 PST, options sent. Waiting.
-- **Next action:** while G2c waits, plan and run GO4e (G1b, I51): after the gated seed path, a
-  neighbour continuation from the improved voxels (`L/366/3,G/15/0.15,N/30/0.3`) and/or a gate on
-  neighbour disagreement, on corr3 / rand (GO4d left rand 2 deg at 52%).
+  DECISIONS.md); asked 2026-11-16 20:15 PST. Waiting.
+- **Next action:** GO4f (G1b diagnosis): on rand at 2 deg after the best pipeline, for the voxels
+  still wrong: were they gated, did the seed path return a candidate, and is the strict cost at
+  the ground truth lower than at their end (search failure or objective failure)?
 
 ## Running jobs
 

@@ -233,6 +233,14 @@
    "date": "2026-11-16",
    "result": "Tying the per-reflection scales to F / (|sin eta| sin 2theta): optimum 0.0092/0.0303 deg from the ground truth on grains 381/302 (free scales 0.0101/0.0060). I22 no; the tied scales misfit the observed relative intensities.",
    "commit": ""
+  },
+  {
+   "id": "GO4e",
+   "title": "Neighbour pass after the gated seed path (G1b)",
+   "status": "done",
+   "date": "2026-11-16",
+   "result": "Adding N/30/0.3 after L/366/3,G/15/0.15: corr3 2/4/9/33% and rand 25/13/48/41% above 0.1 deg at 0.5/1/2/5 deg (was 3/5/9/36% and 26/15/52/44%), +1% time; a second seed pass adds nothing. I51 no (rand 2 deg target 35%).",
+   "commit": ""
   }
  ],
  "pareto_note": "Vertical axis: voxels more than 0.1 deg from the ground truth, as a percentage of all voxels in the set, pooled over grains (not a per-grain average). Horizontal axis: objective evaluations per voxel. Grey: reference points, set = all 19,013 painted voxels of grad. Coloured: GO2 arms, set = the 853 voxels of the 20 benchmark grains (G20) that have an AR3 C record (start 84 of 853, C 18 of 853).",

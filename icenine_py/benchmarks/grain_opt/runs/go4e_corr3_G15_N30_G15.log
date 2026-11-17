@@ -1,0 +1,21 @@
+{"ray_cache_s": 0.017819416999999227, "loaded": true}
+{"g": 150, "lv": 0.5, "n": 24, "start": 0.4128, "end": 0.0186, "gt01": [24, 1], "acc": [true, true, true, true], "r": 483.7, "t": 2.9}
+{"g": 239, "lv": 0.5, "n": 37, "start": 0.3808, "end": 0.0099, "gt01": [36, 2], "acc": [true, true, true, true], "r": 812.4, "t": 5.0}
+{"g": 454, "lv": 0.5, "n": 47, "start": 0.4019, "end": 0.0097, "gt01": [46, 0], "acc": [true, true, true, true], "r": 487.8, "t": 2.3}
+{"g": 235, "lv": 0.5, "n": 63, "start": 0.3892, "end": 0.0131, "gt01": [62, 1], "acc": [true, true, true, true], "r": 487.8, "t": 3.2}
+{"g": 203, "lv": 0.5, "n": 98, "start": 0.4368, "end": 0.0119, "gt01": [97, 1], "acc": [true, true, true, true], "r": 491.4, "t": 4.8}
+{"g": 386, "lv": 1.0, "n": 22, "start": 0.8777, "end": 0.0082, "gt01": [22, 1], "acc": [true, true, true, true], "r": 482.9, "t": 1.1}
+{"g": 431, "lv": 1.0, "n": 36, "start": 0.9194, "end": 0.0069, "gt01": [36, 4], "acc": [true, true, true, true], "r": 1839.8, "t": 13.7}
+{"g": 325, "lv": 1.0, "n": 48, "start": 0.8709, "end": 0.0114, "gt01": [48, 1], "acc": [true, true, true, true], "r": 770.5, "t": 4.8}
+{"g": 39, "lv": 1.0, "n": 62, "start": 0.8412, "end": 0.0088, "gt01": [62, 1], "acc": [true, true, true, true], "r": 633.1, "t": 5.4}
+{"g": 3, "lv": 1.0, "n": 109, "start": 0.8913, "end": 0.009, "gt01": [109, 4], "acc": [true, true, true, true], "r": 731.0, "t": 11.7}
+{"g": 308, "lv": 2.0, "n": 19, "start": 1.3477, "end": 0.0183, "gt01": [19, 6], "acc": [true, true, true, true], "r": 2932.1, "t": 16.1}
+{"g": 336, "lv": 2.0, "n": 30, "start": 1.7372, "end": 0.0076, "gt01": [30, 5], "acc": [true, true, true, true], "r": 3062.9, "t": 28.2}
+{"g": 416, "lv": 2.0, "n": 41, "start": 1.7969, "end": 0.0141, "gt01": [41, 4], "acc": [true, true, true, true], "r": 1927.3, "t": 17.1}
+{"g": 127, "lv": 2.0, "n": 58, "start": 1.8998, "end": 0.0084, "gt01": [58, 3], "acc": [true, true, true, true], "r": 2473.7, "t": 30.1}
+{"g": 231, "lv": 2.0, "n": 96, "start": 1.7685, "end": 0.0082, "gt01": [96, 4], "acc": [true, true, true, true], "r": 1871.9, "t": 31.3}
+{"g": 152, "lv": 5.0, "n": 22, "start": 4.1842, "end": 0.4331, "gt01": [22, 11], "acc": [true, true, true, true], "r": 3291.0, "t": 23.5}
+{"g": 413, "lv": 5.0, "n": 34, "start": 4.0121, "end": 0.0336, "gt01": [34, 16], "acc": [true, true, true, true], "r": 2490.2, "t": 37.0}
+{"g": 33, "lv": 5.0, "n": 46, "start": 4.5754, "end": 0.0348, "gt01": [46, 17], "acc": [true, true, true, true], "r": 2703.0, "t": 50.9}
+{"g": 298, "lv": 5.0, "n": 59, "start": 4.4992, "end": 0.0202, "gt01": [59, 20], "acc": [true, true, true, true], "r": 2633.4, "t": 52.8}
+{"g": 183, "lv": 5.0, "n": 92, "start": 4.1588, "end": 0.022, "gt01": [92, 19], "acc": [true, true, true, true], "r": 2540.0, "t": 69.0}

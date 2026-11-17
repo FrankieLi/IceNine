@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-11-16T20:20:51",
+  "host": "ilium.local",
+  "loadavg": [
+    3.37060546875,
+    3.5732421875,
+    3.2578125
+  ],
+  "cpu_count": 10,
+  "power": "ac",
+  "omp_num_threads": "1",
+  "mkl_num_threads": "1",
+  "torch_threads": 1,
+  "busy_processes": [
+    {
+      "pid": 19072,
+      "cpu": 54.8,
+      "command": "/usr/libexec/mobileassetd"
+    },
+    {
+      "pid": 22050,
+      "cpu": 100.0,
+      "command": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+    }
+  ]
+}
