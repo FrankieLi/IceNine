@@ -816,6 +816,25 @@ over 2 hours is stopped and reported as over budget.
 Budget: `W` about 2-3 times the seed path per searched voxel (about 3 s); `X` unknown (measured
 on a smoke grain first; if above 10 s per voxel, `X` runs on rand only).
 
+### GO4h: grid search on corr3 and a final per-voxel polish (goal G1b, idea I55)
+
+Question: GO4g's full search (`W,X`) left rand at 0.5 deg at 17% above 0.1 deg, nearly all between
+0.1 and 1 deg (a precision problem), and `X` was not run on corr3. Does a final per-voxel strict
+polish fix the near misses, and what does `X` do on corr3?
+
+Arm, both samples (`run_pipeline.py --start centre --group true`, output
+`benchmarks/grain_opt/go4h/`): `L/366/3,G/15/0.15,N/30/0.3,W/20/0.15,X/1/0.15,V/61/0.02` (the
+per-stage rows give the result after `X` and after the polish).
+
+Judging rule (written before any run). Reference: GO4g `+W,X` on rand (17 / 2 / 7 / 6% above 0.1
+deg at 0.5 / 1 / 2 / 5 deg) and `+W` on corr3 (2 / 3 / 3 / 21%). I55 is answered yes when on
+rand the share above 0.1 deg at 0.5 deg after the polish falls by at least a third (17% -> at most
+11%) with no level worse by more than 2 points on either sample. corr3 after `X` is reported
+against `+W`. Wall time per voxel reported; a run over 2 hours is stopped and reported.
+
+Budget: rand about 75 minutes (GO4g `W,X` 70 minutes; the polish about 0.1 s per voxel); corr3
+about 25 minutes (`X` on the voxels left above the gate after `W`, about 80 x 16 s).
+
 ### GO6 onwards
 
 Program balance (owner via the coordinator, 2026-11-16): GO5b to GO5o were all G1c strain. After
