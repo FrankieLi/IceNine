@@ -39,7 +39,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    NOW: (a) step 22 MERGED 566eea3f; v58 live; v59 after the slices. (c) restart distance and
    (b) OWNER TASK part 1: both C++ changes reviewed (a7e220e7; C5 56 wrong). TODO when no fine1
    run is active: SendMessage aa5599885ce689568 to run `tests/test_cppchk_fix.py` on fixed2.
-   part 2 `fine1`: CS slice done (2,595 s, contended); J5S, PS, CF slices run; then project; caps.
+   part 2 `fine1`: slices CS 2,595 s, J5S 65 s (193,454 evaluations; N6 text says 184,661: wrong).
    C++ config done (reports 20261116-*); next study step: local-optimization schedule.
 
 ## Running jobs
@@ -47,7 +47,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v58 live.
   Step 22 (`ar5v`; cache in `agent-aba6e1bdb95dff72a`): MERGED 566eea3f, key `SeedIndexMCDefer`.
   Owner task: part 1 trace done (ae912cf9), `Reset` fix runs. Part 2 `fine7` frozen (ac76bdd6);
-  CS slice ended 16:21, launcher stopped (not quiet); J5S, PS, CF restarted 19:06 (`launch_slice3`).
+  PS slice hit its 1 h cap; rerun with 8 h cap from 22:06, 16 Nov, then CF (N6; `launch_slice4.out`).
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
@@ -113,7 +113,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   Step 5's result files add about 50 MB to git; say so if you want them pruned.
 
 ## Bookkeeping
-- Next decision ID: D-20261116-N6 (first of a day is N1).
+- Next decision ID: D-20261116-N7 (first of a day is N1).
 - Wake-up job: session cron id 24092880, every 3 hours at :53, created 2026-11-16, expires
   2026-11-23. Create it again on or after 2026-11-22 and write the new id and date here.
 - Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
