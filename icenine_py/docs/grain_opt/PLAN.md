@@ -525,6 +525,35 @@ named; 1e-4 strain is reported, not judged.
 Budget: about 19 s per grain plus about 25-36 s per polished grain; both arms under 25
 minutes; 2 processes.
 
+### GO5m: strain fits on noisy images (idea I48)
+
+Question: every strain result so far is on clean renders. Do the CMA hybrid (GO5h) and the fast
+fit (`GP4@P`, GO5l) keep their accuracy on images with the project's detector noise model?
+
+Data: the `strain` sample's existing `realistic_nodrop` render (`scripts/phase_d/noise.py`,
+variant "nodrop", per connected spot of a frame: each lit pixel dropped and each unlit
+4-neighbour lit with probability 0.05, one hot pixel with probability 0.05, a 2-4 px blob with
+probability 0.1, all within 32 px of the spot; no spot drop). Built into a binary stack and an
+intensity store in this worktree (`build_store.py --out_tag strainrn`; the render folder is
+read, nothing is written into the GO5 worktree). Ground truth, painted start, grain membership
+and spot windows as before; only the images change (`fit_strain.py --stack strainrn_clean.npy`).
+
+Benchmark S36, painted start, `--cost hyb --lam 8`; output `benchmarks/grain_opt/go5m/`. Arms:
+
+- `S@P` (CMA hybrid, GO5h protocol) on the noisy images.
+- `GP4@P` (fast fit) on the noisy images.
+
+Judging rule (written before any run). Clean references on the same grains: CMA hybrid
+2.3e-4 / 1.5e-4 / 2.1e-4, orientation 0.011 / 0.009 / 0.017 deg; `GP4@P` 1.3e-4 / 1.3e-4 /
+2.1e-4, orientation 0.009 / 0.015 / 0.020 deg. A fit is "robust to noise" when at 5e-4 and 1e-3
+its noisy strain median is at most 1.5 x its clean median and its noisy orientation median is at
+most 0.03 deg at every level. I48 is answered yes when both fits are robust; the fast fit "holds"
+when it is robust and its noisy strain median is at most 1.25 x the noisy CMA hybrid's at 5e-4
+and 1e-3. Fallback and polished grains are counted; 1e-4 strain is reported, not judged.
+
+Budget: building the stack about 3 minutes; CMA hybrid about 32 minutes, fast fit about 15
+minutes, in parallel; under 45 minutes.
+
 ### GO6 onwards
 
 Planned order (each gets a section when it starts): GO6 objective variants (I17 to I22); GO7 richer
