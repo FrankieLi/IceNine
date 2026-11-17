@@ -604,5 +604,12 @@ Budget: about 27 s per grain, two arms in parallel, under 25 minutes.
 
 ### GO6 onwards
 
+Program balance (owner via the coordinator, 2026-11-16): GO5b to GO5o were all G1c strain. After
+GO5o the strain line is time-boxed (at most one more strain step unless a result demands it),
+and the next steps rotate to goals with no steps yet, in this order: (1) G1b unblock: cache the
+ray index per sample so the gated global search (I36) can run on `rand` / `corr3` at 2-5 deg;
+(2) G2b richer simulation (I23 rocking curve alpha > 0, I24 partial volume / PSF); (3) G2c learned
+models (I25 to I27); (4) G2a remaining intensity uses (I18 Poisson, I22 structure factor).
+
 Planned order (each gets a section when it starts): GO6 objective variants (I17 to I22); GO7 richer
 simulation (I23, I24); GO8 learned models (I25 to I27).
