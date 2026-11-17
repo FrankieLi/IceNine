@@ -494,6 +494,37 @@ strain is reported, not judged.
 Budget: about 24 s per Gauss-Newton grain, 53 s per fallback grain; both arms under 20 minutes;
 2 processes.
 
+### GO5l: fallback on stalls, polish large strains (idea I47)
+
+Question: GO5k's `GFF@P` met the strain and time limits but left the orientation at 1e-3 at
+0.028 deg (limit 0.02), and two grains stalled (every Gauss-Newton stage skipped, strain left
+at 0). With a fallback on stalls and a short joint hybrid polish only where the fitted strain is
+large, does the fast fit match the CMA hybrid at every level within half its time?
+
+Method: `GFF@P`, plus:
+
+- Stall fallback: if every Gauss-Newton stage of the first round is skipped, the grain runs
+  GO5h's CMA hybrid protocol from the coverage field leg (as the spot-count fallback does).
+- Polish: if the Gauss-Newton strain has tensor RMS above 6e-4, one joint CMA leg on `hyb`
+  lambda 8 over field and strain (15 numbers) from the Gauss-Newton result, steps 0.02 deg and
+  1e-4.
+
+Benchmark S36, painted start, `--cost hyb --lam 8`; output `benchmarks/grain_opt/go5l/`. Arms:
+
+- `GP4@P`: polish leg of 400 evaluations.
+- `GP6@P`: polish leg of 600 evaluations.
+
+Judging rule (written before any run; the same as GO5i-k). Reference GO5h `hyb` lambda 8 on the
+same grains (strain 2.3e-4 / 1.5e-4 / 2.1e-4, orientation 0.011 / 0.009 / 0.017 deg, 53 s per
+grain). An arm "matches" when at 5e-4 and 1e-3 its strain median is at most 1.25 x the
+reference's, its orientation median is at most 0.02 deg at every level, and its mean wall time
+per grain is at most half the reference's (26.7 s; load reported). I47 is answered yes when an
+arm matches; the faster matching arm is preferred. Fallback and polished grains are counted and
+named; 1e-4 strain is reported, not judged.
+
+Budget: about 19 s per grain plus about 25-36 s per polished grain; both arms under 25
+minutes; 2 processes.
+
 ### GO6 onwards
 
 Planned order (each gets a section when it starts): GO6 objective variants (I17 to I22); GO7 richer
