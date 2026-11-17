@@ -461,6 +461,39 @@ above 0.05 deg are named.
 Budget: about 10 s (`GN@P`) plus 3 s coverage and 3-5 s Gauss-Newton per round, per grain:
 both arms under 15 minutes; 2 processes.
 
+### GO5k: stop the Gauss-Newton escape (idea I46)
+
+Question: GO5j's Gauss-Newton failed at 1e-3 on grains with few spots, where it pushed
+residuals past the Tukey cut-off (weights recomputed every iteration) and the weighted cost fell
+to about 0. With the inlier set and weights frozen per stage, and a CMA-hybrid fallback for
+grains with few spots, does the fast fit match the CMA hybrid at every level?
+
+Method changes to `GA2@P` (two gradient-refit rounds):
+
+- Frozen weights: in each Gauss-Newton stage (Tukey cut-off 3, 1.5, 1 px) the per-spot weights
+  are computed once from the residuals at the stage start and kept for all its iterations. A
+  stage whose inliers (weight > 0) are fewer than half the active spots is skipped (its start
+  is kept).
+- Fallback: a grain with fewer than 40 active spots at the start (centroid residuals defined)
+  skips Gauss-Newton and runs GO5h's CMA hybrid protocol (strain only 300, joint 600 at 0.02 deg
+  and 2e-4, `hyb` lambda 8) from the coverage field leg.
+
+Benchmark S36, painted start, `--cost hyb --lam 8`; output `benchmarks/grain_opt/go5k/`. Arms:
+
+- `GF2@P`: frozen weights, no fallback.
+- `GFF@P`: frozen weights and fallback.
+
+Judging rule (written before any run; the same as GO5i/j). Reference GO5h `hyb` lambda 8 on the
+same grains (strain 2.3e-4 / 1.5e-4 / 2.1e-4, orientation 0.011 / 0.009 / 0.017 deg, 53 s per
+grain). An arm "matches" when at 5e-4 and 1e-3 its strain median is at most 1.25 x the
+reference's, its orientation median is at most 0.02 deg at every level, and its mean wall time
+per grain is at most half the reference's (26.7 s; load reported). I46 is answered yes when an
+arm matches; the faster matching arm is preferred. Fallback grains are counted and named; 1e-4
+strain is reported, not judged.
+
+Budget: about 24 s per Gauss-Newton grain, 53 s per fallback grain; both arms under 20 minutes;
+2 processes.
+
 ### GO6 onwards
 
 Planned order (each gets a section when it starts): GO6 objective variants (I17 to I22); GO7 richer
