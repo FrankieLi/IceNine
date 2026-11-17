@@ -9,6 +9,10 @@ mass on lit pixels, mean over the grain's spots (GO5 "coverage"). Spot windows a
 strain. Parameters: grain field (FieldA order 1, 9 numbers) and one crystal-frame strain per
 grain (6). CMA with per-coordinate steps 0.05 deg (field) and 5e-4 (strain), strain from 0.
 
+GO5i (I44): arms ``GN@P`` (coverage field leg, then Levenberg-Marquardt on per-spot centroid
+residuals over the mean rotation and strain, ``gn_fit``) and ``GNH@P`` (then one joint CMA leg of
+300 on the main cost at 0.01 deg and 1e-4).
+
 GO5g (I43): ``--cost hyb --lam L`` (``cen`` + L x coverage); arm ``Sx@P`` (field leg on coverage,
 strain-only leg on ``cen``, joint leg on ``hyb`` with L = 2).
 
@@ -181,6 +185,87 @@ class SubPix:
         return 1.0 - f if self.kind == "int" else f
 
 
+def centroid_residuals(cen: Any, R: torch.Tensor, strain: torch.Tensor) -> Any:
+    """GO5i: per-spot (predicted mass centroid - observed intensity centroid), (S, 3) in column,
+    row and frame units, and the mask of spots that have predicted mass and observed pixels."""
+    prob = cen.prob
+    prob.n_evals += 1
+    with torch.no_grad():
+        rows = prob.model.predict(R, prob.V, strain)
+        x, a = GF.pack_predicted(prob.region, rows, prob.bary, prob.model.n_det, with_shell=False)
+    x, a = x.numpy(), a.numpy()
+    S = len(cen.obs)
+    res, has = np.zeros((S, 3)), np.zeros(S, bool)
+    for j in range(S):
+        ok = a[j] > 0
+        if not ok.any() or not len(cen.obs[j]):
+            continue
+        w = a[j][ok]
+        res[j] = (w[:, None] * x[j][ok]).sum(0) / w.sum() - (cen.w[j][:, None] * cen.obs[j]).sum(0)
+        has[j] = True
+    return res, has
+
+
+def robust_w(d: np.ndarray, c: float) -> np.ndarray:
+    """Per-spot weights: Huber at 2 px when c == 0, else Tukey biweight with cut-off c px."""
+    if c <= 0:
+        return np.where(d <= 2.0, 1.0, 2.0 / np.maximum(d, 1e-12))
+    return np.where(d < c, (1 - (d / c) ** 2) ** 2, 0.0)
+
+
+def gn_fit(
+    cen: Any, field: Any, th: np.ndarray, eps0: np.ndarray, n: int, iters: int = 15, c: float = 0.0
+) -> Any:
+    """GO5i: Levenberg-Marquardt on the centroid residuals over the field's mean rotation
+    (theta[:3]) and one strain (6); the field gradient theta[3:] stays fixed. Finite-difference
+    Jacobian, Huber weights per spot (1 up to 2 px, 2/|d| beyond), Marquardt scaling."""
+    h = np.full(9, 1e-5)
+
+    def resid(q: np.ndarray) -> Any:
+        t = np.array(th, float)
+        t[:3] = q[:3]
+        R = field.orientations(torch.as_tensor(t, dtype=GF.DT))
+        e = torch.as_tensor(np.tile(q[3:], (n, 1)), dtype=GF.DT)
+        return centroid_residuals(cen, R, e)
+
+    q = np.concatenate([np.asarray(th[:3], float), np.asarray(eps0, float)])
+    res, active = resid(q)
+    mu, it, c_start = 1e-3, 0, None
+    for it in range(1, iters + 1):
+        d = np.linalg.norm(res, axis=1)
+        sw = np.sqrt(robust_w(d, c))[:, None]
+
+        def rv(r: np.ndarray) -> np.ndarray:
+            return (sw * r)[active].ravel()
+
+        r0 = rv(res)
+        c0 = float(r0 @ r0)
+        c_start = c0 if c_start is None else c_start
+        J = np.empty((len(r0), 9))
+        for i in range(9):
+            qq = q.copy()
+            qq[i] += h[i]
+            J[:, i] = (rv(resid(qq)[0]) - r0) / h[i]
+        A, g = J.T @ J, J.T @ r0
+        D = np.diag(np.maximum(np.diag(A), 1e-30))
+        accepted = False
+        for _ in range(6):
+            delta = -np.linalg.solve(A + mu * D, g)
+            res_n, _h = resid(q + delta)
+            rn = rv(res_n)
+            if float(rn @ rn) < c0:
+                q, res, accepted = q + delta, res_n, True
+                mu = max(mu / 3.0, 1e-9)
+                break
+            mu *= 10.0
+        if not accepted or np.all(np.abs(delta) < 1e-7):
+            break
+    d = np.linalg.norm(res, axis=1)
+    w = robust_w(d, c)
+    c_end = float((w * d**2)[active].sum())
+    return q, dict(iters=it, cost0=c_start, cost=c_end, n_active=int(active.sum()), mu=mu)
+
+
 class Hybrid:
     """GO5g: ``cen`` + lam x coverage (centroids for strain, coverage for the orientation field)."""
 
@@ -260,6 +345,8 @@ def main() -> None:
             "O@P",
             "Ost@P",
             "Sx@P",
+            "GN@P",
+            "GNH@P",
         ],
     )
     ap.add_argument("--out", default="go5b")
@@ -315,6 +402,8 @@ def main() -> None:
         cov_f = cov_e = cov_j = cov  # field leg, strain-only leg, joint legs
         if a.arm == "Sx@P":  # GO5g by role: field on coverage, strain on centroids, joint hybrid
             cov_f, cov_e, cov_j = Coverage(prob), SubPix(prob, "cen"), Hybrid(prob, 2.0)
+        if a.arm in ("GN@P", "GNH@P"):  # GO5i: field leg on coverage, then Gauss-Newton
+            cov_f = Coverage(prob)
         zero = torch.zeros((n, 6), dtype=GF.DT)
         # ground truth in the fitted symmetry representative (that of prob.R_start), the same
         # re-expression GrainProblem applies to a strain when it swaps representatives
@@ -365,7 +454,26 @@ def main() -> None:
             def stds(rot: float, eps: float) -> np.ndarray:
                 return np.concatenate([np.full(k, rot), np.full(6, eps)])
 
-            if a.arm in ("E@F", "O@P", "Ost@P"):  # GO5d: strain only at the fixed field
+            if a.arm in ("GN@P", "GNH@P"):  # GO5i: Gauss-Newton on centroid residuals
+                cen_o, q, info["gn"] = (
+                    SubPix(prob, "cen"),
+                    np.concatenate([th0[:3], np.zeros(6)]),
+                    [],
+                )
+                for c_px in (3.0, 1.5, 1.0):  # Tukey cut-off annealed (plan amendment)
+                    th_c = np.array(th0, float)
+                    th_c[:3] = q[:3]
+                    q, gi = gn_fit(cen_o, field, th_c, q[3:], n, c=c_px)
+                    info["gn"].append(dict(gi, c=c_px))
+                th_g = np.array(th0, float)
+                th_g[:3] = q[:3]
+                xg = np.concatenate([th_g, q[3:]])
+                if a.arm == "GNH@P":
+                    r = cma_min(fj, xg, stds(math.radians(0.01), 1e-4), 300)
+                else:
+                    fg = fj(xg)
+                    r = dict(x=xg, f0=fg, f=fg, evals=0, stop="gn")
+            elif a.arm in ("E@F", "O@P", "Ost@P"):  # GO5d: strain only at the fixed field
                 th_t = torch.as_tensor(th0, dtype=GF.DT)
                 rs = cma_min(
                     lambda e: cov_e(field.orientations(th_t), eps_of(e)),

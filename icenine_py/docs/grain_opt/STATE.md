@@ -5,16 +5,14 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO5h closed** (2026-11-16 16:10 PST): the hybrid strain fit holds on 36 grains (12 per
-  level, painted start, staged): lambda 8 gives 2.3 / 1.5 / 2.1e-4 against coverage 4.6 / 2.8 /
-  6.3e-4 on the same grains, orientation 0.009-0.017 deg; lambda 16 equal within scatter.
-  Remaining: a tail of 1e-3 grains at 4-9e-4; about 50 s per grain with CMA. `findings.md` "GO5h".
-- GO5g: hybrid introduced (I43 yes). GO5c-f: coverage objective-limited, one-sided sub-pixel
-  costs biased, centroids alone let the orientation drift.
-- **Next action:** plan and run GO5i (I44 second part): Gauss-Newton (or LM) on per-spot centroid
-  residuals for strain and mean rotation, the field gradient fixed from the coverage field leg;
-  judge on S36 against `hyb` lambda 8 (strain, orientation, wall time). Then GO6 or the cached
-  ray index.
+- **GO5i closed** (2026-11-16 16:30 PST): Gauss-Newton on centroid residuals (`--arm GN@P`,
+  Tukey weights 3 / 1.5 / 1 px) gives strain 1.2 / 1.3 / 2.9e-4 on S36 at 10 s per grain (CMA
+  hybrid 2.3 / 1.5 / 2.1e-4 at 53 s), but orientation 0.021 / 0.039 deg at 5e-4 / 1e-3: the
+  field gradient comes from the zero-strain coverage leg. I44 second part no. `findings.md`.
+- GO5h: CMA hybrid confirmed on 36 grains. GO5g: hybrid introduced.
+- **Next action:** plan and run GO5j (I45): alternate a field-gradient refit on coverage at the
+  Gauss-Newton strain with Gauss-Newton (two rounds); S36, judged like GO5i against the CMA
+  hybrid (strain, orientation at most 0.02 deg, half the time). Then GO6 or the cached ray index.
 
 ## Running jobs
 
@@ -39,7 +37,7 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Code
 
-- `scripts/grain_opt/fit_strain.py`: strain fit (GO5b arms E@GT, FE@GT, FE@P; GO5c J@P, S@P, SR@P, S@GT; GO5d E@F, O@P, Ost@P; GO5e-g `--cost sd|int|cen|ch|hyb`, `--lam`, `--seed`; GO5g Sx@P).
+- `scripts/grain_opt/fit_strain.py`: strain fit (GO5b arms E@GT, FE@GT, FE@P; GO5c J@P, S@P, SR@P, S@GT; GO5d E@F, O@P, Ost@P; GO5e-g `--cost sd|int|cen|ch|hyb`, `--lam`, `--seed`; GO5g Sx@P; GO5i GN@P, GNH@P with `gn_fit`).
 - `icenine/grain_fit.py` (SpotModel, regions, Sinkhorn / LS objectives, FieldA, GrainProblem);
   tests `tests/test_grain_fit.py` (16 pass).
 - `scripts/grain_opt/`: `common.py` (Sample loader), `run_grains.py` (stage A/B on G20),

@@ -543,3 +543,35 @@ Verdicts by the rule written before the runs:
   by Gauss-Newton on the centroid residuals for strain and mean rotation, with the orientation
   field's gradient from the coverage fit; judge on S36 against `hyb` lambda 8 for accuracy and
   wall time.
+
+## GO5i: Gauss-Newton on centroid residuals (idea I44, second part)
+
+Question: does Levenberg-Marquardt on per-spot centroid residuals (mean rotation + strain, the
+field gradient fixed from the coverage field leg) match the CMA hybrid of GO5h at a fraction of
+its time? S36, painted start; rows in `benchmarks/grain_opt/go5i/*_S36.json`. Plan amended
+before the judged runs: Tukey weights with the cut-off annealed 3 / 1.5 / 1 px instead of Huber
+at 2 px (a one-grain smoke test showed Huber pulled by spots merged with a neighbour's: centroid
+cost below the ground truth's, 6e-4 strain error). Load 1.5-3.4 (GO5h: about 3.5).
+
+Reading line: median strain error over 12 grains (75th percentile), median voxel orientation
+error (deg), mean wall time per grain.
+
+| arm | 1e-4 | 5e-4 | 1e-3 | orientation | s per grain |
+|---|---|---|---|---|---|
+| GO5h `hyb` lambda 8 (CMA, reference) | 2.3e-4 (2.5e-4) | 1.5e-4 (2.1e-4) | 2.1e-4 (5.7e-4) | 0.011 / 0.009 / 0.017 | 53 |
+| `GN@P` coverage field leg + Gauss-Newton | 1.2e-4 (1.5e-4) | 1.3e-4 (1.5e-4) | 2.9e-4 (7.6e-4) | 0.010 / 0.021 / 0.039 | 10 |
+| `GNH@P` + hybrid CMA polish 300 | 1.6e-4 (2.1e-4) | 1.9e-4 (2.2e-4) | 2.3e-4 (4.5e-4) | 0.011 / 0.012 / 0.025 | 23 |
+
+Verdicts by the rule written before the runs:
+
+- I44's second part is answered no: neither arm matches. `GN@P` fails orientation at 5e-4 and
+  1e-3 (0.021, 0.039 deg) and strain at 1e-3 (2.9e-4 against the limit 2.7e-4); `GNH@P` meets
+  the strain limits and the time (23 s against 27 s) but its orientation at 1e-3 is 0.025 deg.
+- Gauss-Newton is the most accurate strain fit at low strain so far, at a fifth of the time:
+  1.2e-4 / 1.3e-4 at 1e-4 / 5e-4 against the CMA hybrid's 2.3e-4 / 1.5e-4.
+- Its weakness is the field gradient: it is fitted once, on coverage at zero strain, and GO5d
+  showed that fit takes up strain as rotation in proportion to the strain. Gauss-Newton refits
+  only the mean rotation, so at 1e-3 the voxel orientations keep the gradient error (grains 452
+  0.25 deg, 485 0.16 deg).
+- Next (I45): alternate, refit the field gradient on coverage at the Gauss-Newton strain, then
+  Gauss-Newton again (two rounds); judged like GO5i.
