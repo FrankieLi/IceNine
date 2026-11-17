@@ -53,9 +53,9 @@ def parse(p: str) -> List[Tuple[str, str, int, int]]:
         head, n = parts[0], int(parts[1])
         order = 2 if len(parts) > 2 and parts[2] == "o2" else 1
         kind, obj = head[0], head[1:]
-        if kind in "VNLG" and len(parts) > 2:  # V/<evals>/<sigma deg>
+        if kind in "VNLGWX" and len(parts) > 2:  # V/<evals>/<sigma deg>
             obj = parts[2]
-        assert kind in "ABVNLG", st
+        assert kind in "ABVNLGWX", st
         if kind in "NL" and len(parts) > 2:
             obj = parts[2]
         if kind in "AB":
@@ -252,6 +252,37 @@ def main() -> None:
                 used = ev_tot / len(members)
                 info.update(gated=n_gate, improved=n_found, threshold=thr)
                 f_old = f_new = float("nan")
+            elif kind in "WX":  # GO4g: wider seed path (W) or grid search (X) above the gate
+                thr = float(obj) if obj else 0.15
+                if hooks is None:
+                    import ray_cache as RC
+
+                    from icenine import grain_paint as GP
+
+                    RC.ensure(S, a.sample)
+                    hooks = GP.ReconstructorHooks(S.bfs, S.mic, np.random.default_rng(0))
+                R_new = R_now.copy()
+                ev_tot, n_gate, n_found = 0, 0, 0
+                for i, v in enumerate(members):
+                    if s_now[i] <= thr:
+                        continue
+                    n_gate += 1
+                    if kind == "W":
+                        sres = S.bfs.reconstructor.index_seed(
+                            hooks.vertices(v), S.mic.voxels[v].phase, n_cost=20, n_refine=5
+                        )
+                        Rs, ev = sres.orientation, int(sres.evals)
+                    else:
+                        Rs, _c, _h, ev = hooks.grid_seed(v)
+                    ev_tot += ev + 1
+                    if Rs is not None:
+                        Rs = GF.align_to(np.asarray(Rs, np.float64)[None], R_now[i], S.sym)[0]
+                        if float(S.strict(Rs[None], [v])[0]) < s_now[i]:
+                            R_new[i] = Rs
+                            n_found += 1
+                used = ev_tot / len(members)
+                info.update(gated=n_gate, improved=n_found, threshold=thr)
+                f_old = f_new = float("nan")
             elif kind == "L":
                 R_new = R_now.copy()
                 used_v = []
@@ -269,7 +300,7 @@ def main() -> None:
                 used = float(np.mean(used_v))
                 f_old = f_new = float("nan")
             s_new = S.strict(R_new, members)
-            if kind in "VNLG":  # per voxel: keep a voxel's fit only if its strict cost did not rise
+            if kind in "VNLGWX":  # per voxel: keep a voxel's fit only if its strict cost did not rise
                 keep = s_new <= s_now
                 R_new = np.where(keep[:, None, None], R_new, R_now)
                 s_new = np.where(keep, s_new, s_now)

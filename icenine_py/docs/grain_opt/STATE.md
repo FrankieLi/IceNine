@@ -5,16 +5,15 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO4f closed** (2026-11-16 20:45 PST, G1b diagnosis): every voxel still wrong after the best
-  G1b pipeline was gated, and the strict cost at the ground truth is far lower than at its end
-  (rand 2 deg: 0.079 against 0.393): search failures; the seed path's candidates miss the ground
-  truth. `go4f_diag.py`.
-- GO4e: neighbour pass after the seed path, +1-4 points. GO9/9b (G2a), GO7-7c (G2b) closed.
+- **GO4g closed** (2026-11-16 21:55 PST, G1b I54 yes): after `L/366/3,G/15/0.15,N/30/0.3`, the
+  all-candidates seed path `W/20/0.15` takes rand to 25 / 5 / 21 / 14% and corr3 to 2 / 3 / 3 /
+  21% above 0.1 deg (0.5 / 1 / 2 / 5 deg); adding the grid search `X/1/0.15` (rand only) gives
+  17 / 2 / 7 / 6%, wrong voxels 229 -> 25 of 1,043, at 4 s per voxel. `findings.md` "GO4g".
+- GO4f: remaining failures were search failures. GO9 / GO9b (G2a), GO7-7c (G2b) closed.
 - **Owner item:** G2c (I25 GNLayerNet) waits for the owner (asked 2026-11-16 20:15 PST).
-- **Next action:** plan and run GO4g (I54): for gated voxels the seed path leaves above the gate,
-  a wider search: all 20 indexing candidates through the strict cost and the finisher on 5, then
-  the reconstructor's grid-search fallback (`hooks.grid_seed`); rand / corr3, judged against
-  GO4e's best pipeline.
+- **Next action:** plan and run GO4h (I55): `X` on corr3 and a per-voxel strict polish after
+  `W,X` (e.g. `V/61/0.02`) on both samples, aimed at rand 0.5 deg (17%, mostly 0.1-1 deg);
+  judged against GO4g.
 
 ## Running jobs
 

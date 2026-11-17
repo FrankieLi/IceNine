@@ -297,3 +297,16 @@ became AR6 on 2026-11-16 at the owner's request.
 - **Next action:** GO4f (G1b diagnosis): on rand at 2 deg after the best pipeline, for the voxels
   still wrong: were they gated, did the seed path return a candidate, and is the strict cost at
   the ground truth lower than at their end (search failure or objective failure)?
+
+## Now as of GO4f close (2026-11-16 20:45 PST)
+
+- **GO4f closed** (2026-11-16 20:45 PST, G1b diagnosis): every voxel still wrong after the best
+  G1b pipeline was gated, and the strict cost at the ground truth is far lower than at its end
+  (rand 2 deg: 0.079 against 0.393): search failures; the seed path's candidates miss the ground
+  truth. `go4f_diag.py`.
+- GO4e: neighbour pass after the seed path, +1-4 points. GO9/9b (G2a), GO7-7c (G2b) closed.
+- **Owner item:** G2c (I25 GNLayerNet) waits for the owner (asked 2026-11-16 20:15 PST).
+- **Next action:** plan and run GO4g (I54): for gated voxels the seed path leaves above the gate,
+  a wider search: all 20 indexing candidates through the strict cost and the finisher on 5, then
+  the reconstructor's grid-search fallback (`hooks.grid_seed`); rand / corr3, judged against
+  GO4e's best pipeline.

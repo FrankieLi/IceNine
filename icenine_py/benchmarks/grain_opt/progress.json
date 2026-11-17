@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-16 20:45 PST",
+ "updated": "2026-11-16 21:55 PST",
  "steps": [
   {
    "id": "GO0",
@@ -248,6 +248,14 @@
    "status": "done",
    "date": "2026-11-16",
    "result": "Every voxel still wrong after ladder + seed path + neighbour pass was gated, and its strict cost at the ground truth is far lower than at its end (rand 2 deg: 0.079 against 0.393): search failures, not objective failures. The seed candidates miss the ground truth. Next: wider search (I54).",
+   "commit": ""
+  },
+  {
+   "id": "GO4g",
+   "title": "Wider search for voxels the seed path misses (G1b)",
+   "status": "done",
+   "date": "2026-11-16",
+   "result": "After ladder + seed path + neighbour pass: all-candidates seed path (W) takes rand to 25/5/21/14% and corr3 to 2/3/3/21% above 0.1 deg at 0.5/1/2/5 deg (0.9 / 0.4 s per voxel); adding the grid search (rand only) gives 17/2/7/6%, wrong voxels 229 -> 25 of 1,043, at 4 s per voxel. I54 yes.",
    "commit": ""
   }
  ],

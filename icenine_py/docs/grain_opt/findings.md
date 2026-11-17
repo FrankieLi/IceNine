@@ -990,3 +990,34 @@ strict cost at the ground truth against the end (medians).
 - Next (I54): widen the search for gated voxels the seed path leaves above the gate: more
   indexing candidates through the strict cost (top 20 all costed, finisher on 5), then the
   reconstructor's grid-search fallback (`grid_seed`) for those still above the gate.
+
+## GO4g: wider search for the voxels the seed path misses (goal G1b, idea I54)
+
+Question: GO4f showed the remaining wrong voxels are search failures. Does a wider search on the
+voxels still above the gate recover them? Stages `W` (seed path with all 20 indexing candidates
+costed and the finisher on 5) and `X` (the reconstructor's per-voxel grid search), each kept per
+voxel only where it lowers the strict cost. `X` cost 16 s per searched voxel on the smoke grain,
+so by the plan it ran on rand only. A first `W`/`X` smoke run was rejected by the stage gate (the
+gate compared NaN objectives); fixed before the judged runs. Tables
+`benchmarks/grain_opt/go4g/{corr3,rand}.md`. Share above 0.1 deg (wrong, above 1 deg).
+
+| sample, pipeline | 0.5 deg | 1 deg | 2 deg | 5 deg | searched / improved | s / voxel |
+|---|---|---|---|---|---|---|
+| corr3, GO4e `L/366/3,G/15/0.15,N/30/0.3` | 2% (0.4%) | 4% (0%) | 9% (4%) | 33% (27%) | | 0.29 |
+| corr3, + `W/20/0.15` | 2% (0.4%) | 3% (0%) | 3% (1%) | 21% (13%) | W 153 / 75 | 0.39 |
+| rand, GO4e | 25% (2%) | 13% (7%) | 48% (43%) | 41% (39%) | | 0.60 |
+| rand, + `W/20/0.15` | 25% (2%) | 5% (2%) | 21% (17%) | 14% (9%) | W 359 / 219 | 0.90 |
+| rand, + `W/20/0.15,X/1/0.15` | 17% (0.4%) | 2% (1%) | 7% (5%) | 6% (3%) | X 210 / 155 | 4.0 |
+
+Verdicts by the rule written before the runs:
+
+- I54 is answered yes for `+W`: rand at 2 deg 48% -> 21% (limit 32%), at 5 deg 41% -> 14% (limit
+  27%); corr3 at 5 deg 33% -> 21% (limit 22%); no level worse. `+W,X` passes on rand by a wide
+  margin but was not run on corr3 (cost rule), so the rule's preferred arm is `+W`.
+- Wrong voxels (above 1 deg) over all levels: rand 229 -> 75 (`W`) -> 25 (`W,X`) of 1,043;
+  corr3 78 -> 37. The grid search finds almost all of what the indexing misses, at about 16 s
+  per searched voxel; with it, rand (random voxel-to-voxel misorientation up to 5 deg RMS) is
+  recovered to 6-7% above 0.1 deg at 2 and 5 deg, from 83% after the ladder alone (GO4c).
+- What remains is precision more than search on rand at 0.5 deg (17%, nearly all between 0.1
+  and 1 deg): a final per-voxel strict polish is the next lever. Next (later, G1b): `X` on corr3
+  and a per-voxel polish (`V`) after `W,X`.
