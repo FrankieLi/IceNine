@@ -47,7 +47,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v58 live.
   Step 22 (`ar5v`; cache in `agent-aba6e1bdb95dff72a`): MERGED 566eea3f, key `SeedIndexMCDefer`.
   Owner task: part 1 trace done (ae912cf9), `Reset` fix runs. Part 2 `fine7` frozen (ac76bdd6);
-  CS slice ended 16:21, launcher stopped (not quiet); J5S, PS, CF restarted 19:06: `launch_slice3.out`.
+  CS slice ended 16:21, launcher stopped (not quiet); J5S, PS, CF restarted 19:06 (`launch_slice3`).
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
