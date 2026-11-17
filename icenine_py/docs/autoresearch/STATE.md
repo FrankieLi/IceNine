@@ -33,14 +33,14 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    waits: `.claude/reports/20261114-item14-findings_page_draft-v2.md` goes to
    `icenine_py/docs/autoresearch/findings_item14.md`.
    C++ time (`cpptime`): MERGED at 003cc5d (C1 1,236.87 s, C2 1,231.87 s, two busy processes).
-   Not a speed comparison: the C++ run left 416 of 2,000 pilot voxels wrong, Python 24; 393
-   refit voxels were never fitted again, all 1,921 local optimizations changed nothing.
+   Not a speed comparison (C++ 416 of 2,000 wrong, Python 24; explained by the 16 Nov check).
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
    goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. 16 pages wait (+ar5v, cppchk).
-   NOW: (a) step 22 MERGED 566eea3f; v58 live (15:34, 16 Nov); v59 after C5, slices.
-   (b) OWNER TASK part 1: fix 2 (973b57b5): C5 56 wrong (C4 311, C3 416); review af0fc74035f694d0f;
+   NOW: (a) step 22 MERGED 566eea3f; v58 live; v59 after the slices. (c) restart distance and
+   (b) OWNER TASK part 1: both C++ changes reviewed (a7e220e7; C5 56 wrong). TODO when no fine1
+   run is active: SendMessage aa5599885ce689568 to run `tests/test_cppchk_fix.py` on fixed2.
    part 2 `fine1`: slices run (CS, J5S, PS); then SendMessage a22702f36dfefa989 to project; caps.
-   (c) restart distance, C++ config: done (reports 20261116-*); next: local-opt. schedule step.
+   C++ config done (reports 20261116-*); next study step: local-optimization schedule.
 
 ## Running jobs
 - Step 14 key WAITS (held2). Steps 15 to 21 merged (caches: `J5r` `agent-aeba15b7c3850b007`,
