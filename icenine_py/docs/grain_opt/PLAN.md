@@ -602,6 +602,39 @@ level. I50 is answered yes when both hold. 1e-4 strain is reported, not judged.
 
 Budget: about 27 s per grain, two arms in parallel, under 25 minutes.
 
+### GO4d: cached ray index and the gated global search (goal G1b, idea I36)
+
+Question: GO4c left 31% / 72% of `corr3` voxels and 77% / 83% of `rand` voxels more than 0.1
+deg from the ground truth at 2 / 5 deg (`L/366/3`); those need a global search per voxel. The
+reconstructor's ray-indexing seed path (index, strict cost on 5 candidates, finisher on 2) was
+blocked on cost: its one-time pairing of all spots of the two detectors (about 1.56M fragments
+on `rand`) took more than 15 minutes per process. With the paired rays cached per sample, does
+the gated seed path recover the voxels the ladder leaves wrong?
+
+Part A (unblock, infrastructure): `scripts/grain_opt/ray_cache.py` pairs the observed rays of a
+sample once (`SmoothCost.observed_rays`, the reconstructor's own cached `SmoothCost`) and saves
+them (`<sample>/observed_rays.npz`, git-ignored); later processes load them into the same
+object, so `index_seed` skips the pairing. Check: the loaded arrays equal the built ones; the
+pairing time and the load time are reported.
+
+Part B (judged): `run_pipeline.py --start centre --group true` on `corr3` and `rand` (GO4
+benchmark, all levels 0.5 / 1 / 2 / 5 deg), output `benchmarks/grain_opt/go4d/`. Arms:
+
+- `L/366/3,G/15/0.15`: the ladder, then the seed path on voxels whose strict cost is above 0.15.
+- `L/366/3,G/10/0.10`: the same with threshold 0.10.
+
+(GO4b: at the ground truth the median strict cost is 0.065-0.096, at a wrong end 0.10-0.71.)
+
+Judging rule (written before any run). Reference: GO4c `L/366/3` on the same sample. Per level,
+share of voxels more than 0.1 deg from the ground truth (Wilson 95% intervals) and share wrong
+(above 1 deg). I36 is answered yes for an arm when on both samples the share above 0.1 deg at
+5 deg falls by at least a third against the reference (corr3 72% -> at most 48%, rand 83% -> at
+most 55%) and no level gets worse by more than 2 points. The cheaper passing arm (ms per voxel)
+is preferred. Seed-path calls, improved voxels and wall time per voxel are reported.
+
+Budget: Part A one pairing per sample (15-30 minutes each, in parallel); Part B the gated voxels
+times the seed path (to be measured on a smoke grain before the runs); each run under 2 hours.
+
 ### GO6 onwards
 
 Program balance (owner via the coordinator, 2026-11-16): GO5b to GO5o were all G1c strain. After
