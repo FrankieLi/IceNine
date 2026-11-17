@@ -714,6 +714,28 @@ without meeting the no-harm limits. 1e-4 is reported, not judged; wall time per 
 
 Budget: about 30-40 s per grain (four times the coverage points), under 25 minutes.
 
+### GO9: Poisson likelihood on pixel counts as an orientation objective (goal G2a, idea I18)
+
+Question: GO1 found every smooth objective biased (optimum 0.012-0.095 deg from the ground truth)
+and only the strict cost unbiased (0.006 / 0.008 deg). Does a Poisson likelihood on the observed
+pixel counts, with a per-reflection scale and a background, have its optimum at the ground
+truth?
+
+Objective (`scripts/grain_opt/probe_poisson.py`, no library change): per spot window, predicted
+counts mu = s_j m + b over the union of observed lit pixels and pixels with predicted coverage
+mass m (grain plus fixed neighbour shell, as GO1's objectives), observed counts y = clean
+intensity / gain (gain = 5th-percentile intensity / 50, so the weakest lit pixels hold about 50
+counts); s_j the closed-form scale sum(y) / sum(m); b = 0.5 counts per pixel; objective = Poisson
+deviance summed over spots. Variants: `pois` as above, `pois_b5` with b = 5.
+
+Protocol and rule: GO1's (`grad`, level-0 grains 381 and 302, CMA over the grain rotation only,
+sigma 0.03 deg, 150 evaluations, started at the ground truth). An objective qualifies if its
+optimum is below 0.01 deg from the ground truth on both grains (written before any run). GO1's
+numbers are the reference (strict 0.0060 / 0.0082; least squares 0.0117 / 0.0423;
+intensity-weighted Sinkhorn 0.0074 / 0.0263). Output `benchmarks/grain_opt/go9/`.
+
+Budget: a few minutes.
+
 ### GO6 onwards
 
 Program balance (owner via the coordinator, 2026-11-16): GO5b to GO5o were all G1c strain. After

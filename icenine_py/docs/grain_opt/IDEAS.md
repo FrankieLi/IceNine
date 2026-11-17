@@ -23,7 +23,7 @@ details in the findings page named in the last column. New ideas get the next fr
 | I15 | G1c | Strain in the stock forward model render path (opt-in, from the .mic deformation tensor) | done | GO5: opt-in apply_deformation in the stock renderer, default bit-identical; spots match SpotModel within 0.05 px | findings.md |
 | I16 | G1c | Strain sensitivity: objective curvature in the 6 strain components; recovery at 1e-4 to 1e-3 (resolution scales with pixel size / distance) | running | GO5: Sinkhorn +10% at ~1e-3 per component; 1 px shift needs 2e-3 to 5e-3 strain; strain fitting on `strain` next | findings.md |
 | I17 | G2a | Intensity-weighted Sinkhorn (observed mass = clean intensity) | done | GO1: sharpens on grain 381 (0.0074 deg) but not 302 (0.026 deg) | findings.md |
-| I18 | G2a | Poisson NLL on pixel counts with a per-reflection scale and background | proposed | | |
+| I18 | G2a | Poisson NLL on pixel counts with a per-reflection scale and background | running (GO9) | | |
 | I19 | G2a | Per-spot moment matching (centroid + covariance), as objective and as LM residual | proposed | | |
 | I20 | G2a | MMD with a Gaussian kernel per spot | proposed | | |
 | I21 | G2a | Least squares with per-reflection scale on intensity (baseline arm) | done | GO1: 0.012 / 0.042 deg; basin-finder arm in GO2 | findings.md |
