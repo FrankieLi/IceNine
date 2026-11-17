@@ -885,3 +885,32 @@ Verdicts by the rule written before the runs:
   grains (fewer spots, more overlap) suffer most.
 - Next for this line (not now; G2b is time-boxed like strain): split merged components by the
   predicted spot positions before taking centroids.
+
+## GO9: Poisson likelihood on pixel counts as an orientation objective (goal G2a, idea I18)
+
+Question: does a Poisson likelihood on the observed counts (per-reflection closed-form scale,
+background b) have its optimum at the ground truth, where GO1's smooth objectives did not? GO1
+protocol on `grad` grains 381 and 302 (`probe_poisson.py`; rows in
+`benchmarks/grain_opt/go9/poisson.json`; gain 1,244 intensity units per count, so the weakest lit
+pixels hold about 50 counts).
+
+| objective | offset 381 (deg) | offset 302 (deg) | drop at the optimum | strict at the optimum (ground truth 0.081 / 0.052) |
+|---|---|---|---|---|
+| strict cost (GO1) | 0.0060 | 0.0082 | (none) | 0.082 / 0.053 |
+| least squares, per-spot scale (GO1) | 0.0117 | 0.0423 | 0.6% / 3.8% | 0.103 / 0.073 |
+| intensity-weighted Sinkhorn (GO1) | 0.0074 | 0.0263 | 0.1% / 0.03% | 0.102 / 0.069 |
+| Poisson deviance, b = 0.5 | 0.0101 | 0.0060 | 2.3% / 1.7% | 0.092 / 0.057 |
+| Poisson deviance, b = 5 | 0.0115 | 0.0146 | 2.3% / 2.1% | 0.086 / 0.058 |
+
+Verdicts by the rule written before the runs:
+
+- I18 is answered no: neither variant has its optimum below 0.01 deg on both grains; b = 0.5
+  misses by 0.0001 deg on grain 381 (0.0101) and is the best smooth objective so far on grain 302
+  (0.0060, below the strict cost's 0.0082).
+- The Poisson deviance is a smooth objective that comes close to the strict cost's accuracy at
+  the ground truth on both grains (worst 0.010 deg against least squares 0.042 and Sinkhorn
+  0.026), but its value drops by about 2% at the optimum: a small real bias, from pixel counts the
+  sharp coverage model cannot reproduce (partial-pixel intensities, the free per-spot scale).
+- Next (I22): constrain the per-reflection scales by the predicted relative intensities
+  (structure factor x Lorentz-polarisation) so a reflection cannot absorb misfit with its own
+  scale, then the same bias test.

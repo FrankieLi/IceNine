@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-16 20:10 PST",
+ "updated": "2026-11-16 20:25 PST",
  "steps": [
   {
    "id": "GO0",
@@ -216,6 +216,14 @@
    "status": "done",
    "date": "2026-11-16",
    "result": "On 1 px PSF images the fast strain fit with PSF-aware coverage gives 2.3/2.6/6.8e-4 (sharp coverage 2.3/2.7/5.7e-4): no gain. Gauss-Newton-only grains degrade as much, so merged spots (contaminated centroids) are the cause. I52 no.",
+   "commit": ""
+  },
+  {
+   "id": "GO9",
+   "title": "Poisson likelihood as orientation objective (G2a)",
+   "status": "done",
+   "date": "2026-11-16",
+   "result": "GO1 bias test on grains 381/302: Poisson deviance (b = 0.5) optimum 0.0101/0.0060 deg from the ground truth (strict 0.0060/0.0082, least squares 0.0117/0.0423, intensity Sinkhorn 0.0074/0.0263): best smooth objective, but misses the 0.01 deg rule by 0.0001 on grain 381. I18 no. Next: structure-factor-constrained scales (I22).",
    "commit": ""
   }
  ],

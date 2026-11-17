@@ -736,6 +736,26 @@ intensity-weighted Sinkhorn 0.0074 / 0.0263). Output `benchmarks/grain_opt/go9/`
 
 Budget: a few minutes.
 
+### GO9b: Poisson likelihood with structure-factor scales (goal G2a, idea I22)
+
+Question: GO9's Poisson deviance missed the 0.01 deg rule by 0.0001 deg on grain 381, with a
+free scale per reflection. The renderer gives each triangle the intensity
+I = F / (|sin eta| sin 2 theta) (F the reflection's form intensity, `peak_filters` /
+`forward_simulation`), so the scales are known up to one constant. With s_j = c I_j (one c per
+grain, closed form c = sum(y) / sum(I_j m)), does the optimum move to the ground truth?
+
+Objective (`probe_poisson.py --variant pois_sf`): GO9's Poisson deviance (b = 0.5) with s_j =
+c I_j, where F comes from the structure's reflection list (filtered by Q-max as `SmoothCost`
+does, indexed by the spot's reflection), and eta and 2 theta from the lab direction of the
+spot's predicted centroid (sample origin, `spot_pairing.pixel_to_lab`; eta from the rotation
+axis around the beam). Arms: `pois_sf`, and `pois` rerun as the control.
+
+Protocol and rule: GO1's (grains 381 and 302, CMA over the rotation, sigma 0.03 deg, 150
+evaluations, from the ground truth); qualifies if the optimum is below 0.01 deg from the ground
+truth on both grains (written before any run). Output `benchmarks/grain_opt/go9b/`.
+
+Budget: a few minutes.
+
 ### GO6 onwards
 
 Program balance (owner via the coordinator, 2026-11-16): GO5b to GO5o were all G1c strain. After
