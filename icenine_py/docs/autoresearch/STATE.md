@@ -36,18 +36,17 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    Not a speed comparison (C++ 416 of 2,000 wrong, Python 24; explained by the 16 Nov check).
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
    goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. 16 pages wait (+ar5v, cppchk).
-   NOW: (a) step 22 MERGED 566eea3f; v58 live; v59 after the slices. (c) restart distance and
-   (b) OWNER TASK part 1: both C++ changes reviewed (a7e220e7; C5 56 wrong). TODO when no fine1
-   run is active: SendMessage aa5599885ce689568 to run `tests/test_cppchk_fix.py` on fixed2.
-   part 2 `fine1`: slices CS 2,595 s, J5S 65 s, PS 3,741 s, CF 2,058 s (contended); agent projects.
-   C++ config done (reports 20261116-*); next study step: local-optimization schedule.
+   NOW: (a) step 22 MERGED 566eea3f; v58 live; v59 after the whole-layer start. (c) restart distance
+   and C++ config done (reports 20261116-*); next study step: local-optimization schedule.
+   (b) OWNER TASK part 1: both C++ changes reviewed (a7e220e7; C5 56 wrong); fixed2 sub-grid test
+   runs (aa5599885ce689568). Part 2 `fine1`: projection done (c501c238, re-freeze 2943a5e6), hours:
+   CS 22.7-34.9, J5S 0.6-0.8, PS 33.7-51.0 (ASK OWNER), CF 18.2-27.6. Then whole CS, J5S, CF.
 
 ## Running jobs
 - Step 14 key WAITS (held2). Steps 15 to 21 merged (caches: `J5r` `agent-aeba15b7c3850b007`,
   step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v58 live.
   Step 22 (`ar5v`; cache in `agent-aba6e1bdb95dff72a`): MERGED 566eea3f, key `SeedIndexMCDefer`.
-  Owner task: part 1 trace done (ae912cf9), `Reset` fix runs. Part 2 `fine7` frozen (ac76bdd6);
-  Agents resumed 01:06, 17 Nov: a22702f36dfefa989 (projection), aa5599885ce689568 (fixed2 test).
+  Owner task: `fine7` frozen (ac76bdd6, re-freeze 2943a5e6); fixed2 test runs since 01:06, 17 Nov.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
