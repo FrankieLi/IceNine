@@ -698,3 +698,28 @@ Verdicts by the rule written before the runs:
   pixels at the edge.
 - Next (I49): a noise-robust observed centroid for Gauss-Newton: binary weights, and isolated
   lit pixels removed (fewer than 2 lit 8-neighbours in the frame), on the same noisy images.
+
+## GO5n: noise-robust observed centroids (idea I49)
+
+Question: on noisy images, does a binary-weight observed centroid (and one with isolated lit
+pixels removed) restore the fast fit? S36, painted start, `GP4@P`, noisy `strainrn` images; rows
+in `benchmarks/grain_opt/go5n/*.json`; load 2.3-3.7.
+
+| centroid weights | 1e-4 | 5e-4 | 1e-3 | orientation | polished | s per grain |
+|---|---|---|---|---|---|---|
+| GO5m noisy CMA hybrid (reference) | 2.5e-4 | 1.9e-4 | 2.8e-4 | 0.012 / 0.012 / 0.028 | | 51 |
+| GO5m intensity (before) | 1.8e-4 | 2.7e-4 | 3.7e-4 | 0.014 / 0.017 / 0.025 | 8 | 27 |
+| `bin` binary | 4.9e-4 | 4.6e-4 | 6.7e-4 | 0.030 / 0.018 / 0.023 | 23 | 35 |
+| `binclean` binary, isolated removed | 5.1e-4 | 5.0e-4 | 5.9e-4 | 0.022 / 0.020 / 0.028 | 22 | 35 |
+
+Verdicts by the rule written before the runs:
+
+- I49 is answered no: both variants are worse than intensity weights at every level (strain
+  4.6-6.7e-4 against the limits 2.4e-4 and 3.5e-4) and slower (more grains cross the 6e-4 polish
+  threshold, 22-23 against 8).
+- The clean intensities carry the sub-pixel information: a pixel's intensity is its partial
+  coverage by the spot, so the intensity-weighted centroid locates the spot well below a pixel,
+  while the binary centroid is quantised to the lit-pixel set. Binary weights cost far more than
+  the noise does.
+- Next (I50): keep intensity weights and remove only isolated lit pixels (`intclean`), checked
+  on both noisy and clean images.

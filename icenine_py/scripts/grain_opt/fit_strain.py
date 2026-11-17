@@ -9,6 +9,9 @@ mass on lit pixels, mean over the grain's spots (GO5 "coverage"). Spot windows a
 strain. Parameters: grain field (FieldA order 1, 9 numbers) and one crystal-frame strain per
 grain (6). CMA with per-coordinate steps 0.05 deg (field) and 5e-4 (strain), strain from 0.
 
+GO5n (I49): ``--cen_w bin|binclean``: observed centroids with binary weights (and isolated lit
+pixels removed) in every centroid use; ``--stack`` (GO5m) reads another image stack.
+
 GO5l (I47): ``GP4@P`` / ``GP6@P``: ``GFF@P`` plus a fallback when every first-round stage is
 skipped, and a joint CMA polish (400 / 600, 0.02 deg and 1e-4) when the strain RMS exceeds 6e-4.
 
@@ -112,6 +115,19 @@ class Coverage:
         return 1.0 - float(((a * on).sum(1)[ok] / tot[ok]).mean())
 
 
+CEN_W = "int"  # GO5n: observed-centroid weights, "int" | "bin" | "binclean" (--cen_w)
+
+
+def isolated_mask(ob: np.ndarray) -> np.ndarray:
+    """GO5n: True for lit pixels with at least 2 lit 8-neighbours among the spot's pixels in the
+    same frame (pixel centres (col, row, frame) + 0.5)."""
+    p = np.floor(ob).astype(np.int64)
+    lit = {(int(c), int(r), int(f)) for c, r, f in p}
+    nb = [(dc, dr) for dc in (-1, 0, 1) for dr in (-1, 0, 1) if dc or dr]
+    cnt = np.array([sum((c + dc, r + dr, f) in lit for dc, dr in nb) for c, r, f in p])
+    return cnt >= 2
+
+
 class SubPix:
     """GO5e sub-pixel costs on the same predicted coverage points as ``Coverage``. Per spot a map
     over its window (frames, rows, columns), read by trilinear interpolation at each point;
@@ -131,7 +147,14 @@ class SubPix:
             ri = np.clip(o[:, 1] - sp.r0, 0, shape[1] - 1)
             ci = np.clip(o[:, 0] - sp.c0, 0, shape[2] - 1)
             w = np.asarray(sp.obs_val, float)
-            self.obs.append(np.asarray(sp.obs, float))
+            ob = np.asarray(sp.obs, float)
+            if kind == "cen" and CEN_W != "int":  # GO5n: noise-robust observed centroid
+                w = np.ones(len(ob))
+                if CEN_W == "binclean" and len(ob):
+                    keep = isolated_mask(ob)
+                    if keep.any():
+                        ob, w = ob[keep], w[keep]
+            self.obs.append(ob)
             self.w.append(w / max(float(w.sum()), 1e-12))
             if kind in ("sd", "ch"):
                 lit = np.zeros(shape, bool)
@@ -389,10 +412,12 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--lam", type=float, default=2.0)
     ap.add_argument("--per_level", type=int, default=4)
+    ap.add_argument("--cen_w", default="int", choices=["int", "bin", "binclean"])
     ap.add_argument("--stack", default=None, help="GO5m: stack file in place of strain_clean.npy")
     a = ap.parse_args()
-    global SEED
+    global SEED, CEN_W
     SEED = a.seed
+    CEN_W = a.cen_w
     out = CM.OUT / a.out
     tag = a.arm.replace("@", "_")
     if a.cost != "cov":
@@ -401,6 +426,8 @@ def main() -> None:
         tag += f"_s{a.seed}"
     if a.per_level != 4:
         tag += f"_S{3 * a.per_level}"
+    if a.cen_w != "int":
+        tag += f"_{a.cen_w}"
     start = "paint" if a.arm.endswith("@P") else "truth"
     S = CM.Sample(out / f"run_{tag}", start=start, intensity=True, sample="strain", stack=a.stack)
     T = S.T
@@ -598,6 +625,8 @@ def main() -> None:
             arm=a.arm,
             cost=a.cost,
             lam=a.lam if a.cost == "hyb" else None,
+            cen_w=a.cen_w,
+            stack=a.stack,
             seed=a.seed,
             grain=int(g),
             level=float(T.strain_level_of[g]),

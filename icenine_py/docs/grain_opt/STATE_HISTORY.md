@@ -175,3 +175,14 @@ became AR6 on 2026-11-16 at the owner's request.
 - **Next action:** plan and run GO5m (I48): the strain fits on noisy data (Poisson counts plus
   background on the clean intensity store, thresholded into a new binary stack and store); S36,
   `GP4@P` and the CMA hybrid against their clean results. Then GO6 or the cached ray index.
+
+## Now as of GO5m close (2026-11-16 17:50 PST)
+
+- **GO5m closed** (2026-11-16 17:50 PST): on images with the detector noise model
+  (`--stack strainrn_clean.npy`, built from the `strain` sample's `realistic_nodrop` render)
+  the CMA hybrid is robust (2.5 / 1.9 / 2.8e-4, clean 2.3 / 1.5 / 2.1e-4) and the fast fit is
+  not (1.8 / 2.7 / 3.7e-4, clean 1.3 / 1.3 / 2.1e-4). I48 no. `findings.md` "GO5m".
+- GO5l: fast fit `GP4@P` matches the CMA hybrid on clean images in half the time.
+- **Next action:** plan and run GO5n (I49): noise-robust observed centroids for Gauss-Newton
+  (binary weights; isolated lit pixels removed), fast fit on the noisy images against the noisy
+  CMA hybrid. Then GO6 or the cached ray index.
