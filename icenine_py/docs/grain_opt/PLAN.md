@@ -398,6 +398,38 @@ orientation ends above 0.05 deg are counted and named.
 Budget: about 60 ms per hybrid evaluation, 1,100 evaluations per grain: about 25-35 minutes per
 hybrid arm, 15 for coverage; 3 processes in parallel, under 45 minutes.
 
+### GO5i: Gauss-Newton on centroid residuals (idea I44, second part)
+
+Question: the hybrid strain fit (GO5h) costs about 50 s per grain with CMA (1,100 evaluations).
+Per-spot centroid residuals are smooth, low-dimensional least squares: does Gauss-Newton on
+them, with the orientation field's gradient taken from the coverage field leg, match the hybrid's
+accuracy at a fraction of the time?
+
+Method: residuals r = predicted mass centroid - observed intensity centroid per spot (column,
+row, frame; 3 per spot), over the spots that have predicted mass at the start. Parameters: the
+field's mean rotation (`theta[:3]`) and one strain (6); the field's gradient (`theta[3:]`) is
+fixed from the coverage field leg. Levenberg-Marquardt (Marquardt diagonal scaling, damping x10
+on a rejected step, /3 on an accepted one), finite-difference Jacobian (steps 1e-5 rad and
+1e-5, 9 extra predictions per iteration), Huber weights per spot (weight 1 up to 2 px, 2/|d|
+beyond), at most 15 iterations, stop when the step is below 1e-7.
+
+Benchmark S36, painted start, robust start field; output `benchmarks/grain_opt/go5i/`. Arms
+(`--cost hyb --lam 8` so that `f_fit` and `f_gt` are hybrid costs):
+
+- `GN@P`: coverage field leg 200 at zero strain, then Gauss-Newton.
+- `GNH@P`: `GN@P`, then one joint CMA leg of 300 on `hyb` lambda 8 at steps 0.01 deg and 1e-4.
+
+Judging rule (written before any run). Reference: GO5h `hyb` lambda 8 on the same grains
+(strain 2.3e-4 / 1.5e-4 / 2.1e-4, orientation 0.011 / 0.009 / 0.017 deg, mean wall time per
+grain). An arm "matches" when at 5e-4 and 1e-3 its strain median is at most 1.25 x the
+reference's, its orientation median is at most 0.02 deg at every level, and its mean wall time
+per grain is at most half the reference's (same machine load class; the load is reported). I44
+(second part) is answered yes when an arm matches; the faster matching arm is preferred. 1e-4
+strain is reported, not judged.
+
+Budget: about 6 s field leg plus 3-5 s Gauss-Newton per grain (`GN@P`), plus about 18 s for
+`GNH@P`; both arms under 20 minutes; 2 processes.
+
 ### GO6 onwards
 
 Planned order (each gets a section when it starts): GO6 objective variants (I17 to I22); GO7 richer
