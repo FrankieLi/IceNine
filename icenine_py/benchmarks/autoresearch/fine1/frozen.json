@@ -434,15 +434,16 @@
   "scripts/autoresearch/fine1/fine1_check_inputs.py": "5c65aa8e35b9db3f62952cbdff6740d601a46368168d177e6d869a40475d95ef",
   "scripts/autoresearch/fine1/fine1_config.py": "fc4e8c97c736fc3053d912aa28ccf5b95029f6648886f76f25b9ec9de75fa852",
   "scripts/autoresearch/fine1/fine1_cpp_split_check.py": "dd118121f0ce252b9a22a3edcd94a05775cc615a5d066b417541cce81b96018e",
-  "scripts/autoresearch/fine1/fine1_freeze.py": "479022fdcc9095397304e1884724de3dc142abd19a7956a11ee984db6e661566",
+  "scripts/autoresearch/fine1/fine1_freeze.py": "e6cc25dced0623c26eb006b2bdb1dca169a0f67b6f1720edc43bf89f8865dba6",
   "scripts/autoresearch/fine1/fine1_gradient_check.py": "36c137e10ac0b10fb3a3e9461b6f10a5a239f005cdcca374333d58221212b93a",
-  "scripts/autoresearch/fine1/fine1_launch.sh": "8db9fbbe964ceb28fd0f31af7fabb516305607a645859240b48048596f64b78e",
+  "scripts/autoresearch/fine1/fine1_launch.sh": "698d0b33706998bfc31f37f5a6e9dbe23ddddda27f34b0df1f4c5547dbc5f04e",
   "scripts/autoresearch/fine1/fine1_launch_slice.sh": "f3584cb7f249fdcd8d4aa235bb4a3602033623c2a6bbf29dc85112e9b0efc4e1",
   "scripts/autoresearch/fine1/fine1_launch_whole.sh": "a9a4b3dd601b14b1ddb952037c45ec6f7fe6098520a2724d5a109728701d630e",
   "scripts/autoresearch/fine1/fine1_lib.py": "1b543365664d04e21b148e979688af37f03de794c54ce168d45da7b3871fa392",
   "scripts/autoresearch/fine1/fine1_make_grid.py": "5300d0aaed1777554222fe3d6c8a8b1cd284b19611dc466cde620a6efd7004fb",
   "scripts/autoresearch/fine1/fine1_make_sample.py": "1584f731d9fbf1c6751ac741b2480b6fe7de1e223d689cf1f525eca6e975afae",
   "scripts/autoresearch/fine1/fine1_paths.py": "b61c95da1cee6f0e3f260ba191891458f6c4eacf02570ae12935788061ccf3e0",
+  "scripts/autoresearch/fine1/fine1_projection.py": "e122c271568659788208676daafab9e37beb3f056a1e279d4a1302ce97e5c15f",
   "scripts/autoresearch/fine1/fine1_run_py.py": "e09ddcf7d0d0a5897057b083dd254459b3ae74230731ead081d288822946da4e",
   "scripts/autoresearch/fine1/fine1_stack.py": "8c554e7d4e71a4c3b501f8a04f65ce2b047bb6402617aad47c3daa18a9eba08f",
   "scripts/autoresearch/cpptime/make_config.py": "57b54997f3c3bf445681efe9b25ee91b495df48ad0c5c1bbf59b20bbcfd7c1cb",
@@ -498,6 +499,10 @@
   "icenine/symmetry.py": "8d843f35885041175b13966934539ba8061dbe5795a23a7f8573631104f09dd1",
   "icenine/toy_orientation_model.py": "cc14dc5efa5361b7f43f81cd8827046874b746f377f195a9e24e9a8b003e83d7"
  },
- "frozen_at": "2026-11-16T14:52:25-0800",
- "note": "no method (PS, CS, J5S, CF) was run on fine7 or its slice, and no log or map of fine7 exists, before this file was committed"
+ "frozen_at": "2026-11-17T01:08:13-0800",
+ "note": "no method (PS, CS, J5S, CF) was run on fine7 or its slice, and no log or map of fine7 exists, before this file was committed",
+ "refreeze": {
+  "previous_freeze_commit": "ac76bdd6",
+  "note": "Phase B added fine1_projection.py, the launcher flag --continue-contended (default unchanged) and fine1_freeze.py's --outputs check now looks at runs/whole only (the slice runs predate this freeze by design). No arm, config, grid, truth, image or library file changed: every data hash and the library hashes equal the first freeze. The slices (CS, J5S, PS, CF) ran under the first freeze; no whole-layer output exists."
+ }
 }
