@@ -215,6 +215,117 @@ def pareto_svg(points: List[Dict[str, Any]]) -> str:
     return "".join(out) + legend + howto
 
 
+# strain families: (key, legend name, marker shape, colour token)
+SFAM = [
+    ("ref", "Strain only at the ground-truth orientation (reference)", "circle", "--ref"),
+    ("coverage", "Coverage cost", "square", "--muted"),
+    ("centroid", "Centroid cost", "triangle", "--prop"),
+    ("hybrid", "Hybrid cost, CMA", "diamond", "--accent"),
+    ("gn", "Gauss-Newton variants", "cross", "--run"),
+    ("fast", "Fast fit (Gauss-Newton + fallback + polish)", "circle", "--done"),
+]
+
+
+def strain_points() -> List[Dict[str, Any]]:
+    p = ICE / "benchmarks" / "grain_opt" / "strain_pareto.json"
+    return json.loads(p.read_text())["points"] if p.exists() else []
+
+
+def strain_svg(points: List[Dict[str, Any]], li: int, level: str) -> str:
+    W, H, L, R, T, B = 340, 250, 46, 10, 26, 44
+    fam = {f[0]: f for f in SFAM}
+    xmin, xmax = 200.0, 4000.0
+    ymax = max(p["err"][li] for p in points) * 1e4 * 1.12
+
+    def X(v: float) -> float:
+        return L + (W - L - R) * (math.log10(v) - math.log10(xmin)) / (math.log10(xmax) - math.log10(xmin))
+
+    def Y(v: float) -> float:
+        return T + (H - T - B) * (1 - v / ymax)
+
+    out = [f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="Strain error against evaluations, level {level}" class="chart">']
+    out.append(f'<text x="{L}" y="15" class="axis">strain level {level} (tensor RMS)</text>')
+    step = 1 if ymax <= 8 else 2
+    v = 0.0
+    while v <= ymax:
+        out.append(f'<line x1="{L}" x2="{W-R}" y1="{Y(v):.1f}" y2="{Y(v):.1f}" class="grid"/>')
+        out.append(f'<text x="{L-6}" y="{Y(v)+4:.1f}" class="tick" text-anchor="end">{v:g}</text>')
+        v += step
+    for t in (300, 1000, 3000):
+        out.append(f'<text x="{X(t):.1f}" y="{H-B+16}" class="tick" text-anchor="middle">{t}</text>')
+    out.append(f'<text x="{(L+W-R)/2:.0f}" y="{H-8}" class="axis" text-anchor="middle">'
+               "objective evaluations per grain (log)</text>")
+    out.append(f'<text x="12" y="{(T+H-B)/2:.0f}" class="axis" text-anchor="middle" '
+               f'transform="rotate(-90 12 {(T+H-B)/2:.0f})">median strain error (x 1e-4)</text>')
+    fr = frontier([(p["evals"], p["err"][li] * 1e4) for p in points if p["family"] != "ref" and not p["noisy"]])
+    if len(fr) > 1:
+        out.append('<polyline points="' + " ".join(f"{X(x):.1f},{Y(y):.1f}" for x, y in fr) + '" class="front"/>')
+    for idx, p in enumerate(points, 1):
+        f = fam.get(p["family"], SFAM[-1])
+        x, y = X(max(p["evals"], xmin)), Y(p["err"][li] * 1e4)
+        if p["noisy"]:
+            m = marker(f[2], x, y, 4.5, f[3], 'fill-opacity="0" stroke-width="1.8"')
+        else:
+            m = marker(f[2], x, y, 4.5, f[3])
+        ring = (f'<circle cx="{x:.1f}" cy="{y:.1f}" r="8" fill="none" stroke="var(--bad)" stroke-width="1.6"/>'
+                if p["orient_fail"] else "")
+        tip = (f'<title>{idx}. {esc(p["label"])}: strain error {p["err"][li]*1e4:.2f}e-4, orientation '
+               f'{p["mis"][li]:.3f} deg, {p["evals"]:.0f} evaluations and {p["t_s"]:.0f} s per grain, '
+               f'{p["n_grains"]} grains</title>')
+        out.append(f"<g>{ring}{m}{tip}</g>")
+        out.append(f'<text x="{x+7:.1f}" y="{y-6:.1f}" class="lab">{idx}</text>')
+    out.append("</svg>")
+    return "".join(out)
+
+
+def strain_section() -> List[str]:
+    pts = strain_points()
+    if not pts:
+        return []
+    fam = {f[0]: f for f in SFAM}
+    used = [f for f in SFAM if any(p["family"] == f[0] for p in pts)]
+    items = [f'<li><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">'
+             f'{marker(f[2], 9, 9, 4.5, f[3])}</svg>{esc(f[1])}</li>' for f in used]
+    items.append('<li><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">'
+                 f'{marker("circle", 9, 9, 4.5, "--muted", chr(102)+chr(105)+"ll-opacity=" + chr(34) + "0" + chr(34))}</svg>Hollow: noisy images</li>')
+    items.append('<li><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true">'
+                 '<circle cx="9" cy="9" r="7" fill="none" stroke="var(--bad)" stroke-width="1.6"/></svg>'
+                 "Ring: orientation error above 0.02 deg at some level</li>")
+    items.append('<li><svg viewBox="0 0 26 18" width="26" height="18" aria-hidden="true">'
+                 '<line x1="1" y1="9" x2="25" y2="9" class="front"/></svg>Frontier (painted start, clean images)</li>')
+    rows = "".join(
+        f'<tr><td class="id">{i}</td><td>{esc(p["label"])}</td><td class="id">{p["n_grains"]}</td>'
+        f'<td class="id">{p["evals"]:.0f}</td><td class="id">{p["t_s"]:.0f}</td>'
+        f'<td class="id">{" / ".join(f"{e*1e4:.1f}" for e in p["err"])}</td>'
+        f'<td class="id">{" / ".join(f"{m:.3f}" for m in p["mis"])}</td></tr>'
+        for i, p in enumerate(pts, 1)
+    )
+    return [
+        "<h2>Strain: cost against accuracy</h2>",
+        '<p class="note">Strain fits per grain on sample <code>strain</code>. One panel per strain '
+        "level; x is the mean number of objective evaluations per grain (each evaluation is one "
+        "forward prediction of the grain's spots: a cost call or a Gauss-Newton residual), y the "
+        "median absolute strain error over the grains of that level. From the painted start unless "
+        "the marker is grey (strain only at the ground-truth orientation). 36 grains (12 per level) "
+        "where run, else 12 (4 per level; see the table).</p>",
+        '<div style="display:flex;flex-wrap:wrap;gap:10px">'
+        + "".join(f'<div style="flex:1 1 300px;max-width:360px">{strain_svg(pts, i, lv)}</div>'
+                  for i, lv in enumerate(["1e-4", "5e-4", "1e-3"]))
+        + "</div>",
+        f'<ul class="legend">{"".join(items)}</ul>',
+        '<p class="note">How to read: lower and further left is better (smaller strain error for '
+        "fewer evaluations). The number next to a marker matches the table; hover a marker for its "
+        "orientation error and wall time. The dashed line joins the clean painted-start arms that "
+        "no other such arm beats on both axes. A red ring marks an arm whose median voxel "
+        "orientation error is above 0.02 deg at one or more levels (the limit used for clean "
+        "images; the noisy-image steps allowed 0.03 deg).</p>",
+        '<div class="tbl" style="margin-top:10px"><table><thead><tr><th>#</th><th>arm</th>'
+        "<th>grains</th><th>eval / grain</th><th>s / grain</th><th>median strain error x 1e-4 "
+        "(1e-4 / 5e-4 / 1e-3)</th><th>median orientation error deg (same levels)</th></tr></thead>"
+        f"<tbody>{rows}</tbody></table></div>",
+    ]
+
+
 def build() -> str:
     prog = json.loads((ICE / "benchmarks" / "grain_opt" / "progress.json").read_text())
     rows = ideas()
@@ -333,6 +444,7 @@ border-radius:6px;padding:3px 10px;cursor:pointer}.filters button[aria-pressed="
     parts.append('<div class="tbl" style="margin-top:10px"><table><thead><tr><th>#</th><th>arm</th>'
                  '<th>voxels</th><th>num objective eval / voxel</th><th>voxels &gt; 0.1 deg from ground truth (pooled)</th><th>median deg</th>'
                  f'</tr></thead><tbody>{key_rows}</tbody></table></div>')
+    parts += strain_section()
     parts.append("<h2>Ideas</h2>")
     parts.append('<div class="filters" role="group" aria-label="Filter ideas by status">'
                  '<button id="f-all" data-f="all" aria-pressed="true">all</button>'
@@ -350,7 +462,7 @@ border-radius:6px;padding:3px 10px;cursor:pointer}.filters button[aria-pressed="
     parts.append("</tbody></table></div>")
     parts.append(
         '<p class="note">Source files: <code>icenine_py/docs/grain_opt/IDEAS.md</code>, <code>STATE.md</code>, '
-        "<code>COSTS.md</code>, <code>findings.md</code>, <code>benchmarks/grain_opt/progress.json</code>.</p></div>"
+        "<code>COSTS.md</code>, <code>findings.md</code>, <code>benchmarks/grain_opt/strain_pareto.json</code>, <code>benchmarks/grain_opt/progress.json</code>.</p></div>"
     )
     parts.append(
         "<script>document.querySelectorAll('.filters button').forEach(b=>b.addEventListener('click',()=>{"

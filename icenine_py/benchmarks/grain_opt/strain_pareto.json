@@ -1,0 +1,349 @@
+{
+ "levels": [
+  0.0001,
+  0.0005,
+  0.001
+ ],
+ "points": [
+  {
+   "label": "coverage, strain only at ground-truth orientation",
+   "family": "ref",
+   "noisy": false,
+   "file": "go5b/E_GT.json",
+   "n_grains": 12,
+   "evals": 300.75,
+   "t_s": 8.628717005252838,
+   "err": [
+    0.00017250251700428633,
+    0.00018698843470106236,
+    0.00020438071714810305
+   ],
+   "mis": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "orient_fail": false
+  },
+  {
+   "label": "centroid, strain only at ground-truth orientation",
+   "family": "ref",
+   "noisy": false,
+   "file": "go5f/E_GT_cen.json",
+   "n_grains": 12,
+   "evals": 309.0,
+   "t_s": 8.360533257325491,
+   "err": [
+    0.0001268335599246409,
+    0.0002213034578856033,
+    0.00018273465020158866
+   ],
+   "mis": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "orient_fail": false
+  },
+  {
+   "label": "hybrid lambda 2, strain only at ground-truth orientation",
+   "family": "ref",
+   "noisy": false,
+   "file": "go5g/E_GT_hyb2.json",
+   "n_grains": 12,
+   "evals": 309.0,
+   "t_s": 17.038252651691437,
+   "err": [
+    9.942778282428635e-05,
+    0.00014189856450598832,
+    0.00011260835662602186
+   ],
+   "mis": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "orient_fail": false
+  },
+  {
+   "label": "coverage, one long joint fit",
+   "family": "coverage",
+   "noisy": false,
+   "file": "go5c/J_P.json",
+   "n_grains": 12,
+   "evals": 2529.0,
+   "t_s": 59.81811475753784,
+   "err": [
+    0.0006533875125097198,
+    0.0005686671583092857,
+    0.0004457342617998306
+   ],
+   "mis": [
+    0.01779017482404703,
+    0.007546860917709874,
+    0.009097985293483926
+   ],
+   "orient_fail": false
+  },
+  {
+   "label": "coverage, staged",
+   "family": "coverage",
+   "noisy": false,
+   "file": "go5h/S_P_S36.json",
+   "n_grains": 36,
+   "evals": 1130.5,
+   "t_s": 27.286624530951183,
+   "err": [
+    0.00045994795784487074,
+    0.00028096328720497265,
+    0.0006285560615065419
+   ],
+   "mis": [
+    0.01760794983968211,
+    0.008534760029531649,
+    0.019954695333679454
+   ],
+   "orient_fail": false
+  },
+  {
+   "label": "centroid, staged",
+   "family": "centroid",
+   "noisy": false,
+   "file": "go5f/S_P_cen.json",
+   "n_grains": 12,
+   "evals": 1133.0,
+   "t_s": 25.371233105659485,
+   "err": [
+    0.00013731009485766016,
+    0.00021495094062487678,
+    0.0003699330247027241
+   ],
+   "mis": [
+    0.058242764421384326,
+    0.05908929129098121,
+    0.08489824425248266
+   ],
+   "orient_fail": true
+  },
+  {
+   "label": "hybrid lambda 8, staged (CMA)",
+   "family": "hybrid",
+   "noisy": false,
+   "file": "go5h/S_P_hyb8_S36.json",
+   "n_grains": 36,
+   "evals": 1133.0,
+   "t_s": 53.27385728226768,
+   "err": [
+    0.0002245675090928929,
+    0.00015369240966430067,
+    0.00021305738267890091
+   ],
+   "mis": [
+    0.010669263430042913,
+    0.009256261060073857,
+    0.017319467929004684
+   ],
+   "orient_fail": false
+  },
+  {
+   "label": "hybrid lambda 16, staged (CMA)",
+   "family": "hybrid",
+   "noisy": false,
+   "file": "go5h/S_P_hyb16_S36.json",
+   "n_grains": 36,
+   "evals": 1133.0,
+   "t_s": 53.02609998650021,
+   "err": [
+    0.00022942204965294719,
+    0.0001564025675252117,
+    0.00022983928850130357
+   ],
+   "mis": [
+    0.011338594777212982,
+    0.009026890203767353,
+    0.018834486751512215
+   ],
+   "orient_fail": false
+  },
+  {
+   "label": "Gauss-Newton on centroids",
+   "family": "gn",
+   "noisy": false,
+   "file": "go5i/GN_P_hyb8_S36.json",
+   "n_grains": 36,
+   "evals": 411.27777777777777,
+   "t_s": 9.870355513360765,
+   "err": [
+    0.000123065953223263,
+    0.00012654964646109727,
+    0.0002927871729464617
+   ],
+   "mis": [
+    0.010060481500755272,
+    0.02123483214072734,
+    0.03925704453105552
+   ],
+   "orient_fail": true
+  },
+  {
+   "label": "Gauss-Newton + hybrid polish 300",
+   "family": "gn",
+   "noisy": false,
+   "file": "go5i/GNH_P_hyb8_S36.json",
+   "n_grains": 36,
+   "evals": 723.2777777777778,
+   "t_s": 22.843099256356556,
+   "err": [
+    0.0001576391861052898,
+    0.0001867072297243408,
+    0.00022636160133946798
+   ],
+   "mis": [
+    0.011319441874603941,
+    0.011886593880255883,
+    0.0245629846223873
+   ],
+   "orient_fail": true
+  },
+  {
+   "label": "Gauss-Newton + 2 gradient refits",
+   "family": "gn",
+   "noisy": false,
+   "file": "go5j/GA2_P_hyb8_S36.json",
+   "n_grains": 36,
+   "evals": 1014.5555555555555,
+   "t_s": 23.45780887868669,
+   "err": [
+    0.00012346674110542006,
+    0.00011871427003646388,
+    0.0003090016329846629
+   ],
+   "mis": [
+    0.00884648773150494,
+    0.013463036868496389,
+    0.03392577187252004
+   ],
+   "orient_fail": true
+  },
+  {
+   "label": "Gauss-Newton, frozen weights + fallback",
+   "family": "gn",
+   "noisy": false,
+   "file": "go5k/GFF_P_hyb8_S36.json",
+   "n_grains": 36,
+   "evals": 767.8888888888889,
+   "t_s": 18.464348561233944,
+   "err": [
+    0.00012849906712626697,
+    0.00013438151980208645,
+    0.00024254942640250776
+   ],
+   "mis": [
+    0.009040962343995478,
+    0.014744996829609511,
+    0.02832419910445455
+   ],
+   "orient_fail": true
+  },
+  {
+   "label": "fast fit GP4@P",
+   "family": "fast",
+   "noisy": false,
+   "file": "go5l/GP4_P_hyb8_S36.json",
+   "n_grains": 36,
+   "evals": 901.7777777777778,
+   "t_s": 24.89260580142339,
+   "err": [
+    0.00012849906712626697,
+    0.00013438151980208645,
+    0.000212751151760144
+   ],
+   "mis": [
+    0.009040962343995478,
+    0.01515570161311965,
+    0.019712192827403857
+   ],
+   "orient_fail": false
+  },
+  {
+   "label": "fast fit GP6@P (polish 600)",
+   "family": "fast",
+   "noisy": false,
+   "file": "go5l/GP6_P_hyb8_S36.json",
+   "n_grains": 36,
+   "evals": 930.1111111111111,
+   "t_s": 26.39794945054584,
+   "err": [
+    0.00012849906712626697,
+    0.00013438151980208645,
+    0.000212751151760144
+   ],
+   "mis": [
+    0.009040962343995478,
+    0.01515570161311965,
+    0.018751665923463022
+   ],
+   "orient_fail": false
+  },
+  {
+   "label": "hybrid lambda 8, staged (CMA), noisy",
+   "family": "hybrid",
+   "noisy": true,
+   "file": "go5m/S_P_hyb8_S36.json",
+   "n_grains": 36,
+   "evals": 1133.0,
+   "t_s": 50.496529718240105,
+   "err": [
+    0.0002478702712160373,
+    0.00019337181725442696,
+    0.00027708947685822045
+   ],
+   "mis": [
+    0.011741019887845233,
+    0.011873907208111906,
+    0.028176234376457637
+   ],
+   "orient_fail": true
+  },
+  {
+   "label": "fast fit GP4@P, noisy",
+   "family": "fast",
+   "noisy": true,
+   "file": "go5m/GP4_P_hyb8_S36.json",
+   "n_grains": 36,
+   "evals": 932.5277777777778,
+   "t_s": 26.555710282590653,
+   "err": [
+    0.00018251024367757956,
+    0.000267710486011076,
+    0.00037027561635930527
+   ],
+   "mis": [
+    0.013940875617929019,
+    0.016994744889041326,
+    0.024584317872458742
+   ],
+   "orient_fail": true
+  },
+  {
+   "label": "fast fit, binary centroids, noisy",
+   "family": "fast",
+   "noisy": true,
+   "file": "go5n/GP4_P_hyb8_S36_bin.json",
+   "n_grains": 36,
+   "evals": 1103.2222222222222,
+   "t_s": 34.64691128995683,
+   "err": [
+    0.0004932728283297001,
+    0.00046342882506359676,
+    0.0006657147566188789
+   ],
+   "mis": [
+    0.02987455607388148,
+    0.018275888982492924,
+    0.023359498801885488
+   ],
+   "orient_fail": true
+  }
+ ]
+}
