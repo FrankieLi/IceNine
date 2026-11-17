@@ -554,6 +554,33 @@ and 1e-3. Fallback and polished grains are counted; 1e-4 strain is reported, not
 Budget: building the stack about 3 minutes; CMA hybrid about 32 minutes, fast fit about 15
 minutes, in parallel; under 45 minutes.
 
+### GO5n: noise-robust observed centroids (idea I49)
+
+Question: on noisy images the fast fit's strain doubled (GO5m), most likely because the
+intensity-weighted observed centroid moves with added edge pixels (which copy a neighbour's
+intensity), hot pixels and blobs. Does a more robust observed centroid restore it?
+
+Centroid variants (`fit_strain.py --cen_w`, applied to every centroid use: Gauss-Newton and the
+hybrid's `cen` term):
+
+- `bin`: binary weights (every kept lit pixel counts 1).
+- `binclean`: binary weights after removing isolated lit pixels (fewer than 2 lit 8-neighbours
+  among the spot's pixels in the same frame).
+
+Benchmark S36, painted start, noisy images (`--stack strainrn_clean.npy`), `GP4@P`, `hyb`
+lambda 8; output `benchmarks/grain_opt/go5n/`. Arms: `GP4@P --cen_w bin`, `GP4@P --cen_w
+binclean`.
+
+Judging rule (written before any run). Reference: GO5m's noisy CMA hybrid on the same grains
+(strain 2.5e-4 / 1.9e-4 / 2.8e-4, 51 s per grain). An arm "holds" when at 5e-4 and 1e-3 its
+strain median is at most 1.25 x the reference's, its orientation median is at most 0.03 deg at
+every level, and its mean wall time per grain is at most half the reference's (25.5 s; load
+reported). I49 is answered yes when an arm holds; the arm with the lower mean strain median over
+5e-4 and 1e-3 is preferred. 1e-4 strain is reported, not judged; GO5m's noisy `GP4@P` with
+intensity weights (1.8e-4 / 2.7e-4 / 3.7e-4) is the before.
+
+Budget: about 27 s per grain, two arms in parallel, under 25 minutes.
+
 ### GO6 onwards
 
 Planned order (each gets a section when it starts): GO6 objective variants (I17 to I22); GO7 richer
