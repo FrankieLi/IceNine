@@ -635,6 +635,35 @@ is preferred. Seed-path calls, improved voxels and wall time per voxel are repor
 Budget: Part A one pairing per sample (15-30 minutes each, in parallel); Part B the gated voxels
 times the seed path (to be measured on a smoke grain before the runs); each run under 2 hours.
 
+### GO7: rocking curve on the images (goal G2b, idea I23, part 1)
+
+Question: the renderer puts every spot in exactly one omega frame; real spots spread over
+frames, by Delta omega = alpha / |sin eta| (`docs/omega_peak_width_derivation.md`, eta the
+azimuth from the rotation axis, alpha the Bragg window). How much does the orientation fit lose
+when the images have a rocking curve but the forward model does not?
+
+Data (emulated, no library change): `scripts/grain_opt/rock_stack.py` reads the clean `grad`
+intensity store and spreads each lit pixel's intensity over the frames that the window
+[omega_c - Delta omega / 2, omega_c + Delta omega / 2] overlaps (omega_c the frame centre: the
+render does not keep the sub-frame omega), with Delta omega from the pixel's eta (lab direction
+from the sample origin, `spot_pairing.pixel_to_lab`), capped at 8 frames, and thresholds the
+spread intensity at the 5th percentile of the clean intensities (a fixed detector threshold:
+weak spots spread thin fall below it). Stacks `stacks/grad_rockA_clean.npy` for alpha = 0.3 and
+1.0 deg (frame width 1 deg); lit-pixel counts and spots lost are reported.
+
+Arms (`run_pipeline.py`, benchmark G20, painted start, `--stack`): `Astrict/100` (the GO2
+frontier arm) on clean, alpha 0.3 and alpha 1.0 images. Output `benchmarks/grain_opt/go7/`.
+
+Judging rule (written before any run). Per arm, voxels more than 0.1 deg from the ground truth
+(Wilson 95%) and median error, on the 853 voxels with a C record. The rocking curve "harms" the
+fit at an alpha when the share above 0.1 deg has a Wilson interval entirely above the clean
+arm's, or the median is more than 1.5 x the clean median. I23 part 1 is answered by the harm per
+alpha. A forward model with a rocking curve (part 2) changes `icenine/` and needs the owner's
+approval before it is planned.
+
+Budget: building a stack about 2 minutes; each arm about 2 minutes (GO2: 5.2 ms per voxel at
+200 evaluations); 3 processes.
+
 ### GO6 onwards
 
 Program balance (owner via the coordinator, 2026-11-16): GO5b to GO5o were all G1c strain. After
