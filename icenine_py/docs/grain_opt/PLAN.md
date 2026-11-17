@@ -664,6 +664,31 @@ approval before it is planned.
 Budget: building a stack about 2 minutes; each arm about 2 minutes (GO2: 5.2 ms per voxel at
 200 evaluations); 3 processes.
 
+### GO7b: detector point-spread function on the images (goal G2b, idea I24)
+
+Question: real detectors blur each spot (point-spread function) before the threshold; the
+forward model has no PSF. How much do the orientation fit and the fast strain fit lose?
+
+Data (emulated, no library change): `scripts/grain_opt/psf_stack.py` blurs each frame's clean
+intensities with a Gaussian PSF (sigma 0.5 or 1.0 px, `scipy.ndimage.gaussian_filter`) and
+thresholds at the 5th percentile of the clean intensities; stack and intensity store written in
+this worktree (`grad_psf05`, `grad_psf10`, `strain_psf05`, `strain_psf10`).
+
+Arms: `run_pipeline.py --pipeline Astrict/100` (G20, painted start) on `grad_psf05` and
+`grad_psf10` (clean reference: GO7's `go7_clean_As100`); `fit_strain.py --arm GP4@P --cost hyb
+--lam 8 --per_level 12` on `strain_psf05` and `strain_psf10` (clean reference: GO5l `GP4@P`,
+1.3e-4 / 1.3e-4 / 2.1e-4). Output `benchmarks/grain_opt/go7b/`.
+
+Judging rule (written before any run). Orientation: as GO7 (harm at a sigma when the share of
+the 853 C voxels above 0.1 deg has a Wilson interval entirely above the clean arm's, or the
+median is above 1.5 x the clean median). Strain: harm at a sigma when the strain median at 5e-4
+or 1e-3 is above 1.5 x the clean median, or the orientation median is above 0.03 deg at a level.
+I24 (images part) is answered by the harm per sigma and fit; a PSF in the forward model is
+library work for the owner to approve.
+
+Budget: stacks about 2 minutes each; orientation arms 2 minutes; strain arms about 15 minutes;
+4 processes at most.
+
 ### GO6 onwards
 
 Program balance (owner via the coordinator, 2026-11-16): GO5b to GO5o were all G1c strain. After
