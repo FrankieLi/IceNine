@@ -1090,6 +1090,36 @@ answered yes when the stalls fall to at most 3 and the strain medians at 5e-4 an
 
 Budget: about 35 s per grain; one run, about 25 minutes.
 
+### GO8a: retrain GNLayerNet (goal G2c, idea I25, part 1; owner approval D-20261118-I1)
+
+Question: no GNLayerNet weights or datasets exist on this machine (scoped 2026-11-19). Before using
+the network inside grains (GO8b), can the documented realism-trained network be retrained here to
+its documented accuracy?
+
+Method: the recipe in `docs/orientation_nn_design.md` section 9 (scripts only): datasets with
+`generate_toy_orientation_dataset.py` (ManyGrains, 30 voxels by radius, 24 trained and 6 held out,
+500 offsets per voxel within 1 deg; the distractor layer `--neighbors 2 --twin`, tag `arch_dis`; a
+`stage3_multi` test file only for the aux sidecar), `make_dataset_aux.py`, then
+`train_toy_orientation_nn.py --arch gn --gn-iters 3 --loss decoupled --device mps --lr 1e-4
+--clip 1 --cosine --batch-size 64 --epochs 60 --ema 0.998 --checkpoint ema --val-voxels 4
+--realistic-train all --seed 0 --save-model`. Datasets and weights under `scripts/` (git-ignored);
+results JSON in `benchmarks/grain_opt/go8/`. Timing: a 720-sample smoke dataset took 10 s.
+
+Judging rule (written before any run). Reference (design doc table, realism-trained net, held-out
+median error): 0.0193 deg on clean windows and 0.0821 deg on `all` windows (2-seed means; seed 0
+0.0176 and 0.0827). GO8a passes (the retrained network reproduces) when its held-out median error
+is at most 1.25 x the seed-0 reference on both variants (0.022 and 0.103 deg). If it fails, GO8b is
+not started and the gap is reported.
+
+Budget: datasets about 5 minutes and 7 GB of disk; training about 15-20 minutes on the GPU.
+
+### GO8b: GNLayerNet inside grains (goal G2c, idea I25, part 2)
+
+To be written after GO8a passes: observed windows from the `rand` / `corr3` stacks (new extractor:
+32 x 32 x 9-frame windows at each voxel's predicted peaks, frame-coded as the training windows),
+the retrained network as a per-voxel refiner from the grain-centre start and after the ladder, at
+the 0.5 and 1 deg levels, against the ladder and GO4i's pipeline.
+
 ### GO6 onwards
 
 Strain queue (owner, 2026-11-19, from the literature review in the sibling thread "Review neural
