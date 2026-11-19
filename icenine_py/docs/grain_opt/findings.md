@@ -1129,3 +1129,28 @@ Verdicts by the rule written before the runs:
   time. The fast fit's documented default stays as GO5l, with `--ratio_hi 2.5` recommended for
   clean data.
 - The strain line closes here (program balance).
+
+## GO4i: a lower gate for rand's near misses (goal G1b, idea I58)
+
+Question: does a second wide-search pass (`W`, `X`) at gate 0.11, after GO4h's pipeline, recover
+rand's 0.5 deg near misses (strict cost 0.11-0.20, below the 0.15 gate)? Pipeline
+`L/366/3,G/15/0.15,N/30/0.3,W/20/0.15,X/1/0.15,W/20/0.11,X/1/0.11,V/61/0.02` on rand; table
+`benchmarks/grain_opt/go4i/rand.md`.
+
+| rand | 0.5 deg | 1 deg | 2 deg | 5 deg | wrong (all) | s / voxel |
+|---|---|---|---|---|---|---|
+| GO4h (gate 0.15 only) | 16% | 1.4% | 5% | 4% | 25 | 4.1 |
+| + second pass at 0.11 | 4.5% | 0.4% | 3.3% | 3.2% | 18 | 8.1 |
+
+Verdicts by the rule written before the runs:
+
+- I58 is answered yes: rand at 0.5 deg falls from 16% to 4.5% (limit 11%), and every other level
+  improves; median error 0.005-0.006 deg at every level, 95th percentile 0.04 deg (was 0.42).
+- The second pass searched 296 voxels with `W` (45 improved) and 270 with `X` (168 improved): the
+  grid search does the work.
+- Over budget: the run took 140 minutes against the plan's 2-hour stop. The session that watched
+  it ended in a restart before the 2-hour mark, so it was not stopped; the result is reported as
+  run, and the overrun noted.
+- G1b now stands at rand 4.5 / 0.4 / 3.3 / 3.2% and corr3 1 / 1 / 0.4 / 7% above 0.1 deg at 0.5 /
+  1 / 2 / 5 deg RMS voxel-to-voxel misorientation, at 2-8 s per voxel (GO4c's ladder alone: rand
+  48 / 53 / 77 / 83%, corr3 3 / 9 / 31 / 72%).

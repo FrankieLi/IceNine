@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-18 17:50 PST",
+ "updated": "2026-11-18 21:00 PST",
  "steps": [
   {
    "id": "GO0",
@@ -288,6 +288,14 @@
    "status": "done",
    "date": "2026-11-18",
    "result": "Noisy images, fast fit with region ratio filter 2.5: 1.6/2.6/3.1e-4 (with intclean 2.0/2.5/2.7e-4), orientation <= 0.017 deg, 38-40 s per grain: better than with 1.6 (1.8/2.7/3.7e-4) but misses 1.25 x the noisy CMA hybrid at 5e-4. I57 no. Strain line closed.",
+   "commit": ""
+  },
+  {
+   "id": "GO4i",
+   "title": "Lower gate for rand near misses (G1b)",
+   "status": "done",
+   "date": "2026-11-18",
+   "result": "A second W,X pass at gate 0.11 takes rand to 4.5/0.4/3.3/3.2% above 0.1 deg at 0.5/1/2/5 deg (was 16/1.4/5/4%), medians 0.005-0.006 deg, 8 s per voxel. I58 yes. Run took 140 min (over its 2 h budget; its watcher ended in a session restart).",
    "commit": ""
   }
  ],

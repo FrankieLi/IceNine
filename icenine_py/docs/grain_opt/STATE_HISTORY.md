@@ -353,3 +353,17 @@ became AR6 on 2026-11-16 at the owner's request.
 - **Next action:** GO5p (I57, one strain check the GO7e result calls for): the fast fit with
   `--ratio_hi 2.5` on the noisy images (`strainrn`), to adopt it as the default; then I25 scoping
   in this session (dataset and training cost; no implementer until the owner confirms).
+
+## Now as of GO5p close (2026-11-18 17:50 PST)
+
+- **GO5p closed** (2026-11-18 17:50 PST, I57 no, narrowly): on noisy images the fast fit with the
+  ratio filter at 2.5 gives 1.6 / 2.6 / 3.1e-4 (CMA hybrid 2.5 / 1.9 / 2.8e-4), missing 1.25 x
+  the CMA hybrid at 5e-4. Strain line closed; `--ratio_hi 2.5` recommended for clean data.
+- GO7d / GO7e (G2b) closed. GO4h (G1b): corr3 1 / 1 / 0.4 / 7%, rand 16 / 1.4 / 5 / 4%.
+- **I25 scoping** (2026-11-18): no GNLayerNet weights or datasets exist on this machine; I25 needs
+  the 3.2 GB dataset regenerated and a 60-epoch training. The niche it might fill: the
+  realism-trained net was 2-3 x better than robust Gauss-Newton on windows with overlapping
+  neighbours (`docs/orientation_nn_design.md`), the situation of rand's near misses. Waiting for
+  the owner's own confirmation (asked 2026-11-18 16:45 PST) before an implementer.
+- **Next action:** GO4i (I58) running; close it, then I25 if confirmed, else report and pick the
+  next G1b or G2a idea from IDEAS.
