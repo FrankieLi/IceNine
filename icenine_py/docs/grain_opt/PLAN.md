@@ -835,6 +835,31 @@ against `+W`. Wall time per voxel reported; a run over 2 hours is stopped and re
 Budget: rand about 75 minutes (GO4g `W,X` 70 minutes; the polish about 0.1 s per voxel); corr3
 about 25 minutes (`X` on the voxels left above the gate after `W`, about 80 x 16 s).
 
+### GO7d: split merged spots before taking centroids (goal G2b, idea I53)
+
+Question: on 1 px PSF images the fast strain fit degrades even on its Gauss-Newton-only grains
+(GO7c), most likely because the blur merges nearby spots into one connected component and the
+observed centroid mixes a neighbour's light. If each observed lit pixel in a spot window is
+assigned to the grain or to a neighbour by the nearest predicted point, does the fit recover?
+
+Method (`fit_strain.py --cen_split`, scripts only): for each spot, the grain's predicted coverage
+points at the start orientation (no strain) and the fixed shell (neighbour) prediction stored
+with the region; an observed lit pixel enters the observed centroid only if its nearest grain
+point is no farther than its nearest shell point (column and row in pixels, frame in frames).
+Spots without shell points in the window are unchanged.
+
+Arm: `GP4@P --cost hyb --lam 8 --per_level 12 --stack strain_psf10_clean.npy --cen_split`;
+control `GP4@P --cen_split` on clean images. Output `benchmarks/grain_opt/go7d/`.
+
+Judging rule (written before any run). References: GO5l clean `GP4@P` (1.3e-4 / 1.3e-4 /
+2.1e-4, orientation up to 0.020 deg) and GO7b `GP4@P` on the 1 px images (2.3e-4 / 2.7e-4 /
+5.7e-4). I53 is answered yes when the PSF arm has no harm by GO7b's rule (strain median at 5e-4
+and 1e-3 at most 1.5 x clean, orientation median at most 0.03 deg at every level), and partly when
+it improves both strain medians at 5e-4 and 1e-3 by at least 1.5 x against GO7b. The clean
+control must not lose more than 1.25 x at 5e-4 and 1e-3. 1e-4 reported, not judged.
+
+Budget: about 20-25 s per grain; two runs in parallel, under 25 minutes.
+
 ### GO6 onwards
 
 Program balance (owner via the coordinator, 2026-11-16): GO5b to GO5o were all G1c strain. After
