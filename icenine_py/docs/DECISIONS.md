@@ -2207,3 +2207,15 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   where it was found); their numbers are disclosed and decide nothing. Independent review (Opus):
   approve with eight text and bookkeeping fixes. Where: icenine_py/docs/autoresearch/PLAN.md (AR5
   step 23).
+
+### D-20261119-N3 · AR5 step 24 · AR5 step 24 approved: ball first, stock second stage only as fallback
+- 2026-11-19, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Step 24 (task ar5x) is approved as placed in PLAN.md
+  (12cda3c7): rule BF runs step 23's ball stage on the five candidates first and falls back to
+  J5D's stock second stage, from kept states, only when no ball end reaches 0.95. Sized exactly
+  from stored rows: 5.4% to 8.7% of J5SD on the held types, 0 lost ends by construction. Gate on
+  the disclosed samples, clean test held7, key SeedIndexMCBallFirst only after a recorded
+  decision. Runs one at a time; they give way to the owner's finer-layer runs if the owner
+  approves those. The saving is modest; the never steps (20% to 26% of J5SD) are left for a later
+  study, for which this step records feature rows. Where: icenine_py/docs/autoresearch/PLAN.md
+  (AR5 step 24).
