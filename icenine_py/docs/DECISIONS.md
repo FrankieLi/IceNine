@@ -2241,3 +2241,16 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   held7 not built. If s1 fails the step ends as a recorded negative result; no other feature set,
   label or threshold is tried in it. A live phase needs a new decision. Where:
   icenine_py/docs/autoresearch/PLAN.md (AR5 step 25).
+
+### D-20261119-N6 · AR5 step 25 merged (negative); step 26 approved, phases 0 and A · AR5 step 25 ends as a negative result; AR5 step 26 (faster ray indexer, same candidates) approved
+- 2026-11-19, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Step 25: gate s1 failed (logistic AUC 0.55 to 0.59,
+  bar 0.70; stored saving under 2.5%, bar 4%); s0 was not exact (an off-by-one the plan foresaw,
+  about 0.01 points; boosted tree not reproduced, no new dependency). Merged as a negative result,
+  no live run. Step 26: stored J5SD runs spend 41% to 77% of wall time (contended) in ray
+  indexing, which counts no evaluations. A new indexer must return the same candidates
+  (bit-identical, or tier 2 within 1e-12) and is judged in quiet seconds: indexing at least 50%
+  faster, pooled mid and held wall at least 25% lower. Phases 0 (gate z0, a quiet profile) and A
+  approved, 5 to 6 hours, one run at a time; held7 unused under tier 1; a key (phase B) needs a
+  new decision. If the machine is not quiet the timed runs wait; no process of the owner is
+  stopped. Where: icenine_py/docs/autoresearch/PLAN.md (AR5 steps 25, 26).
