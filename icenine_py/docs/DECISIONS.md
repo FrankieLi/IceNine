@@ -2219,3 +2219,14 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   approves those. The saving is modest; the never steps (20% to 26% of J5SD) are left for a later
   study, for which this step records feature rows. Where: icenine_py/docs/autoresearch/PLAN.md
   (AR5 step 24).
+
+### D-20261119-N4 · AR5 step 24 failed gate g2 on mid; held run as information only · AR5 step 24 (rule BF) fails gate g2 on mid; one held pair is run as information
+- 2026-11-19, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Gate g2 fails on mid: J5SDB 7,219,040 evaluations
+  against J5SD 7,383,368, 2.2% fewer, bar 4%. The verdict is final: no key SeedIndexMCBallFirst,
+  no phase B, no held7 run (held7 stays unused). The index stage fell 18.1% as sized, but the
+  grid-search stage rose by 329,915 evaluations (3 grid searches against 2). To learn whether the
+  shortfall is that one extra grid search or the rule, the implementer runs the held pair (J5SD
+  and J5SDB, about 90 minutes, one run at a time) as information only. It cannot change the
+  verdict. Then review and merge as a failed study. Where: icenine_py/docs/autoresearch/PLAN.md
+  (AR5 step 24); .claude/reports/20261119-1124-ar5x.md.
