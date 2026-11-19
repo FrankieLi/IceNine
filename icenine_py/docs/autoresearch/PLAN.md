@@ -5383,7 +5383,8 @@ with an earlier pause point: the ball's convergence instead of 500 evaluations w
 **What was read and run.** PLAN steps 22 and 23; step 23's `info.json`, `info_tables.md`,
 `frozen.json`, `replay_partial.json`, its report and review
 (`.claude/reports/20261119-0119-ar5w.md`, `20261119-1010-review-ar5w.md`); the replay rows of
-all eight disclosed samples (22,087 steps); `J5D`'s `e1_log`, `mc_traces` and `run.json`; `variance_minimizing_optimize`,
+all eight disclosed samples (22,087 steps); `J5D`'s `e1_log`, `mc_traces` and `run.json`;
+`variance_minimizing_optimize`,
 `_zero_temp_with_variance`, `refine_from_candidates` and `_index_seed` in the library;
 `ball_replay.py`, `ball_rules.py`, `defer_pick.py`. Arithmetic only, in scratch (`size24*.py`); no
 run. Nothing of `held2`; nothing of `fine7`.
