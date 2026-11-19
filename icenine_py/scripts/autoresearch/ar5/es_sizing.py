@@ -25,6 +25,9 @@ from stats import wilson  # noqa: E402
 
 TAU = 0.95
 GUARD = 0.80
+# Gains logged after this evaluation count as "late" (feature ng2_best); the value is the drafting
+# scratch script's, kept so the feature matches the plan's tables (it is not a plan constant).
+LATE_GAIN_EVAL = 208
 TRAIN = ("held3", "held4", "held5", "held6")
 SAMPLES = TRAIN + ("held", "mid", "grad", "big")
 COLS = [
@@ -75,7 +78,8 @@ def extract(cache: Path, s: str) -> Tuple[List[Row], Dict[str, Any]]:
         tried = {f[0] for f in e["fits"]}
         stateD: List[Tuple[float, float]] = []
         cma_hit: Dict[int, float] = {}
-        mc_info: Dict[int, Tuple[float, float, int, float, int]] = {}
+        # (hit at D, gains after LATE_GAIN_EVAL, last-gain evaluation, number of gains)
+        mc_info: Dict[int, Tuple[float, int, float, int]] = {}
         found = False
         for f in e["fits"]:
             pos, j, kind, hit, cost, ev = f[:6]
@@ -93,9 +97,11 @@ def extract(cache: Path, s: str) -> Tuple[List[Row], Dict[str, Any]]:
             if m["checks"]:  # first PH(500) check
                 c_ev, c_hit = m["checks"][0][0], m["checks"][0][1]
                 tr = [t for t in tr if t[0] <= c_ev]
-                cD = tr[-1][1] if tr else cost
-                evD += min(ev, c_ev)
-                stateD.append((cD, c_hit))
+                # every stored trace starts at evaluation 1; never fall back to the final cost
+                assert tr, "empty trace at the first check (would leak the refinement's end)"
+                # a paused part is charged n + 1 evaluations, the check included
+                evD += min(ev, c_ev + 1)
+                stateD.append((tr[-1][1], c_hit))
                 h = c_hit
             else:  # ended before any check
                 evD += ev
@@ -103,8 +109,7 @@ def extract(cache: Path, s: str) -> Tuple[List[Row], Dict[str, Any]]:
                 h = hit
             mc_info[pos] = (
                 h,
-                0.0,
-                sum(1 for t in tr if t[0] > 208),
+                sum(1 for t in tr if t[0] > LATE_GAIN_EVAL),
                 tr[-1][0] if tr else 0,
                 len(tr),
             )
@@ -117,7 +122,7 @@ def extract(cache: Path, s: str) -> Tuple[List[Row], Dict[str, Any]]:
         takenJ = min((f[4], f[3]) for f in e["fits"])
         lifts = [mc_info[p][0] - cma_hit[p] for p in mc_info if p in cma_hit]
         bp = max(mc_info, key=lambda p: mc_info[p][0]) if mc_info else 0
-        bi = mc_info.get(bp, (0, 0, 0, 0, 0))
+        bi = mc_info.get(bp, (0, 0, 0, 0))
         rows.append(
             dict(
                 y=int(e["stop"] >= 0),
@@ -130,9 +135,9 @@ def extract(cache: Path, s: str) -> Tuple[List[Row], Dict[str, Any]]:
                 cma_mean=float(np.mean(ch)),
                 lift_max=max(lifts) if lifts else 0,
                 lift_best=bi[0] - cma_hit.get(bp, 0),
-                ng2_best=bi[2],
-                lastg_best=bi[3],
-                gains_best=bi[4],
+                ng2_best=bi[1],
+                lastg_best=bi[2],
+                gains_best=bi[3],
                 n_above80=sum(h >= GUARD for h in hs),
                 evD=evD,
                 after=e["evals"] - evD,
@@ -179,13 +184,12 @@ def fit_logistic(X: np.ndarray, y: np.ndarray, C: float = 1.0) -> np.ndarray:
         g[:-1] += w[:-1]
         return loss, g
 
-    return minimize(
-        f, np.zeros(A.shape[1]), jac=True, method="L-BFGS-B", options=dict(maxiter=2000)
-    ).x
+    res = minimize(f, np.zeros(A.shape[1]), jac=True, method="L-BFGS-B", options=dict(maxiter=2000))
+    return np.asarray(res.x, float)
 
 
 def predict_logistic(w: np.ndarray, X: np.ndarray) -> np.ndarray:
-    return 1 / (1 + np.exp(-(np.hstack([X, np.ones((len(X), 1))]) @ w)))
+    return np.asarray(1 / (1 + np.exp(-(np.hstack([X, np.ones((len(X), 1))]) @ w))), float)
 
 
 def fit_tree(X: np.ndarray, y: np.ndarray, depth: int = 3, min_leaf: int = 40) -> Any:
@@ -261,6 +265,29 @@ def tree_fold(train: Sequence[Row], test: Sequence[Row]) -> float:
     return auc(yb, predict_tree(fit_tree(Xa, ya), Xb))
 
 
+# The plan's drafting tables (PLAN "AR5 step 25"), for the s0 comparison only; nothing is tuned.
+PLAN_NEVER = dict(
+    held3=14.48, held4=15.92, held5=11.49, held6=13.52, held=15.05, mid=9.55, grad=2.61, big=1.52
+)
+PLAN_RESCUED = dict(
+    held3=1.65, held4=3.06, held5=1.66, held6=1.86, held=2.71, mid=1.22, grad=0.20, big=0.30
+)
+PLAN_R0 = dict(held3=12.42, held4=15.79, held5=10.28, held6=12.98, held=15.19, mid=9.86)
+PLAN_LR = dict(
+    held3=0.588, held4=0.574, held5=0.589, held6=0.560, held=0.547, mid=0.574, grad=0.349
+)
+PLAN_TREE = dict(
+    held3=0.570, held4=0.575, held5=0.559, held6=0.566, held=0.563, mid=0.528, grad=0.594
+)
+PLAN_SAVE = dict(held3=2.34, held4=1.59, held5=1.40, held6=2.37, held=2.41, mid=2.10, grad=1.92)
+
+
+def compare(got: Dict[str, float], plan: Dict[str, float], nd: int = 2) -> Dict[str, Any]:
+    """Cells equal to the plan after rounding, and the differing cells with their difference."""
+    diff = {s: round(got[s] - plan[s], nd + 1) for s in plan if round(got[s], nd) != plan[s]}
+    return dict(cells=len(plan), equal=len(plan) - len(diff), differ=diff)
+
+
 def main(cache_dir: str, out_dir: str) -> None:
     cache, out = Path(cache_dir), Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -270,9 +297,10 @@ def main(cache_dir: str, out_dir: str) -> None:
         data[s], info[s] = extract(cache, s)
     t1 = [
         "| sample | steps | reach D | rescued | never | after D, never | after D, rescued "
-        "| seed test if all stop |",
+        "| added seed-test failures if all stop (J5D's own) |",
         "|---|---|---|---|---|---|---|---|",
     ]
+    got: Dict[str, Dict[str, float]] = {"never": {}, "rescued": {}, "r0": {}}
     t3 = ["| sample | R0 saving | lost 0.95 ends | changed ends |", "|---|---|---|---|"]
     for s in SAMPLES:
         r, inf = data[s], info[s]
@@ -281,18 +309,24 @@ def main(cache_dir: str, out_dir: str) -> None:
         hD = np.array([x["hitD"] for x in r])
         hJ = np.array([x["hitJ"] for x in r])
         tot = inf["j5sd"]
+        # ADDED failures: end at D under 0.80 while J5D's end is 0.80 or more. J5D's own failures
+        # are all among the D-reaching steps, so "if all stop" would total this plus J5D's own
+        # minus those that stay failures (the table prints the added count, J5D's in brackets).
         new_fail = int(((hD < GUARD) & (hJ >= GUARD)).sum())
+        got["never"][s] = 100 * aft[y == 0].sum() / tot
+        got["rescued"][s] = 100 * aft[y == 1].sum() / tot
         t1.append(
             f"| {s} | {inf['steps']:,} | {len(r)} | {int(y.sum())} | {int((1 - y).sum())} "
-            f"| {100 * aft[y == 0].sum() / tot:.2f}% | {100 * aft[y == 1].sum() / tot:.2f}% "
+            f"| {got['never'][s]:.2f}% | {got['rescued'][s]:.2f}% "
             f"| {new_fail} ({inf['j5d_seed_fail']}) |"
         )
         if s in TRAIN + ("held", "mid"):
             stop = hD >= GUARD
             lost = int((stop & (y == 1)).sum())
             lo, hi = wilson(lost, inf["steps"])
+            got["r0"][s] = 100 * aft[stop].sum() / tot
             t3.append(
-                f"| {s} | {100 * aft[stop].sum() / tot:.2f}% | {lost} "
+                f"| {s} | {got['r0'][s]:.2f}% | {lost} "
                 f"({100 * lo:.2f}% to {100 * hi:.2f}%) | {int((stop & (hJ != hD)).sum())} |"
             )
     t2 = [
@@ -305,19 +339,31 @@ def main(cache_dir: str, out_dir: str) -> None:
         lg = logistic_fold(train, data[s], info[s]["j5sd"])
         ta = tree_fold(train, data[s])
         verdict[s] = dict(auc_lr=lg["auc"], auc_tree=ta, save=lg["save"])
+        rlo, rhi = wilson(int(lg["resc_stopped"]), int(lg["rescued"]))
         t2.append(
             f"| {s} | {lg['auc']:.3f} | {ta:.3f} | not reproduced | {lg['save']:.2f}% "
-            f"| {lg['resc_stopped']} of {lg['rescued']} |"
+            f"| {lg['resc_stopped']} of {lg['rescued']} ({100 * rlo:.0f}% to {100 * rhi:.0f}%) |"
         )
     need = TRAIN + ("held", "mid")
+    # s1 is judged on the logistic model (the boosted tree is not reproduced)
     ok = all(verdict[s]["auc_lr"] >= 0.70 and verdict[s]["save"] >= 4.0 for s in need)
     s1 = "PASS" if ok else "FAIL"
+    s0 = {
+        "sizing_never_share": compare(got["never"], PLAN_NEVER),
+        "sizing_rescued_share": compare(got["rescued"], PLAN_RESCUED),
+        "r0_saving": compare(got["r0"], PLAN_R0),
+        "predictor_auc_logistic": compare({s: verdict[s]["auc_lr"] for s in PLAN_LR}, PLAN_LR, 3),
+        "predictor_auc_tree": compare({s: verdict[s]["auc_tree"] for s in PLAN_TREE}, PLAN_TREE, 3),
+        "predictor_saving": compare({s: verdict[s]["save"] for s in PLAN_SAVE}, PLAN_SAVE),
+        "predictor_auc_boosted": "not reproduced (no scikit-learn in the locked environment)",
+        "counts_and_wilson": "see tables.md; counts are integers and not compared here",
+    }
     write_tables(
         out / "tables.md",
         {"es_sizing": "\n".join(t1), "es_predictor": "\n".join(t2), "es_r0": "\n".join(t3)},
     )
     (out / "s1_verdict.json").write_text(
-        json.dumps(dict(s1=s1, per_sample=verdict, info=info), indent=1, default=float)
+        json.dumps(dict(s1=s1, s0=s0, per_sample=verdict, info=info), indent=1, default=float)
     )
     print("\n".join(t1 + [""] + t2 + [""] + t3 + ["", f"s1: {s1}"]))
 

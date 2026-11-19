@@ -13680,8 +13680,70 @@ its first stage equal to the ball pass's and counting it once.
 Stored rows only (D-20261119-N5), no run, no library change. `scripts/autoresearch/ar5/es_sizing.py`
 rebuilds the plan's three tables from step 22's `J5D_<s>` and `stored_J5SD_<s>` rows (read only) and
 judges gate s1; results in `benchmarks/autoresearch/ar5/es/` (`tables.md`, `s1_verdict.json`);
-tests `tests/test_ar5_es.py`. The sizing and R0 tables reproduce exactly; the logistic model
-(numpy/scipy, scikit-learn is not in the locked environment) gives AUC 0.547 to 0.588 on the six
-tested samples (`grad` 0.352), the depth-3 tree 0.528 to 0.594; the boosted tree was not reproduced.
-Stored saving 1.39% to 2.47%. Gate s1 fails (needs AUC at least 0.70 and saving at least 4%): the
-step ends as a negative result, no other feature set, label or threshold tried; no `held7`.
+tests `tests/test_ar5_es.py`. No other feature set, label or threshold was tried; no `held7`.
+
+Gate s1 fails (needs AUC at least 0.70 and saving at least 4%, in every fold and on `held` and
+`mid`), judged on the logistic model; the step ends as a negative result. The 14 own features at
+D do not separate rescued from never steps. The logistic AUC is 0.547 to 0.589 on the six samples
+with 19 or more rescued steps (`grad`, 10 rescued steps: 0.350), the depth-3 tree 0.528 to 0.594;
+the stored saving is 1.40% to 2.46% of `J5SD`. The same holds on the drafting numbers. The boosted
+tree was not reproduced (scikit-learn is not in the locked environment, no dependency added).
+Logistic and tree are fitted here with numpy/scipy.
+
+Reading line: the first table counts seed steps and the evaluations spent after D; its last column
+counts ADDED seed-test failures (steps whose end at D is under 0.80 while `J5D`'s end is 0.80 or
+more), with `J5D`'s own count in brackets (all of `J5D`'s own failures are among the steps that
+reach D). Those added failures are what the plan's numbers and its "about doubles" sentence use.
+The second table gives AUC (LOSO on `held3` to `held6`; trained on all four for the rest) and the
+saving with the 0.80 guard; the interval is Wilson 95% on rescued steps stopped. The third is `R0`.
+
+<!-- table:es_sizing -->
+| sample | steps | reach D | rescued | never | after D, never | after D, rescued | added seed-test failures if all stop (J5D's own) |
+|---|---|---|---|---|---|---|---|
+| held3 | 3,391 | 686 | 85 | 601 | 14.46% | 1.65% | 100 (90) |
+| held4 | 4,109 | 729 | 129 | 600 | 15.91% | 3.05% | 101 (70) |
+| held5 | 3,556 | 638 | 91 | 547 | 11.48% | 1.66% | 86 (104) |
+| held6 | 4,109 | 688 | 101 | 587 | 13.51% | 1.86% | 91 (63) |
+| held | 3,685 | 625 | 120 | 505 | 15.04% | 2.70% | 77 (66) |
+| mid | 1,626 | 149 | 19 | 130 | 9.55% | 1.22% | 8 (12) |
+| grad | 1,281 | 108 | 10 | 98 | 2.61% | 0.20% | 6 (11) |
+| big | 330 | 5 | 1 | 4 | 1.52% | 0.30% | 0 (0) |
+<!-- /table:es_sizing -->
+
+<!-- table:es_predictor -->
+| sample | AUC logistic | AUC tree | AUC boosted | saving (logistic) | rescued stopped |
+|---|---|---|---|---|---|
+| held3 | 0.588 | 0.570 | not reproduced | 2.33% | 6 of 85 (3% to 15%) |
+| held4 | 0.574 | 0.575 | not reproduced | 1.59% | 11 of 129 (5% to 15%) |
+| held5 | 0.589 | 0.560 | not reproduced | 1.40% | 7 of 91 (4% to 15%) |
+| held6 | 0.560 | 0.566 | not reproduced | 2.36% | 11 of 101 (6% to 18%) |
+| held | 0.547 | 0.563 | not reproduced | 2.46% | 13 of 120 (6% to 18%) |
+| mid | 0.573 | 0.528 | not reproduced | 2.09% | 4 of 19 (9% to 43%) |
+| grad | 0.350 | 0.594 | not reproduced | 1.92% | 7 of 10 (40% to 89%) |
+<!-- /table:es_predictor -->
+
+<!-- table:es_r0 -->
+| sample | R0 saving | lost 0.95 ends | changed ends |
+|---|---|---|---|
+| held3 | 12.41% | 62 (1.43% to 2.34%) | 173 |
+| held4 | 15.78% | 99 (1.98% to 2.92%) | 220 |
+| held5 | 10.28% | 71 (1.59% to 2.51%) | 164 |
+| held6 | 12.97% | 77 (1.50% to 2.34%) | 190 |
+| held | 15.18% | 93 (2.06% to 3.08%) | 207 |
+| mid | 9.85% | 19 (0.75% to 1.82%) | 48 |
+<!-- /table:es_r0 -->
+
+s0 per table (`s1_verdict.json` field `s0` lists every differing cell). The drafting counted one
+evaluation too few for each refinement paused at its first check (a paused part is charged `n + 1`
+evaluations, the check included); the tracked script counts it, as the plan's "Known limits"
+foresaw. Counts (steps, reach D, rescued, never, lost and changed ends, rescued stopped, added
+failures) and the Wilson intervals equal the plan. Shares of `J5SD`, differences from the plan in
+points: never-step share equal in 3 of 8 cells, the others lower by 0.007 to 0.017; rescued share
+equal in 6 of 8 (`held4`, `held` lower by 0.007, 0.005); `R0` saving equal in 1 of 6, the others
+lower by 0.006 to 0.012. Predictor table: logistic AUC equal in 5 of 7 (`mid` 0.573 vs 0.574,
+`grad` 0.350 vs 0.349), tree AUC equal in 6 of 7 (`held5` 0.560 vs 0.559), saving equal in 3 of 7
+(`held3`, `held6`, `mid` lower by 0.006 to 0.007; `held` 2.46% vs 2.41%); boosted column missing.
+The count fix also changes the evaluations-to-D feature, so the fitted logistic model moved: this
+is the one s1 input that changed beyond display rounding (against the first run of this script, AUC
+by up to 0.002 and saving by up to 0.03 points); the verdict is unchanged. Not tested: why `held`
+differs from the plan by 0.05 points.
