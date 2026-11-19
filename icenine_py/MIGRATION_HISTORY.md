@@ -13589,3 +13589,25 @@ entry (key on only).
 - Findings page text: `findings_ar5_defer.md` (the write into `docs/autoresearch/` was refused; the text
   was saved as a report). Pareto rows: `benchmarks/autoresearch/ar5/defer/pareto_rows.json` (`held6`: `S8`,
   `J5`, `J5S`, `J5SD`; the seven disclosed samples: `J5SD`).
+
+## Autoresearch AR5 step 23, phase A: a converging ball for the seed refinement's second MC stage (2026-11-19, task ar5w)
+
+Stopped at the replay gate (the plan's stop rule: no tuning, no `held7`). Rule `CB` (frozen in
+`benchmarks/autoresearch/ar5/ball/frozen.json` before any run): the seed step's MC refinement keeps
+its first stage and replaces the second (variance) stage by proposals in a ball of radius r (start:
+the box, 0.329 degree), r halved after 10 proposals in a row with no gain, the stage ending when r
+is under 0.01 degree or after 300 proposals. Script layer only (`scripts/autoresearch/ar5/ball_*.py`,
+`tests/test_ar5_ball.py`, 17 tests); the library and the C++ code are unchanged.
+
+- Stored counts: both tables of the plan reproduce from step 22's records
+  (`ball/stored_check.json`; "stops at 0.95" is the `stop_kind == "high"` rows of `mc_traces`).
+- g0 passes on `mid` (`ball/g0.json`): with `CB` off, all 1,626 stored seed steps are reproduced (fits,
+  evaluations, stop); with `CB` on, the first stage equals `J5D`'s in all 1,598 refinements that `J5D`
+  also made (0 unequal; 203 refinements have no stored counterpart), and no stall check or pause fired.
+- g1 FAILS on `mid` (`ball/replay_partial.json`): the index stage has 58.4% fewer evaluations than
+  `J5D`'s (1,099,560 against 2,644,672; prediction 40% to 60%), 263 evaluations per refinement
+  (prediction 250 to 450), every second stage ends at the floor (1,801 of 1,801), steps with an end
+  at 0.95: 1,453 against 1,496 (-2.9%, inside 3%); but 70 of 1,626 steps (4.31%) lose their 0.95 end
+  (the frozen limit is 3%), and 27 gain one. All 70 lost ends were MC ends in `J5D`, the median hit
+  ratio of the stored end 0.980. The replay of the other seven samples was not run (g1 needs all
+  eight and already fails). No `J5DC` run, no gate g2, no `held7`.
