@@ -36,7 +36,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    Not a speed comparison (C++ 416 of 2,000 wrong, Python 24; explained by the 16 Nov check).
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
    goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. 16 pages wait (+ar5v, cppchk).
-   NOW: (a) step 22 MERGED 566eea3f; v59 live; v60 after the runs. (c) restart distance
+   NOW: (a) step 22 MERGED 566eea3f; v60 live (19 Nov 16:1x); v61 after the runs. (c) restart distance
    and C++ config done (reports 20261116-*); next study step: local-optimization schedule.
    (b) OWNER TASK part 1: both C++ changes reviewed (a7e220e7; C5 56 wrong); fixed2 sub-grid test
    PASSED (2 passed, 261 s). Part 2 `fine1`: projection (c501c238, re-freeze 2943a5e6), hours:
@@ -44,10 +44,10 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
 
 ## Running jobs
 - Step 14 key WAITS (held2). Steps 15 to 21 merged (caches: `J5r` `agent-aeba15b7c3850b007`,
-  step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v59 live.
+  step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v60 live.
   Step 22 (`ar5v`; cache in `agent-aba6e1bdb95dff72a`): MERGED 566eea3f, key `SeedIndexMCDefer`.
   Step 24 (`ar5x`) MERGED db26a50b as failed study (g2 mid 2.2%, bar 4%; held info 8.60% fewer).
-  Step 25 (`ar5y`, N5, stored rows): implementer a535ae4a28844b94d. Books a8987666e43e0f546.
+  Step 25 (`ar5y`, N5): s1 FAILED (AUC 0.55-0.59, bar 0.70), 3be0dc97; review aa60448bc725e0302 runs.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
