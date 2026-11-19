@@ -13639,3 +13639,38 @@ is under 0.01 degree or after 300 proposals. Script layer only (`scripts/autores
   (45.007% against 45%) and `big` (45.3%); steps with an end within 3% of `J5D`: hit on `mid`, `grad`,
   `big`, missed on the five held types (-6.2% to -8.6%). Findings-page text: report
   `20261119-ar5w-findings_ar5_ball.md` (the write into `docs/autoresearch/` was refused).
+
+## Autoresearch AR5 step 24, phase A: the converging ball first, the stock second stage only as fallback (2026-11-19, task ar5x)
+
+Stopped at gate g2 (the plan's stop rule: no tuning, no `held7`, no phase B; accepted as final by
+D-20261119-N4). Rule `BF` (frozen in `benchmarks/autoresearch/ar5/bf/frozen.json` before any run):
+the seed step runs step 23's ball stage on every candidate, and runs `J5D`'s stock second stage only
+when no ball end reaches 0.95. Script layer only (`scripts/autoresearch/ar5/bf_*.py`,
+`tests/test_ar5_bf.py`, 12 tests); the library and the C++ code are unchanged. The plan's "kept
+state" is reproduced by running each refinement again from its candidate (own generator), checking
+its first stage equal to the ball pass's and counting it once.
+
+- g1 passes (`bf/size.json`, `size_tables.md`): the plan's three tables reproduce on eight samples;
+  lost 0.95 ends 0 on all. One display slip in the plan: `held6` "stock stage 2 in never steps" is
+  16.3496% (printed 16.4%); the count reproduces.
+- g0 passes (`bf/g0.json`): replay on `mid`, 1,626 steps: 1,453 ball steps equal step 23's rows, 173
+  fallback steps equal `J5D` (fits, stop, taken end, evaluations), index stage 2,099,764, 0 checks and
+  0 pauses in the ball pass.
+- g2 FAILS on `mid` (`bf/gate.json`, `gate_tables.md`): `J5SDB` 7,219,040 evaluations against
+  `J5SD` 7,383,368, 2.2% fewer (bar 4%). Wrong voxels (over 1 degree, of 24,570): 23 for `J5SD`
+  (Wilson 95% 0.062% to 0.140%), 19 for `J5SDB` (0.050% to 0.121%); fixed 4, broken 0 by voxel; median
+  error over all 24,570 voxels 0.00009 degree lower. The index stage fell 18.14% (1 - 2,164,870 /
+  2,644,672; `info_tables.md`; the replay said 20.6%). Measured: grid searches 2 to 3, grid stage
+  +329,915 evaluations, seed steps 1,626 to 1,665, seed-test failures 12 to 13. Consistent with the
+  changed BFS route sending one more voxel to the grid search; not tested (no replay of that voxel).
+  `gate.json` holds `mid` only (the stop rule applied there).
+- `held`, information only, after the gate failed (D-20261119-N4; its own block in `gate.json` and
+  `gate_tables.md`, and `bf/info.json`, `info_tables.md`; never a gate result): `J5SDB` 15,643,196
+  against `J5SD` 17,114,589, 8.60% fewer (index stage 15.51% fewer); wrong 45 (0.137% to 0.245%) and
+  45, fixed 7, broken 7, median error over all 24,570 voxels 0.00028 degree lower; grid searches 4
+  and 4 (identical grid stage), seed-test failures 66 to 64. The saving is inside prediction 3's band
+  (4.5% to 10%) and near the stored-row sizing (8.55%); the `mid` shortfall did not recur. The `J5SD`
+  half of the held pair is step 22's stored arm (its total matches step 22's), not re-run; only
+  `J5SDB` was run on `held`, a deviation from N4's "run J5SD and J5SDB" accepted by the main session.
+  This does not change the verdict; no `grad`, `big` or `held7` run, no key.
+- `held7` was not built or read; nothing of `held2` or `fine7` was opened.
