@@ -41,6 +41,7 @@ details in the findings page named in the last column. New ideas get the next fr
 | I62 | owner (review) | Quadratic per-grain strain field (6 x 5 in-plane polynomial terms) fitted on straingq against the linear field | proposed | | |
 | I63 | owner (review) | Small coordinate network for the per-grain strain field, only if the quadratic (I62) leaves a clear residual | proposed | | |
 | I64 | owner (review) | Per-voxel strain residual on top of the polynomial, regularised by a GP or Laplacian prior (optional equilibrium-divergence penalty), on straingq | proposed | | |
+| I65 | GO5r | Build the region (spot windows) from the outlier-cleaned start map (painted outliers set to the medoid, as robust_theta0) instead of the painted map: painted outlier voxels put spurious spots into the region (grain 237: centroid residuals 46 px at the ground truth); likely the cause of the fast fit's stalled grains | proposed | | |
 | I25 | G2c | GNLayerNet (orientation_nn_design.md) as a per-voxel start inside a grain | proposed | | |
 | I26 | G2c | Learned residual / amortised Gauss-Newton step for the grain field (todo_hybrid_nn) | proposed | | |
 | I27 | G2c | Neural field for orientation (and strain) over the grain, render-and-compare (nerf note) | proposed | | |
