@@ -1,0 +1,149 @@
+{
+ "s1": "FAIL",
+ "s0": {
+  "sizing_never_share": {
+   "cells": 8,
+   "equal": 3,
+   "differ": {
+    "held3": -0.017,
+    "held4": -0.007,
+    "held5": -0.012,
+    "held6": -0.008,
+    "held": -0.011
+   }
+  },
+  "sizing_rescued_share": {
+   "cells": 8,
+   "equal": 6,
+   "differ": {
+    "held4": -0.007,
+    "held": -0.005
+   }
+  },
+  "r0_saving": {
+   "cells": 6,
+   "equal": 1,
+   "differ": {
+    "held3": -0.006,
+    "held4": -0.011,
+    "held6": -0.008,
+    "held": -0.007,
+    "mid": -0.012
+   }
+  },
+  "predictor_auc_logistic": {
+   "cells": 7,
+   "equal": 5,
+   "differ": {
+    "mid": -0.0007,
+    "grad": 0.001
+   }
+  },
+  "predictor_auc_tree": {
+   "cells": 7,
+   "equal": 6,
+   "differ": {
+    "held5": 0.0006
+   }
+  },
+  "predictor_saving": {
+   "cells": 7,
+   "equal": 3,
+   "differ": {
+    "held3": -0.007,
+    "held6": -0.006,
+    "held": 0.055,
+    "mid": -0.006
+   }
+  },
+  "predictor_auc_boosted": "not reproduced (no scikit-learn in the locked environment)",
+  "counts_and_wilson": "see tables.md; counts are integers and not compared here"
+ },
+ "per_sample": {
+  "held3": {
+   "auc_lr": 0.587902515415484,
+   "auc_tree": 0.5701575805030831,
+   "save": 2.333269492337746
+  },
+  "held4": {
+   "auc_lr": 0.5737726098191215,
+   "auc_tree": 0.5748837209302325,
+   "save": 1.5866788166790342
+  },
+  "held5": {
+   "auc_lr": 0.5885047311007091,
+   "auc_tree": 0.5595656628563392,
+   "save": 1.3961290913854403
+  },
+  "held6": {
+   "auc_lr": 0.5602745964545347,
+   "auc_tree": 0.5655202658255604,
+   "save": 2.3637581788988467
+  },
+  "held": {
+   "auc_lr": 0.5472937293729373,
+   "auc_tree": 0.5632508250825082,
+   "save": 2.4647743512859117
+  },
+  "mid": {
+   "auc_lr": 0.5732793522267207,
+   "auc_tree": 0.52834008097166,
+   "save": 2.0943287670342317
+  },
+  "grad": {
+   "auc_lr": 0.35,
+   "auc_tree": 0.5943877551020408,
+   "save": 1.9211373031110175
+  }
+ },
+ "info": {
+  "held3": {
+   "steps": 3391,
+   "j5sd": 18363331,
+   "bad_map": 0,
+   "j5d_seed_fail": 90
+  },
+  "held4": {
+   "steps": 4109,
+   "j5sd": 20685850,
+   "bad_map": 0,
+   "j5d_seed_fail": 70
+  },
+  "held5": {
+   "steps": 3556,
+   "j5sd": 20076940,
+   "bad_map": 0,
+   "j5d_seed_fail": 104
+  },
+  "held6": {
+   "steps": 4109,
+   "j5sd": 22690096,
+   "bad_map": 0,
+   "j5d_seed_fail": 63
+  },
+  "held": {
+   "steps": 3685,
+   "j5sd": 17114589,
+   "bad_map": 0,
+   "j5d_seed_fail": 66
+  },
+  "mid": {
+   "steps": 1626,
+   "j5sd": 7383368,
+   "bad_map": 0,
+   "j5d_seed_fail": 12
+  },
+  "grad": {
+   "steps": 1281,
+   "j5sd": 6134231,
+   "bad_map": 0,
+   "j5d_seed_fail": 11
+  },
+  "big": {
+   "steps": 330,
+   "j5sd": 2452596,
+   "bad_map": 0,
+   "j5d_seed_fail": 0
+  }
+ }
+}
