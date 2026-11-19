@@ -954,6 +954,35 @@ those levels is at most 1.5 x the same method's uniform-strain result on `strain
 Budget: sample and render about 5 minutes; `E@GT` arms about 10-25 minutes; `S@P --grad` about 70
 minutes; fast fit about 40 minutes; at most 3 processes, each under 2 hours.
 
+### GO5r: Gauss-Newton gradient fit with spot-spread residuals (goal G1c, idea I60)
+
+Question: GO5q found the linear strain gradient only partly recovered (relative error 0.58-0.97
+from the painted start with the CMA hybrid), because a linear gradient changes each spot's shape,
+not its centroid. Does Gauss-Newton on per-spot centroids plus second moments (the spread)
+recover it better, and faster?
+
+Method (`fit_strain.py --grad --gnm`, scripts only): residuals per spot = predicted minus observed
+intensity-weighted centroid (column, row, frame) and second moments (variance in column, in row,
+and the column-row covariance, in px^2; the predicted moments add the pixel box variance 1/12 px^2
+per axis); Levenberg-Marquardt with a finite-difference Jacobian, frozen Tukey weights per stage
+on the centroid distance (3 / 1.5 / 1 px, as GO5k). Arms on `straing`, S36, ratio filter 2.5,
+`hyb` lambda 8 for `f_fit`; output `benchmarks/grain_opt/go5r/`:
+
+- `E@GT --grad --gnm`: strain only (18 numbers) at the ground-truth orientation.
+- `GP4@P --grad --gnm`: the fast fit for the field and mean (GO5l), then Gauss-Newton over the
+  mean rotation and the 18 strain numbers on centroid + moment residuals (replacing GO5q's CMA
+  gradient leg).
+
+Judging rule (written before any run). References from GO5q on the same grains (relative gradient
+error at 5e-4 / 1e-3): strain only at the ground-truth orientation 0.77 / 0.45; CMA hybrid from the
+painted start 0.97 / 0.58 (123 s per grain); fast fit + CMA gradient leg 0.79 / 0.66 (76 s). I60 is
+answered yes when the painted-start arm reaches relative gradient error at most 0.5 at 5e-4 and
+1e-3 with mean-strain medians within GO5q's limits (2.2e-4, 3.2e-4); partly when it beats the CMA
+hybrid's gradient error by at least 1.5 x at both levels. Time per grain and orientation reported;
+the 1e-4 level reported, not judged.
+
+Budget: about 30-60 s per grain (21-parameter Jacobians); two runs in parallel, under 60 minutes.
+
 ### GO6 onwards
 
 Strain queue (owner, 2026-11-19, from the literature review in the sibling thread "Review neural
