@@ -2197,3 +2197,13 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   give way to the owner's finer-layer runs (J5S rerun, stock Python) if the owner approves those.
   Ceiling 20% to 33% of J5SD on the held types is arithmetic, not a measurement. Where:
   icenine_py/docs/autoresearch/PLAN.md (AR5 step 23).
+
+### D-20261119-N2 · AR5 step 23 · AR5 step 23: failed at gate g1; seven replays run for information only
+- 2026-11-19, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Step 23 (rule CB) failed gate g1 on mid (70 of 1,626
+  seed steps, 4.31%, lose their 0.95 end; limit 3%). The frozen rule holds: no tuning, no g2, no
+  held7, no key; the step merges as a failed study with no library change. After the stop, the
+  other seven replays were run one at a time for information only (which steps lose their end and
+  where it was found); their numbers are disclosed and decide nothing. Independent review (Opus):
+  approve with eight text and bookkeeping fixes. Where: icenine_py/docs/autoresearch/PLAN.md (AR5
+  step 23).
