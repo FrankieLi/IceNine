@@ -1287,3 +1287,19 @@ text `20261119-ar5w-findings_ar5_ball.md`. Numbers are in
   at the gate. Other constants would be tuning after a failed gate.
 - Open for the owner: the findings page is not placed. Text is at
   `.claude/reports/20261119-ar5w-findings_ar5_ball.md`.
+
+### AR5 step 24 (ball first, rule BF; task `ar5x`), merged as a failed study at db26a50b on 2026-11-19
+
+Decisions D-20261119-N3 (approval) and D-20261119-N4. Reports in the main `.claude/reports/`:
+`20261119-1124-ar5x.md` and review `20261119-1455-review-ar5x.md`.
+
+- Rule BF ("ball first"): the ball stage runs before the stock refinement of the seed step. Arm
+  J5SDB is J5SD plus BF. Gates g0 (replay) and g1 (sizing) passed. Gate g2 (live run on `mid`)
+  failed.
+- On `mid`, J5SDB needs 7,219,040 evaluations against 7,383,368 for J5SD. That is 2.2% fewer
+  (bar 4%). Wrong voxels 19 against 23. Grid searches 3 against 2 (+329,915 evaluations in the
+  grid stage; the cause was not tested).
+- Run for information only after the fail, on `held`: 15,643,196 evaluations against
+  17,114,589 (8.60% fewer). Wrong voxels 45 and 45. It is not part of the gate.
+- No key, no phase B, `held7` unused. No library change, no default change.
+- Step 25 (a stall-point predictor, stored rows first) is approved by D-20261119-N5.
