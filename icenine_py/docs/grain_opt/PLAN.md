@@ -898,6 +898,25 @@ fit and at most 1.25 x the noisy CMA hybrid's (2.4e-4, 3.5e-4), with orientation
 
 Budget: about 35 s per grain; two runs in parallel, under 30 minutes.
 
+### GO4i: a lower gate for rand's near misses (goal G1b, idea I58)
+
+Question: after GO4h, rand at 0.5 deg keeps 16% of voxels above 0.1 deg, nearly all between 0.1
+and 1 deg, with strict costs below the 0.15 gate (median 0.133, 10th percentile 0.110; the
+voxels within 0.1 deg have a 90th percentile of 0.110). Does a second wide-search pass with the
+gate at 0.11 recover them without disturbing the good voxels?
+
+Arm (rand, `run_pipeline.py --start centre --group true`, output `benchmarks/grain_opt/go4i/`):
+`L/366/3,G/15/0.15,N/30/0.3,W/20/0.15,X/1/0.15,W/20/0.11,X/1/0.11,V/61/0.02` (GO4h's pipeline with
+a second `W,X` pass at gate 0.11 before the polish). corr3 is not run (0.5 deg already at 1%).
+
+Judging rule (written before any run). Reference: GO4h rand (16 / 1.4 / 5 / 4% above 0.1 deg at
+0.5 / 1 / 2 / 5 deg). I58 is answered yes when rand at 0.5 deg falls by at least a third (to at
+most 11%) and no level gets worse by more than 2 points. Searched and improved voxels per stage
+and wall time per voxel reported; stopped and reported if over 2 hours.
+
+Budget: GO4h rand took 71 minutes; the second pass adds about 60 voxels x (1 + 16) s, about
+17 minutes.
+
 ### GO6 onwards
 
 Program balance (owner via the coordinator, 2026-11-16): GO5b to GO5o were all G1c strain. After

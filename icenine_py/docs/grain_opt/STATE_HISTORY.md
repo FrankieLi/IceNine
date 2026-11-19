@@ -338,3 +338,18 @@ became AR6 on 2026-11-16 at the owner's request.
   using the predicted spot positions (assign each lit pixel to the nearest predicted spot of the
   grain or its neighbours) before taking centroids; fast strain fit on `strain_psf10`, judged
   against GO7b (2.3 / 2.7 / 5.7e-4) and clean (1.3 / 1.3 / 2.1e-4).
+
+## Now as of GO7e close (2026-11-18 17:30 PST)
+
+- **GO7d / GO7e closed** (2026-11-18 17:30 PST, G2b): splitting merged spots does not fix the 1 px
+  PSF damage (I53 no); the cause is the region area-ratio filter (0.8-1.6) dropping blurred
+  spots. Widening it to 2.5 (`--ratio_hi 2.5`) helps on PSF images (2.1 / 2.1 / 3.5e-4) but misses
+  the limits (I56 no), and improves the clean fast fit to 1.3 / 1.2 / 1.4e-4, orientation <= 0.013
+  deg (was 2.1e-4 / 0.020 at 1e-3), 35 s per grain. G2b stops here.
+- GO4h (G1b): full search + polish, corr3 1 / 1 / 0.4 / 7%, rand 16 / 1.4 / 5 / 4%.
+- **Program order** (owner via the coordinator, 2026-11-18): I53 done; I25 GNLayerNet next at low
+  priority (the relayed choice is not in DECISIONS.md; confirmation in the owner's own words was
+  asked for 2026-11-18 16:45 PST before any implementer). G2c otherwise skipped.
+- **Next action:** GO5p (I57, one strain check the GO7e result calls for): the fast fit with
+  `--ratio_hi 2.5` on the noisy images (`strainrn`), to adopt it as the default; then I25 scoping
+  in this session (dataset and training cost; no implementer until the owner confirms).

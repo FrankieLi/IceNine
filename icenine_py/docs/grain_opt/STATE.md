@@ -5,22 +5,22 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO7d / GO7e closed** (2026-11-18 17:30 PST, G2b): splitting merged spots does not fix the 1 px
-  PSF damage (I53 no); the cause is the region area-ratio filter (0.8-1.6) dropping blurred
-  spots. Widening it to 2.5 (`--ratio_hi 2.5`) helps on PSF images (2.1 / 2.1 / 3.5e-4) but misses
-  the limits (I56 no), and improves the clean fast fit to 1.3 / 1.2 / 1.4e-4, orientation <= 0.013
-  deg (was 2.1e-4 / 0.020 at 1e-3), 35 s per grain. G2b stops here.
-- GO4h (G1b): full search + polish, corr3 1 / 1 / 0.4 / 7%, rand 16 / 1.4 / 5 / 4%.
-- **Program order** (owner via the coordinator, 2026-11-18): I53 done; I25 GNLayerNet next at low
-  priority (the relayed choice is not in DECISIONS.md; confirmation in the owner's own words was
-  asked for 2026-11-18 16:45 PST before any implementer). G2c otherwise skipped.
-- **Next action:** GO5p (I57, one strain check the GO7e result calls for): the fast fit with
-  `--ratio_hi 2.5` on the noisy images (`strainrn`), to adopt it as the default; then I25 scoping
-  in this session (dataset and training cost; no implementer until the owner confirms).
+- **GO5p closed** (2026-11-18 17:50 PST, I57 no, narrowly): on noisy images the fast fit with the
+  ratio filter at 2.5 gives 1.6 / 2.6 / 3.1e-4 (CMA hybrid 2.5 / 1.9 / 2.8e-4), missing 1.25 x
+  the CMA hybrid at 5e-4. Strain line closed; `--ratio_hi 2.5` recommended for clean data.
+- GO7d / GO7e (G2b) closed. GO4h (G1b): corr3 1 / 1 / 0.4 / 7%, rand 16 / 1.4 / 5 / 4%.
+- **I25 scoping** (2026-11-18): no GNLayerNet weights or datasets exist on this machine; I25 needs
+  the 3.2 GB dataset regenerated and a 60-epoch training. The niche it might fill: the
+  realism-trained net was 2-3 x better than robust Gauss-Newton on windows with overlapping
+  neighbours (`docs/orientation_nn_design.md`), the situation of rand's near misses. Waiting for
+  the owner's own confirmation (asked 2026-11-18 16:45 PST) before an implementer.
+- **Next action:** GO4i (I58) running; close it, then I25 if confirmed, else report and pick the
+  next G1b or G2a idea from IDEAS.
 
 ## Running jobs
 
-- None.
+- GO4i (started 2026-11-18 17:55 PST): `go4i_rand_W2X2V` (run_pipeline). Stop at 2 h (19:55). Do
+  not start a second copy.
 
 ## Data (git-ignored, in this worktree; link, do not copy)
 

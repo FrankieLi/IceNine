@@ -1105,3 +1105,27 @@ Verdicts by the rule written before the runs:
   the PSF (library work for the owner to approve) or more images-side work; G2b stops here.
 - Recommendation for the fast strain fit: `--ratio_hi 2.5` by default (clean 1.3 / 1.2 / 1.4e-4,
   35 s per grain); confirm on the noisy images before relying on it.
+
+## GO5p: the wider ratio filter on noisy images (idea I57)
+
+Question: does the region ratio filter widened to 2.5 (GO7e, better on clean images) also hold on
+the noisy `strainrn` images, so it can become the fast fit's default? S36, `GP4@P`; rows in
+`benchmarks/grain_opt/go5p/`.
+
+| arm (noisy images) | 1e-4 | 5e-4 | 1e-3 | orientation | s / grain |
+|---|---|---|---|---|---|
+| CMA hybrid (GO5m, reference) | 2.5e-4 | 1.9e-4 | 2.8e-4 | 0.012 / 0.012 / 0.028 | 51 |
+| fast fit, filter 1.6 (GO5m) | 1.8e-4 | 2.7e-4 | 3.7e-4 | 0.014 / 0.017 / 0.025 | 27 |
+| fast fit, filter 2.5 | 1.6e-4 | 2.6e-4 | 3.1e-4 | 0.013 / 0.017 / 0.011 | 38 |
+| fast fit, filter 2.5, `intclean` | 2.0e-4 | 2.5e-4 | 2.7e-4 | 0.015 / 0.011 / 0.013 | 40 |
+
+Verdicts by the rule written before the runs:
+
+- I57 is answered no: both arms are better than GO5m's fast fit at 5e-4 and 1e-3 and within 1.25 x
+  the noisy CMA hybrid at 1e-3, but miss it at 5e-4 (2.6e-4 and 2.5e-4 against 2.4e-4).
+  Orientation is within 0.017 deg everywhere (better than GO5m at 1e-3: 0.011 against 0.025).
+- So the wider filter is the better choice on clean images (GO7e) and helps on noisy images too,
+  but on noisy images the fast fit still does not match the CMA hybrid at 5e-4, at 75% of its
+  time. The fast fit's documented default stays as GO5l, with `--ratio_hi 2.5` recommended for
+  clean data.
+- The strain line closes here (program balance).
