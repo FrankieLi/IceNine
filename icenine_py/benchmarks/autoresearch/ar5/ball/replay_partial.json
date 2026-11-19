@@ -983,5 +983,16 @@
   "g2_median_error_higher_max_deg": 0.001,
   "g2_grid_more_max": 2,
   "fails": "stop and report: no tuning (no change of 10, 0.01 degree, 300 or the start radius), no held7"
+ },
+ "mid_lost_facts": {
+  "lost": 70,
+  "median_stored_end_hit_ratio": 0.980259234488736,
+  "min_stored_end_hit_ratio": 0.9505494505494505,
+  "stored_end_under_0_97": 23,
+  "stored_end_is_mc_fit": 70,
+  "reseed_steps": 68,
+  "j5d_steps_with_a_pause": 57,
+  "j5d_evals": 259009,
+  "cb_evals": 165149
  }
 }

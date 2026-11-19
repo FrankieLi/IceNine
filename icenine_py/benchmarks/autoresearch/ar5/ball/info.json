@@ -31,7 +31,12 @@
     "first_stage_unequal": 0,
     "checks": 0,
     "moved_over_0_05": 711,
-    "split_sum_ok": true
+    "split_sum_ok": true,
+    "lost_share_wilson95": [
+     0.07807709900938631,
+     0.09660528011669614
+    ],
+    "pauses": 0
    },
    "kinds": {
     "first": {
@@ -80,7 +85,9 @@
       "0.33-0.64": 114,
       "over 0.64": 164
      }
-    }
+    },
+    "over_0_33": 278,
+    "over_0_33_share": 0.8996763754045307
    }
   },
   "held4": {
@@ -113,7 +120,12 @@
     "first_stage_unequal": 0,
     "checks": 0,
     "moved_over_0_05": 858,
-    "split_sum_ok": true
+    "split_sum_ok": true,
+    "lost_share_wilson95": [
+     0.09005466057202491,
+     0.10830979868650817
+    ],
+    "pauses": 0
    },
    "kinds": {
     "first": {
@@ -162,7 +174,9 @@
       "0.33-0.64": 176,
       "over 0.64": 202
      }
-    }
+    },
+    "over_0_33": 378,
+    "over_0_33_share": 0.9310344827586207
    }
   },
   "held3": {
@@ -195,7 +209,12 @@
     "first_stage_unequal": 0,
     "checks": 0,
     "moved_over_0_05": 729,
-    "split_sum_ok": true
+    "split_sum_ok": true,
+    "lost_share_wilson95": [
+     0.07489168623312932,
+     0.09355257932553475
+    ],
+    "pauses": 0
    },
    "kinds": {
     "first": {
@@ -244,7 +263,9 @@
       "0.33-0.64": 123,
       "over 0.64": 130
      }
-    }
+    },
+    "over_0_33": 253,
+    "over_0_33_share": 0.8908450704225352
    }
   },
   "held": {
@@ -277,7 +298,12 @@
     "first_stage_unequal": 0,
     "checks": 0,
     "moved_over_0_05": 718,
-    "split_sum_ok": true
+    "split_sum_ok": true,
+    "lost_share_wilson95": [
+     0.08644871627779908,
+     0.10543851466212524
+    ],
+    "pauses": 0
    },
    "kinds": {
     "first": {
@@ -326,7 +352,9 @@
       "0.33-0.64": 145,
       "over 0.64": 176
      }
-    }
+    },
+    "over_0_33": 321,
+    "over_0_33_share": 0.9119318181818182
    }
   },
   "mid": {
@@ -359,7 +387,12 @@
     "first_stage_unequal": 0,
     "checks": 0,
     "moved_over_0_05": 188,
-    "split_sum_ok": true
+    "split_sum_ok": true,
+    "lost_share_wilson95": [
+     0.034214699942121264,
+     0.05404025685858869
+    ],
+    "pauses": 0
    },
    "kinds": {
     "first": {
@@ -408,7 +441,9 @@
       "0.33-0.64": 25,
       "over 0.64": 29
      }
-    }
+    },
+    "over_0_33": 54,
+    "over_0_33_share": 0.7714285714285715
    }
   },
   "grad": {
@@ -441,7 +476,12 @@
     "first_stage_unequal": 0,
     "checks": 0,
     "moved_over_0_05": 75,
-    "split_sum_ok": true
+    "split_sum_ok": true,
+    "lost_share_wilson95": [
+     0.009515671897644348,
+     0.023049898831074275
+    ],
+    "pauses": 0
    },
    "kinds": {
     "first": {
@@ -490,7 +530,9 @@
       "0.33-0.64": 5,
       "over 0.64": 0
      }
-    }
+    },
+    "over_0_33": 5,
+    "over_0_33_share": 0.2631578947368421
    }
   },
   "big": {
@@ -523,7 +565,12 @@
     "first_stage_unequal": 0,
     "checks": 0,
     "moved_over_0_05": 8,
-    "split_sum_ok": true
+    "split_sum_ok": true,
+    "lost_share_wilson95": [
+     0.0016635784091979904,
+     0.021825405588003076
+    ],
+    "pauses": 0
    },
    "kinds": {
     "first": {
@@ -572,7 +619,9 @@
       "0.33-0.64": 1,
       "over 0.64": 0
      }
-    }
+    },
+    "over_0_33": 1,
+    "over_0_33_share": 0.5
    }
   },
   "held6": {
@@ -605,7 +654,12 @@
     "first_stage_unequal": 0,
     "checks": 0,
     "moved_over_0_05": 746,
-    "split_sum_ok": true
+    "split_sum_ok": true,
+    "lost_share_wilson95": [
+     0.07238822949720923,
+     0.08901881326368875
+    ],
+    "pauses": 0
    },
    "kinds": {
     "first": {
@@ -654,9 +708,28 @@
       "0.33-0.64": 136,
       "over 0.64": 158
      }
-    }
+    },
+    "over_0_33": 294,
+    "over_0_33_share": 0.8909090909090909
    }
   }
+ },
+ "totals": {
+  "steps": 22087,
+  "lost": 1772,
+  "lost_over_0_33": 1584,
+  "pauses": 0
+ },
+ "mid_lost_facts": {
+  "lost": 70,
+  "median_stored_end_hit_ratio": 0.980259234488736,
+  "min_stored_end_hit_ratio": 0.9505494505494505,
+  "stored_end_under_0_97": 23,
+  "stored_end_is_mc_fit": 70,
+  "reseed_steps": 68,
+  "j5d_steps_with_a_pause": 57,
+  "j5d_evals": 259009,
+  "cb_evals": 165149
  },
  "prediction_2": {
   "held5": {

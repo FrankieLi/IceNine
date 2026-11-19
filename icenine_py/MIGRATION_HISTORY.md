@@ -13609,8 +13609,17 @@ is under 0.01 degree or after 300 proposals. Script layer only (`scripts/autores
   (prediction 250 to 450), every second stage ends at the floor (1,801 of 1,801), steps with an end
   at 0.95: 1,453 against 1,496 (-2.9%, inside 3%); but 70 of 1,626 steps (4.31%) lose their 0.95 end
   (the frozen limit is 3%), and 27 gain one. All 70 lost ends were MC ends in `J5D`, the median hit
-  ratio of the stored end 0.980. No `J5DC` run, no gate g2, no `held7`.
-- The other seven samples were replayed afterwards, for information only (disclosed; the step failed
+  ratio of the stored end 0.980 (23 of 70 under 0.97; 68 reseed steps; 57 steps where `J5D` had paused a
+  refinement; 165,149 evaluations under `CB` against 259,009 for `J5D`: `replay_partial.json`,
+  `mid_lost_facts`). The Wilson 95% interval of the lost share is 3.42% to 5.40%, all above the 3% limit.
+  No `J5DC` run, no gate g2, no `held7`.
+- Disclosure: the g0 CB-off run (and the 12-step pilot) started before the final write and commit of the
+  unpinned measurement script `ball_replay.py` (written 01:42, committed 01:43; the runs began 01:33 to
+  01:34). The pinned rule files were frozen (b847a6c9) and unchanged; every run checks their hashes.
+  `ball_run_all.sh`, `ball_chain.sh`, `ball_build_held7.py`, `ball_score.py` and `ball_summary.py` were
+  never run (later phases): unexercised.
+- The other seven samples were replayed afterwards, for information only (decision D-20261119-N2;
+  disclosed; the step failed
   its gate; `ball/info.json`, `info_tables.md`, `ar5_ball_lost_gained.png`; one job at a time). Index-stage
   evaluations, `J5D` against `CB` (millions): `held5` 8.69 / 3.40, `held4` 10.88 / 3.88, `held3` 8.84 /
   3.29, `held` 9.13 / 3.43, `mid` 2.64 / 1.10, `grad` 1.26 / 0.69, `big` 0.26 / 0.14, `held6` 10.05 / 3.68
@@ -13618,12 +13627,15 @@ is under 0.01 degree or after 300 proposals. Script layer only (`scripts/autores
   Steps that lose / gain a 0.95 end, first seeds and reseed steps: `held5` 7+302 / 4+79, `held4` 19+387 /
   4+103, `held3` 10+274 / 0+72, `held` 11+341 / 4+76, `mid` 2+68 / 2+25, `grad` 0+19 / 0+20, `big` 0+2 /
   0+0, `held6` 19+311 / 1+112; lost shares 8.69%, 9.88%, 8.38%, 9.55%, 4.31%, 1.48%, 0.61%, 8.03% of the
-  steps: g1 fails on `mid` and all five held types, passes on `grad` and `big`. All 1,772 lost ends were
+  steps (Wilson 95%: `mid` 3.42% to 5.40%, `grad` 0.95% to 2.30%, `big` 0.17% to 2.18%; the held types
+  7.24% to 10.83%): g1 fails on `mid` and all five held types, passes on `grad` and `big`. Over 22,087
+  replayed steps, 1,772 lost ends (the over-0.33-degree share per sample and the totals are in
+  `info_tables.md`: 1,584 of 1,772 over 0.33 degree). All 1,772 lost ends were
   found after the first block of the stock second stage (none in the first stage or the first block); on
   the held types 89% to 93% (`mid` 77%) lie over 0.33 degree from the first stage's best, 164 of 309
   on `held5` over 0.64. Consistent with the loss being the missing wide restarts; that cause was not
   tested. Prediction 2: evaluations per refinement and floor ends hit on all eight; the saving was
   over the band on the held types (60.9% to 64.3% against 40% to 60%) and just over it on `grad`
-  (45.005% against 45%) and `big` (45.3%); steps with an end within 3% of `J5D`: hit on `mid`, `grad`,
+  (45.007% against 45%) and `big` (45.3%); steps with an end within 3% of `J5D`: hit on `mid`, `grad`,
   `big`, missed on the five held types (-6.2% to -8.6%). Findings-page text: report
   `20261119-ar5w-findings_ar5_ball.md` (the write into `docs/autoresearch/` was refused).
