@@ -5640,6 +5640,156 @@ another random seed; `held2`; `fine7`.
   failed and there is no new idea); a full replay of `held` (about 7.7 million at replay speed,
   2 to 3.5 hours; prediction 1 on `mid` already tests both halves exactly, and `held` runs live).
 
+### AR5 step 25: predict at the stall point whether a seed step will still reach 0.95
+
+Task `ar5y`. Starts from `feature/eval-reduction` after step 24. Reuses step 22's cache (`J5D_<s>`:
+`e1_log`, `mc_traces`, `run.json`; `stored_J5SD_<s>`) through the links in `ar5/ball/cache` (main
+checkout), read only. Phase 0 (stored rows) ends at gate s1; phase A only if s1 passes.
+
+**Why.** The owner: "One of the biggest challenges we have is our lack of ability to predict if
+further optimization will result in a more optimal voxel orientation. If you have a method to help
+with this, then we can stop earlier. General early stopping algorithms are desired." Step 24 left
+the "never" steps as the largest pot (20% to 26% of `J5SD` on the `held` types). First question, on
+stored rows: at a fixed point in a seed step, do features known there tell a step that will still
+reach 0.95 from one that never will? A live run follows only if so.
+
+**What was read and run.** PLAN steps 11, 15, 22 to 24; step 24's report and `bf_size.py`; `J5D`'s
+`e1_log`, `mc_traces`, `run.json` and `J5SD`'s `repair.json` on the eight disclosed samples.
+Arithmetic and small fits in scratch (`size25.py`, `pred25.py`, `gb25.py`, `imp25b.py`); no run, no
+truth, nothing of `held2` or `fine7`. Step 24's ball feature rows exist only for `mid` and `held`,
+so they cannot train on `held3` to `held6`; not used.
+
+**Terms.** **Stall point D**: the first moment in a `J5D` seed step when all 5 candidates have had
+their CMA fit and every MC refinement has reached its first `PH(500)` check (500 evaluations with
+no gain) or ended, with no end at 0.95. **End at D**: the lowest-cost end among the CMA ends and
+the running bests at D. **Rescued** / **never step**: reaches D, and `J5D` does / does not find a
+0.95 end after it. **AUC**: the chance that a random rescued step scores above a random never step
+(0.5 is a coin). **LOSO**: train on three of `held3` to `held6`, test on the fourth. Never steps
+here are all `J5D` steps with no 0.95 end (step 24's never plus gained steps: 505 = 425 + 80 on
+`held`). Others as in steps 22 to 24.
+
+**What the record says.** About one seed step in six reaches D. Most are never steps, and their
+work after D is a large pot. Reading line: per sample, seed steps; steps reaching D; rescued and
+never steps; evaluations after D in never and in rescued steps, as shares of `J5SD`; seed-test
+failures if every step stopped at D (`J5D`'s own count in brackets).
+
+| sample | steps | reach D | rescued | never | after D, never | after D, rescued | seed test if all stop |
+|---|---|---|---|---|---|---|---|
+| held3 | 3,391 | 686 | 85 | 601 | 14.48% | 1.65% | 100 (90) |
+| held4 | 4,109 | 729 | 129 | 600 | 15.92% | 3.06% | 101 (70) |
+| held5 | 3,556 | 638 | 91 | 547 | 11.49% | 1.66% | 86 (104) |
+| held6 | 4,109 | 688 | 101 | 587 | 13.52% | 1.86% | 91 (63) |
+| held | 3,685 | 625 | 120 | 505 | 15.05% | 2.71% | 77 (66) |
+| mid | 1,626 | 149 | 19 | 130 | 9.55% | 1.22% | 8 (12) |
+| grad | 1,281 | 108 | 10 | 98 | 2.61% | 0.20% | 6 (11) |
+| big | 330 | 5 | 1 | 4 | 1.52% | 0.30% | 0 (0) |
+
+In 65% to 68% of never steps on the `held` types the taken end does not change after D. But a plain
+stop at D about doubles the seed-test failures (each cost 24,000 to 93,000 evaluations in rescue
+and grid search here), so a stop must spare ends under 0.80 and pick out the never steps among the
+rest.
+
+The features at D do not separate rescued from never steps. Features (own only; no truth, neighbour
+or symmetry): top two hit ratios at D, their gap and cost; best and mean CMA hit ratio; MC lift;
+gains and last-gain evaluation; ends over 0.80; reseed; evaluations to D. Reading line: per sample,
+AUC of a logistic model, a depth-3 tree, a boosted tree (LOSO; trained on all four for the rest);
+then, for the logistic model with the 0.80 guard, its threshold set to stop at most 10% of the
+training rescued steps: stored saving, rescued steps stopped.
+
+| sample | AUC logistic | AUC tree | AUC boosted | saving (logistic) | rescued stopped |
+|---|---|---|---|---|---|
+| held3 | 0.588 | 0.570 | 0.599 | 2.34% | 6 of 85 |
+| held4 | 0.574 | 0.575 | 0.564 | 1.59% | 11 of 129 |
+| held5 | 0.589 | 0.559 | 0.604 | 1.40% | 7 of 91 |
+| held6 | 0.560 | 0.566 | 0.561 | 2.37% | 11 of 101 |
+| held | 0.547 | 0.563 | 0.582 | 2.41% | 13 of 120 |
+| mid | 0.574 | 0.528 | 0.569 | 2.10% | 4 of 19 |
+| grad | 0.349 | 0.594 | 0.540 | 1.92% | 7 of 10 |
+
+No single feature beats 0.56 (the hit ratio at D: 0.50); the median hit ratio at D is 0.86 to 0.90
+in both groups. This repeats steps 11 and 15 at a new point: a stall best does not tell whether the
+search will still find 0.95. Another label is predictable: "the end improves by over 0.05 after D"
+has AUC 0.75 to 0.82, but stopping on it drops 26 to 41 rescued steps a `held` sample.
+
+A stop that predicts nothing has a pot, with step 15's kind of loss (lost ends broke voxels). `R0`:
+stop at D whenever the end at D passes 0.80. Reading line: per sample, the stored saving (share of
+`J5SD`, arithmetic), lost 0.95 ends (Wilson 95%, share of seed steps), changed ends.
+
+| sample | R0 saving | lost 0.95 ends | changed ends |
+|---|---|---|---|
+| held3 | 12.42% | 62 (1.43% to 2.34%) | 173 |
+| held4 | 15.79% | 99 (1.98% to 2.92%) | 220 |
+| held5 | 10.28% | 71 (1.59% to 2.51%) | 164 |
+| held6 | 12.98% | 77 (1.50% to 2.34%) | 190 |
+| held | 15.19% | 93 (2.06% to 3.08%) | 207 |
+| mid | 9.86% | 19 (0.75% to 1.82%) | 48 |
+
+**The rule, frozen now** (live only if s1 passes). Rule `ES`. In `J5D`'s seed step the 5th
+refinement also pauses at its first check. At D the step computes the features and the frozen
+logistic model's probability p of a rescue (coefficients, scaling and threshold t fitted on `held3`
+to `held6` only; t stops at most 10% of their rescued steps). If p < t and the end at D passes
+0.80, the step takes the end at D. Else it goes on exactly as `J5D` (the 5th refinement first, then
+the resumes). Each voxel on its own; no truth, neighbour or crystal symmetry. All else as `J5SD`.
+Arms `J5DE`, `J5SDE`.
+
+**Samples.** `held3` to `held6`: training. `held`, `mid`, `grad`, `big`: disclosed. Clean test:
+`held7`, built by `held_make_sample.py` exactly as `held` with generator seed 7 (a new sample, not
+an extra random seed; nothing of it exists). Not read before its runs end. Clean images, Q-max 8.
+
+**Decision rules, fixed now.** (s0) the tracked script reproduces the three tables exactly. (s1)
+stored rows, before any run: AUC at least 0.70 in every LOSO fold and on `held` and `mid`, and a
+stored saving of at least 4% of `J5SD` in every fold and on `held` and `mid`. On the drafting
+numbers s1 fails (AUC 0.55 to 0.59, saving 1.4% to 2.4%); if reproduced, the step stops there with
+a negative result, and no other feature set, label or threshold is tried in it. Only if s1 passes:
+(g0) `mid` replay: rule off equals `J5D`; rule on, each stopped step's end and count equal its
+stored state at D. (g2) live `J5SDE` on `mid` and `held` against `J5SD`, pooled: at least 4% fewer
+evaluations in the sum; neither sample above its `J5SD` total; on each, broken minus fixed at most
+3 and median error at most 0.001 degree higher; in the sum, grid searches at most 2 more and
+seed-test failures at most 10 more. Pooling is the route allowance, set now: one grid search (about
+330,000) is 4.5% of `mid` but 1.3% of the pooled 24.5 million. The step passes if the five live
+samples (`mid`, `held`, `grad`, `big`, `held7`) pooled save at least 4% with grid searches at most
+3 more; `held7` alone saves at least 2% with broken minus fixed at most 3 and median error at most
+0.001 degree higher; and the house rule against `S8` holds on `held7` (20% fewer, broken minus
+fixed at most 5, median at most 0.005 degree higher). Gate fails: stop, no tuning, no `held7`.
+
+**Validity checks.** No leakage: no model sees the sample it is scored on; the others use the one
+model fitted on `held3` to `held6`, frozen in `ar5/es/frozen.json` (coefficients, scaling, t,
+hashes) before any live run. Live features equal stored ones on `mid` (g0). No truth at run time.
+Every evaluation counts, checks included. Guards on `held2`, `held7`, `fine7`.
+
+**Machine.** s0 and s1: under 1 hour, no reconstruction. If s1 passes: `mid` replay (2.6 million);
+`J5DE` with passes on `mid`, `held` (22 million), `grad`, `big` (8 million); `held7` built, `S8`
+(68 million), `J5D` and `J5DE` with passes (44 million). About 145 million: 8 to 17 hours, one run
+at a time. Caps: 480 minutes for `S8`, 300 the rest.
+
+**Stop rule:** s0, s1, g0 or g2 fails; `J5DE` runs before `frozen.json` is committed; `held7` read
+early; anything of `held2` opened or listed; `fine7` read; a run hits its cap.
+
+**Known limits.** One route per sample. D is late (500 evaluations with no gain in each
+refinement). A rescue may come from the stock stage's random wide restarts, which nothing at D can
+foresee. The drafting counts may be off by one per refinement at a check; s0 settles it.
+
+**Files:** `scripts/autoresearch/ar5/es_*.py`, `tests/test_ar5_es.py`,
+`benchmarks/autoresearch/ar5/es/` (under 3 MB). No library change.
+
+**Not in this step.** `R0` (a separate plan if the owner wants it); the ball rows (replays of
+`held3` to `held6`, about 8 million each); other labels; deep models; `BF` again; realistic images;
+other crystals; C++; another random seed; `held2`; `fine7`.
+
+**Choices made.**
+- This idea: a learned stop at one fixed point, on features already logged, trained on four samples
+  and checked on the others, with a cheap stored-row gate before machine time. General,
+  symmetry-agnostic, no new search. Weak side, measured while drafting: the features barely beat a
+  coin (AUC 0.55 to 0.60, a boosted tree too), so the expected outcome is a stop at s1 within an
+  hour. Worth that hour only as a record that closes this path; a live run is not worth it on these
+  numbers (at most 2.4% stored).
+- Pooling is the route allowance (one grid search moved step 24's verdict on `mid`); fixed before
+  any run, it does not reopen `BF`.
+- Runners-up: `R0`; a stop at each refinement's first check (a dropped refinement's rescue is not
+  replayable); a sequence model on gain traces (about 2,700 training steps, 406 rescued).
+
+Approved: D-20261119-N5, phase 0 only (s0 and s1); a live phase needs a new decision.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
