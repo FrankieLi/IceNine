@@ -40,13 +40,13 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    and C++ config done (reports 20261116-*); next study step: local-optimization schedule.
    (b) OWNER TASK part 1: both C++ changes reviewed (a7e220e7; C5 56 wrong); fixed2 sub-grid test
    PASSED (2 passed, 261 s). Part 2 `fine1`: projection (c501c238, re-freeze 2943a5e6), hours:
-   Whole layer: CS done 91,206 s; J5S HIT ITS 1.3 h CAP (ASK OWNER: rerun?); CF runs; PS: ASK OWNER.
+   Whole layer: CS 91,206 s, CF 71,996 s done; J5S HIT 1.3 h CAP (ASK OWNER: rerun?); PS: ASK OWNER.
 
 ## Running jobs
 - Step 14 key WAITS (held2). Steps 15 to 21 merged (caches: `J5r` `agent-aeba15b7c3850b007`,
   step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v59 live.
   Step 22 (`ar5v`; cache in `agent-aba6e1bdb95dff72a`): MERGED 566eea3f, key `SeedIndexMCDefer`.
-  Whole-layer CF since 04:08, 18 Nov: `fine1/cache/logs/launch_whole2.out` (cap 41.4 h).
+  No run active since 00:07, 19 Nov. Plan draft of the local-optimization schedule step: Opus agent.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
