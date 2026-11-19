@@ -367,3 +367,25 @@ became AR6 on 2026-11-16 at the owner's request.
   the owner's own confirmation (asked 2026-11-18 16:45 PST) before an implementer.
 - **Next action:** GO4i (I58) running; close it, then I25 if confirmed, else report and pick the
   next G1b or G2a idea from IDEAS.
+
+## Now as of GO4i close and GO5q start (2026-11-18 21:00 PST)
+
+- **GO4i closed** (2026-11-18 21:00 PST, G1b I58 yes): a second `W,X` pass at gate 0.11 takes rand to
+  4.5 / 0.4 / 3.3 / 3.2% above 0.1 deg (0.5 / 1 / 2 / 5 deg), medians 0.005-0.006 deg, 8 s per
+  voxel; the run overran its 2 h budget (140 min). corr3 (GO4h) 1 / 1 / 0.4 / 7%.
+- GO5p: strain line closed (`--ratio_hi 2.5` recommended for clean data).
+- **Owner request** (via the coordinator, 2026-11-19 04:52 UTC): an intragranular strain-gradient
+  sample, queued ahead of I25: mean strain plus a linear gradient per grain (optional correlated
+  voxel noise) at the existing levels; test the fast fit (filter 2.5) and the CMA hybrid with the
+  strain parameterisation extended per grain; scripts only, no library change beyond the opt-in
+  strain path unless the owner is asked first.
+- **I25:** approved by the owner (D-20261118-I1, 2026-11-19 05:54 UTC, "I approve - go ahead and
+  try them"), with I60-I64; low priority, after the strain queue. Scoped: 3.2 GB dataset +
+  60-epoch training, no weights here.
+- **Strain queue after GO5q** (owner, 2026-11-19 05:50 UTC via the coordinator; selected from the
+  literature review in the sibling thread "Review neural methods for grain gradients"): I60
+  gradient-based (Gauss-Newton / LM) gradient fit, then I61 non-linear gradient sample `straingq`,
+  I62 quadratic field, I63 coordinate network only if needed, I64 GP / Laplacian prior. Each with
+  its rule written before running; scripts only. I25 stays queued at low priority.
+- **Next action:** plan and run GO5q (I59): sample `straing` (mean + in-plane linear gradient,
+  6 + 12 numbers per grain), render and store it, then the strain fits with the gradient.

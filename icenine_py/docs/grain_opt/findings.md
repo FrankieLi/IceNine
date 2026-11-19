@@ -1154,3 +1154,35 @@ Verdicts by the rule written before the runs:
 - G1b now stands at rand 4.5 / 0.4 / 3.3 / 3.2% and corr3 1 / 1 / 0.4 / 7% above 0.1 deg at 0.5 /
   1 / 2 / 5 deg RMS voxel-to-voxel misorientation, at 2-8 s per voxel (GO4c's ladder alone: rand
   48 / 53 / 77 / 83%, corr3 3 / 9 / 31 / 72%).
+
+## GO5q: intragranular strain gradient (goal G1c, idea I59; owner request)
+
+Question: on `straing` (the `strain` grain means plus an in-plane linear strain gradient per grain,
+gradient RMS over the grain equal to its level), do the fits recover the mean and the gradient?
+`fit_strain.py --sample straing --grad` (6 + 12 strain numbers per grain), `hyb` lambda 8, ratio
+filter 2.5, S36; rows in `benchmarks/grain_opt/go5q/`. Relative gradient error = RMS over voxels of
+the fitted minus ground-truth intragranular part, over the ground-truth part (1 = nothing
+explained, 0 = all).
+
+| arm | mean error 1e-4 / 5e-4 / 1e-3 | relative gradient error | voxel strain error | orientation (deg) | s / grain |
+|---|---|---|---|---|---|
+| uniform strain at the ground-truth orientation | 1.9 / 3.6 / 10.4e-4 | 1 / 1 / 1 | 1.7 / 5.4 / 10.3e-4 | 0 | 23 |
+| + gradient at the ground-truth orientation | 1.4 / 1.3 / 1.7e-4 | 4.65 / 0.77 / 0.45 | 4.9 / 4.0 / 4.8e-4 | 0 | 63 |
+| CMA hybrid + gradient, painted start | 2.0 / 1.7 / 2.4e-4 | 4.12 / 0.97 / 0.58 | 4.8 / 5.3 / 6.2e-4 | 0.011 / 0.013 / 0.023 | 123 |
+| fast fit (filter 2.5) + gradient leg | 1.9 / 1.4 / 2.9e-4 | 2.71 / 0.79 / 0.66 | 3.4 / 4.4 / 7.6e-4 | 0.010 / 0.019 / 0.036 | 76 |
+
+Verdicts by the rule written before the runs:
+
+- I59 is answered no: no arm recovers the gradient (relative error at most 0.5) at both 5e-4 and
+  1e-3; only the strain-only fit at the ground-truth orientation reaches it at 1e-3 (0.45). The
+  mean-strain limits (1.5 x the uniform-sample results) are met by the CMA hybrid (1.7e-4, 2.4e-4
+  against 2.2e-4, 3.2e-4) and by the fast fit at 5e-4, not at 1e-3 (2.9e-4 against 2.1e-4).
+- Fitting the gradient is what makes the mean right: a uniform fit on this sample misses the mean
+  by 3.6e-4 and 1.0e-3 at 5e-4 and 1e-3 (the gradient biases it), the gradient fits by 1.3-2.9e-4.
+- The gradient itself is weakly observed: a linear gradient across a grain changes each spot's
+  shape, not its centroid (the voxel shifts average out), and the coverage term resolves shape
+  changes of a fraction of a pixel poorly. At 1e-4 the 12 gradient numbers fit noise (relative
+  error 2.7-4.7, about 4e-4 per voxel). The voxel strain error floor is about 4-5e-4 in every
+  gradient arm.
+- Next (I60, queued): a Gauss-Newton fit with per-spot second-moment (spot spread) residuals as
+  well as centroids, since the gradient acts on the spread; judged against these arms.
