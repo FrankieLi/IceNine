@@ -13674,3 +13674,14 @@ its first stage equal to the ball pass's and counting it once.
   `J5SDB` was run on `held`, a deviation from N4's "run J5SD and J5SDB" accepted by the main session.
   This does not change the verdict; no `grad`, `big` or `held7` run, no key.
 - `held7` was not built or read; nothing of `held2` or `fine7` was opened.
+
+## Autoresearch AR5 step 25, phase 0: predicting at the stall point whether a seed step will still reach 0.95 (2026-11-19, task ar5y)
+
+Stored rows only (D-20261119-N5), no run, no library change. `scripts/autoresearch/ar5/es_sizing.py`
+rebuilds the plan's three tables from step 22's `J5D_<s>` and `stored_J5SD_<s>` rows (read only) and
+judges gate s1; results in `benchmarks/autoresearch/ar5/es/` (`tables.md`, `s1_verdict.json`);
+tests `tests/test_ar5_es.py`. The sizing and R0 tables reproduce exactly; the logistic model
+(numpy/scipy, scikit-learn is not in the locked environment) gives AUC 0.547 to 0.588 on the six
+tested samples (`grad` 0.352), the depth-3 tree 0.528 to 0.594; the boosted tree was not reproduced.
+Stored saving 1.39% to 2.47%. Gate s1 fails (needs AUC at least 0.70 and saving at least 4%): the
+step ends as a negative result, no other feature set, label or threshold tried; no `held7`.
