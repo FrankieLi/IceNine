@@ -466,6 +466,26 @@
    "orient_fail": false
   },
   {
+   "label": "fast fit, ratio 2.5, region from cleaned start",
+   "family": "fast",
+   "noisy": false,
+   "file": "go5v/GP4_P_hyb8_S36_r2.5_clean.json",
+   "n_grains": 36,
+   "evals": 869.8333333333334,
+   "t_s": 28.843506349457634,
+   "err": [
+    0.0001281214823617132,
+    0.00012103489238914588,
+    0.00014239332037809985
+   ],
+   "mis": [
+    0.010374411593924226,
+    0.013523366160858469,
+    0.010475213010529016
+   ],
+   "orient_fail": false
+  },
+  {
    "label": "fast fit, ratio filter 2.5, 1 px PSF images",
    "family": "fast",
    "noisy": true,

@@ -449,3 +449,13 @@ became AR6 on 2026-11-16 at the owner's request.
   methods for grain gradients"), then I25 at low priority.
 - **Next action:** GO5u (I64) running: GP prior on a smooth residual (5 kernel eigenvectors per
   component) over mean + linear, on `straingq`; then I65, then I25.
+
+## Now as of GO5u close (2026-11-19 15:30 PST)
+
+- **GO5u closed** (2026-11-19 15:30 PST, I64 no): a GP-prior residual is worse than the quadratic
+  field at 5e-4 and 1e-3 on `straingq` (rel. error 1.73 / 0.78 vs 1.24 / 0.72); the prior helps the
+  same basis and keeps 1e-4 flat. The strain queue I59-I64 is done: the intragranular field is
+  recovered only at 1e-3 and only partly (best 0.72, quadratic).
+- **Approval** D-20261118-I1: I25 (GNLayerNet) at low priority, next after I65.
+- **Next action:** GO5v (I65) running: region built from the outlier-cleaned start (`--clean_start`);
+  then I25.

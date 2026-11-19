@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-11-19T15:24:18",
+  "host": "Mac",
+  "loadavg": [
+    2.67919921875,
+    3.13671875,
+    4.32763671875
+  ],
+  "cpu_count": 10,
+  "power": "ac",
+  "omp_num_threads": "1",
+  "mkl_num_threads": "1",
+  "torch_threads": 1,
+  "busy_processes": [
+    {
+      "pid": 744,
+      "cpu": 68.2,
+      "command": "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/corespotlightd"
+    },
+    {
+      "pid": 837,
+      "cpu": 293.2,
+      "command": "/usr/libexec/spotlightknowledged.updater"
+    }
+  ]
+}

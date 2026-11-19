@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-19 15:30 PST",
+ "updated": "2026-11-19 15:50 PST",
  "steps": [
   {
    "id": "GO0",
@@ -336,6 +336,14 @@
    "status": "done",
    "date": "2026-11-19",
    "result": "On straingq a GP-prior residual (5 kernel eigenvectors per component over mean + linear, 48 numbers) gives intragranular rel. error 1.73/0.78 at 5e-4/1e-3 at the ground-truth orientation and 1.23/0.84 from the painted start, worse than the quadratic field. I64 no. The prior helps the same basis and keeps the 1e-4 fit flat (voxel error 1.4e-4). The strain queue I59-I64 is done.",
+   "commit": ""
+  },
+  {
+   "id": "GO5v",
+   "title": "Region from the outlier-cleaned start (I65)",
+   "status": "done",
+   "date": "2026-11-19",
+   "result": "Building each grain region from the start map with painted outliers set to the medoid removes all 9 stalls and CMA fallbacks of the fast strain fit; medians unchanged (1.3/1.2/1.4e-4), 75th percentile at 1e-3 2.7e-4 -> 1.5e-4, 29 s per grain (was 35). I65 yes.",
    "commit": ""
   }
  ],

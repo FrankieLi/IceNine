@@ -1302,3 +1302,27 @@ Verdicts by the rule written before the runs:
   quadratic and GP-prior fields, the intragranular strain field is recovered only at the 1e-3 level
   (best relative error 0.72) and only partly; the observable signal (spot shape below a pixel) is
   the limit, not the field model.
+
+## GO5v: build the region from the outlier-cleaned start (idea I65)
+
+Question: with each grain's painted outlier voxels (more than 1.5 deg from the medoid) set to the
+medoid orientation in the start map the region is built from (`--clean_start`), do the fast fit's
+stalls disappear? Clean `strain`, S36, `GP4@P --ratio_hi 2.5`; rows in `benchmarks/grain_opt/go5v/`.
+
+| arm | stalls / CMA fallbacks / polished | strain 1e-4 / 5e-4 / 1e-3 | 75th percentile at 1e-3 | orientation | s / grain |
+|---|---|---|---|---|---|
+| GO7e (region from the painted map) | 9 / 9 / 5 | 1.3 / 1.2 / 1.4e-4 | 2.7e-4 | 0.010 / 0.013 / 0.011 | 35 |
+| region from the cleaned start | 0 / 0 / 12 | 1.3 / 1.2 / 1.4e-4 | 1.5e-4 | 0.010 / 0.014 / 0.011 | 29 |
+
+Verdicts by the rule written before the runs:
+
+- I65 is answered yes: stalls fall from 9 to 0 (limit 3), the strain medians stay within 1.1 x
+  (1.21e-4 and 1.42e-4 against limits 1.37e-4 and 1.54e-4), orientation at most 0.014 deg.
+- The 9 stalled grains were exactly the 9 with painted outliers: their regions held the outliers'
+  spurious spots, so most centroid residuals exceeded the Tukey cut-off and Gauss-Newton skipped
+  its stages. With a clean region every grain runs Gauss-Newton; the tail at 1e-3 shrinks
+  (75th percentile 2.7e-4 -> 1.5e-4) and the fit is faster (no CMA fallbacks), with more grains
+  crossing the polish threshold (12 against 5).
+- The same painted-map region is used by every grain fit in this program (`run_pipeline.py`'s
+  orientation pipelines, the CMA hybrid); `--clean_start` should become the default there too. Not
+  tested here.
