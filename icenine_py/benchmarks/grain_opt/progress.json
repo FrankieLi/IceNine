@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-18 16:45 PST",
+ "updated": "2026-11-18 17:00 PST",
  "steps": [
   {
    "id": "GO0",
@@ -264,6 +264,14 @@
    "status": "done",
    "date": "2026-11-18",
    "result": "Full search + polish: corr3 1/1/0.4/7% above 0.1 deg at 0.5/1/2/5 deg (grid search: 5 deg 21% -> 10%), rand 16/1.4/5/4%; medians 0.005-0.009 deg. I55 no: rand 0.5 deg near misses (0.1-0.75 deg) sit below the strict-cost gate.",
+   "commit": ""
+  },
+  {
+   "id": "GO7d",
+   "title": "Split merged spots before centroids (G2b)",
+   "status": "done",
+   "date": "2026-11-18",
+   "result": "Assigning lit pixels to grain or neighbour before centroids leaves the 1 px PSF strain fit at 2.4/2.7/4.9e-4 (I53 no); clean unaffected. Cause: the region area-ratio filter drops blur-enlarged spots (a grain keeps 58% of its spots). Next: widen it (I56).",
    "commit": ""
   }
  ],

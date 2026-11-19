@@ -860,6 +860,27 @@ control must not lose more than 1.25 x at 5e-4 and 1e-3. 1e-4 reported, not judg
 
 Budget: about 20-25 s per grain; two runs in parallel, under 25 minutes.
 
+### GO7e: widen the region area-ratio filter for blurred images (goal G2b, idea I56)
+
+Question: GO7d found that the region build's area-ratio filter (observed lit pixels / pixels
+touched by the start prediction, kept in 0.8-1.6) drops the blur-enlarged spots of the 1 px PSF
+images (a grain keeps 58% of its spots). With the upper bound raised, does the fast strain fit
+recover on those images?
+
+Method: `fit_strain.py --ratio_hi H` passes `region_kw=dict(ratio=(0.8, H))` to `GrainProblem`
+(scripts only). Arms: `GP4@P --cost hyb --lam 8 --per_level 12 --ratio_hi 2.5` on
+`strain_psf10_clean.npy`, and the same on clean images (control). Output
+`benchmarks/grain_opt/go7e/`. Spot counts per grain are reported.
+
+Judging rule (written before any run; GO7b's). References: GO5l clean `GP4@P` (1.3e-4 / 1.3e-4 /
+2.1e-4) and GO7b on the 1 px images (2.3e-4 / 2.7e-4 / 5.7e-4). I56 is answered yes when the PSF
+arm has no harm (strain median at 5e-4 and 1e-3 at most 1.5 x clean, orientation median at most
+0.03 deg at every level), partly when both strain medians at 5e-4 and 1e-3 improve by at least
+1.5 x against GO7b. The clean control must stay within 1.25 x of GO5l at 5e-4 and 1e-3 (a wider
+filter also admits spots overlapping other grains). 1e-4 reported, not judged.
+
+Budget: about 20-30 s per grain (more spots); two runs in parallel, under 30 minutes.
+
 ### GO6 onwards
 
 Program balance (owner via the coordinator, 2026-11-16): GO5b to GO5o were all G1c strain. After

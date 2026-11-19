@@ -424,6 +424,26 @@
     0.09391635801856331
    ],
    "orient_fail": true
+  },
+  {
+   "label": "fast fit + split merged spots, 1 px PSF images",
+   "family": "fast",
+   "noisy": true,
+   "file": "go7d/GP4_P_hyb8_S36_split.json",
+   "n_grains": 36,
+   "evals": 956.5833333333334,
+   "t_s": 17.78722306754854,
+   "err": [
+    0.00023659912749007317,
+    0.00027292078987204023,
+    0.0004860556313933371
+   ],
+   "mis": [
+    0.02846447670152262,
+    0.035341619505917965,
+    0.06128905244430592
+   ],
+   "orient_fail": true
   }
  ]
 }

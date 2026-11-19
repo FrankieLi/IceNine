@@ -9,6 +9,9 @@ mass on lit pixels, mean over the grain's spots (GO5 "coverage"). Spot windows a
 strain. Parameters: grain field (FieldA order 1, 9 numbers) and one crystal-frame strain per
 grain (6). CMA with per-coordinate steps 0.05 deg (field) and 5e-4 (strain), strain from 0.
 
+GO7d (I53): ``--cen_split``: observed lit pixels nearer the fixed neighbour-shell prediction
+than the grain's start prediction are left out of the observed centroid.
+
 GO7c (I52): ``--psf_sigma S``: the coverage cost scores K = 4 Gaussian copies (sigma S px) of each
 predicted coverage point (a PSF on the prediction).
 
@@ -125,6 +128,7 @@ class Coverage:
         return 1.0 - float(((a * on).sum(1)[ok] / tot[ok]).mean())
 
 
+CEN_SPLIT = False  # GO7d: split merged spots by the predicted positions (--cen_split)
 PSF_SIGMA, PSF_K = 0.0, 4  # GO7c: PSF-aware coverage (--psf_sigma)
 CEN_W = "int"  # GO5n/o: observed-centroid weights, "int" | "bin" | "binclean" | "intclean"
 
@@ -151,6 +155,16 @@ class SubPix:
 
         self.prob, self.kind = prob, kind
         self.maps, self.lo, self.obs, self.w = [], [], [], []
+        self.n_split = 0
+        gpts = None
+        if kind == "cen" and CEN_SPLIT:  # GO7d: grain prediction at the start, no strain
+            with torch.no_grad():
+                rows = prob.model.predict(torch.as_tensor(prob.R_start, dtype=GF.DT), prob.V)
+                xg, ag = GF.pack_predicted(
+                    prob.region, rows, prob.bary, prob.model.n_det, with_shell=False
+                )
+            xg, ag = xg.numpy(), ag.numpy()
+            gpts = [xg[j][ag[j] > 0] for j in range(len(prob.region.spots))]
         for sp in prob.region.spots:
             shape = (sp.f1 - sp.f0, sp.r1 - sp.r0, sp.c1 - sp.c0)
             o = np.floor(np.asarray(sp.obs)).astype(np.int64)
@@ -165,6 +179,18 @@ class SubPix:
                 if CEN_W in ("binclean", "intclean") and len(ob):
                     keep = isolated_mask(ob)
                     if keep.any():
+                        ob, w = ob[keep], w[keep]
+            if gpts is not None and len(ob):  # GO7d: drop pixels nearer a neighbour's prediction
+                from scipy.spatial import cKDTree
+
+                jj = len(self.obs)
+                sh = np.asarray(prob.region.shell_pts[jj], float)
+                if len(sh) and len(gpts[jj]):
+                    dg, _ = cKDTree(gpts[jj]).query(ob)
+                    ds, _ = cKDTree(sh).query(ob)
+                    keep = dg <= ds
+                    if keep.any() and not keep.all():
+                        self.n_split += int((~keep).sum())
                         ob, w = ob[keep], w[keep]
             self.obs.append(ob)
             self.w.append(w / max(float(w.sum()), 1e-12))
@@ -425,13 +451,16 @@ def main() -> None:
     ap.add_argument("--lam", type=float, default=2.0)
     ap.add_argument("--per_level", type=int, default=4)
     ap.add_argument("--psf_sigma", type=float, default=0.0)
+    ap.add_argument("--cen_split", action="store_true")
+    ap.add_argument("--ratio_hi", type=float, default=None)
     ap.add_argument("--cen_w", default="int", choices=["int", "bin", "binclean", "intclean"])
     ap.add_argument("--stack", default=None, help="GO5m: stack file in place of strain_clean.npy")
     a = ap.parse_args()
-    global SEED, CEN_W, PSF_SIGMA
+    global SEED, CEN_W, PSF_SIGMA, CEN_SPLIT
     SEED = a.seed
     CEN_W = a.cen_w
     PSF_SIGMA = a.psf_sigma
+    CEN_SPLIT = a.cen_split
     out = CM.OUT / a.out
     tag = a.arm.replace("@", "_")
     if a.cost != "cov":
@@ -444,6 +473,10 @@ def main() -> None:
         tag += f"_{a.cen_w}"
     if a.psf_sigma > 0:
         tag += f"_psf{a.psf_sigma:g}"
+    if a.cen_split:
+        tag += "_split"
+    if a.ratio_hi is not None:
+        tag += f"_r{a.ratio_hi:g}"
     start = "paint" if a.arm.endswith("@P") else "truth"
     S = CM.Sample(out / f"run_{tag}", start=start, intensity=True, sample="strain", stack=a.stack)
     T = S.T
@@ -469,6 +502,7 @@ def main() -> None:
             order=1,
             spec=GF.ObjectiveSpec(kind="sinkhorn"),
             strain=np.zeros((S.n, 6)),
+            region_kw=None if a.ratio_hi is None else dict(ratio=(0.8, a.ratio_hi)),
         )
         if a.cost == "hyb":
             cov: Any = Hybrid(prob, a.lam)
@@ -643,6 +677,8 @@ def main() -> None:
             lam=a.lam if a.cost == "hyb" else None,
             cen_w=a.cen_w,
             psf_sigma=a.psf_sigma,
+            cen_split=a.cen_split,
+            ratio_hi=a.ratio_hi,
             stack=a.stack,
             seed=a.seed,
             grain=int(g),

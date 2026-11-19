@@ -1050,3 +1050,30 @@ Verdicts by the rule written before the runs:
   corr3 ends at 1 / 1 / 0.4 / 7% above 0.1 deg. With GO4c's ladder alone it was 3 / 9 / 31 / 72%.
 - Follow-up (later, G1b): a per-level gate (the 0.5 deg near misses need a wider local step, or a
   gate on misfit to neighbours, not on the strict cost alone).
+
+## GO7d: split merged spots before taking centroids (goal G2b, idea I53)
+
+Question: on the 1 px PSF images, does assigning each observed lit pixel to the grain or a
+neighbour (nearest start-predicted point, grain against the fixed shell prediction) before taking
+the observed centroid restore the fast strain fit? S36, `GP4@P --cen_split`; rows in
+`benchmarks/grain_opt/go7d/` (PSF) and `go7d_clean/` (clean control).
+
+| arm | 1e-4 | 5e-4 | 1e-3 | orientation | fallbacks | s / grain |
+|---|---|---|---|---|---|---|
+| clean (GO5l) | 1.3e-4 | 1.3e-4 | 2.1e-4 | 0.009 / 0.015 / 0.020 | 9 | 25 |
+| clean, `--cen_split` | 1.3e-4 | 1.4e-4 | 2.1e-4 | 0.012 / 0.019 / 0.015 | 5 | 24 |
+| 1 px PSF (GO7b) | 2.3e-4 | 2.7e-4 | 5.7e-4 | 0.029 / 0.039 / 0.061 | 11 | 18 |
+| 1 px PSF, `--cen_split` | 2.4e-4 | 2.7e-4 | 4.9e-4 | 0.029 / 0.035 / 0.061 | 11 | 18 |
+
+Verdicts by the rule written before the runs:
+
+- I53 is answered no: on the PSF images the strain medians change by 0.95-1.16 x (limits not
+  met; no 1.5 x gain). The clean control loses nothing (within 1.25 x; fewer fallbacks, 5 against
+  9).
+- The real cause, found while closing: the region build's area-ratio filter (observed lit pixels
+  / pixels touched by the start prediction, kept in 0.8-1.6) rejects the blur-enlarged spots. With
+  a 1 px PSF a grain keeps a median 58% of its clean spots (45 against 84; as few as 34%); with 0.5
+  px, 89%. Fewer spots, more fallbacks (11 against 9), worse strain. Neither merging (GO7d) nor a
+  flat coverage term (GO7c) was the main effect.
+- Next (I56): widen the ratio filter for blurred images (`region_kw` ratio upper bound 2.5, no
+  library change) on the 1 px PSF images, with a clean control.
