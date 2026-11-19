@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-19 14:25 PST",
+ "updated": "2026-11-19 15:30 PST",
  "steps": [
   {
    "id": "GO0",
@@ -328,6 +328,14 @@
    "status": "done",
    "date": "2026-11-19",
    "result": "On straingq the quadratic field (36 numbers) beats the linear one at 1e-3 (intragranular rel. error 0.72-0.74 vs 0.98, voxel error 1.03e-3 -> 0.77e-3) but not at 5e-4 (1.09-1.24 vs 1.05-1.10). I62 no; I63 not run by the rule.",
+   "commit": ""
+  },
+  {
+   "id": "GO5u",
+   "title": "GP prior on the intragranular strain residual (I64)",
+   "status": "done",
+   "date": "2026-11-19",
+   "result": "On straingq a GP-prior residual (5 kernel eigenvectors per component over mean + linear, 48 numbers) gives intragranular rel. error 1.73/0.78 at 5e-4/1e-3 at the ground-truth orientation and 1.23/0.84 from the painted start, worse than the quadratic field. I64 no. The prior helps the same basis and keeps the 1e-4 fit flat (voxel error 1.4e-4). The strain queue I59-I64 is done.",
    "commit": ""
   }
  ],

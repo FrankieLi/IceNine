@@ -569,6 +569,7 @@ def main() -> None:
     ap.add_argument("--ratio_hi", type=float, default=None)
     ap.add_argument("--grad", action="store_true", help="GO5q: 6 + 12 strain numbers per grain")
     ap.add_argument("--evals_g", type=int, default=600)
+    ap.add_argument("--clean_start", action="store_true", help="I65: region from the cleaned start")
     ap.add_argument("--quad", action="store_true", help="I62: 6 + 12 + 18 strain numbers")
     ap.add_argument("--gpk", type=int, default=0, help="I64: GP residual basis size per component")
     ap.add_argument("--gp_beta", type=float, default=0.0, help="I64: GP prior weight")
@@ -604,6 +605,8 @@ def main() -> None:
         tag += "_gnm"
     if a.quad:
         tag += "_quad"
+    if a.clean_start:
+        tag += "_clean"
     if a.gpk > 0:
         tag += f"_gp{a.gpk}b{a.gp_beta:g}"
     start = "paint" if a.arm.endswith("@P") else "truth"
@@ -618,10 +621,26 @@ def main() -> None:
         members = [int(v) for v in np.nonzero(gm == g)[0]]
         shell = GF.shell_of(members, S.nb)
         n = len(members)
+        R0_use = S.R0
+        if a.clean_start:  # I65: members' painted outliers -> medoid, before the region is built
+            from icenine.ray_indexing import misorientation_deg
+
+            Rm = S.R0[members]
+            Dm = np.stack(
+                [
+                    np.asarray(misorientation_deg(Rm, np.repeat(Rm[i : i + 1], n, 0), S.sym))
+                    for i in range(n)
+                ]
+            )
+            med_i = int(np.argmax((Dm <= 1.5).sum(1)))
+            out_m = Dm[med_i] > 1.5
+            if out_m.any():
+                R0_use = S.R0.copy()
+                R0_use[np.asarray(members)[out_m]] = Rm[med_i]
         prob = GF.GrainProblem(
             S.model,
             S.images,
-            S.R0,
+            R0_use,
             S.V,
             S.xy,
             members,
@@ -900,6 +919,7 @@ def main() -> None:
             grad=a.grad,
             gnm=a.gnm,
             quad=a.quad,
+            clean_start=a.clean_start,
             gpk=a.gpk,
             gp_beta=a.gp_beta,
             sample=a.sample,

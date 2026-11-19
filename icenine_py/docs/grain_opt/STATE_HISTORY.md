@@ -438,3 +438,14 @@ became AR6 on 2026-11-16 at the owner's request.
   --sample straingq --ratio_hi 2.5 --grad --quad --evals_e 1500 --out go5t`;
   `uv run python scripts/grain_opt/fit_strain.py --arm GP4@P --cost hyb --lam 8 --per_level 12
   --sample straingq --ratio_hi 2.5 --grad --quad --evals_g 1000 --out go5t`.
+
+## Now as of GO5t close (2026-11-19 14:25 PST)
+
+- **GO5t closed** (2026-11-19 14:25 PST, I62 no): the quadratic field beats the linear one at 1e-3
+  (intragranular rel. error 0.72-0.74 vs 0.98) but fits noise at 5e-4 (1.09-1.24 vs 1.05-1.10);
+  I63 (coordinate network) not run by the rule. Rerun from scratch after the shutdown.
+- GO5s: `straingq` delivered. GO5r: I60 no. I65 logged.
+- **Approval** D-20261118-I1: strain queue I60-I64 (literature review, sibling thread "Review neural
+  methods for grain gradients"), then I25 at low priority.
+- **Next action:** GO5u (I64) running: GP prior on a smooth residual (5 kernel eigenvectors per
+  component) over mean + linear, on `straingq`; then I65, then I25.

@@ -1272,3 +1272,33 @@ Verdicts by the rule written before the runs:
   noise (relative error above 1). A field model's usable order depends on the strain level, which
   is what a prior (I64) is meant to handle: let the data decide how much intragranular structure to
   admit.
+
+## GO5u: GP prior on the intragranular strain residual (goal G1c, idea I64)
+
+Question: on `straingq`, does a GP prior on a smooth residual (5 eigenvectors per strain component
+of a squared-exponential kernel over the grain, orthogonal to mean + linear; prior weight B on the
+coefficients scaled by the eigenvalues; 48 strain numbers per grain) beat the quadratic field at
+5e-4 without losing at 1e-3? Rows in `benchmarks/grain_opt/go5u/`.
+
+| arm on `straingq` | relative intragranular error 1e-4 / 5e-4 / 1e-3 | voxel error 1e-4 / 5e-4 / 1e-3 | mean error 5e-4 / 1e-3 | s / grain |
+|---|---|---|---|---|
+| quadratic, ground-truth orientation (GO5t) | 4.90 / 1.24 / 0.72 | 5.2 / 6.2 / 7.7e-4 | 1.2 / 2.1e-4 | 97 |
+| GP basis, no prior (B = 0), ground-truth orientation | 1.00 / 2.06 / 0.91 | 1.4 / 10.2 / 8.7e-4 | 1.7 / 1.7e-4 | 101 |
+| GP basis + prior (B = 0.05), ground-truth orientation | 1.00 / 1.73 / 0.78 | 1.4 / 8.3 / 7.5e-4 | 1.6 / 1.7e-4 | 101 |
+| fast fit + quadratic leg (GO5t) | 3.89 / 1.09 / 0.74 | 3.9 / 5.8 / 7.7e-4 | 2.0 / 2.1e-4 | 96 |
+| fast fit + GP leg + prior (B = 0.05) | 1.00 / 1.23 / 0.84 | 1.7 / 6.2 / 8.7e-4 | 2.0 / 2.5e-4 | 101 |
+
+Verdicts by the rule written before the runs:
+
+- I64 is answered no: the prior arms are worse than the quadratic at 5e-4 (1.73 and 1.23 against
+  1.24 and 1.09) and at 1e-3 more than 0.05 worse (0.78 and 0.84 against 0.72 and 0.74). Mean
+  strains are within the limits.
+- The prior itself helps the same basis (B = 0 -> 0.05: 2.06 -> 1.73 at 5e-4, 0.91 -> 0.78 at
+  1e-3): it pulls the coefficients toward a smooth, small residual. At 1e-4 it keeps the fit
+  nearly flat (relative error 1.00, voxel error 1.4-1.7e-4 against 3.9-5.2e-4 for the quadratic),
+  which is where an unregularised field fits noise.
+- The GP eigenvector basis is a worse basis than the quadratic for this sample at 5e-4 and 1e-3,
+  and CMA over 48 numbers is a weak optimiser for it. The I59-I64 queue ends here: across linear,
+  quadratic and GP-prior fields, the intragranular strain field is recovered only at the 1e-3 level
+  (best relative error 0.72) and only partly; the observable signal (spot shape below a pixel) is
+  the limit, not the field model.

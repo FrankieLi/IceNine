@@ -1068,6 +1068,28 @@ within 1.5 x of GO5s's linear arms. The B = 0 arm shows what the prior itself co
 
 Budget: about 100-110 s per grain; three runs in parallel, about 70 minutes.
 
+### GO5v: build the region from the outlier-cleaned start (idea I65)
+
+Question: GO5r found that painted outlier voxels put spurious spots into a grain's region (the spot
+windows are built from the painted map; grain 237: centroid residuals of 46 px even at the ground
+truth). In GO7e's clean fast fit the 9 stalled grains, the 9 CMA fallbacks and the 9 grains with
+painted outliers are the same count. If the region is built from the start map with each grain's
+outlier voxels set to its medoid orientation (as `robust_theta0` does for the start field), do the
+stalls disappear and does the fit improve?
+
+Method (`fit_strain.py --clean_start`, scripts only): before `GrainProblem`, the members' painted
+orientations farther than 1.5 deg from the medoid voxel are replaced by the medoid's in the start
+map passed to it (only the grain's own members; the shell is unchanged). Arm: `GP4@P --cost hyb
+--lam 8 --per_level 12 --ratio_hi 2.5 --clean_start` on clean `strain`; output
+`benchmarks/grain_opt/go5v/`.
+
+Judging rule (written before any run). Reference: GO7e clean `GP4@P --ratio_hi 2.5` (strain 1.3e-4 /
+1.2e-4 / 1.4e-4, orientation at most 0.013 deg, 9 stalls and 9 fallbacks, 35 s per grain). I65 is
+answered yes when the stalls fall to at most 3 and the strain medians at 5e-4 and 1e-3 are at most
+1.1 x the reference's with orientation medians at most 0.02 deg. Wall time per grain is reported.
+
+Budget: about 35 s per grain; one run, about 25 minutes.
+
 ### GO6 onwards
 
 Strain queue (owner, 2026-11-19, from the literature review in the sibling thread "Review neural
