@@ -5363,6 +5363,282 @@ realistic images; other crystals; a C++ change; another random seed; `held2`; `f
   disclosed samples); the stock MC fit in BFS (0 evaluations in `J5SD`); learned grid proposals
   (grid 8% to 24% on the `held` types; step 10's cut failed).
 
+### AR5 step 24: the converging ball first, the stock second stage only when no ball end hits 0.95
+
+Task `ar5x`. Approved: D-20261119-N3. Starts from `feature/eval-reduction` at 92005ed2 or later.
+Reuses step 23's replay rows (`ar5/ball/cache/replay_on_*`, main checkout) and step 22's cache
+(worktree `agent-aba6e1bdb95dff72a`: the `J5D` runs, their `e1_log`, `mc_traces`, `run.json`, and
+the `J5SD` passes), read only. Phase A ends at "READY FOR KEY" or at a gate; phase B only after a
+recorded decision.
+
+**Why.** The owner asks for fewer evaluations and less wall-clock time at equal accuracy, and for
+general early stops. Step 23's ball (rule `CB`) cut the seed step's index stage by 45% to 64%, but
+8% to 10% of steps on the `held` types lost their 0.95 end. Every lost end was found by the stock
+second stage after its first block, mostly over 0.33 degree away. So the stock stage is needed in
+some steps, but not in most. The ball is cheap and finds the same 0.95 end in most steps. This step
+runs the ball first on every candidate, and runs the stock second stage only when no ball end
+reaches 0.95. It is step 22's idea (do not pay for a slow search while cheaper options remain)
+with an earlier pause point: the ball's convergence instead of 500 evaluations with no gain.
+
+**What was read and run.** PLAN steps 22 and 23; step 23's `info.json`, `info_tables.md`,
+`frozen.json`, `replay_partial.json`, its report and review
+(`.claude/reports/20261119-0119-ar5w.md`, `20261119-1010-review-ar5w.md`); the replay rows of
+all eight disclosed samples (22,087 steps); `J5D`'s `e1_log`, `mc_traces` and `run.json`; `variance_minimizing_optimize`,
+`_zero_temp_with_variance`, `refine_from_candidates` and `_index_seed` in the library;
+`ball_replay.py`, `ball_rules.py`, `defer_pick.py`. Arithmetic only, in scratch (`size24*.py`); no
+run. Nothing of `held2`; nothing of `fine7`.
+
+**What the record says.** Rule `BF` (below) costs exactly what the stored rows say, because a step
+either ends in the ball pass (step 23's replay measured it) or falls back to `J5D`'s own stage 2
+(step 22's traces measured it). The accounting identity (costing + CMA fits + MC refinements =
+`J5D`'s step) holds in all 4,342 fallback steps. Reading line: per sample, `J5D`'s index stage; step
+23's `CB` index stage; steps with no ball end at 0.95 (they fall back); `BF`'s index stage; `BF`
+against `J5D` on the index stage; the saving as a share of `J5SD`'s total; lost 0.95 ends under
+`BF`; seed steps under the 0.80 seed test for `J5D`, `CB` and `BF`.
+
+| sample | J5D index | CB index | fall back | BF index | BF fewer | of J5SD | lost | seed test J5D/CB/BF |
+|---|---|---|---|---|---|---|---|---|
+| held5 | 8,690,640 | 3,398,238 | 773 | 7,376,267 | 15.1% | 6.55% | 0 | 104 / 540 / 96 |
+| held4 | 10,882,299 | 3,884,631 | 899 | 9,076,725 | 16.6% | 8.73% | 0 | 70 / 558 / 68 |
+| held3 | 8,840,378 | 3,287,015 | 813 | 7,856,813 | 11.1% | 5.36% | 0 | 90 / 528 / 85 |
+| held | 9,129,537 | 3,433,723 | 777 | 7,666,627 | 16.0% | 8.55% | 0 | 66 / 480 / 64 |
+| mid | 2,644,672 | 1,099,560 | 173 | 2,099,764 | 20.6% | 7.38% | 0 | 12 / 67 / 12 |
+| grad | 1,255,626 | 690,503 | 97 | 1,023,858 | 18.5% | 3.78% | 0 | 11 / 35 / 10 |
+| big | 261,653 | 143,064 | 6 | 192,919 | 26.3% | 2.80% | 0 | 0 / 1 / 0 |
+| held6 | 10,054,329 | 3,684,745 | 804 | 8,368,681 | 16.8% | 7.43% | 0 | 63 / 504 / 62 |
+
+Two facts from this table. First, step 23's 60% was not the whole cost of `CB`: its seed steps fell
+under the 0.80 seed test 480 to 558 times on the `held` types, against 63 to 104 for `J5D` (66 on
+`held` matches `run.json`'s `index_fallback_seed_test`). Each of those goes to the rescue and
+perhaps a grid search (about 345,000 evaluations). `BF` keeps `J5D`'s count or lowers it. Second,
+`BF` pays for the ball in the steps that fall back: in those steps the ball pass costs 2.3% to 3.1%
+of `J5SD` on the `held` types (the ball's stage 2, and in lost steps the CMA fits and first stages
+of later candidates that `J5D` never reached). The table's saving is net of that.
+
+Where the saving sits. Reading line: per sample, seed steps; first-seed steps; `CB`'s saving on
+first seeds alone, as a share of `J5SD`; lost ends on first seeds under `CB`; steps where the ball
+finds an end that `J5D` did not (gained); steps whose taken end moves over 0.05 degree under `BF`.
+
+| sample | steps | first seeds | first-seed saving | first lost | gained | moved over 0.05 |
+|---|---|---|---|---|---|---|
+| held5 | 3,556 | 282 | 1.13% | 7 | 83 | 90 |
+| held4 | 4,109 | 338 | 1.37% | 19 | 107 | 124 |
+| held3 | 3,391 | 293 | 1.38% | 10 | 72 | 79 |
+| held | 3,685 | 297 | 1.52% | 11 | 80 | 92 |
+| mid | 1,626 | 162 | 0.74% | 2 | 27 | 51 |
+| grad | 1,281 | 348 | 0.52% | 0 | 20 | 19 |
+| big | 330 | 39 | 0.07% | 0 | 0 | 5 |
+| held6 | 4,109 | 339 | 1.19% | 19 | 113 | 105 |
+
+Reseed steps hold about 95% of the index stage on the `held` types, so a rule for first seeds only
+saves 0.7% to 1.5% of `J5SD`. Most moved ends are gained steps: a 0.95 end in place of a lower one.
+
+The fallback steps are the largest pot left, and they cannot be cut by a threshold. Reading line:
+per sample, fallback steps that `J5D` resolves (lost under `CB`) and that it does not (never); the
+stock stage 2 inside the never steps, and the whole never steps, as shares of `J5SD`; the median
+own hit ratio of the best ball end in lost and in never steps; the median hit ratio of `J5D`'s end
+in never steps; lost steps whose 0.95 end came from the candidate with the best ball end.
+
+| sample | lost | never | stock stage 2 in never | never steps | ball hit lost / never | J5D never | best cand. |
+|---|---|---|---|---|---|---|---|
+| held5 | 309 | 464 | 15.7% | 20.3% | 0.761 / 0.736 | 0.886 | 92 |
+| held4 | 406 | 493 | 19.1% | 23.8% | 0.771 / 0.759 | 0.896 | 94 |
+| held3 | 284 | 529 | 20.6% | 26.3% | 0.765 / 0.744 | 0.893 | 70 |
+| held | 352 | 425 | 18.8% | 23.7% | 0.762 / 0.760 | 0.899 | 112 |
+| mid | 70 | 103 | 11.1% | 13.9% | 0.847 / 0.817 | 0.888 | 18 |
+| grad | 19 | 78 | 5.0% | 7.5% | 0.829 / 0.858 | 0.886 | 15 |
+| big | 2 | 4 | 1.9% | 2.3% | 0.849 / 0.894 | 0.945 | 1 |
+| held6 | 330 | 474 | 16.4% | 20.5% | 0.765 / 0.759 | 0.901 | 98 |
+
+In never steps the stock stage does real work: it lifts the end from a median 0.74 to 0.76 to a
+median 0.89 to 0.90, over the 0.80 seed test. The ball hit ratios of lost and never steps are
+nearly the same, so a hit-ratio threshold cannot tell them apart. A fallback on the best ball
+candidate only would keep 23% to 32% of the lost ends. Lost ends come from all five candidate
+positions (the first holds 27% to 32%); on the `held` types the MC end lies a median 0.62 to 0.67
+degree from the same candidate's CMA end (66% to 68% over 0.5 degree), and the refinement's last
+gain comes a median 467 to 516 evaluations in (quartiles about 320 and 900).
+
+Candidate (a), stop the stock stage's polishing between restarts, has almost nothing to cut. In
+`variance_minimizing_optimize` every failed block (11 evaluations) restarts at once about the first
+stage's best; polishing happens only after a gain. A bound of 12 evaluations per stage-2 gain (one
+failed polishing block and the repeated start evaluation) is 1.5% to 1.9% of `J5SD` on the `held`
+types, 1.1% on `mid`, 0.2% on `grad` and `big`.
+
+**Terms.** **Hit ratio**: the share of simulated peaks that land on lit pixels; always the voxel's
+**own** hit ratio. **Seed step**: index the voxel, cost 20 candidates, then for the best 5 in turn
+a CMA fit and, under 0.95, an MC refinement from the same candidate; it stops at the first end at
+0.95 or more, else takes the lowest-cost end. **Seed test**: the taken end's hit ratio must reach
+0.80, else the rescue (`G1`, `G2b`) and then a grid search run. **First seed** / **reseed**: a seed
+step on a voxel no fit has reached / on the centre voxel of a cluster that BFS left unfitted.
+**MC refinement**, **first stage**, **second stage** (the stock variance stage), **box**, **gain**,
+**ball of radius r**: as in step 23. **Ball stage**: step 23's rule `CB` stage (start at the first
+stage's best, radius the box, halve after 10 proposals in a row with no gain, end under 0.01
+degree or at 300 proposals). **Ball pass**: the seed step with the ball stage as each refinement's
+second stage. **Kept state**: a refinement's best orientation, cost, evaluation count and generator
+state at the end of its first stage. **Fallback**: `J5D`'s seed step run again from the kept
+states. **Lost** / **gained**: `J5D` has an end at 0.95 and the arm has none / the other way round.
+**Never step**: neither has one. **Check**, **`PH(500)`**, **`DEF`**: as in step 22. **Right** /
+**wrong**: at most / over 1 degree from the truth (symmetry-reduced). **Fixed** / **broken**: by
+voxel. **Arm `J5DB`**: `J5D` with rule `BF`; **`J5SDB`**: `J5DB` with step 21's screen pass and wide
+repair. **Replay**: a stored seed step of `J5D` run again alone, from the same voxel and image.
+
+**The rule, frozen now.** Rule `BF` (ball first). The seed step runs in two passes.
+1. Ball pass. For the best 5 candidates in turn: the CMA fit as now; if its end is under 0.95, the
+   MC refinement's first stage as now, then its kept state is stored, then the ball stage runs on
+   a copy of the refinement's generator. The pass stops at the first end at 0.95 or more, and the
+   step takes it.
+2. Fallback, only if no end of the ball pass reaches 0.95. `J5D`'s seed step runs as it always
+   does (`PH(500)`, `DEF`, candidate order, pauses and resumes), with two changes: each CMA fit is
+   taken from the ball pass, not run again, and each MC refinement starts its stock second stage
+   from its kept state, not from the candidate. Its result is `J5D`'s result for that step,
+   evaluation by evaluation. If no end reaches 0.95, the lowest-cost end of the fallback is taken,
+   as in `J5D`.
+The ball stage's constants (10, 0.01 degree, 300, the box as start radius) are step 23's, not
+changed and not tuned. No new threshold, no hit ratio inside the stages, no neighbour, no truth, no
+crystal symmetry. Each voxel is fitted on its own, so grains with orientation gradients need
+nothing special. Unchanged: costing, CMA fits, 0.80, 0.95, `G1`, `G2b`, the grid search with its own
+final refinement, BFS, the screen pass and the wide repair. Every evaluation of both passes counts,
+including the ball stage in steps that fall back. The rule was chosen looking at the eight
+disclosed samples.
+
+**Samples, and what has touched them.** `held5`, `held4`, `held3`, `held`, `mid`, `grad`, `big`
+and `held6`: disclosed; the rule was chosen looking at their records. `held2`: not used, not
+opened. `fine7`: not read. Clean test: a new sample `held7`, built by `held_make_sample.py` exactly
+as `held` (250 Voronoi grains, 24,570 voxels, gradients 0 to 4 degrees) with generator seed 7, as
+earlier steps built `held3` to `held6`: a new sample, not an extra random seed. Step 23 stopped
+before building it, so nothing of it exists. Nobody reads its logs or maps before its runs and
+passes end. Clean images, Q-max 8.
+
+**Measured.** Seed-step evaluations, split into costing, CMA fits, first stage, ball stage and
+fallback stage 2; steps that fall back, lost and gained steps (Wilson 95%); taken ends that move
+over 0.05 degree; seed-test failures, rescues (`G1`, `G2b`) and grid searches; evaluations by stage;
+wrong voxels (Wilson 95%); fixed and broken against `J5SD` and `S8`; median error over all 24,570
+voxels; wall seconds of the `mid` runs under the timing preflight (reported, not gated). For a later
+study, every fallback step also writes one feature row at no extra evaluation: the five ball ends'
+and CMA ends' own hit ratios and costs, their spread in angle, and whether the fallback found 0.95.
+
+**Predictions, written before any run.**
+1. Replay on `mid`: the 1,453 steps that end in the ball pass equal step 23's stored rows (stop,
+   taken end, evaluations); the 173 fallback steps equal `J5D`'s stored steps (fits, stop, taken
+   end); the index stage is 2,099,764 evaluations exactly; 0 lost ends; 0 checks and 0 pauses in
+   the ball pass.
+2. The tracked sizing script reproduces the first table exactly on all eight samples.
+3. Live `J5SDB` against `J5SD`: 4.5% to 10% fewer evaluations on the `held` types, 5% to 9.5% on
+   `mid`, 2% to 5% on `grad`, 1.5% to 4% on `big`; broken minus fixed -3 to +3; grid searches within
+   2 of `J5SD`'s; seed-test failures within 10 of `J5SD`'s; median error within 0.0005 degree.
+4. `held7`: 4.5% to 10% fewer evaluations than `J5SD`; broken minus fixed -3 to +3; median error
+   within 0.0005 degree; the house rule against `S8` passes.
+
+**Decision rules, fixed now.** Gate, on the disclosed samples, before `held7` is built: (g0)
+prediction 1, exactly; (g1) prediction 2, exactly, with lost 0.95 ends at most 3% of the steps on
+every sample (by construction 0; any lost end is a bug and stops the step; the Wilson upper bound
+is reported, for example 0 of 3,685 on `held`: 0% to 0.10%) and the index stage at least 10% fewer
+evaluations than `J5D`'s on the `held` types and `mid`; (g2) live `J5SDB` on `mid` and `held`: at
+least 4% fewer evaluations than `J5SD`, broken minus fixed at most 3, median error at most 0.001
+degree higher, grid searches at most 2 more than `J5SD`'s, seed-test failures at most 10 more. Gate
+fails: stop, report, no tuning (no change of the ball's constants or of the fallback), no `held7`.
+Then `J5SDB` passes on a sample if, against `J5SD`: (1) at least 4% fewer evaluations on the `held`
+types and `mid`, 1.5% on `grad`, 1% on `big`; (2) broken minus fixed at most 3; (3) median error at
+most 0.001 degree higher; (4) the house rule against `S8`: at least 20% fewer evaluations, broken
+minus fixed at most 5, median error at most 0.005 degree higher. The step passes if `J5SDB` passes
+on `held7` and on the four disclosed samples run live (`mid`, `held`, `grad`, `big`). Fails on
+`held7`: no key value; study merge. Rule (2) allows 3, as step 22: only steps that end in the ball
+pass can change, and 79 to 124 taken ends a `held` sample move over 0.05 degree, fewer than step
+22's 172 to 251 C steps. The 4% bar sits under the smallest stored saving on a `held` type (5.36%
+on `held3`). Set now, before any run.
+
+**Validity checks.** The first stage of every refinement equals `J5D`'s (`mid`). The ball stage
+draws from a copy of the generator state at the end of the first stage, so its draws equal step
+23's and the fallback's draws equal `J5D`'s; both are checked on `mid`. CMA fits and first stages
+are never run twice in a step: the fallback reads them from the ball pass, and the script counts
+them once. Every other evaluation is counted, checks and final evaluations included. `PH(500)` and
+`DEF` cannot fire in the ball pass (the first stage stops after three failed blocks; the ball has
+at most 300 proposals); the runs must show zero checks and pauses there, else stop. The arm reads
+no truth. Steps whose taken end moves over 0.05 degree from `J5D`'s are listed with both ends.
+Guards on `held2`, `held7` and `fine7`.
+
+**Machine.** Runs go one at a time (owner rule of 16 Nov). Replay on `mid` (about 2.1 million;
+step 23's replays ran 2.2 to 3.7 million an hour, so under 1 hour). Gate: `J5DB` live on `mid` and
+`held`, each then the screen pass and the wide repair (about 22 million). Then `J5SDB` live on
+`grad` and `big` (about 8 million). Then `held7` built (about 15 minutes); `S8` (about 68
+million); `J5D` and its passes (about 23 million); `J5DB` and its passes (about 21 million). In all
+about 144 million live. Step 22's live runs did 9 to 20 million an hour, so 7 to 16 hours, plus
+about 1.25 hours for the replay and the build: about 8 to 17 hours of wall time, one run at a time.
+Caps: 480 minutes for `S8`, 300 the rest. `S8` and `J5SD` on `held7` stay as clean baselines for
+later steps.
+
+**Stop rule:** stop and report if a stored count does not reproduce (the tables above), if
+prediction 1 or 2 fails, if any lost end appears, if the gate fails, if any check or pause fires in
+the ball pass, if `J5DB` runs on any sample before `ar5/bf/frozen.json` is committed, if `held7`'s
+logs or maps are read before its runs and passes end, if anything of `held2` is opened or listed,
+if `fine7` is read, or if a run hits its cap.
+
+**Phase A (script layer).** 1. Link step 23's replay rows and step 22's cache read only; check the
+counts of the three tables with `bf_size.py`; write only into this step's cache. 2. Tests first,
+`tests/test_ar5_bf.py`: the ball pass stops at the first end at 0.95; the fallback runs only when
+the ball pass has none; the fallback equals `defer_rules.run_seed_step` with cached CMA fits and
+kept states (no CMA fit or first stage run twice); the generator copy (ball draws equal step 23's,
+fallback draws equal `J5D`'s); every evaluation counted, the ball stage in fallback steps included;
+zero checks and pauses in the ball pass; rule off gives `J5D`; guards on `held2`, `held7`,
+`fine7`. 3. Commit `frozen.json` (rule, constants, gate, decision rules, hashes). 4. g0: replay on
+`mid`. 5. g1: `bf_size.py` on the eight samples. 6. g2: `J5SDB` live on `mid` and `held`. 7.
+`J5SDB` on `grad` and `big`. 8. Build `held7` (pilot first); `S8`, `J5D` with passes, `J5DB` with
+passes. Plot first (run evaluations against wrong voxels: `S8`, `J5SD`, `J5SDB`, five panels);
+tables; predictions. "READY FOR KEY".
+
+**Phase B (key).** One opt-in key `SeedIndexMCBallFirst` (0 or 1, default 0, off), valid only with
+`SeedByIndexing`, `SeedIndexStopHitRatio` above 0 and `SeedIndexMCDefer` on: the seed step runs the
+ball pass, and falls back to the deferred stock refinement from the kept states. The grid search's
+own refinement and the BFS fits are untouched. Parsed in `config_file.py`, checked in
+`check_bfs_keys`. Unit tests; key-off suite with no golden change; key on, a library run on `mid`
+equal to the script arm `J5DBl` (step 22's `J5Dl` with `BF`: the library's draws, no `G2b`), the
+same map and evaluation count. Page `findings_ar5_bf.md` (plot first), history, pareto rows,
+README.
+
+**Files:** `scripts/autoresearch/ar5/bf_*.py`, `tests/test_ar5_bf.py`,
+`benchmarks/autoresearch/ar5/bf/` (under 3 MB tracked; the cache untracked).
+
+**Library changes:** none in phase A (the script layer builds the two passes from step 23's ball
+stage and step 22's deferred step, as earlier steps did); phase B the key, if the step passes: the
+MC refinement can return its kept state after the first stage and run the ball stage on a copy of
+its generator, and the deferred seed step can start a refinement's stock stage from a kept state
+(step 22's pause and resume already keep state and generator). The C++ code is not changed. With
+the key off the library does exactly what it does now.
+
+**What would make us stop the line.** The gate fails; `held7` saves under 4% against `J5SD` or
+breaks more than 3 net; or the moved seed ends shift BFS so that seed-test failures, rescues and
+grid searches eat the saving.
+
+**Not in this step.** A stop for the never steps (20% to 26% of `J5SD` on the `held` types, the
+largest pot; but the stock stage lifts their ends over the 0.80 seed test, and `CB` alone sent 480
+to 558 seeds a `held` sample under it, so a skip needs a predictor and the rescue's cost; this
+step's feature rows are for that study); a wider CMA fit or more candidates for reseeds; candidate
+(a); first seeds alone; the grid search; `held6` live; the stock MC fit in BFS; the first stage's
+schedule; the ball's constants; learned proposals; realistic images; other crystals; a C++ change;
+another random seed; `held2`; `fine7`.
+
+**Choices made.**
+- This idea: keep step 23's ball where it works and pay for the wide stock stage only where it is
+  needed. A general early stop (defer a slow search while a cheap one has not failed), no model, no
+  new threshold, no tuned constant, symmetry-agnostic. Sized exactly from stored rows: 5.4% to 8.7%
+  of `J5SD` on the `held` types, 7.4% on `mid`, 3.8% on `grad`, 2.8% on `big`; 0 lost ends by
+  construction; seed-test failures equal to or below `J5D`'s. Weak side: the saving is modest; the
+  ball costs 2.3% to 3.1% of `J5SD` in the steps that fall back; the never steps, the largest pot,
+  are left as they are; live BFS routes change through 79 to 124 moved seed ends a `held` sample,
+  which only live runs can judge. Chosen looking at eight disclosed samples, so `held7` is the only
+  clean test. About 8 to 17 hours, one run at a time.
+- Runners-up: (b) the ball on first seeds only (0.7% to 1.5% of `J5SD`; reseeds hold about 95% of
+  the index stage); (a) stop the stock stage's polishing between restarts (at most 1.1% to 1.9%; a
+  failed block already restarts at once); (c) more candidates or a wider CMA fit for reseeds (lost
+  ends come from all five positions and lie a median 0.62 to 0.67 degree from the same candidate's
+  CMA end, so more candidates do not target them; a wider CMA fit might, but no stored trace sizes
+  it: it needs a replay of about 800 fallback steps a `held` sample); a fallback gated by the ball's
+  hit ratio (lost and never steps have nearly the same ball hit ratios); a fallback on the best
+  ball candidate only (keeps 23% to 32% of lost ends); a cap on the fallback's stage 2 (tuning a cap
+  on the disclosed samples against the 3% limit); (d) the grid search (8% to 24%; step 10's cut
+  failed and there is no new idea); a full replay of `held` (about 7.7 million at replay speed,
+  2 to 3.5 hours; prediction 1 on `mid` already tests both halves exactly, and `held` runs live).
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
