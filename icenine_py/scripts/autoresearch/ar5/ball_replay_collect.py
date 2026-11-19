@@ -155,7 +155,11 @@ def inside(x: float, lo: float, hi: float) -> bool:
 def main() -> int:
     if len(sys.argv) > 1 and sys.argv[1] == "g0":
         return g0()
-    rows = {s: one(s) for s in ORDER}
+    names = ORDER
+    if "--samples" in sys.argv:
+        names = tuple(sys.argv[sys.argv.index("--samples") + 1].split(","))
+    partial = tuple(names) != tuple(ORDER)
+    rows = {s: one(s) for s in names}
     g = BR.GATE
     g1: Dict[str, Any] = {}
     for s, r in rows.items():
@@ -186,8 +190,18 @@ def main() -> int:
             floor_inside=bool(r["floor_share"] >= 0.90),
             end_steps_inside=bool(abs(r["end_steps_rel"]) <= 0.03),
         )
-    out = dict(rows=rows, g1=g1, g1_passes=bool(ok), prediction_2=pred, gate=BR.GATE)
-    (RD / "replay.json").write_text(json.dumps(out, indent=1) + "\n")
+    out = dict(
+        rows=rows,
+        g1=g1,
+        g1_passes=bool(ok and not partial),
+        g1_fails_already=bool(not ok),
+        complete=bool(not partial),
+        samples=list(names),
+        prediction_2=pred,
+        gate=BR.GATE,
+    )
+    tag = "_partial" if partial else ""
+    (RD / f"replay{tag}.json").write_text(json.dumps(out, indent=1) + "\n")
     cols = [
         "sample",
         "steps",
@@ -236,7 +250,7 @@ def main() -> int:
         for s, r in rows.items()
     ]
     DT.write_tables(
-        RD / "replay_tables.md",
+        RD / f"replay{tag}_tables.md",
         dict(
             ar5_ball_replay=DT.markdown_table(
                 tab,
@@ -273,8 +287,12 @@ def main() -> int:
             f"{r['lost']} ({100 * r['lost_share']:.2f}%) gained {r['gained']} moved "
             f"{r['moved_over_0_05']}"
         )
-    print("g1 passes:", ok)
-    return 0 if ok else 1
+    print(
+        "g1 passes:",
+        ok and not partial,
+        "(partial: only a failure is conclusive)" if partial else "",
+    )
+    return 0 if (ok and not partial) else 1
 
 
 if __name__ == "__main__":
