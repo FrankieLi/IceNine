@@ -386,6 +386,25 @@ GP_ARMS = {"GP4@P": 400, "GP6@P": 600}  # GO5l: polish budget
 SEED = 0  # GO5e: offset added to every CMA seed (--seed)
 
 
+def grad_errors(fit_vox: np.ndarray, gt_vox: np.ndarray) -> Dict[str, float]:
+    """GO5q: error of the intragranular part (deviation from the grain mean): RMS over voxels of
+    the tensor RMS of fitted minus ground-truth deviation, absolute and relative to the
+    ground-truth deviation RMS; and the per-voxel strain error RMS."""
+    fd = fit_vox - fit_vox.mean(0)
+    gd = gt_vox - gt_vox.mean(0)
+
+    def rms(x: np.ndarray) -> float:
+        return float(np.sqrt(np.mean([tensor_rms(r) ** 2 for r in x])))
+
+    g = rms(gd)
+    return dict(
+        grad_err=rms(fd - gd),
+        grad_gt=g,
+        grad_rel=rms(fd - gd) / g if g > 0 else 0.0,
+        vox_err=rms(fit_vox - gt_vox),
+    )
+
+
 def cma_min(f: Any, x0: np.ndarray, stds: np.ndarray, evals: int, seed: int = 0) -> Dict[str, Any]:
     import cma
 
@@ -453,6 +472,9 @@ def main() -> None:
     ap.add_argument("--psf_sigma", type=float, default=0.0)
     ap.add_argument("--cen_split", action="store_true")
     ap.add_argument("--ratio_hi", type=float, default=None)
+    ap.add_argument("--grad", action="store_true", help="GO5q: 6 + 12 strain numbers per grain")
+    ap.add_argument("--evals_g", type=int, default=600)
+    ap.add_argument("--sample", default="strain")
     ap.add_argument("--cen_w", default="int", choices=["int", "bin", "binclean", "intclean"])
     ap.add_argument("--stack", default=None, help="GO5m: stack file in place of strain_clean.npy")
     a = ap.parse_args()
@@ -477,8 +499,10 @@ def main() -> None:
         tag += "_split"
     if a.ratio_hi is not None:
         tag += f"_r{a.ratio_hi:g}"
+    if a.grad:
+        tag += "_grad"
     start = "paint" if a.arm.endswith("@P") else "truth"
-    S = CM.Sample(out / f"run_{tag}", start=start, intensity=True, sample="strain", stack=a.stack)
+    S = CM.Sample(out / f"run_{tag}", start=start, intensity=True, sample=a.sample, stack=a.stack)
     T = S.T
     gm = np.asarray(T.gmap)
     label = CM.C.preflight_label(out / f"run_{tag}")
@@ -518,18 +542,33 @@ def main() -> None:
         # re-expression GrainProblem applies to a strain when it swaps representatives
         ops = GF.align_ops(T.R[members], prob.R_start[0], S.sym)
         R_gt = GF.align_to(T.R[members], prob.R_start[0], S.sym)
-        eps_gt = GF.rotate_strain(T.strain[members], ops)[0]
+        eps_gt_vox = GF.rotate_strain(T.strain[members], ops)
+        eps_gt = eps_gt_vox.mean(0) if a.grad else eps_gt_vox[0]
         Rg = torch.as_tensor(R_gt, dtype=GF.DT)
+        xy_m = np.asarray(S.xy[members], float)  # GO5q: normalised in-plane voxel offsets
+        d_m = xy_m - xy_m.mean(0)
+        d_m = d_m / max(float(np.sqrt((d_m**2).sum(1).mean())), 1e-12)
+        NP = 18 if a.grad else 6
+
+        def eps_np(e: np.ndarray) -> np.ndarray:
+            e = np.asarray(e, float)
+            if e.ndim == 2:
+                return e
+            if len(e) == 18:  # mean + in-plane linear gradient D (6 x 2)
+                return e[:6] + d_m @ e[6:].reshape(6, 2).T
+            return np.tile(e, (n, 1))
 
         def eps_of(e6: np.ndarray) -> torch.Tensor:
-            return torch.as_tensor(np.tile(e6, (n, 1)), dtype=GF.DT)
+            return torch.as_tensor(eps_np(e6), dtype=GF.DT)
 
-        f_gt = cov(Rg, eps_of(eps_gt))
+        f_gt = cov(Rg, eps_of(eps_gt_vox))
         f_gt_unstr = cov(Rg, zero)
         field = prob.field
         info: Dict[str, Any] = {}
         if a.arm == "E@GT":
-            r = cma_min(lambda e: cov(Rg, eps_of(e)), np.zeros(6), np.full(6, STEP_EPS), a.evals_e)
+            r = cma_min(
+                lambda e: cov(Rg, eps_of(e)), np.zeros(NP), np.full(NP, STEP_EPS), a.evals_e
+            )
             eps_fit, R_fit = r["x"], R_gt
         else:
             th0 = prob.theta0
@@ -560,8 +599,8 @@ def main() -> None:
             def fj(x: np.ndarray) -> float:
                 return cov_j(field.orientations(torch.as_tensor(x[:k], dtype=GF.DT)), eps_of(x[k:]))
 
-            def stds(rot: float, eps: float) -> np.ndarray:
-                return np.concatenate([np.full(k, rot), np.full(6, eps)])
+            def stds(rot: float, eps: float, ne: int = 6) -> np.ndarray:
+                return np.concatenate([np.full(k, rot), np.full(ne, eps)])
 
             if a.arm in GN_ARMS:  # GO5i: Gauss-Newton on centroid residuals (GO5j: + rounds)
                 cen_o, th_cur = SubPix(prob, "cen"), np.array(th0, float)
@@ -633,6 +672,17 @@ def main() -> None:
                 else:
                     fg = fj(xg)
                     r = dict(x=xg, f0=fg, f=fg, evals=0, stop="gn")
+                if a.grad:  # GO5q: strain leg over mean + gradient at the fitted field
+                    th_f = torch.as_tensor(r["x"][:k], dtype=GF.DT)
+                    e0 = np.concatenate([r["x"][k : k + 6], np.zeros(12)])
+                    rg_ = cma_min(
+                        lambda e: cov(field.orientations(th_f), eps_of(e)),
+                        e0,
+                        np.full(18, 2e-4),
+                        a.evals_g,
+                    )
+                    info["grad_leg"] = {k_: rg_[k_] for k_ in ("f0", "f", "evals", "stop")}
+                    r = dict(rg_, x=np.concatenate([r["x"][:k], rg_["x"]]))
             elif a.arm in ("E@F", "O@P", "Ost@P"):  # GO5d: strain only at the fixed field
                 th_t = torch.as_tensor(th0, dtype=GF.DT)
                 rs = cma_min(
@@ -650,8 +700,8 @@ def main() -> None:
                 th_t = torch.as_tensor(th0, dtype=GF.DT)
                 rs = cma_min(
                     lambda e: cov_e(field.orientations(th_t), eps_of(e)),
-                    np.zeros(6),
-                    np.full(6, STEP_EPS),
+                    np.zeros(NP),
+                    np.full(NP, STEP_EPS),
                     a.evals_e,
                 )
                 info["strain"] = {k_: rs[k_] for k_ in ("f0", "f", "evals", "stop")}
@@ -660,7 +710,7 @@ def main() -> None:
                 x = np.concatenate([th0, rs["x"]])
                 info["legs"] = []
                 for i, ev in enumerate(legs):
-                    r = cma_min(fj, x, stds(rot, ep), ev, seed=i)
+                    r = cma_min(fj, x, stds(rot, ep, NP), ev, seed=i)
                     info["legs"].append({k_: r[k_] for k_ in ("f0", "f", "evals", "stop")})
                     x = r["x"]
                     rot, ep = rot / 2, ep / 2
@@ -679,6 +729,8 @@ def main() -> None:
             psf_sigma=a.psf_sigma,
             cen_split=a.cen_split,
             ratio_hi=a.ratio_hi,
+            grad=a.grad,
+            sample=a.sample,
             stack=a.stack,
             seed=a.seed,
             grain=int(g),
@@ -687,8 +739,9 @@ def main() -> None:
             n_spots=prob.n_spots,
             eps_gt=eps_gt.tolist(),
             eps_fit=eps_fit.tolist(),
-            err_rms=tensor_rms(eps_fit - eps_gt),
-            err_comp=(eps_fit - eps_gt).tolist(),
+            err_rms=tensor_rms(eps_fit[:6] - eps_gt),
+            err_comp=(eps_fit[:6] - eps_gt).tolist(),
+            **grad_errors(eps_np(eps_fit), eps_gt_vox),
             f_fit=float(r["f"]),
             f_gt=f_gt,
             f_gt_unstrained=f_gt_unstr,
@@ -709,6 +762,7 @@ def main() -> None:
                         "level",
                         "n_vox",
                         "err_rms",
+                        "grad_rel",
                         "f_fit",
                         "f_gt",
                         "f_gt_unstrained",

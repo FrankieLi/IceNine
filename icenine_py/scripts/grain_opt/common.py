@@ -76,6 +76,13 @@ class SampleTruth:
         self.strain = (
             np.stack([self.eps_of[int(g)] for g in self.gmap]) if self.eps_of else None
         )
+        # GO5q: per-voxel strain (mean + intragranular gradient) when the sample has one
+        self.has_grad = (d / "strain_vox.npy").exists()
+        if self.has_grad:
+            self.strain = np.load(d / "strain_vox.npy")
+        self.grad_of = {g["id"]: np.array(g["grad"]) for g in info["grains"] if "grad" in g}
+        self.centroid_of = {g["id"]: np.array(g["centroid"]) for g in info["grains"] if "grad" in g}
+        self.radius_of = {g["id"]: float(g["radius"]) for g in info["grains"] if "grad" in g}
 
     def err(self, R: np.ndarray, idx: Any = slice(None)) -> np.ndarray:
         from icenine.ray_indexing import misorientation_deg

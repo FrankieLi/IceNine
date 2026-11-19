@@ -21,7 +21,8 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Running jobs
 
-- None.
+- GO5q (started 2026-11-18 21:05 PST): four `fit_strain.py --sample straing --out go5q` arms
+  (E@GT mean, E@GT --grad, S@P --grad, GP4@P --grad). Do not start a second copy.
 
 ## Data (git-ignored, in this worktree; link, do not copy)
 
