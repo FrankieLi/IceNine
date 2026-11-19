@@ -2186,3 +2186,14 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   contended. A PS slice over 1 hour makes a whole-layer PS run over 48 hours likely: the owner is
   asked before it starts. Where: icenine_py/docs/autoresearch/PLAN.md (Owner task of 16 Nov, part
   2).
+
+### D-20261119-N1 · AR5 step 23 · AR5 step 23 approved: converging ball for the seed refinement's second MC stage
+- 2026-11-19, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Step 23 (task ar5w) is approved as placed in PLAN.md
+  (1d6bca35): rule CB replaces the second (variance) stage of the seed step's MC refinement with a
+  shrinking ball (start radius the box, halve after 10 failures in a row, end under 0.01 degree or
+  after 300 proposals); gate on the disclosed samples, clean test held7; phase B key
+  SeedIndexMCBall only after a recorded decision. Runs go one at a time (owner rule of 16 Nov) and
+  give way to the owner's finer-layer runs (J5S rerun, stock Python) if the owner approves those.
+  Ceiling 20% to 33% of J5SD on the held types is arithmetic, not a measurement. Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR5 step 23).
