@@ -14,8 +14,9 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
   voxel noise) at the existing levels; test the fast fit (filter 2.5) and the CMA hybrid with the
   strain parameterisation extended per grain; scripts only, no library change beyond the opt-in
   strain path unless the owner is asked first.
-- **I25:** scoped (no weights or data here; 3.2 GB dataset + 60-epoch training); waits for the
-  owner's own confirmation.
+- **I25:** approved by the owner (D-20261118-I1, 2026-11-19 05:54 UTC, "I approve - go ahead and
+  try them"), with I60-I64; low priority, after the strain queue. Scoped: 3.2 GB dataset +
+  60-epoch training, no weights here.
 - **Strain queue after GO5q** (owner, 2026-11-19 05:50 UTC via the coordinator; selected from the
   literature review in the sibling thread "Review neural methods for grain gradients"): I60
   gradient-based (Gauss-Newton / LM) gradient fit, then I61 non-linear gradient sample `straingq`,
