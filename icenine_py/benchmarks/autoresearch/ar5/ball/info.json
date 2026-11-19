@@ -1,0 +1,727 @@
+{
+ "label": "disclosed, for information; the step failed its gate",
+ "samples": {
+  "held5": {
+   "replay": {
+    "sample": "held5",
+    "steps": 3556,
+    "j5d_evals": 8690640,
+    "evals": 3398238,
+    "fewer": 0.6089772444837205,
+    "refinements": 6248,
+    "mean_refinement_evals": 262.79353393085785,
+    "floor_share": 1.0,
+    "cap_ends": 0,
+    "mean_proposals": 69.63604353393086,
+    "mean_halvings": 6.0,
+    "j5d_end_steps": 3009,
+    "end_steps": 2783,
+    "end_steps_rel": -0.07510800930541708,
+    "lost": 309,
+    "lost_share": 0.08689538807649044,
+    "lost_share_of_ended": 0.10269192422731804,
+    "gained": 83,
+    "tried_mean": 2.357705286839145,
+    "j5d_tried_mean": 2.2542182227221597,
+    "costing": 71120,
+    "cma": 1685184,
+    "stage1": 1194352,
+    "stage2": 441334,
+    "final": 6248,
+    "first_stage_unequal": 0,
+    "checks": 0,
+    "moved_over_0_05": 711,
+    "split_sum_ok": true
+   },
+   "kinds": {
+    "first": {
+     "steps": 282,
+     "j5d_end": 266,
+     "lost": 7,
+     "gained": 4
+    },
+    "reseed": {
+     "steps": 3274,
+     "j5d_end": 2743,
+     "lost": 302,
+     "gained": 79
+    }
+   },
+   "where": {
+    "n": 309,
+    "zone": {
+     "stage1": 0,
+     "stage2_first_block": 0,
+     "stage2_later": 309,
+     "candidate_not_refined_by_CB": 0
+    },
+    "dist": {
+     "0-0.1": 2,
+     "0.1-0.33": 29,
+     "0.33-0.64": 114,
+     "over 0.64": 164
+    },
+    "cross": {
+     "stage1": {
+      "0-0.1": 0,
+      "0.1-0.33": 0,
+      "0.33-0.64": 0,
+      "over 0.64": 0
+     },
+     "stage2_first_block": {
+      "0-0.1": 0,
+      "0.1-0.33": 0,
+      "0.33-0.64": 0,
+      "over 0.64": 0
+     },
+     "stage2_later": {
+      "0-0.1": 2,
+      "0.1-0.33": 29,
+      "0.33-0.64": 114,
+      "over 0.64": 164
+     }
+    }
+   }
+  },
+  "held4": {
+   "replay": {
+    "sample": "held4",
+    "steps": 4109,
+    "j5d_evals": 10882299,
+    "evals": 3884631,
+    "fewer": 0.6430321387052497,
+    "refinements": 7117,
+    "mean_refinement_evals": 264.05550091330616,
+    "floor_share": 1.0,
+    "cap_ends": 0,
+    "mean_proposals": 70.4966980469299,
+    "mean_halvings": 6.0,
+    "j5d_end_steps": 3509,
+    "end_steps": 3210,
+    "end_steps_rel": -0.08520946138500997,
+    "lost": 406,
+    "lost_share": 0.09880749574105621,
+    "lost_share_of_ended": 0.11570247933884298,
+    "gained": 107,
+    "tried_mean": 2.3285470917498174,
+    "j5d_tried_mean": 2.2058895108298855,
+    "costing": 82180,
+    "cma": 1923168,
+    "stage1": 1363324,
+    "stage2": 508842,
+    "final": 7117,
+    "first_stage_unequal": 0,
+    "checks": 0,
+    "moved_over_0_05": 858,
+    "split_sum_ok": true
+   },
+   "kinds": {
+    "first": {
+     "steps": 338,
+     "j5d_end": 316,
+     "lost": 19,
+     "gained": 4
+    },
+    "reseed": {
+     "steps": 3771,
+     "j5d_end": 3193,
+     "lost": 387,
+     "gained": 103
+    }
+   },
+   "where": {
+    "n": 406,
+    "zone": {
+     "stage1": 0,
+     "stage2_first_block": 0,
+     "stage2_later": 406,
+     "candidate_not_refined_by_CB": 0
+    },
+    "dist": {
+     "0-0.1": 1,
+     "0.1-0.33": 27,
+     "0.33-0.64": 176,
+     "over 0.64": 202
+    },
+    "cross": {
+     "stage1": {
+      "0-0.1": 0,
+      "0.1-0.33": 0,
+      "0.33-0.64": 0,
+      "over 0.64": 0
+     },
+     "stage2_first_block": {
+      "0-0.1": 0,
+      "0.1-0.33": 0,
+      "0.33-0.64": 0,
+      "over 0.64": 0
+     },
+     "stage2_later": {
+      "0-0.1": 1,
+      "0.1-0.33": 27,
+      "0.33-0.64": 176,
+      "over 0.64": 202
+     }
+    }
+   }
+  },
+  "held3": {
+   "replay": {
+    "sample": "held3",
+    "steps": 3391,
+    "j5d_evals": 8840378,
+    "evals": 3287015,
+    "fewer": 0.6281816230029983,
+    "refinements": 6077,
+    "mean_refinement_evals": 262.81471120618727,
+    "floor_share": 1.0,
+    "cap_ends": 0,
+    "mean_proposals": 69.76040809610005,
+    "mean_halvings": 6.0,
+    "j5d_end_steps": 2790,
+    "end_steps": 2578,
+    "end_steps_rel": -0.07598566308243727,
+    "lost": 284,
+    "lost_share": 0.08375110586847538,
+    "lost_share_of_ended": 0.1017921146953405,
+    "gained": 72,
+    "tried_mean": 2.3798289590091417,
+    "j5d_tried_mean": 2.281922736655854,
+    "costing": 67820,
+    "cma": 1622070,
+    "stage1": 1161037,
+    "stage2": 430011,
+    "final": 6077,
+    "first_stage_unequal": 0,
+    "checks": 0,
+    "moved_over_0_05": 729,
+    "split_sum_ok": true
+   },
+   "kinds": {
+    "first": {
+     "steps": 293,
+     "j5d_end": 270,
+     "lost": 10,
+     "gained": 0
+    },
+    "reseed": {
+     "steps": 3098,
+     "j5d_end": 2520,
+     "lost": 274,
+     "gained": 72
+    }
+   },
+   "where": {
+    "n": 284,
+    "zone": {
+     "stage1": 0,
+     "stage2_first_block": 0,
+     "stage2_later": 284,
+     "candidate_not_refined_by_CB": 0
+    },
+    "dist": {
+     "0-0.1": 0,
+     "0.1-0.33": 31,
+     "0.33-0.64": 123,
+     "over 0.64": 130
+    },
+    "cross": {
+     "stage1": {
+      "0-0.1": 0,
+      "0.1-0.33": 0,
+      "0.33-0.64": 0,
+      "over 0.64": 0
+     },
+     "stage2_first_block": {
+      "0-0.1": 0,
+      "0.1-0.33": 0,
+      "0.33-0.64": 0,
+      "over 0.64": 0
+     },
+     "stage2_later": {
+      "0-0.1": 0,
+      "0.1-0.33": 31,
+      "0.33-0.64": 123,
+      "over 0.64": 130
+     }
+    }
+   }
+  },
+  "held": {
+   "replay": {
+    "sample": "held",
+    "steps": 3685,
+    "j5d_evals": 9129537,
+    "evals": 3433723,
+    "fewer": 0.623888593693196,
+    "refinements": 6301,
+    "mean_refinement_evals": 262.32820187271864,
+    "floor_share": 1.0,
+    "cap_ends": 0,
+    "mean_proposals": 69.5940326932233,
+    "mean_halvings": 6.0,
+    "j5d_end_steps": 3180,
+    "end_steps": 2908,
+    "end_steps_rel": -0.08553459119496855,
+    "lost": 352,
+    "lost_share": 0.0955223880597015,
+    "lost_share_of_ended": 0.11069182389937107,
+    "gained": 80,
+    "tried_mean": 2.304748982360923,
+    "j5d_tried_mean": 2.1872455902306647,
+    "costing": 73700,
+    "cma": 1707093,
+    "stage1": 1201816,
+    "stage2": 444813,
+    "final": 6301,
+    "first_stage_unequal": 0,
+    "checks": 0,
+    "moved_over_0_05": 718,
+    "split_sum_ok": true
+   },
+   "kinds": {
+    "first": {
+     "steps": 297,
+     "j5d_end": 278,
+     "lost": 11,
+     "gained": 4
+    },
+    "reseed": {
+     "steps": 3388,
+     "j5d_end": 2902,
+     "lost": 341,
+     "gained": 76
+    }
+   },
+   "where": {
+    "n": 352,
+    "zone": {
+     "stage1": 0,
+     "stage2_first_block": 0,
+     "stage2_later": 352,
+     "candidate_not_refined_by_CB": 0
+    },
+    "dist": {
+     "0-0.1": 3,
+     "0.1-0.33": 28,
+     "0.33-0.64": 145,
+     "over 0.64": 176
+    },
+    "cross": {
+     "stage1": {
+      "0-0.1": 0,
+      "0.1-0.33": 0,
+      "0.33-0.64": 0,
+      "over 0.64": 0
+     },
+     "stage2_first_block": {
+      "0-0.1": 0,
+      "0.1-0.33": 0,
+      "0.33-0.64": 0,
+      "over 0.64": 0
+     },
+     "stage2_later": {
+      "0-0.1": 3,
+      "0.1-0.33": 28,
+      "0.33-0.64": 145,
+      "over 0.64": 176
+     }
+    }
+   }
+  },
+  "mid": {
+   "replay": {
+    "sample": "mid",
+    "steps": 1626,
+    "j5d_evals": 2644672,
+    "evals": 1099560,
+    "fewer": 0.584235776686107,
+    "refinements": 1801,
+    "mean_refinement_evals": 263.4602998334259,
+    "floor_share": 1.0,
+    "cap_ends": 0,
+    "mean_proposals": 71.00943920044419,
+    "mean_halvings": 6.0,
+    "j5d_end_steps": 1496,
+    "end_steps": 1453,
+    "end_steps_rel": -0.02874331550802139,
+    "lost": 70,
+    "lost_share": 0.04305043050430504,
+    "lost_share_of_ended": 0.04679144385026738,
+    "gained": 27,
+    "tried_mean": 1.813038130381304,
+    "j5d_tried_mean": 1.7453874538745386,
+    "costing": 32520,
+    "cma": 592548,
+    "stage1": 343002,
+    "stage2": 129689,
+    "final": 1801,
+    "first_stage_unequal": 0,
+    "checks": 0,
+    "moved_over_0_05": 188,
+    "split_sum_ok": true
+   },
+   "kinds": {
+    "first": {
+     "steps": 162,
+     "j5d_end": 158,
+     "lost": 2,
+     "gained": 2
+    },
+    "reseed": {
+     "steps": 1464,
+     "j5d_end": 1338,
+     "lost": 68,
+     "gained": 25
+    }
+   },
+   "where": {
+    "n": 70,
+    "zone": {
+     "stage1": 0,
+     "stage2_first_block": 0,
+     "stage2_later": 70,
+     "candidate_not_refined_by_CB": 0
+    },
+    "dist": {
+     "0-0.1": 1,
+     "0.1-0.33": 15,
+     "0.33-0.64": 25,
+     "over 0.64": 29
+    },
+    "cross": {
+     "stage1": {
+      "0-0.1": 0,
+      "0.1-0.33": 0,
+      "0.33-0.64": 0,
+      "over 0.64": 0
+     },
+     "stage2_first_block": {
+      "0-0.1": 0,
+      "0.1-0.33": 0,
+      "0.33-0.64": 0,
+      "over 0.64": 0
+     },
+     "stage2_later": {
+      "0-0.1": 1,
+      "0.1-0.33": 15,
+      "0.33-0.64": 25,
+      "over 0.64": 29
+     }
+    }
+   }
+  },
+  "grad": {
+   "replay": {
+    "sample": "grad",
+    "steps": 1281,
+    "j5d_evals": 1255626,
+    "evals": 690503,
+    "fewer": 0.4500727127345244,
+    "refinements": 998,
+    "mean_refinement_evals": 254.54809619238478,
+    "floor_share": 1.0,
+    "cap_ends": 0,
+    "mean_proposals": 68.71543086172345,
+    "mean_halvings": 6.0,
+    "j5d_end_steps": 1183,
+    "end_steps": 1184,
+    "end_steps_rel": 0.0008453085376162299,
+    "lost": 19,
+    "lost_share": 0.01483216237314598,
+    "lost_share_of_ended": 0.016060862214708368,
+    "gained": 20,
+    "tried_mean": 1.5956284153005464,
+    "j5d_tried_mean": 1.6174863387978142,
+    "costing": 25620,
+    "cma": 410844,
+    "stage1": 183465,
+    "stage2": 69576,
+    "final": 998,
+    "first_stage_unequal": 0,
+    "checks": 0,
+    "moved_over_0_05": 75,
+    "split_sum_ok": true
+   },
+   "kinds": {
+    "first": {
+     "steps": 348,
+     "j5d_end": 345,
+     "lost": 0,
+     "gained": 0
+    },
+    "reseed": {
+     "steps": 933,
+     "j5d_end": 838,
+     "lost": 19,
+     "gained": 20
+    }
+   },
+   "where": {
+    "n": 19,
+    "zone": {
+     "stage1": 0,
+     "stage2_first_block": 0,
+     "stage2_later": 19,
+     "candidate_not_refined_by_CB": 0
+    },
+    "dist": {
+     "0-0.1": 0,
+     "0.1-0.33": 14,
+     "0.33-0.64": 5,
+     "over 0.64": 0
+    },
+    "cross": {
+     "stage1": {
+      "0-0.1": 0,
+      "0.1-0.33": 0,
+      "0.33-0.64": 0,
+      "over 0.64": 0
+     },
+     "stage2_first_block": {
+      "0-0.1": 0,
+      "0.1-0.33": 0,
+      "0.33-0.64": 0,
+      "over 0.64": 0
+     },
+     "stage2_later": {
+      "0-0.1": 0,
+      "0.1-0.33": 14,
+      "0.33-0.64": 5,
+      "over 0.64": 0
+     }
+    }
+   }
+  },
+  "big": {
+   "replay": {
+    "sample": "big",
+    "steps": 330,
+    "j5d_evals": 261653,
+    "evals": 143064,
+    "fewer": 0.4532300413142597,
+    "refinements": 171,
+    "mean_refinement_evals": 260.859649122807,
+    "floor_share": 1.0,
+    "cap_ends": 0,
+    "mean_proposals": 70.81871345029239,
+    "mean_halvings": 6.0,
+    "j5d_end_steps": 326,
+    "end_steps": 324,
+    "end_steps_rel": -0.006134969325153374,
+    "lost": 2,
+    "lost_share": 0.006060606060606061,
+    "lost_share_of_ended": 0.006134969325153374,
+    "gained": 0,
+    "tried_mean": 1.3848484848484848,
+    "j5d_tried_mean": 1.3727272727272728,
+    "costing": 6600,
+    "cma": 91857,
+    "stage1": 32155,
+    "stage2": 12281,
+    "final": 171,
+    "first_stage_unequal": 0,
+    "checks": 0,
+    "moved_over_0_05": 8,
+    "split_sum_ok": true
+   },
+   "kinds": {
+    "first": {
+     "steps": 39,
+     "j5d_end": 39,
+     "lost": 0,
+     "gained": 0
+    },
+    "reseed": {
+     "steps": 291,
+     "j5d_end": 287,
+     "lost": 2,
+     "gained": 0
+    }
+   },
+   "where": {
+    "n": 2,
+    "zone": {
+     "stage1": 0,
+     "stage2_first_block": 0,
+     "stage2_later": 2,
+     "candidate_not_refined_by_CB": 0
+    },
+    "dist": {
+     "0-0.1": 0,
+     "0.1-0.33": 1,
+     "0.33-0.64": 1,
+     "over 0.64": 0
+    },
+    "cross": {
+     "stage1": {
+      "0-0.1": 0,
+      "0.1-0.33": 0,
+      "0.33-0.64": 0,
+      "over 0.64": 0
+     },
+     "stage2_first_block": {
+      "0-0.1": 0,
+      "0.1-0.33": 0,
+      "0.33-0.64": 0,
+      "over 0.64": 0
+     },
+     "stage2_later": {
+      "0-0.1": 0,
+      "0.1-0.33": 1,
+      "0.33-0.64": 1,
+      "over 0.64": 0
+     }
+    }
+   }
+  },
+  "held6": {
+   "replay": {
+    "sample": "held6",
+    "steps": 4109,
+    "j5d_evals": 10054329,
+    "evals": 3684745,
+    "fewer": 0.6335165678385897,
+    "refinements": 6674,
+    "mean_refinement_evals": 262.8362301468385,
+    "floor_share": 1.0,
+    "cap_ends": 0,
+    "mean_proposals": 70.26985316152232,
+    "mean_halvings": 6.0,
+    "j5d_end_steps": 3522,
+    "end_steps": 3305,
+    "end_steps_rel": -0.06161272004542873,
+    "lost": 330,
+    "lost_share": 0.08031151131662205,
+    "lost_share_of_ended": 0.09369676320272573,
+    "gained": 113,
+    "tried_mean": 2.2380141153565343,
+    "j5d_tried_mean": 2.1577026040399123,
+    "costing": 82180,
+    "cma": 1848396,
+    "stage1": 1271840,
+    "stage2": 475655,
+    "final": 6674,
+    "first_stage_unequal": 0,
+    "checks": 0,
+    "moved_over_0_05": 746,
+    "split_sum_ok": true
+   },
+   "kinds": {
+    "first": {
+     "steps": 339,
+     "j5d_end": 316,
+     "lost": 19,
+     "gained": 1
+    },
+    "reseed": {
+     "steps": 3770,
+     "j5d_end": 3206,
+     "lost": 311,
+     "gained": 112
+    }
+   },
+   "where": {
+    "n": 330,
+    "zone": {
+     "stage1": 0,
+     "stage2_first_block": 0,
+     "stage2_later": 330,
+     "candidate_not_refined_by_CB": 0
+    },
+    "dist": {
+     "0-0.1": 2,
+     "0.1-0.33": 34,
+     "0.33-0.64": 136,
+     "over 0.64": 158
+    },
+    "cross": {
+     "stage1": {
+      "0-0.1": 0,
+      "0.1-0.33": 0,
+      "0.33-0.64": 0,
+      "over 0.64": 0
+     },
+     "stage2_first_block": {
+      "0-0.1": 0,
+      "0.1-0.33": 0,
+      "0.33-0.64": 0,
+      "over 0.64": 0
+     },
+     "stage2_later": {
+      "0-0.1": 2,
+      "0.1-0.33": 34,
+      "0.33-0.64": 136,
+      "over 0.64": 158
+     }
+    }
+   }
+  }
+ },
+ "prediction_2": {
+  "held5": {
+   "index stage fewer": false,
+   "250-450 per refinement": true,
+   "floor ends >= 90%": true,
+   "end steps within 3% of J5D": false,
+   "g1: fewer >= 30% (held types, mid)": true,
+   "g1: lost <= 3% of steps": false
+  },
+  "held4": {
+   "index stage fewer": false,
+   "250-450 per refinement": true,
+   "floor ends >= 90%": true,
+   "end steps within 3% of J5D": false,
+   "g1: fewer >= 30% (held types, mid)": true,
+   "g1: lost <= 3% of steps": false
+  },
+  "held3": {
+   "index stage fewer": false,
+   "250-450 per refinement": true,
+   "floor ends >= 90%": true,
+   "end steps within 3% of J5D": false,
+   "g1: fewer >= 30% (held types, mid)": true,
+   "g1: lost <= 3% of steps": false
+  },
+  "held": {
+   "index stage fewer": false,
+   "250-450 per refinement": true,
+   "floor ends >= 90%": true,
+   "end steps within 3% of J5D": false,
+   "g1: fewer >= 30% (held types, mid)": true,
+   "g1: lost <= 3% of steps": false
+  },
+  "mid": {
+   "index stage fewer": true,
+   "250-450 per refinement": true,
+   "floor ends >= 90%": true,
+   "end steps within 3% of J5D": true,
+   "g1: fewer >= 30% (held types, mid)": true,
+   "g1: lost <= 3% of steps": false
+  },
+  "grad": {
+   "index stage fewer": false,
+   "250-450 per refinement": true,
+   "floor ends >= 90%": true,
+   "end steps within 3% of J5D": true,
+   "g1: fewer >= 30% (held types, mid)": null,
+   "g1: lost <= 3% of steps": true
+  },
+  "big": {
+   "index stage fewer": false,
+   "250-450 per refinement": true,
+   "floor ends >= 90%": true,
+   "end steps within 3% of J5D": true,
+   "g1: fewer >= 30% (held types, mid)": null,
+   "g1: lost <= 3% of steps": true
+  },
+  "held6": {
+   "index stage fewer": false,
+   "250-450 per refinement": true,
+   "floor ends >= 90%": true,
+   "end steps within 3% of J5D": false,
+   "g1: fewer >= 30% (held types, mid)": true,
+   "g1: lost <= 3% of steps": false
+  }
+ }
+}

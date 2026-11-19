@@ -13609,5 +13609,21 @@ is under 0.01 degree or after 300 proposals. Script layer only (`scripts/autores
   (prediction 250 to 450), every second stage ends at the floor (1,801 of 1,801), steps with an end
   at 0.95: 1,453 against 1,496 (-2.9%, inside 3%); but 70 of 1,626 steps (4.31%) lose their 0.95 end
   (the frozen limit is 3%), and 27 gain one. All 70 lost ends were MC ends in `J5D`, the median hit
-  ratio of the stored end 0.980. The replay of the other seven samples was not run (g1 needs all
-  eight and already fails). No `J5DC` run, no gate g2, no `held7`.
+  ratio of the stored end 0.980. No `J5DC` run, no gate g2, no `held7`.
+- The other seven samples were replayed afterwards, for information only (disclosed; the step failed
+  its gate; `ball/info.json`, `info_tables.md`, `ar5_ball_lost_gained.png`; one job at a time). Index-stage
+  evaluations, `J5D` against `CB` (millions): `held5` 8.69 / 3.40, `held4` 10.88 / 3.88, `held3` 8.84 /
+  3.29, `held` 9.13 / 3.43, `mid` 2.64 / 1.10, `grad` 1.26 / 0.69, `big` 0.26 / 0.14, `held6` 10.05 / 3.68
+  (45.0% to 64.3% fewer; 255 to 264 evaluations a refinement; all second stages end at the floor).
+  Steps that lose / gain a 0.95 end, first seeds and reseed steps: `held5` 7+302 / 4+79, `held4` 19+387 /
+  4+103, `held3` 10+274 / 0+72, `held` 11+341 / 4+76, `mid` 2+68 / 2+25, `grad` 0+19 / 0+20, `big` 0+2 /
+  0+0, `held6` 19+311 / 1+112; lost shares 8.69%, 9.88%, 8.38%, 9.55%, 4.31%, 1.48%, 0.61%, 8.03% of the
+  steps: g1 fails on `mid` and all five held types, passes on `grad` and `big`. All 1,772 lost ends were
+  found after the first block of the stock second stage (none in the first stage or the first block); on
+  the held types 89% to 93% (`mid` 77%) lie over 0.33 degree from the first stage's best, 164 of 309
+  on `held5` over 0.64. Consistent with the loss being the missing wide restarts; that cause was not
+  tested. Prediction 2: evaluations per refinement and floor ends hit on all eight; the saving was
+  over the band on the held types (60.9% to 64.3% against 40% to 60%) and just over it on `grad`
+  (45.005% against 45%) and `big` (45.3%); steps with an end within 3% of `J5D`: hit on `mid`, `grad`,
+  `big`, missed on the five held types (-6.2% to -8.6%). Findings-page text: report
+  `20261119-ar5w-findings_ar5_ball.md` (the write into `docs/autoresearch/` was refused).
