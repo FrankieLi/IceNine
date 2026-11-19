@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-18 23:50 PST",
+ "updated": "2026-11-19 00:16 PST",
  "steps": [
   {
    "id": "GO0",
@@ -320,6 +320,14 @@
    "status": "done",
    "date": "2026-11-18",
    "result": "Sample straingq (grain mean + linear + quadratic + smooth random field, equal parts, non-linear parts orthogonal to linear): oracle linear share 0.33. Linear fits keep the mean (1.7/1.7e-4 at 5e-4/1e-3 at the ground-truth orientation, 1.9/2.5e-4 from the painted start) but explain almost none of the intragranular field (rel. error 0.98-1.10; linear floor 0.82). I61 yes (sample delivered).",
+   "commit": ""
+  },
+  {
+   "id": "GO5t",
+   "title": "Quadratic per-grain strain field (I62)",
+   "status": "running",
+   "date": "2026-11-19",
+   "result": "Checkpointed at 20-21 of 36 grains when the machine was shut down; rerun first on resume (commands in STATE.md). Not judged yet.",
    "commit": ""
   }
  ],

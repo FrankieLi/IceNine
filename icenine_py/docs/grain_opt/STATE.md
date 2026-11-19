@@ -11,13 +11,22 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 - GO5r: Gauss-Newton + spot spreads, I60 no (best mean at 15 s per grain). I65 logged.
 - **Approval** D-20261118-I1: strain queue I60-I64 (literature review, sibling thread "Review neural
   methods for grain gradients"), then I25 at low priority.
-- **Next action:** GO5t (I62) running: quadratic per-grain field (36 numbers) on `straingq`; then I63
-  only if the rule calls for it, I64 (GP / Laplacian prior), I25, I65.
+- **Checkpoint 2026-11-19 00:16 PST** (owner shutting the machine down): GO5t (I62) was stopped at
+  20 / 36 (E@GT) and 21 / 36 (GP4@P) grains, before the 1e-3 level; `fit_strain.py` writes its
+  result file only at the end, so nothing is judged yet. The partial per-grain lines are kept in
+  `benchmarks/grain_opt/go5t/*.log.partial.jsonl` (preview, not judged: relative intragranular
+  error at 5e-4 about 1.1-1.2 on 8-9 grains). The plan and rule (PLAN "GO5t") stand.
+- **Next action (resume first):** rerun GO5t from scratch with the two commands below (about 65
+  minutes, 2 processes), judge by the GO5t rule, close the step; then I63 only if the rule calls
+  for it, I64 (GP / Laplacian prior), I25, I65.
+  `uv run python scripts/grain_opt/fit_strain.py --arm E@GT --cost hyb --lam 8 --per_level 12
+  --sample straingq --ratio_hi 2.5 --grad --quad --evals_e 1500 --out go5t`;
+  `uv run python scripts/grain_opt/fit_strain.py --arm GP4@P --cost hyb --lam 8 --per_level 12
+  --sample straingq --ratio_hi 2.5 --grad --quad --evals_g 1000 --out go5t`.
 
 ## Running jobs
 
-- GO5t (started 2026-11-18 23:52 PST): `fit_strain.py --sample straingq --grad --quad --out go5t`,
-  arms E@GT and GP4@P. Do not start a second copy.
+- None (GO5t stopped at the checkpoint; rerun it first).
 
 ## Data (git-ignored, in this worktree; link, do not copy)
 
