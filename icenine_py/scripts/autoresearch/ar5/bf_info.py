@@ -51,9 +51,17 @@ def main() -> int:
             dict(
                 sample=s,
                 fewer=100 * r["fewer"]["j5sd"],
+                index_fewer=100 * (1 - r["stages"]["index"] / r["stages_j5sd"]["index"]),
                 wrong=f"{r['wrong']['j5sd']['n']} / {r['wrong']['j5sdb']['n']}",
+                wilson_j5sdb="{:.3f}-{:.3f}%".format(
+                    *(100 * x for x in r["wrong"]["j5sdb"]["wilson"])
+                ),
+                wilson_j5sd="{:.3f}-{:.3f}%".format(
+                    *(100 * x for x in r["wrong"]["j5sd"]["wilson"])
+                ),
                 fixed_broken=f"{r['pair']['j5sd']['fixed']} / {r['pair']['j5sd']['broken']}",
                 median_higher=r["pair"]["j5sd"]["median_higher"],
+                n_voxels=24570,
                 grid=f"{r['grid']['j5d']} / {r['grid']['j5db']}",
                 seed_test=f"{r['seed_test']['j5d']} / {r['seed_test']['j5db']}",
                 seeds_steps=f"{r['bf']['steps']}",
@@ -69,14 +77,18 @@ def main() -> int:
                 [
                     "sample",
                     "fewer",
+                    "index_fewer",
                     "wrong",
+                    "wilson_j5sd",
+                    "wilson_j5sdb",
                     "fixed_broken",
                     "median_higher",
+                    "n_voxels",
                     "grid",
                     "seed_test",
                     "seeds_steps",
                 ],
-                dict(fewer=".2f", median_higher=".5f"),
+                dict(fewer=".2f", index_fewer=".2f", median_higher=".5f"),
             ),
         ),
     )

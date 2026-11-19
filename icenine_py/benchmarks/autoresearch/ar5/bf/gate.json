@@ -91,74 +91,79 @@
     "checks": 0,
     "pauses": 0
    }
-  },
-  "held": {
-   "sample": "held",
-   "j5sd_total": 17114589,
-   "j5sdb_total": 15643196,
-   "fewer": 0.0859730257033926,
-   "wrong_j5sd": 45,
-   "wrong_j5sdb": 45,
-   "wrong_j5sdb_wilson": [
-    0.0013691418781273772,
-    0.0024496179856132597
-   ],
-   "fixed": 7,
-   "broken": 7,
-   "broken_minus_fixed": 0,
-   "median_err_higher": -0.0002773300946605807,
-   "grid_j5d": 4,
-   "grid_j5db": 4,
-   "grid_more": 0,
-   "seed_test_j5d": 66,
-   "seed_test_j5db": 64,
-   "seed_test_more": -2,
-   "checks": 0,
-   "pauses": 0,
-   "j5sd_total_matches_step22": true,
-   "ok_fewer": true,
-   "ok_broken": true,
-   "ok_median": true,
-   "ok_grid": true,
-   "ok_seed_test": true,
-   "ok_no_checks": true,
-   "ok": true,
-   "stages": {
-    "index": 7713687,
-    "rescue": 170170,
-    "polish": 43525,
-    "grid": 1387715,
-    "bfs_neighbour": 1480653,
-    "bfs_revisit": 3195302,
-    "screen_pass": 170862,
-    "repair": 1481282
-   },
-   "stages_j5sd": {
-    "index": 9129537,
-    "rescue": 172172,
-    "polish": 43525,
-    "grid": 1387715,
-    "bfs_neighbour": 1480653,
-    "bfs_revisit": 3206343,
-    "screen_pass": 170528,
-    "repair": 1524116
-   },
-   "ball": {
-    "ball_on": true,
-    "refinements": 6384,
-    "ends_floor": 6384,
-    "ends_cap": 0,
-    "proposals": 444816,
-    "gains": 14747,
-    "halvings": 38304,
-    "stage1_evals": 1215962,
-    "stage2_evals": 451200,
-    "checks": 0,
-    "pauses": 0
-   }
   }
  },
- "g2_complete": true,
+ "g2_scope": "mid only; the stop rule applied when g2 failed there",
  "g2_ok": false,
- "passed": false
+ "passed": false,
+ "information_only_D_20261119_N4": {
+  "label": "information only, run after the gate failed on mid (D-20261119-N4); cannot change the verdict",
+  "rows": {
+   "held": {
+    "sample": "held",
+    "j5sd_total": 17114589,
+    "j5sdb_total": 15643196,
+    "fewer": 0.0859730257033926,
+    "wrong_j5sd": 45,
+    "wrong_j5sdb": 45,
+    "wrong_j5sdb_wilson": [
+     0.0013691418781273772,
+     0.0024496179856132597
+    ],
+    "fixed": 7,
+    "broken": 7,
+    "broken_minus_fixed": 0,
+    "median_err_higher": -0.0002773300946605807,
+    "grid_j5d": 4,
+    "grid_j5db": 4,
+    "grid_more": 0,
+    "seed_test_j5d": 66,
+    "seed_test_j5db": 64,
+    "seed_test_more": -2,
+    "checks": 0,
+    "pauses": 0,
+    "j5sd_total_matches_step22": true,
+    "ok_fewer": true,
+    "ok_broken": true,
+    "ok_median": true,
+    "ok_grid": true,
+    "ok_seed_test": true,
+    "ok_no_checks": true,
+    "stages": {
+     "index": 7713687,
+     "rescue": 170170,
+     "polish": 43525,
+     "grid": 1387715,
+     "bfs_neighbour": 1480653,
+     "bfs_revisit": 3195302,
+     "screen_pass": 170862,
+     "repair": 1481282
+    },
+    "stages_j5sd": {
+     "index": 9129537,
+     "rescue": 172172,
+     "polish": 43525,
+     "grid": 1387715,
+     "bfs_neighbour": 1480653,
+     "bfs_revisit": 3206343,
+     "screen_pass": 170528,
+     "repair": 1524116
+    },
+    "ball": {
+     "ball_on": true,
+     "refinements": 6384,
+     "ends_floor": 6384,
+     "ends_cap": 0,
+     "proposals": 444816,
+     "gains": 14747,
+     "halvings": 38304,
+     "stage1_evals": 1215962,
+     "stage2_evals": 451200,
+     "checks": 0,
+     "pauses": 0
+    },
+    "info_only_bars_met": true
+   }
+  }
+ }
 }

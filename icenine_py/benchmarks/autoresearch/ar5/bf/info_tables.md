@@ -1,8 +1,8 @@
 <!-- table:ar5_bf_info_counts -->
-| sample | fewer | wrong | fixed_broken | median_higher | grid | seed_test | seeds_steps |
-|---|---|---|---|---|---|---|---|
-| mid | 2.23 | 23 / 19 | 4 / 0 | -0.00009 | 2 / 3 | 12 / 13 | 1665 |
-| held | 8.60 | 45 / 45 | 7 / 7 | -0.00028 | 4 / 4 | 66 / 64 | 3713 |
+| sample | fewer | index_fewer | wrong | wilson_j5sd | wilson_j5sdb | fixed_broken | median_higher | n_voxels | grid | seed_test | seeds_steps |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| mid | 2.23 | 18.14 | 23 / 19 | 0.062-0.140% | 0.050-0.121% | 4 / 0 | -0.00009 | 24570 | 2 / 3 | 12 / 13 | 1665 |
+| held | 8.60 | 15.51 | 45 / 45 | 0.137-0.245% | 0.137-0.245% | 7 / 7 | -0.00028 | 24570 | 4 / 4 | 66 / 64 | 3713 |
 <!-- /table:ar5_bf_info_counts -->
 
 <!-- table:ar5_bf_info_stages -->

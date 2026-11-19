@@ -79,15 +79,30 @@ def main() -> int:
     out: Dict[str, Any] = dict(rule=BR.GATE, g0=bool(g0["g0_passes"]), g1=bool(g1["g1_passes"]))
     # --samples mid: judge the samples that ran (the plan's stop rule: one sample over a bar is
     # enough for the gate to fail; a missing sample is never a pass)
+    # The gate holds mid only (main-session choice, as committed in 3aec3b33): the gate failed there
+    # and the stop rule applied. The held row is a separate block, never an `ok` inside g2.
     names = (
         tuple(sys.argv[sys.argv.index("--samples") + 1].split(","))
         if "--samples" in sys.argv
-        else BR.GATE_LIVE
+        else ("mid",)
     )
     out["g2"] = {s: g2_row(s) for s in names}
-    out["g2_complete"] = bool(set(names) >= set(BR.GATE_LIVE))
-    out["g2_ok"] = bool(out["g2_complete"] and all(r["ok"] for r in out["g2"].values()))
+    out["g2_scope"] = "mid only; the stop rule applied when g2 failed there"
+    out["g2_ok"] = bool(all(r["ok"] for r in out["g2"].values()))
     out["passed"] = bool(out["g0"] and out["g1"] and out["g2_ok"])
+    info = dict(
+        label="information only, run after the gate failed on mid (D-20261119-N4); "
+        "cannot change the verdict",
+        rows={},
+    )
+    info_names = (
+        tuple(sys.argv[sys.argv.index("--info") + 1].split(",")) if "--info" in sys.argv else ()
+    )
+    for s in info_names:
+        row = g2_row(s)
+        row["info_only_bars_met"] = row.pop("ok")  # not a gate result
+        info["rows"][s] = row
+    out["information_only_D_20261119_N4"] = info
     (RD / "gate.json").write_text(json.dumps(out, indent=1, default=float) + "\n")
     cols = [
         "sample",
@@ -104,10 +119,13 @@ def main() -> int:
         "ok",
     ]
     fmt = dict(j5sd_total=",d", j5sdb_total=",d", fewer=".4f", median_err_higher=".5f")
-    DT.write_tables(
-        RD / "gate_tables.md",
-        dict(ar5_bf_gate_g2=DT.markdown_table(list(out["g2"].values()), cols, fmt)),
-    )
+    tabs = dict(ar5_bf_gate_g2=DT.markdown_table(list(out["g2"].values()), cols, fmt))
+    if info["rows"]:
+        icols = [c if c != "ok" else "info_only_bars_met" for c in cols]
+        tabs["ar5_bf_gate_information_only_N4"] = DT.markdown_table(
+            list(info["rows"].values()), icols, fmt
+        )
+    DT.write_tables(RD / "gate_tables.md", tabs)
     print(json.dumps({k: v for k, v in out.items() if k != "rule"}, indent=1, default=float))
     return 0 if out["passed"] else 1
 

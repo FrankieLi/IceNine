@@ -13657,13 +13657,20 @@ its first stage equal to the ball pass's and counting it once.
   fallback steps equal `J5D` (fits, stop, taken end, evaluations), index stage 2,099,764, 0 checks and
   0 pauses in the ball pass.
 - g2 FAILS on `mid` (`bf/gate.json`, `gate_tables.md`): `J5SDB` 7,219,040 evaluations against
-  `J5SD` 7,383,368, 2.2% fewer (bar 4%). Accuracy is fine (wrong 23 to 19, fixed 4, broken 0).
-  The index stage fell 18.1% (replay: 20.6%) but the grid-search stage rose by 329,915 evaluations
-  (grid searches 2 to 3; seed-test failures 12 to 13). Consistent with one extra grid search after
-  the BFS route changed; the cause was not tested (no replay of that voxel).
-- `held`, information only, after the gate failed (D-20261119-N4; `bf/info.json`, `info_tables.md`):
-  `J5SDB` 15,643,196 against `J5SD` 17,114,589, 8.60% fewer; wrong 45 and 45, fixed 7, broken 7,
-  median error 0.00028 degree lower; grid searches 4 and 4 (identical grid stage), seed-test failures
-  66 to 64. The saving on `held` is inside the replay's range; the `mid` shortfall did not recur.
+  `J5SD` 7,383,368, 2.2% fewer (bar 4%). Wrong voxels (over 1 degree, of 24,570): 23 for `J5SD`
+  (Wilson 95% 0.062% to 0.140%), 19 for `J5SDB` (0.050% to 0.121%); fixed 4, broken 0 by voxel; median
+  error over all 24,570 voxels 0.00009 degree lower. The index stage fell 18.14% (1 - 2,164,870 /
+  2,644,672; `info_tables.md`; the replay said 20.6%). Measured: grid searches 2 to 3, grid stage
+  +329,915 evaluations, seed steps 1,626 to 1,665, seed-test failures 12 to 13. Consistent with the
+  changed BFS route sending one more voxel to the grid search; not tested (no replay of that voxel).
+  `gate.json` holds `mid` only (the stop rule applied there).
+- `held`, information only, after the gate failed (D-20261119-N4; its own block in `gate.json` and
+  `gate_tables.md`, and `bf/info.json`, `info_tables.md`; never a gate result): `J5SDB` 15,643,196
+  against `J5SD` 17,114,589, 8.60% fewer (index stage 15.51% fewer); wrong 45 (0.137% to 0.245%) and
+  45, fixed 7, broken 7, median error over all 24,570 voxels 0.00028 degree lower; grid searches 4
+  and 4 (identical grid stage), seed-test failures 66 to 64. The saving is inside prediction 3's band
+  (4.5% to 10%) and near the stored-row sizing (8.55%); the `mid` shortfall did not recur. The `J5SD`
+  half of the held pair is step 22's stored arm (its total matches step 22's), not re-run; only
+  `J5SDB` was run on `held`, a deviation from N4's "run J5SD and J5SDB" accepted by the main session.
   This does not change the verdict; no `grad`, `big` or `held7` run, no key.
 - `held7` was not built or read; nothing of `held2` or `fine7` was opened.
