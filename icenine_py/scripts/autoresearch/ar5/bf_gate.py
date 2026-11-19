@@ -77,8 +77,16 @@ def main() -> int:
     g0 = json.loads((RD / "g0.json").read_text())
     g1 = json.loads((RD / "size.json").read_text())
     out: Dict[str, Any] = dict(rule=BR.GATE, g0=bool(g0["g0_passes"]), g1=bool(g1["g1_passes"]))
-    out["g2"] = {s: g2_row(s) for s in BR.GATE_LIVE}
-    out["g2_ok"] = all(r["ok"] for r in out["g2"].values())
+    # --samples mid: judge the samples that ran (the plan's stop rule: one sample over a bar is
+    # enough for the gate to fail; a missing sample is never a pass)
+    names = (
+        tuple(sys.argv[sys.argv.index("--samples") + 1].split(","))
+        if "--samples" in sys.argv
+        else BR.GATE_LIVE
+    )
+    out["g2"] = {s: g2_row(s) for s in names}
+    out["g2_complete"] = bool(set(names) >= set(BR.GATE_LIVE))
+    out["g2_ok"] = bool(out["g2_complete"] and all(r["ok"] for r in out["g2"].values()))
     out["passed"] = bool(out["g0"] and out["g1"] and out["g2_ok"])
     (RD / "gate.json").write_text(json.dumps(out, indent=1, default=float) + "\n")
     cols = [
