@@ -1263,3 +1263,27 @@ D-20261116-N4. Reports in the main `.claude/reports/`: `20261116-1309-ar5v-stats
 - Open for the owner: the findings page is not placed. Text is at
   `.claude/reports/20261116-1506-ar5v-findings_ar5_defer_v2.md`; it goes to
   `icenine_py/docs/autoresearch/findings_ar5_defer.md`.
+
+### AR5 step 23 (converging ball, rule CB; task `ar5w`), merged as a failed study at 92005ed2 on 2026-11-19
+
+Suite after the merge: 2350 passed, 48 skipped, 1 deselected. Decisions D-20261119-N1 (approval)
+and D-20261119-N2 (seven replays run for information only). Reports in the main
+`.claude/reports/`: `20261119-0119-ar5w.md`, review `20261119-1010-review-ar5w.md`, findings
+text `20261119-ar5w-findings_ar5_ball.md`. Numbers are in
+`icenine_py/benchmarks/autoresearch/ar5/ball/` (`info_tables.md`, `info.json`).
+
+- Rule CB: a converging-ball second stage for the MC refinement of the seed step. The step
+  failed its replay gate g1 (limit: at most 3% of seed steps lose their 0.95 end). No key, no
+  library change, no live run, no clean test sample.
+- On `mid`, 70 of 1,626 seed steps (4.31%, Wilson 3.42% to 5.40%) lose the 0.95 end. The whole
+  interval is above the limit.
+- Lost shares on the other samples (replays run for information only): held5 8.69%, held4
+  9.88%, held3 8.38%, held 9.55%, held6 8.03%, grad 1.48%, big 0.61%.
+- The saving is real but does not pay for the loss. Index-stage evaluations fall about 60% on
+  the held types (held 9.13M to 3.43M) and 58.4% on mid (2.64M to 1.10M).
+- Almost all lost steps are reseed steps. All 1,772 lost ends (all eight samples) were found
+  in the stock second stage after its first block.
+- Disclosed samples only. The rule and the gate were set looking at them, and the step stopped
+  at the gate. Other constants would be tuning after a failed gate.
+- Open for the owner: the findings page is not placed. Text is at
+  `.claude/reports/20261119-ar5w-findings_ar5_ball.md`.
