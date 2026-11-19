@@ -5,21 +5,19 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO5r closed** (2026-11-18 23:00 PST, I60 no): Gauss-Newton on centroids + spot spreads fits the
-  gradient worse than CMA (rel. error 1.38 / 0.74 from the painted start against 0.97 / 0.58) but
-  gives the best mean at the ground-truth orientation (0.95 / 1.4 / 1.1e-4, 15 s per grain).
-  I65 logged: build the region from the outlier-cleaned start (painted outliers add spurious
-  spots; likely the cause of stalled grains).
-- GO5q: on `straing` the gradient is only partly observed; fitting it fixes the mean.
-- **Approval** D-20261118-I1: strain queue I60-I64 (from the literature review in the sibling thread
-  "Review neural methods for grain gradients"), then I25 at low priority.
-- **Next action:** GO5s (I61): build and render `straingq` (mean + linear + quadratic + smooth
-  random field), report the oracle linear share and the linear fits on it; then I62 (quadratic
-  field), I63 if needed, I64, then I25. I65 when the queue allows.
+- **GO5s closed** (2026-11-18 23:50 PST, I61 yes): sample `straingq` (mean + linear + quadratic +
+  smooth random field; oracle linear share 0.33). Linear fits keep the mean but explain almost none
+  of the intragranular field (rel. error 0.98-1.10; linear floor 0.82).
+- GO5r: Gauss-Newton + spot spreads, I60 no (best mean at 15 s per grain). I65 logged.
+- **Approval** D-20261118-I1: strain queue I60-I64 (literature review, sibling thread "Review neural
+  methods for grain gradients"), then I25 at low priority.
+- **Next action:** GO5t (I62) running: quadratic per-grain field (36 numbers) on `straingq`; then I63
+  only if the rule calls for it, I64 (GP / Laplacian prior), I25, I65.
 
 ## Running jobs
 
-- None.
+- GO5t (started 2026-11-18 23:52 PST): `fit_strain.py --sample straingq --grad --quad --out go5t`,
+  arms E@GT and GP4@P. Do not start a second copy.
 
 ## Data (git-ignored, in this worktree; link, do not copy)
 

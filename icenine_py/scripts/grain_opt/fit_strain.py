@@ -569,6 +569,7 @@ def main() -> None:
     ap.add_argument("--ratio_hi", type=float, default=None)
     ap.add_argument("--grad", action="store_true", help="GO5q: 6 + 12 strain numbers per grain")
     ap.add_argument("--evals_g", type=int, default=600)
+    ap.add_argument("--quad", action="store_true", help="I62: 6 + 12 + 18 strain numbers")
     ap.add_argument("--gnm", action="store_true", help="GO5r: Gauss-Newton on centroids + moments")
     ap.add_argument("--sample", default="strain")
     ap.add_argument("--cen_w", default="int", choices=["int", "bin", "binclean", "intclean"])
@@ -599,6 +600,8 @@ def main() -> None:
         tag += "_grad"
     if a.gnm:
         tag += "_gnm"
+    if a.quad:
+        tag += "_quad"
     start = "paint" if a.arm.endswith("@P") else "truth"
     S = CM.Sample(out / f"run_{tag}", start=start, intensity=True, sample=a.sample, stack=a.stack)
     T = S.T
@@ -646,12 +649,16 @@ def main() -> None:
         xy_m = np.asarray(S.xy[members], float)  # GO5q: normalised in-plane voxel offsets
         d_m = xy_m - xy_m.mean(0)
         d_m = d_m / max(float(np.sqrt((d_m**2).sum(1).mean())), 1e-12)
-        NP = 18 if a.grad else 6
+        f2_m = np.stack([d_m[:, 0] ** 2, d_m[:, 0] * d_m[:, 1], d_m[:, 1] ** 2], 1)
+        f2_m = f2_m - f2_m.mean(0)  # I62: centred quadratic terms
+        NP = 36 if a.quad else (18 if a.grad else 6)
 
         def eps_np(e: np.ndarray) -> np.ndarray:
             e = np.asarray(e, float)
             if e.ndim == 2:
                 return e
+            if len(e) == 36:  # I62: mean + linear (6 x 2) + quadratic (6 x 3)
+                return e[:6] + d_m @ e[6:18].reshape(6, 2).T + f2_m @ e[18:].reshape(6, 3).T
             if len(e) == 18:  # mean + in-plane linear gradient D (6 x 2)
                 return e[:6] + d_m @ e[6:].reshape(6, 2).T
             return np.tile(e, (n, 1))
@@ -806,11 +813,11 @@ def main() -> None:
                         r = dict(x=xq, f0=fq, f=fq, evals=0, stop="gnm")
                 elif a.grad:  # GO5q: strain leg over mean + gradient at the fitted field
                     th_f = torch.as_tensor(r["x"][:k], dtype=GF.DT)
-                    e0 = np.concatenate([r["x"][k : k + 6], np.zeros(12)])
+                    e0 = np.concatenate([r["x"][k : k + 6], np.zeros(NP - 6)])
                     rg_ = cma_min(
                         lambda e: cov(field.orientations(th_f), eps_of(e)),
                         e0,
-                        np.full(18, 2e-4),
+                        np.full(NP, 2e-4),
                         a.evals_g,
                     )
                     info["grad_leg"] = {k_: rg_[k_] for k_ in ("f0", "f", "evals", "stop")}
@@ -863,6 +870,7 @@ def main() -> None:
             ratio_hi=a.ratio_hi,
             grad=a.grad,
             gnm=a.gnm,
+            quad=a.quad,
             sample=a.sample,
             stack=a.stack,
             seed=a.seed,

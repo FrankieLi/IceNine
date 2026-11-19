@@ -1020,6 +1020,27 @@ linear floor.
 
 Budget: sample and render about 5 minutes; the two arms about 40 and 50 minutes in parallel.
 
+### GO5t: quadratic per-grain strain field (goal G1c, idea I62)
+
+Question: on `straingq` (linear + quadratic + smooth random intragranular strain), does a quadratic
+per-grain strain field (mean 6 + linear 12 + quadratic 18 = 36 numbers; centred quadratic terms
+d_x^2, d_x d_y, d_y^2) recover more of the intragranular field than the linear field (GO5s)?
+
+Method: `fit_strain.py --sample straingq --grad --quad` (scripts only), `hyb` lambda 8, ratio
+filter 2.5, S36; output `benchmarks/grain_opt/go5t/`. Arms: strain only at the ground-truth
+orientation (CMA over 36 numbers, 1,500 evaluations); fast fit + quadratic CMA leg from the painted
+start (1,000 evaluations).
+
+Judging rule (written before any run). References: GO5s's linear arms on the same grains (relative
+error against the full intragranular field 1.05 / 0.98 at 5e-4 / 1e-3 at the ground-truth
+orientation; 1.10 / 0.98 from the painted start); the oracle floor for linear + quadratic is about
+0.58. I62 is answered yes for an arm whose relative error is at least 0.1 lower than its linear
+counterpart at 5e-4 and at 1e-3, with mean-strain medians within 1.5 x of the linear arm's. I63 (a
+coordinate network) is run only if the quadratic arm is yes and still at least 0.2 above the 0.58
+floor at 1e-3. The 1e-4 level is reported, not judged.
+
+Budget: about 100 s and 110 s per grain; two runs in parallel, about 65 minutes.
+
 ### GO6 onwards
 
 Strain queue (owner, 2026-11-19, from the literature review in the sibling thread "Review neural

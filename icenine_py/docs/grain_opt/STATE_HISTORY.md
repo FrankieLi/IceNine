@@ -403,3 +403,17 @@ became AR6 on 2026-11-16 at the owner's request.
   on per-spot centroid and second-moment (spread) residuals, on `straing`, against GO5q's CMA hybrid
   and fast-fit gradient arms (accuracy and time). Then I61 (`straingq`), I62, I63 if needed, I64,
   then I25.
+
+## Now as of GO5r close (2026-11-18 23:00 PST)
+
+- **GO5r closed** (2026-11-18 23:00 PST, I60 no): Gauss-Newton on centroids + spot spreads fits the
+  gradient worse than CMA (rel. error 1.38 / 0.74 from the painted start against 0.97 / 0.58) but
+  gives the best mean at the ground-truth orientation (0.95 / 1.4 / 1.1e-4, 15 s per grain).
+  I65 logged: build the region from the outlier-cleaned start (painted outliers add spurious
+  spots; likely the cause of stalled grains).
+- GO5q: on `straing` the gradient is only partly observed; fitting it fixes the mean.
+- **Approval** D-20261118-I1: strain queue I60-I64 (from the literature review in the sibling thread
+  "Review neural methods for grain gradients"), then I25 at low priority.
+- **Next action:** GO5s (I61): build and render `straingq` (mean + linear + quadratic + smooth
+  random field), report the oracle linear share and the linear fits on it; then I62 (quadratic
+  field), I63 if needed, I64, then I25. I65 when the queue allows.

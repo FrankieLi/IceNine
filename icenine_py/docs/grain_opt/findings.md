@@ -1218,3 +1218,30 @@ Verdicts by the rule written before the runs:
   and comparable to the model-image mismatch in spot shape (the omega smear). A smoother
   parameterisation (I62) or a prior (I64) can only help if the signal is there; the non-linear
   sample (I61) tests the case where the field is richer.
+
+## GO5s: non-linear strain-gradient sample and the linear fit on it (goal G1c, idea I61)
+
+Sample `straingq`: the `strain` grain means plus, per grain, an in-plane linear term, a quadratic
+term and a smooth Gaussian random field (correlation length 3 voxel spacings), each of tensor RMS
+level / sqrt(3) over the grain; amended before any run so that the quadratic and random parts are
+orthogonal to the linear basis per grain (without that the oracle linear share was 0.60). Oracle
+linear share (least-squares linear projection of the ground-truth intragranular field, median over
+grains): 0.33, so a perfect linear fit has relative error sqrt(0.67) = 0.82. Rendered clean (9.5M
+lit pixels). Linear fits (6 + 12) as GO5q; rows in `benchmarks/grain_opt/go5s/`.
+
+| arm on `straingq` | mean error 1e-4 / 5e-4 / 1e-3 | relative error, full intragranular field | voxel error | s / grain |
+|---|---|---|---|---|
+| linear, strain only at the ground-truth orientation | 1.5 / 1.7 / 1.7e-4 | 3.73 / 1.05 / 0.98 | 4.0 / 5.5 / 10.3e-4 | 60 |
+| fast fit + linear CMA leg, painted start | 1.8 / 1.9 / 2.5e-4 | 2.54 / 1.10 / 0.98 | 2.9 / 5.9 / 10.4e-4 | 72 |
+| oracle linear projection (floor) | | 0.82 | | |
+
+Verdicts by the rule written before the runs:
+
+- I61 is answered (sample delivered): it renders, and the oracle linear share is 0.33 (limit 0.5).
+- The linear fits hold their mean on the non-linear sample (within 1.5 x of GO5q at 5e-4 and 1e-3:
+  1.7e-4 and 1.7e-4 at the ground-truth orientation, 1.9e-4 and 2.5e-4 from the painted start).
+- Against the full intragranular field they explain almost nothing (relative error 0.98-1.10 at
+  5e-4 and 1e-3, against the linear floor of 0.82): the linear part they can see is a third of the
+  field, and they recover only part of that (GO5q).
+- Next (I62): the quadratic field (6 + 12 + 18 numbers) on `straingq`, against these rows; the
+  oracle floor for linear + quadratic is about sqrt(1/3) = 0.58.
