@@ -881,6 +881,23 @@ filter also admits spots overlapping other grains). 1e-4 reported, not judged.
 
 Budget: about 20-30 s per grain (more spots); two runs in parallel, under 30 minutes.
 
+### GO5p: the wider ratio filter on noisy images (idea I57)
+
+Question: GO7e found that widening the region area-ratio filter to 2.5 improves the clean fast
+strain fit (1.3 / 1.2 / 1.4e-4). Does it hold on the noisy images (GO5m's `strainrn`), so that it
+can become the fast fit's default?
+
+Arms (S36, painted start, `GP4@P --cost hyb --lam 8 --stack strainrn_clean.npy --ratio_hi 2.5`,
+output `benchmarks/grain_opt/go5p/`): plain; and with `--cen_w intclean` (GO5o).
+
+Judging rule (written before any run). References on the noisy images: GO5m fast fit (1.8e-4 /
+2.7e-4 / 3.7e-4) and noisy CMA hybrid (2.5e-4 / 1.9e-4 / 2.8e-4, 51 s per grain). The wider filter
+becomes the default when an arm's noisy strain medians at 5e-4 and 1e-3 are at most GO5m's fast
+fit and at most 1.25 x the noisy CMA hybrid's (2.4e-4, 3.5e-4), with orientation medians at most
+0.03 deg at every level; the faster passing arm is preferred. 1e-4 reported, not judged.
+
+Budget: about 35 s per grain; two runs in parallel, under 30 minutes.
+
 ### GO6 onwards
 
 Program balance (owner via the coordinator, 2026-11-16): GO5b to GO5o were all G1c strain. After

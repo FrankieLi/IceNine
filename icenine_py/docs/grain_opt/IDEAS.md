@@ -33,7 +33,7 @@ details in the findings page named in the last column. New ideas get the next fr
 | I52 | GO7b | PSF-aware predicted coverage in the strain costs (predicted coverage points spread by the PSF Gaussian before scoring), on the 1.0 px PSF images | done | GO7c: no. PSF-aware coverage leaves the 1 px PSF strain fit at 2.3/2.6/6.8e-4; Gauss-Newton-only grains degrade as much, so spot merging under the blur (contaminated centroids), not a flat coverage term, is the cause | findings.md |
 | I53 | GO7c | Split observed components merged by a PSF using the predicted spot positions before taking centroids | done | GO7d: no (strain on 1 px PSF images 2.4/2.7/4.9e-4). Cause found: the region area-ratio filter (0.8-1.6) drops blur-enlarged spots, a grain keeps 58% of its spots | findings.md |
 | I56 | GO7d | Widen the region area-ratio filter (upper bound 2.5) for blurred images; fast strain fit on 1 px PSF images and clean | done | GO7e: no on PSF images (2.1/2.1/3.5e-4). On clean images the wider filter improves the fast fit to 1.3/1.2/1.4e-4, orientation <= 0.013 deg (was 2.1e-4 / 0.020 at 1e-3), 35 s per grain | findings.md |
-| I57 | GO7e | Fast strain fit with the wider ratio filter (2.5) on the noisy images (GO5m set), to adopt it as the default | proposed | | |
+| I57 | GO7e | Fast strain fit with the wider ratio filter (2.5) on the noisy images (GO5m set), to adopt it as the default | running (GO5p) | | |
 | I25 | G2c | GNLayerNet (orientation_nn_design.md) as a per-voxel start inside a grain | proposed | | |
 | I26 | G2c | Learned residual / amortised Gauss-Newton step for the grain field (todo_hybrid_nn) | proposed | | |
 | I27 | G2c | Neural field for orientation (and strain) over the grain, render-and-compare (nerf note) | proposed | | |
