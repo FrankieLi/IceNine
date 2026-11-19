@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-11-18T16:53:56",
+  "host": "ilium.local",
+  "loadavg": [
+    4.205078125,
+    3.673828125,
+    3.3193359375
+  ],
+  "cpu_count": 10,
+  "power": "ac",
+  "omp_num_threads": "1",
+  "mkl_num_threads": "1",
+  "torch_threads": 1,
+  "busy_processes": [
+    {
+      "pid": 712,
+      "cpu": 98.5,
+      "command": "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/Metadata.framework/Versions/A/Support/corespotlightd"
+    },
+    {
+      "pid": 719,
+      "cpu": 214.9,
+      "command": "/System/Library/PrivateFrameworks/MediaAnalysis.framework/Versions/A/mediaanalysisd"
+    }
+  ]
+}

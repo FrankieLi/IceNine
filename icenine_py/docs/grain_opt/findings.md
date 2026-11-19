@@ -1077,3 +1077,31 @@ Verdicts by the rule written before the runs:
   flat coverage term (GO7c) was the main effect.
 - Next (I56): widen the ratio filter for blurred images (`region_kw` ratio upper bound 2.5, no
   library change) on the 1 px PSF images, with a clean control.
+
+## GO7e: widen the region area-ratio filter (goal G2b, idea I56)
+
+Question: with the region build's area-ratio filter widened from 0.8-1.6 to 0.8-2.5
+(`--ratio_hi 2.5`), does the fast strain fit recover on the 1 px PSF images, and what happens on
+clean images? S36, `GP4@P`; rows in `benchmarks/grain_opt/go7e/` (PSF) and `go7e_clean/`.
+
+| arm | spots / GO5l clean | 1e-4 | 5e-4 | 1e-3 | orientation | s / grain |
+|---|---|---|---|---|---|---|
+| clean, filter 1.6 (GO5l) | 1.00 | 1.3e-4 | 1.3e-4 | 2.1e-4 | 0.009 / 0.015 / 0.020 | 25 |
+| clean, filter 2.5 | 1.30 | 1.3e-4 | 1.2e-4 | 1.4e-4 | 0.010 / 0.013 / 0.011 | 35 |
+| 1 px PSF, filter 1.6 (GO7b) | 0.58 | 2.3e-4 | 2.7e-4 | 5.7e-4 | 0.029 / 0.039 / 0.061 | 18 |
+| 1 px PSF, filter 2.5 | 1.09 | 2.1e-4 | 2.1e-4 | 3.5e-4 | 0.027 / 0.027 / 0.047 | 29 |
+
+Verdicts by the rule written before the runs:
+
+- I56 is answered no: on the PSF images the strain medians improve (gain 1.27 x at 5e-4, 1.62 x
+  at 1e-3) but miss the no-harm limits (2.0e-4 and 3.2e-4) and the 1.5 x gain at 5e-4;
+  orientation at 1e-3 is 0.047 deg. The spot count is restored (1.09 x clean).
+- The clean control is the finding: with the wider filter the clean fast fit improves at 1e-3
+  from 2.1e-4 to 1.4e-4 strain and from 0.020 to 0.011 deg orientation (5e-4: 1.3e-4 -> 1.2e-4,
+  0.015 -> 0.013 deg), with 30% more spots and 40% more time (35 s per grain, still below the CMA
+  hybrid's 53 s). The 1.6 bound was also dropping useful spots on clean images, likely spots whose
+  observed area differs from the unstrained start prediction because of the strain itself.
+- The remaining PSF damage (2.1e-4 at 5e-4, orientation 0.03-0.05 deg) needs a forward model with
+  the PSF (library work for the owner to approve) or more images-side work; G2b stops here.
+- Recommendation for the fast strain fit: `--ratio_hi 2.5` by default (clean 1.3 / 1.2 / 1.4e-4,
+  35 s per grain); confirm on the noisy images before relying on it.

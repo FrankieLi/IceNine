@@ -5,19 +5,18 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO4h closed** (2026-11-18 16:45 PST, G1b I55 no): full search + per-voxel polish ends corr3 at
-  1 / 1 / 0.4 / 7% and rand at 16 / 1.4 / 5 / 4% above 0.1 deg (0.5 / 1 / 2 / 5 deg), medians
-  0.005-0.009 deg; rand's 0.5 deg near misses (0.1-0.75 deg) sit below the strict-cost gate.
-  Best G1b pipeline: `L/366/3,G/15/0.15,N/30/0.3,W/20/0.15,X/1/0.15,V/61/0.02` (2-4 s per voxel).
-- Machine restart on 2026-11-17; GO4h had finished. Wake job `dc9287aa` survived.
-- **Program order** (owner via the coordinator, 2026-11-18): I53 (split merged spots) next, then
-  I25 GNLayerNet at low priority; the rest of G2c (I26, I27) skipped. The owner's I25 choice
-  came relayed; it is not in DECISIONS.md (the logging script was refused for a relayed
-  approval), so ask the owner to confirm in their own words before launching an implementer.
-- **Next action:** plan and run GO7d (I53): split observed connected components that a PSF merged,
-  using the predicted spot positions (assign each lit pixel to the nearest predicted spot of the
-  grain or its neighbours) before taking centroids; fast strain fit on `strain_psf10`, judged
-  against GO7b (2.3 / 2.7 / 5.7e-4) and clean (1.3 / 1.3 / 2.1e-4).
+- **GO7d / GO7e closed** (2026-11-18 17:30 PST, G2b): splitting merged spots does not fix the 1 px
+  PSF damage (I53 no); the cause is the region area-ratio filter (0.8-1.6) dropping blurred
+  spots. Widening it to 2.5 (`--ratio_hi 2.5`) helps on PSF images (2.1 / 2.1 / 3.5e-4) but misses
+  the limits (I56 no), and improves the clean fast fit to 1.3 / 1.2 / 1.4e-4, orientation <= 0.013
+  deg (was 2.1e-4 / 0.020 at 1e-3), 35 s per grain. G2b stops here.
+- GO4h (G1b): full search + polish, corr3 1 / 1 / 0.4 / 7%, rand 16 / 1.4 / 5 / 4%.
+- **Program order** (owner via the coordinator, 2026-11-18): I53 done; I25 GNLayerNet next at low
+  priority (the relayed choice is not in DECISIONS.md; confirmation in the owner's own words was
+  asked for 2026-11-18 16:45 PST before any implementer). G2c otherwise skipped.
+- **Next action:** GO5p (I57, one strain check the GO7e result calls for): the fast fit with
+  `--ratio_hi 2.5` on the noisy images (`strainrn`), to adopt it as the default; then I25 scoping
+  in this session (dataset and training cost; no implementer until the owner confirms).
 
 ## Running jobs
 

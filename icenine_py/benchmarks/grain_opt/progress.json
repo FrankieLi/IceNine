@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-18 17:00 PST",
+ "updated": "2026-11-18 17:30 PST",
  "steps": [
   {
    "id": "GO0",
@@ -272,6 +272,14 @@
    "status": "done",
    "date": "2026-11-18",
    "result": "Assigning lit pixels to grain or neighbour before centroids leaves the 1 px PSF strain fit at 2.4/2.7/4.9e-4 (I53 no); clean unaffected. Cause: the region area-ratio filter drops blur-enlarged spots (a grain keeps 58% of its spots). Next: widen it (I56).",
+   "commit": ""
+  },
+  {
+   "id": "GO7e",
+   "title": "Widen the region area-ratio filter (G2b)",
+   "status": "done",
+   "date": "2026-11-18",
+   "result": "Ratio filter 0.8-2.5 instead of 0.8-1.6: on 1 px PSF images the fast strain fit improves to 2.1/2.1/3.5e-4 (from 2.3/2.7/5.7e-4) but misses the limits (I56 no). On clean images it improves to 1.3/1.2/1.4e-4 with orientation <= 0.013 deg (was 1.3/1.3/2.1e-4, 0.020 deg), 35 s per grain.",
    "commit": ""
   }
  ],
