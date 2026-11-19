@@ -47,7 +47,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v59 live.
   Step 22 (`ar5v`; cache in `agent-aba6e1bdb95dff72a`): MERGED 566eea3f, key `SeedIndexMCDefer`.
   Step 24 (`ar5x`) MERGED db26a50b as failed study (g2 mid 2.2%, bar 4%; held info 8.60% fewer).
-  Step 25 (`ar5y`, N5, stored rows only): implementer a535ae4a28844b94d. Bookkeeping a8987666e43e0f546.
+  Step 25 (`ar5y`, N5, stored rows): implementer a535ae4a28844b94d. Books a8987666e43e0f546.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
