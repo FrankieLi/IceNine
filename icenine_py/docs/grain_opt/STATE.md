@@ -16,12 +16,17 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
   strain path unless the owner is asked first.
 - **I25:** scoped (no weights or data here; 3.2 GB dataset + 60-epoch training); waits for the
   owner's own confirmation.
+- **Strain queue after GO5q** (owner, 2026-11-19 05:50 UTC via the coordinator; selected from the
+  literature review in the sibling thread "Review neural methods for grain gradients"): I60
+  gradient-based (Gauss-Newton / LM) gradient fit, then I61 non-linear gradient sample `straingq`,
+  I62 quadratic field, I63 coordinate network only if needed, I64 GP / Laplacian prior. Each with
+  its rule written before running; scripts only. I25 stays queued at low priority.
 - **Next action:** plan and run GO5q (I59): sample `straing` (mean + in-plane linear gradient,
   6 + 12 numbers per grain), render and store it, then the strain fits with the gradient.
 
 ## Running jobs
 
-- GO5q (started 2026-11-18 21:05 PST): four `fit_strain.py --sample straing --out go5q` arms
+- GO5q (started 2026-11-18 20:59 PST): four `fit_strain.py --sample straing --out go5q` arms
   (E@GT mean, E@GT --grad, S@P --grad, GP4@P --grad). Do not start a second copy.
 
 ## Data (git-ignored, in this worktree; link, do not copy)

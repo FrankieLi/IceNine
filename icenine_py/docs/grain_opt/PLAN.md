@@ -956,6 +956,11 @@ minutes; fast fit about 40 minutes; at most 3 processes, each under 2 hours.
 
 ### GO6 onwards
 
+Strain queue (owner, 2026-11-19, from the literature review in the sibling thread "Review neural
+methods for grain gradients"): after GO5q, I60 (Gauss-Newton gradient fit), I61 (non-linear
+gradient sample), I62 (quadratic field), I63 (coordinate network, only if I62 leaves a residual),
+I64 (GP / Laplacian prior on a per-voxel residual). I25 stays queued at low priority.
+
 Program balance (owner via the coordinator, 2026-11-16): GO5b to GO5o were all G1c strain. After
 GO5o the strain line is time-boxed (at most one more strain step unless a result demands it),
 and the next steps rotate to goals with no steps yet, in this order: (1) G1b unblock: cache the

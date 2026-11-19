@@ -36,6 +36,11 @@ details in the findings page named in the last column. New ideas get the next fr
 | I57 | GO7e | Fast strain fit with the wider ratio filter (2.5) on the noisy images (GO5m set), to adopt it as the default | done | GO5p: no (narrowly). Noisy fast fit with filter 2.5: 1.6/2.6/3.1e-4 (intclean 2.0/2.5/2.7e-4), orientation <= 0.017 deg; misses 1.25 x the noisy CMA hybrid at 5e-4 (2.4e-4) | findings.md |
 | I58 | GO4h | Second wide-search pass (W, X) at a lower gate (0.11) for rand near misses below the 0.15 gate | done | GO4i: yes. rand 16 / 1.4 / 5 / 4% -> 4.5 / 0.4 / 3.3 / 3.2% above 0.1 deg at 0.5 / 1 / 2 / 5 deg, 8 s per voxel (run over its 2 h budget: 140 min) | findings.md |
 | I59 | owner | Intragranular strain gradient: a sample with a mean strain plus a linear strain gradient across each grain (optionally correlated voxel noise) at the existing RMS levels; fast fit and CMA hybrid with 6 + 12 strain numbers per grain (in-plane gradient) | running (GO5q) | | |
+| I60 | owner (review) | Gradient-based gradient fit: extend the Gauss-Newton / LM centroid fit to the 6 + 12 strain numbers (finite-difference Jacobian through the per-voxel strain path); compare with the CMA hybrid gradient fit on straing for accuracy and time | proposed | | |
+| I61 | owner (review) | Non-linear strain-gradient sample straingq: mean + linear + quadratic in-plane terms + a smooth correlated random field (GP-like, correlation length a few voxels), at the existing levels | proposed | | |
+| I62 | owner (review) | Quadratic per-grain strain field (6 x 5 in-plane polynomial terms) fitted on straingq against the linear field | proposed | | |
+| I63 | owner (review) | Small coordinate network for the per-grain strain field, only if the quadratic (I62) leaves a clear residual | proposed | | |
+| I64 | owner (review) | Per-voxel strain residual on top of the polynomial, regularised by a GP or Laplacian prior (optional equilibrium-divergence penalty), on straingq | proposed | | |
 | I25 | G2c | GNLayerNet (orientation_nn_design.md) as a per-voxel start inside a grain | proposed | | |
 | I26 | G2c | Learned residual / amortised Gauss-Newton step for the grain field (todo_hybrid_nn) | proposed | | |
 | I27 | G2c | Neural field for orientation (and strain) over the grain, render-and-compare (nerf note) | proposed | | |
