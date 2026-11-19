@@ -1303,3 +1303,19 @@ Decisions D-20261119-N3 (approval) and D-20261119-N4. Reports in the main `.clau
   17,114,589 (8.60% fewer). Wrong voxels 45 and 45. It is not part of the gate.
 - No key, no phase B, `held7` unused. No library change, no default change.
 - Step 25 (a stall-point predictor, stored rows first) is approved by D-20261119-N5.
+
+### AR5 step 25 (stall-point predictor; task `ar5y`), merged as a negative result at e0bfff98 on 2026-11-19
+
+Decisions D-20261119-N5 (approval) and D-20261119-N6. Reports in the main `.claude/reports/`:
+`20261119-1514-ar5y.md` and review `20261119-1600-review-ar5y.md`.
+
+- Idea: predict the stall point of seed steps that never reach 0.95. Stored rows only; no live
+  run, `held7` unused.
+- Gate s1 failed. Logistic AUC is 0.547 to 0.588 (bar 0.70). Stored saving is 1.39% to 2.47%
+  (bar 4%).
+- Gate s0 is not exact. An off-by-one the plan foresaw (about 0.01 points). The boosted tree was
+  not reproduced (no new dependency).
+- No key, no library change, no default change. Suite: 2366 passed, 48 skipped, 1 deselected.
+- Step 26 (task `ar5z`, a faster ray indexer with the same candidates) is approved by
+  D-20261119-N6. It targets wall time, not evaluations: stored J5SD runs spend 41% to 77% of
+  contended wall time in ray indexing.
