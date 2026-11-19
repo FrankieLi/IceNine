@@ -276,6 +276,101 @@ def centroid_residuals(cen: Any, R: torch.Tensor, strain: torch.Tensor) -> Any:
     return res, has
 
 
+def moment_residuals(cen: Any, R: torch.Tensor, strain: torch.Tensor) -> Any:
+    """GO5r: per spot, predicted minus observed intensity-weighted centroid (column, row, frame)
+    and second moments (column variance, row variance, column-row covariance; the prediction
+    adds the 1/12 px^2 pixel box variance per axis). Returns (S, 6) and the mask of usable spots."""
+    prob = cen.prob
+    prob.n_evals += 1
+    if not hasattr(cen, "_obs_mom"):
+        om = []
+        for j in range(len(cen.obs)):
+            ob, w = cen.obs[j], cen.w[j]
+            if not len(ob):
+                om.append(None)
+                continue
+            co = (w[:, None] * ob).sum(0)
+            dc = ob[:, :2] - co[:2]
+            om.append(
+                np.r_[
+                    co,
+                    (w * dc[:, 0] ** 2).sum(),
+                    (w * dc[:, 1] ** 2).sum(),
+                    (w * dc[:, 0] * dc[:, 1]).sum(),
+                ]
+            )
+        cen._obs_mom = om
+    with torch.no_grad():
+        rows = prob.model.predict(R, prob.V, strain)
+        x, a = GF.pack_predicted(prob.region, rows, prob.bary, prob.model.n_det, with_shell=False)
+    x, a = x.numpy(), a.numpy()
+    S = len(cen.obs)
+    res, has = np.zeros((S, 6)), np.zeros(S, bool)
+    for j in range(S):
+        ok = a[j] > 0
+        if not ok.any() or cen._obs_mom[j] is None:
+            continue
+        w = a[j][ok] / a[j][ok].sum()
+        xp = x[j][ok]
+        cp = (w[:, None] * xp).sum(0)
+        dc = xp[:, :2] - cp[:2]
+        pm = np.r_[
+            cp,
+            (w * dc[:, 0] ** 2).sum() + 1 / 12,
+            (w * dc[:, 1] ** 2).sum() + 1 / 12,
+            (w * dc[:, 0] * dc[:, 1]).sum(),
+        ]
+        res[j] = pm - cen._obs_mom[j]
+        has[j] = True
+    res[:, 3] = 0.0  # GO5r amendment: column variance dropped (biased by the in-frame omega smear)
+    return res, has
+
+
+def lm_moments(resid: Any, q0: np.ndarray, iters: int = 15) -> Any:
+    """GO5r: Levenberg-Marquardt on centroid + moment residuals over any parameter vector, finite
+    differences (step 1e-5), Tukey weights on the centroid distance frozen per stage (3 / 1.5 / 1
+    px; a stage with fewer than half the spots as inliers is skipped)."""
+    q = np.asarray(q0, float).copy()
+    h = np.full(len(q), 1e-5)
+    info = []
+    for c in (3.0, 1.5, 1.0):
+        res, act = resid(q)
+        w0 = robust_w(np.linalg.norm(res[:, :3], axis=1), c)
+        if int(((w0 > 0) & act).sum()) < 0.5 * act.sum():
+            info.append(dict(c=c, skipped=True))
+            continue
+        sw = np.sqrt(w0)[:, None]
+
+        def rv(r: np.ndarray) -> np.ndarray:
+            return (sw * r)[act].ravel()
+
+        mu, it = 1e-3, 0
+        for it in range(1, iters + 1):
+            r0 = rv(res)
+            c0 = float(r0 @ r0)
+            J = np.empty((len(r0), len(q)))
+            for i in range(len(q)):
+                qq = q.copy()
+                qq[i] += h[i]
+                J[:, i] = (rv(resid(qq)[0]) - r0) / h[i]
+            A, g = J.T @ J, J.T @ r0
+            D = np.diag(np.maximum(np.diag(A), 1e-30))
+            acc = False
+            for _ in range(6):
+                delta = -np.linalg.solve(A + mu * D, g)
+                rn_full, _h = resid(q + delta)
+                rn = rv(rn_full)
+                if float(rn @ rn) < c0:
+                    q, res, acc = q + delta, rn_full, True
+                    mu = max(mu / 3.0, 1e-9)
+                    break
+                mu *= 10.0
+            if not acc or np.all(np.abs(delta) < 1e-8):
+                break
+        info.append(dict(c=c, iters=it, cost=float(rv(res) @ rv(res))))
+    return q, info
+
+
 def robust_w(d: np.ndarray, c: float) -> np.ndarray:
     """Per-spot weights: Huber at 2 px when c == 0, else Tukey biweight with cut-off c px."""
     if c <= 0:
@@ -474,6 +569,7 @@ def main() -> None:
     ap.add_argument("--ratio_hi", type=float, default=None)
     ap.add_argument("--grad", action="store_true", help="GO5q: 6 + 12 strain numbers per grain")
     ap.add_argument("--evals_g", type=int, default=600)
+    ap.add_argument("--gnm", action="store_true", help="GO5r: Gauss-Newton on centroids + moments")
     ap.add_argument("--sample", default="strain")
     ap.add_argument("--cen_w", default="int", choices=["int", "bin", "binclean", "intclean"])
     ap.add_argument("--stack", default=None, help="GO5m: stack file in place of strain_clean.npy")
@@ -501,6 +597,8 @@ def main() -> None:
         tag += f"_r{a.ratio_hi:g}"
     if a.grad:
         tag += "_grad"
+    if a.gnm:
+        tag += "_gnm"
     start = "paint" if a.arm.endswith("@P") else "truth"
     S = CM.Sample(out / f"run_{tag}", start=start, intensity=True, sample=a.sample, stack=a.stack)
     T = S.T
@@ -565,7 +663,15 @@ def main() -> None:
         f_gt_unstr = cov(Rg, zero)
         field = prob.field
         info: Dict[str, Any] = {}
-        if a.arm == "E@GT":
+        if a.arm == "E@GT" and a.gnm:  # GO5r: strain only, Gauss-Newton on centroid + moments
+            cen_m = SubPix(prob, "cen")
+            q, info["gnm"] = lm_moments(
+                lambda e: moment_residuals(cen_m, Rg, eps_of(e)), np.zeros(NP)
+            )
+            fq = cov(Rg, eps_of(q))
+            r = dict(x=q, f0=fq, f=fq, evals=0, stop="gnm")
+            eps_fit, R_fit = r["x"], R_gt
+        elif a.arm == "E@GT":
             r = cma_min(
                 lambda e: cov(Rg, eps_of(e)), np.zeros(NP), np.full(NP, STEP_EPS), a.evals_e
             )
@@ -672,7 +778,33 @@ def main() -> None:
                 else:
                     fg = fj(xg)
                     r = dict(x=xg, f0=fg, f=fg, evals=0, stop="gn")
-                if a.grad:  # GO5q: strain leg over mean + gradient at the fitted field
+                if a.grad and a.gnm:  # GO5r: Gauss-Newton over rotation + 18 strain numbers
+                    cen_m, th_b = SubPix(prob, "cen"), np.array(r["x"][:k], float)
+
+                    def res_m(qv: np.ndarray) -> Any:
+                        t = th_b.copy()
+                        t[:3] = qv[:3]
+                        Rq = field.orientations(torch.as_tensor(t, dtype=GF.DT))
+                        return moment_residuals(cen_m, Rq, eps_of(qv[3:]))
+
+                    q0 = np.concatenate([th_b[:3], r["x"][k : k + 6], np.zeros(12)])
+                    q, info["gnm"] = lm_moments(res_m, q0)
+                    if all(st.get("skipped") for st in info["gnm"]):  # amendment: CMA leg
+                        th_f = torch.as_tensor(r["x"][:k], dtype=GF.DT)
+                        rg_ = cma_min(
+                            lambda e: cov(field.orientations(th_f), eps_of(e)),
+                            np.concatenate([r["x"][k : k + 6], np.zeros(12)]),
+                            np.full(18, 2e-4),
+                            a.evals_g,
+                        )
+                        info["gnm_fallback"] = True
+                        r = dict(rg_, x=np.concatenate([r["x"][:k], rg_["x"]]))
+                    else:
+                        th_b[:3] = q[:3]
+                        xq = np.concatenate([th_b, q[3:]])
+                        fq = fj(xq)
+                        r = dict(x=xq, f0=fq, f=fq, evals=0, stop="gnm")
+                elif a.grad:  # GO5q: strain leg over mean + gradient at the fitted field
                     th_f = torch.as_tensor(r["x"][:k], dtype=GF.DT)
                     e0 = np.concatenate([r["x"][k : k + 6], np.zeros(12)])
                     rg_ = cma_min(
@@ -730,6 +862,7 @@ def main() -> None:
             cen_split=a.cen_split,
             ratio_hi=a.ratio_hi,
             grad=a.grad,
+            gnm=a.gnm,
             sample=a.sample,
             stack=a.stack,
             seed=a.seed,

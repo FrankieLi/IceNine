@@ -964,14 +964,20 @@ recover it better, and faster?
 Method (`fit_strain.py --grad --gnm`, scripts only): residuals per spot = predicted minus observed
 intensity-weighted centroid (column, row, frame) and second moments (variance in column, in row,
 and the column-row covariance, in px^2; the predicted moments add the pixel box variance 1/12 px^2
-per axis); Levenberg-Marquardt with a finite-difference Jacobian, frozen Tukey weights per stage
+per axis); amended before the judged runs: the column variance is dropped (at the ground
+truth on a smoke grain its residual has median -4.2 px^2, larger than the gradient's effect of
+2.1 px^2, likely the spot's smear along the column during a 1 deg frame, which the single-omega
+prediction lacks; the row variance and covariance biases are 0.07 and 0.06 px^2 against
+effects of 0.35 and 0.98 px^2); Levenberg-Marquardt with a finite-difference Jacobian, frozen Tukey weights per stage
 on the centroid distance (3 / 1.5 / 1 px, as GO5k). Arms on `straing`, S36, ratio filter 2.5,
 `hyb` lambda 8 for `f_fit`; output `benchmarks/grain_opt/go5r/`:
 
 - `E@GT --grad --gnm`: strain only (18 numbers) at the ground-truth orientation.
 - `GP4@P --grad --gnm`: the fast fit for the field and mean (GO5l), then Gauss-Newton over the
   mean rotation and the 18 strain numbers on centroid + moment residuals (replacing GO5q's CMA
-  gradient leg).
+  gradient leg). Amendment before the judged runs: when every Gauss-Newton stage is skipped
+  (fewer than half the spots within the Tukey cut-off; on a smoke grain this came from painted
+  outlier voxels putting spurious spots into the region), GO5q's CMA gradient leg runs instead.
 
 Judging rule (written before any run). References from GO5q on the same grains (relative gradient
 error at 5e-4 / 1e-3): strain only at the ground-truth orientation 0.77 / 0.45; CMA hybrid from the
