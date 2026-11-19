@@ -917,6 +917,43 @@ and wall time per voxel reported; stopped and reported if over 2 hours.
 Budget: GO4h rand took 71 minutes; the second pass adds about 60 voxels x (1 + 16) s, about
 17 minutes.
 
+### GO5q: intragranular strain gradient (goal G1c, idea I59; owner request 2026-11-19)
+
+Question: the `strain` sample has one strain tensor per grain. With a mean strain plus a linear
+strain gradient across each grain, do the strain fits recover the mean and the gradient?
+
+Sample `straing` (`scripts/grain_opt/make_strain_gradient_sample.py`, scripts only; the renderer's
+opt-in per-voxel strain path, `.mic` columns 13-18): the `grad` orientations; per grain the same
+mean strain as `strain` (same seed, same levels 1e-4 / 5e-4 / 1e-3) plus an in-plane linear
+gradient eps(v) = eps_mean + D d_v, d_v = (xy_v - c) / r (c the grain centroid, r the RMS voxel
+distance from it), D a 6 x 2 Gaussian matrix scaled so the gradient part has tensor RMS over the
+grain's voxels equal to the grain's level (so the strain varies across a grain about as much as
+its mean). The layer is one voxel thick, so only the in-plane gradient (6 x 2 = 12 numbers) is
+observable, not 6 x 3. No voxel noise in this step. Rendered clean (`render_full.py --strain`),
+stack and store built in this worktree; per-voxel ground-truth strain in `strain_vox.npy`.
+
+Fits (`fit_strain.py --grad`: per-grain strain = 6 mean + 12 gradient numbers; mean error = tensor
+RMS of the fitted minus ground-truth grain-mean strain; gradient error = RMS over the grain's
+voxels of the tensor RMS of the fitted minus ground-truth gradient part, reported also relative to
+the ground-truth gradient RMS). S36, output `benchmarks/grain_opt/go5q/`. Arms:
+
+- `E@GT` mean only (6) and with gradient (18): strain only at the ground-truth orientation,
+  `hyb` lambda 8, 300 / 900 evaluations.
+- `S@P --grad`: the CMA hybrid staged from the painted start (field 200, strain 18 numbers 900,
+  joint 900).
+- `GP4@P --grad --ratio_hi 2.5`: the fast fit for the mean (Gauss-Newton on centroids does not see
+  a linear gradient to first order), then a strain leg over the 18 numbers on `hyb` lambda 8 (600
+  evaluations, field fixed).
+
+Judging rule (written before any run). The gradient counts as recovered by an arm at a level when
+the median relative gradient error is at most 0.5 (at least half the gradient explained). I59 is
+answered yes for an arm that recovers the gradient at 5e-4 and 1e-3 and whose mean-strain median at
+those levels is at most 1.5 x the same method's uniform-strain result on `strain` (CMA hybrid 1.5e-4
+/ 2.1e-4; fast fit with filter 2.5 1.2e-4 / 1.4e-4). 1e-4 reported, not judged; orientation reported.
+
+Budget: sample and render about 5 minutes; `E@GT` arms about 10-25 minutes; `S@P --grad` about 70
+minutes; fast fit about 40 minutes; at most 3 processes, each under 2 hours.
+
 ### GO6 onwards
 
 Program balance (owner via the coordinator, 2026-11-16): GO5b to GO5o were all G1c strain. After
