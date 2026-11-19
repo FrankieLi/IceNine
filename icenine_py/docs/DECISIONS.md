@@ -2230,3 +2230,14 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   and J5SDB, about 90 minutes, one run at a time) as information only. It cannot change the
   verdict. Then review and merge as a failed study. Where: icenine_py/docs/autoresearch/PLAN.md
   (AR5 step 24); .claude/reports/20261119-1124-ar5x.md.
+
+### D-20261119-N5 · AR5 step 25 approved, phase 0 only (stored rows) · AR5 step 25 (stall-point predictor) approved for its stored-row phase only
+- 2026-11-19, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Step 24 merged as a failed study (db26a50b). Step 25
+  asks whether features known at the stall point of a seed step tell a step that will still reach
+  0.95 from one that never will. The drafting numbers say no (AUC 0.55 to 0.60, stored saving 1.4%
+  to 2.4%), so only phase 0 is approved: tracked scripts reproduce the three tables (s0) and gate
+  s1 (AUC at least 0.70 and saving at least 4%) is judged. About one hour, no reconstruction,
+  held7 not built. If s1 fails the step ends as a recorded negative result; no other feature set,
+  label or threshold is tried in it. A live phase needs a new decision. Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR5 step 25).
