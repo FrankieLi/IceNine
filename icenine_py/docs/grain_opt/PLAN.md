@@ -999,7 +999,9 @@ Sample `straingq` (`make_strain_gradient_sample.py --mode nonlinear`, scripts on
 grain means (same seed and draws), plus per grain three intragranular parts of equal RMS: an
 in-plane linear term, a quadratic term (d_x^2, d_x d_y, d_y^2, each centred over the grain) and a
 smooth Gaussian random field per strain component (squared-exponential kernel, correlation length
-3 voxel spacings), each scaled to tensor RMS level / sqrt(3) over the grain's voxels, so the total
+3 voxel spacings), each scaled to tensor RMS level / sqrt(3) over the grain's voxels (amended
+before any judged run: the quadratic and random parts are made orthogonal to the linear basis per
+grain, since without that the oracle linear share was 0.60, above the rule's 0.5), so the total
 intragranular part has RMS about the grain's level (as `straing`). Rendered clean and stored in
 this worktree; the per-voxel ground truth in `strain_vox.npy`. The linear share of the
 intragranular field (the least-squares linear projection of the ground truth, per grain) is

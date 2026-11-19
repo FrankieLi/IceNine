@@ -79,7 +79,8 @@ merge to develop.
    (rerun it before the page build), Pareto rows in
    `benchmarks/grain_opt/pareto_rows.json`; rewrite `STATE.md` (move the old notes to
    `STATE_HISTORY.md`); `uv run python scripts/grain_opt/build_page.py`; commit and push; one
-   shmem fact; republish the page (Artifact publish of `benchmarks/grain_opt/page/index.html`
+   shmem fact for the step and a refreshed "IceNine grainopt current state" fact (latest closed
+   step, next queue; keyword retrieval otherwise favours older facts, owner check 2026-11-19); republish the page (Artifact publish of `benchmarks/grain_opt/page/index.html`
    at the URL in STATE.md); report to the owner through the project thread.
 
 ## Reporting
