@@ -5790,6 +5790,156 @@ other crystals; C++; another random seed; `held2`; `fine7`.
 
 Approved: D-20261119-N5, phase 0 only (s0 and s1); a live phase needs a new decision.
 
+### AR5 step 26: a faster ray indexer with the same candidates (wall time; evaluations unchanged)
+
+Task `ar5z`. Starts from `feature/eval-reduction` after step 25's merge. Reads step 22's cache
+through the links in `ar5/ball/cache` (main checkout), read only. Phase 0 (a quiet profile) ends at
+gate z0; phase A only if it passes; phase B only after a recorded decision.
+
+**Why.** The owner counts wall-clock time as well as operations. Steps 23 to 25 tried to cut
+evaluations in the seed step's second stage and earned no key. The stored runs show that most
+seconds are not spent in evaluations. With `FusedCost` on, one evaluation takes 0.07 to 0.11 ms.
+Ray indexing counts zero evaluations, yet takes 0.5 to 1.6 s a seed step: 41% to 77% of `J5SD`'s
+wall time. In AR1 (`FusedCost` off, 64 seeds) it was under 1%; cheaper evaluations and many reseeds
+moved it to the top. A faster indexer that returns the same candidates changes no search, no map
+and no evaluation count, so no accuracy trade decides it.
+
+**What was read and run.** PLAN steps 22 to 25; `J5D`'s `run.json`, `e1_log`, `polish.json`,
+`records` and `J5SD`'s `repair.json` (eight samples); step 23's replay rows; `ray_indexing.py`;
+shmem on AR1, AR3 step 9, steps 17, 18. Scratch `size26.py`; no run; nothing of `held2`, `fine7`.
+
+**Terms.** **Evaluation**: one strict cost of one orientation at one voxel. **Seed step**: index
+the voxel, cost 20 candidates, then for the best 5 a CMA fit and, under 0.95, an MC refinement.
+**Index stage**: the seed step's evaluations. **Indexing**: the work before them (`index_voxel`:
+attach rays, vote, cluster, refine); seconds in `index_s`. **Rescue**: `G1`, `G2b` after a failed
+seed test. **Neighbour stage**: BFS neighbour local optimizations and revisits. **Candidates**: the
+indexer's output (rotations, explained rays, votes, in order). **Contended**: timed while other
+jobs ran (preflight refused); indicative. **Quiet**: the timing preflight (`--require`) passed.
+
+**Where the evaluations go.** Reading line: per sample, `J5SD`'s evaluations (`J5D` stages plus
+screen plus repair, equal to step 24's totals), then shares of the index stage, rescue, grid search
+(count in brackets), neighbour stage, and screen pass plus repair.
+
+| sample | J5SD evals | index stage | rescue | grid (n) | neighbour | screen + repair |
+|---|---|---|---|---|---|---|
+| held3 | 18,363,331 | 48.1% | 1.6% | 16.9% (9) | 24.1% | 9.2% |
+| held4 | 20,685,850 | 52.6% | 1.3% | 13.3% (8) | 24.0% | 8.8% |
+| held5 | 20,076,940 | 43.3% | 2.0% | 24.0% (14) | 22.8% | 7.9% |
+| held6 | 22,690,096 | 44.3% | 1.3% | 24.4% (16) | 22.0% | 8.0% |
+| held | 17,114,589 | 53.3% | 1.3% | 8.1% (4) | 27.4% | 9.9% |
+| mid | 7,383,368 | 35.8% | 0.6% | 9.0% (2) | 43.0% | 11.5% |
+| grad | 6,134,231 | 20.5% | 0.8% | 11.0% (2) | 53.1% | 14.6% |
+| big | 2,452,596 | 10.7% | 0.0% | 0.0% (0) | 81.2% | 8.1% |
+
+In the index stage, costing is 0.3% to 0.4% of `J5SD` and CMA fits 3.7% to 9.5%; MC is the rest
+(about 15% first stage, 85% second, on refinements matched in step 23's replay).
+
+**Where the seconds go (contended).** Reading line: per sample, wall seconds (BFS run, screen pass
+and repair; one worker), the share in indexing and its seconds per seed step, the share in all
+evaluations and in the neighbour stage, then ms per evaluation: index stage, neighbour stage,
+rescue plus grid, repair, screen pass.
+
+| sample | wall s | indexing | s/step | all evals | neighbour | ms/eval idx, nbr, grid, repair, screen |
+|---|---|---|---|---|---|---|
+| held3 | 5,926 | 71.7% | 1.25 | 26.5% | 8.1% | 0.077, 0.108, 0.068, 0.088, 0.310 |
+| held4 | 8,138 | 76.7% | 1.52 | 21.6% | 6.6% | 0.075, 0.107, 0.068, 0.091, 0.300 |
+| held5 | 7,536 | 76.4% | 1.62 | 22.2% | 6.5% | 0.076, 0.107, 0.067, 0.089, 0.303 |
+| held6 | 7,416 | 72.6% | 1.31 | 25.5% | 7.3% | 0.075, 0.108, 0.068, 0.088, 0.301 |
+| held | 5,601 | 72.0% | 1.09 | 25.8% | 8.8% | 0.073, 0.105, 0.066, 0.086, 0.299 |
+| mid | 1,665 | 58.1% | 0.59 | 40.1% | 19.9% | 0.073, 0.104, 0.065, 0.086, 0.330 |
+| grad | 1,258 | 50.1% | 0.49 | 48.2% | 27.7% | 0.081, 0.107, 0.069, 0.086, 0.327 |
+| big | 438 | 40.8% | 0.54 | 58.3% | 47.8% | 0.073, 0.105, n/a, 0.087, 0.351 |
+
+BFS bookkeeping is 0.8% to 2.2%; the one-time ray pairing (17 to 39 s) sits in "all evals".
+Indexing is spread, not a tail: time outside evaluations per seed step has a median of 0.50 s on
+`mid` and 0.80 s on `held` (10th to 90th percentile 0.23 to 1.10 s, 0.37 to 2.04 s). No voxel is
+indexed twice, so a cache cannot help. AR1 split one indexing into voting 12%, clustering 48%,
+refining 39%. Clustering counts the neighbours of every vote in a k-d tree, then loops in Python
+over up to 150 seeds with 48 ball queries each; refining loops over up to 150 clusters, though 20
+are kept.
+
+**The rule, frozen now.** Rule `IX`: a new indexer returns, for every voxel, exactly the old
+`index_voxel` output (rotations, explained-ray and vote counts, attached rays, in the same order).
+Allowed: vectorizing, reordering, reusing arrays, skipping work that provably cannot change the
+output (for example refining a cluster that cannot enter the top 20). Not allowed: any change of
+`IndexParams` (tolerances, `n_seeds` 150, `max_pairs` 600,000, the pair subsample generator), of
+`top_k` 20, or of anything after indexing. No truth, no threshold, nothing crystal-specific; any
+symmetry group works.
+
+**Samples.** Profiling and design: 200 seed voxels of `mid` only. Exactness: all stored seed voxels
+of `mid` and `held` (5,311), and 300 per sample (generator 26) from `held3` to `held6`, `grad`,
+`big`. Timing: `mid` and `held`. `held7` (generator seed 7 of the held family; nothing of it
+exists) stays unused under tier 1: an exact change makes no accuracy claim. `held2` not opened;
+`fine7` not read.
+
+**Gates, fixed now.**
+- z0 (quiet): the old indexer on the 200 `mid` voxels, scaled to 1,626 steps, is at least 30% of a
+  quiet `J5SD` estimate on `mid` (stored evaluations at the session's quiet ms per evaluation).
+- e1 (exactness, index only): old and new on every exactness voxel. Tier 1: bit-identical outputs.
+  Tier 2, only if tier 1 fails on at most 0.1% of voxels: same order, counts and attached rays,
+  rotation entries within 1e-12. Anything else: stop.
+- e2 (exactness, live): the `J5SD` script arm with the new indexer on `mid` and `held`. Tier 1:
+  maps and counts equal stored `J5SD` exactly (7,383,368 and 17,114,589). Tier 2: evaluations
+  within 0.5% on each; at most 0.1% of voxels move over 0.001 degree; against stored `J5SD` judged
+  on `mid` and `held` pooled, broken minus fixed at most 3 per sample and median error at most
+  0.001 degree higher.
+- w1 (seconds, quiet, index only): summed indexing seconds over the 5,311 voxels at least 50% lower
+  than the old indexer's, same session, old and new in alternating blocks of 100 voxels.
+- w2 (seconds, quiet, whole run): `J5SD` old and new, each run alone, on `mid` and `held`: pooled
+  wall seconds (sum of both) at least 25% lower, and at least 15% lower on each sample.
+- Tier 2 only, house rule on `held7` (built as `held`): new `J5SD` against `S8`, at least 20% fewer
+  wall seconds and evaluations, broken minus fixed at most 5, median at most 0.005 degree higher.
+
+**Predictions, written before any run.** e1 tier 1 holds. w1: indexing 2 to 5 times faster. w2:
+`held` 35% to 55% less wall, `mid` 25% to 45%. Evaluation counts unchanged everywhere.
+
+**Costs.** Phase 0: 0.2 hour. e1 and w1: 7,111 voxels, old and new, no evaluations, 2 to 3 hours.
+e2 and w2 (the new runs serve both): four live runs, about 49 million evaluations, about 3 hours.
+In all 5 to 6 hours, one run at a time. Tier 2 adds `held7`: about 91 million, 4 to 6 hours.
+
+**Stop rules.** z0, e1 or e2 fails; an `IndexParams` value differs between arms; a timed run
+without a passing preflight (rerun it; no contended number enters a gate); the first table does not
+reproduce; `held2` opened or listed, `fine7` read, or `held7` built under tier 1.
+
+**Validity checks.** The old indexer stays unchanged as the reference. Both arms read the same
+`SmoothCost` and rays. One thread (`OMP`, `MKL`, torch), same power state, preflight JSON kept per
+timed run; ms per evaluation by stage reported, to show evaluations did not slow. No truth is read.
+
+**Known limits.** Contended stored seconds (z0 checks first); one machine; `S8` gains as well.
+
+**Phase A.** 1. z0; commit `ix/frozen.json` (rule, gates, voxel lists, hashes). 2. Tests first,
+`tests/test_ar5_ix.py`: new equals old on fixtures (under 2 rays, no votes, tied votes and
+explained rays, more than 600,000 pairs, cubic and hexagonal symmetry). 3. e1, w1. 4. e2, w2. Plot
+first (seconds per sample, old and new, indexing and evaluations), then tables. "READY FOR KEY".
+
+**Phase B (key).** Opt-in `RayIndexFast` (default 0, off), valid with `SeedByIndexing`; parsed,
+checked in `check_bfs_keys`; key-off suite with no golden change; key on, a library run on `mid`
+equal to `J5Dl`'s map and counts. Page `findings_ar5_ix.md`, history, README.
+
+**Files:** `scripts/autoresearch/ar5/ix_*.py`, `tests/test_ar5_ix.py`, `ar5/ix/` (under 3 MB).
+**Library:** phase A a new function beside `index_voxel`, unused unless called; phase B the key.
+
+**Not in this step.** Other indexer settings (an accuracy study); a learned proposer; batching;
+the neighbour stage; the seed step's second stage; the grid search; C++; realistic images; another
+random seed; `held2`; `fine7`.
+
+**Choices made.**
+- This idea: the largest wall-time pot (41% to 77% of `J5SD`, contended), exact, 5 to 6 hours.
+  Weak side: contended shares; bit-identical k-d tree counts may be hard to keep (a borderline
+  distance can flip), hence tier 2; the evaluation count does not move.
+- Runners-up, sized from the same rows: (d) a learned proposer in place of ray indexing (same wall
+  pot, but candidate quality drives seed-test failures, each 24,000 to 93,000 evaluations; 22,087
+  stored seed steps to train on; many hours); (a) batching several voxels' evaluations in one
+  tensor call (evaluations are 22% to 27% of wall on the `held` types, 40% `mid`, 58% `big`; the
+  neighbour stage runs at 0.105 ms against 0.067 for batched grid calls, so at most about a third
+  of its 6.5% to 48%; BFS order changes, so not exact); (b) a cheaper accept in the neighbour stage
+  (22% to 27% of evaluations on the `held` types, 43% `mid`, 81% `big`; AR3 step 9's start test
+  raised the median error 0.013 to 0.024 degree; steps 17 and 18's skips failed); (c) a smooth
+  orientation field per grain, verified with one evaluation per voxel (neighbour stage and repair,
+  30% to 89% of evaluations; new machinery, gradients of several degrees, tens of hours).
+
+Approved: D-20261119-N6, phases 0 and A; phase B needs a new decision.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
