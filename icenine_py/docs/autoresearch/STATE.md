@@ -46,7 +46,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
 - Step 14 key WAITS (held2). Steps 15 to 21 merged (caches: `J5r` `agent-aeba15b7c3850b007`,
   step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v59 live.
   Step 22 (`ar5v`; cache in `agent-aba6e1bdb95dff72a`): MERGED 566eea3f, key `SeedIndexMCDefer`.
-  Step 23 (`ar5w`, N1 of 19 Nov, plan 1d6bca35): implementer a7cda73da74f6b535 since 01:25, 19 Nov.
+  Step 23 (`ar5w`, N1 of 19 Nov): FAILED gate g1 on mid; a7cda73da74f6b535 runs 7 replays for info.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
