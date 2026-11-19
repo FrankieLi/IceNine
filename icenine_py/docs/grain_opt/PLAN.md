@@ -1041,6 +1041,33 @@ floor at 1e-3. The 1e-4 level is reported, not judged.
 
 Budget: about 100 s and 110 s per grain; two runs in parallel, about 65 minutes.
 
+### GO5u: GP prior on the intragranular strain residual (goal G1c, idea I64)
+
+Question: GO5t's quadratic field helped at 1e-3 but fitted noise at 5e-4: the right amount of
+intragranular structure depends on the strain level. Does a GP prior on a smooth residual, on top
+of the mean and linear field, let the data decide, and do better than the quadratic at 5e-4 without
+losing at 1e-3?
+
+Method (`fit_strain.py --gpk 5 --gp_beta B`, scripts only): per grain, the residual is
+sum_k c_k phi_k(v) per strain component, phi_k the K = 5 leading eigenvectors of a
+squared-exponential kernel over the grain's voxels (correlation length 3 voxel spacings), made
+orthogonal to the mean and linear basis and scaled to RMS 1, with eigenvalues lambda_k normalised to
+lambda_1 = 1; strain numbers per grain 6 + 12 + 30 = 48. The prior adds
+B x mean_k,j (c_jk^2 / (lambda_k sigma^2)) to the cost, sigma = 5e-4 (a GP prior in the reduced
+basis; B = 0 is the unregularised 48-number fit). On `straingq`, S36, `hyb` lambda 8, ratio filter
+2.5; output `benchmarks/grain_opt/go5u/`. Arms: strain only at the ground-truth orientation (CMA,
+1,500 evaluations) with B = 0 and B = 0.05; the fast fit + GP leg from the painted start (1,000
+evaluations) with B = 0.05.
+
+Judging rule (written before any run). References: GO5t's quadratic arms (relative intragranular
+error 1.24 / 0.72 at 5e-4 / 1e-3 at the ground-truth orientation; 1.09 / 0.74 from the painted
+start). I64 is answered yes for a prior arm (B > 0) whose relative error at 5e-4 is at least 0.1
+lower than its quadratic counterpart's and at 1e-3 at most 0.05 higher, with mean-strain medians
+within 1.5 x of GO5s's linear arms. The B = 0 arm shows what the prior itself contributes. The
+1e-4 level is reported, not judged.
+
+Budget: about 100-110 s per grain; three runs in parallel, about 70 minutes.
+
 ### GO6 onwards
 
 Strain queue (owner, 2026-11-19, from the literature review in the sibling thread "Review neural

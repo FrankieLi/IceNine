@@ -570,6 +570,8 @@ def main() -> None:
     ap.add_argument("--grad", action="store_true", help="GO5q: 6 + 12 strain numbers per grain")
     ap.add_argument("--evals_g", type=int, default=600)
     ap.add_argument("--quad", action="store_true", help="I62: 6 + 12 + 18 strain numbers")
+    ap.add_argument("--gpk", type=int, default=0, help="I64: GP residual basis size per component")
+    ap.add_argument("--gp_beta", type=float, default=0.0, help="I64: GP prior weight")
     ap.add_argument("--gnm", action="store_true", help="GO5r: Gauss-Newton on centroids + moments")
     ap.add_argument("--sample", default="strain")
     ap.add_argument("--cen_w", default="int", choices=["int", "bin", "binclean", "intclean"])
@@ -602,6 +604,8 @@ def main() -> None:
         tag += "_gnm"
     if a.quad:
         tag += "_quad"
+    if a.gpk > 0:
+        tag += f"_gp{a.gpk}b{a.gp_beta:g}"
     start = "paint" if a.arm.endswith("@P") else "truth"
     S = CM.Sample(out / f"run_{tag}", start=start, intensity=True, sample=a.sample, stack=a.stack)
     T = S.T
@@ -652,11 +656,33 @@ def main() -> None:
         f2_m = np.stack([d_m[:, 0] ** 2, d_m[:, 0] * d_m[:, 1], d_m[:, 1] ** 2], 1)
         f2_m = f2_m - f2_m.mean(0)  # I62: centred quadratic terms
         NP = 36 if a.quad else (18 if a.grad else 6)
+        phi_m, lam_m = None, None
+        if a.gpk > 0:  # I64: GP residual basis orthogonal to mean + linear, prior weights lam_m
+            from scipy.spatial import cKDTree
+
+            sp_ = float(np.median(cKDTree(xy_m).query(xy_m, k=2)[0][:, 1])) if n > 1 else 1.0
+            dd = ((xy_m[:, None, :] - xy_m[None, :, :]) ** 2).sum(-1)
+            Kg = np.exp(-0.5 * dd / (3.0 * sp_) ** 2)
+            A1 = np.c_[np.ones(n), d_m]
+            P = np.eye(n) - A1 @ np.linalg.pinv(A1)
+            ev, U = np.linalg.eigh(P @ Kg @ P)
+            idx = np.argsort(ev)[::-1][: a.gpk]
+            lam_m = np.clip(ev[idx], 1e-12, None) / max(float(ev[idx][0]), 1e-12)
+            phi_m = U[:, idx] / np.maximum(np.sqrt((U[:, idx] ** 2).mean(0)), 1e-12)
+            NP = 18 + 6 * a.gpk
+
+        def gp_pen(e: np.ndarray) -> float:
+            if phi_m is None or len(e) != NP or a.gp_beta <= 0:
+                return 0.0
+            c = np.asarray(e[18:], float).reshape(6, a.gpk)
+            return float(a.gp_beta * np.mean(c**2 / (lam_m[None, :] * (5e-4) ** 2)))
 
         def eps_np(e: np.ndarray) -> np.ndarray:
             e = np.asarray(e, float)
             if e.ndim == 2:
                 return e
+            if phi_m is not None and len(e) == NP:  # I64: mean + linear + GP residual basis
+                return e[:6] + d_m @ e[6:18].reshape(6, 2).T + phi_m @ e[18:].reshape(6, a.gpk).T
             if len(e) == 36:  # I62: mean + linear (6 x 2) + quadratic (6 x 3)
                 return e[:6] + d_m @ e[6:18].reshape(6, 2).T + f2_m @ e[18:].reshape(6, 3).T
             if len(e) == 18:  # mean + in-plane linear gradient D (6 x 2)
@@ -680,7 +706,10 @@ def main() -> None:
             eps_fit, R_fit = r["x"], R_gt
         elif a.arm == "E@GT":
             r = cma_min(
-                lambda e: cov(Rg, eps_of(e)), np.zeros(NP), np.full(NP, STEP_EPS), a.evals_e
+                lambda e: cov(Rg, eps_of(e)) + gp_pen(e),
+                np.zeros(NP),
+                np.full(NP, STEP_EPS),
+                a.evals_e,
             )
             eps_fit, R_fit = r["x"], R_gt
         else:
@@ -815,7 +844,7 @@ def main() -> None:
                     th_f = torch.as_tensor(r["x"][:k], dtype=GF.DT)
                     e0 = np.concatenate([r["x"][k : k + 6], np.zeros(NP - 6)])
                     rg_ = cma_min(
-                        lambda e: cov(field.orientations(th_f), eps_of(e)),
+                        lambda e: cov(field.orientations(th_f), eps_of(e)) + gp_pen(e),
                         e0,
                         np.full(NP, 2e-4),
                         a.evals_g,
@@ -871,6 +900,8 @@ def main() -> None:
             grad=a.grad,
             gnm=a.gnm,
             quad=a.quad,
+            gpk=a.gpk,
+            gp_beta=a.gp_beta,
             sample=a.sample,
             stack=a.stack,
             seed=a.seed,

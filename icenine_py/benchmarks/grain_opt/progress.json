@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-19 00:16 PST",
+ "updated": "2026-11-19 14:25 PST",
  "steps": [
   {
    "id": "GO0",
@@ -325,9 +325,9 @@
   {
    "id": "GO5t",
    "title": "Quadratic per-grain strain field (I62)",
-   "status": "running",
+   "status": "done",
    "date": "2026-11-19",
-   "result": "Checkpointed at 20-21 of 36 grains when the machine was shut down; rerun first on resume (commands in STATE.md). Not judged yet.",
+   "result": "On straingq the quadratic field (36 numbers) beats the linear one at 1e-3 (intragranular rel. error 0.72-0.74 vs 0.98, voxel error 1.03e-3 -> 0.77e-3) but not at 5e-4 (1.09-1.24 vs 1.05-1.10). I62 no; I63 not run by the rule.",
    "commit": ""
   }
  ],

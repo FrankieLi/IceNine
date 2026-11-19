@@ -1245,3 +1245,30 @@ Verdicts by the rule written before the runs:
   field, and they recover only part of that (GO5q).
 - Next (I62): the quadratic field (6 + 12 + 18 numbers) on `straingq`, against these rows; the
   oracle floor for linear + quadratic is about sqrt(1/3) = 0.58.
+
+## GO5t: quadratic per-grain strain field (goal G1c, idea I62)
+
+Question: on `straingq`, does a quadratic per-grain strain field (mean 6 + linear 12 + quadratic 18
+= 36 numbers) recover more of the intragranular field than the linear field (GO5s)? Rerun from
+scratch after the 2026-11-19 shutdown checkpoint (the partial first run was not judged). Rows in
+`benchmarks/grain_opt/go5t/`.
+
+| arm on `straingq` | relative intragranular error 1e-4 / 5e-4 / 1e-3 | mean error 1e-4 / 5e-4 / 1e-3 | voxel error at 1e-3 | s / grain |
+|---|---|---|---|---|
+| linear, ground-truth orientation (GO5s) | 3.73 / 1.05 / 0.98 | 1.5 / 1.7 / 1.7e-4 | 10.3e-4 | 60 |
+| quadratic, ground-truth orientation | 4.90 / 1.24 / 0.72 | 1.6 / 1.2 / 2.1e-4 | 7.7e-4 | 97 |
+| fast fit + linear leg (GO5s) | 2.54 / 1.10 / 0.98 | 1.8 / 1.9 / 2.5e-4 | 10.4e-4 | 72 |
+| fast fit + quadratic leg | 3.89 / 1.09 / 0.74 | 1.7 / 2.0 / 2.1e-4 | 7.7e-4 | 96 |
+| oracle floors: linear 0.82, linear + quadratic 0.58 | | | | |
+
+Verdicts by the rule written before the runs:
+
+- I62 is answered no: the quadratic field is at least 0.1 better than the linear field at 1e-3 (0.72
+  and 0.74 against 0.98; below the linear oracle floor of 0.82) but not at 5e-4 (1.24 and 1.09
+  against 1.05 and 1.10). Mean strains stay within 1.5 x of the linear arms.
+- I63 (coordinate network) is not run: the rule runs it only if the quadratic arm passes.
+- Reading: at 1e-3 the intragranular field is large enough for the extra 18 numbers to capture
+  real structure (voxel error 1.03e-3 -> 0.77e-3); at 5e-4 and below the added freedom mostly fits
+  noise (relative error above 1). A field model's usable order depends on the strain level, which
+  is what a prior (I64) is meant to handle: let the data decide how much intragranular structure to
+  admit.
