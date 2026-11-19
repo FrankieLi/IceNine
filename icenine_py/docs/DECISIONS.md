@@ -2092,3 +2092,11 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   candidates and may change, but it also uses the 0.95 hit ratio to decide which voxels get a
   local optimization; the owner may overrule and stop it. Where:
   icenine_py/docs/autoresearch/PLAN.md, section AR5 step 21.
+
+### D-20261118-I1 · AR6 grainopt / G1c, G2c · Approve the strain queue I60-I64 and I25 (GNLayerNet, low priority)
+- 2026-11-18, owner. Recorded by Ilium Agent. Supersedes: none.
+- Frankie, in the project thread, 2026-11-19 05:54 UTC: "I approve - go ahead and try them",
+  replying after the requests to confirm I25 (GNLayerNet per-voxel refiner: dataset, training run
+  under 2 h, inside-grain test; implementer allowed) and the strain queue I60-I64 selected from
+  the literature review. Order: GO5q, then I60, I61, I62, I63 (only if needed), I64; I25 at low
+  priority after them. Where: icenine_py/docs/grain_opt/PLAN.md (GO6 onwards); IDEAS I25, I60-I64.
