@@ -5142,6 +5142,227 @@ the owner says; tuning any arm to the fine grid; another random seed; `held2`.
 - Missing voxels count as wrong; timed runs alone (slower, but quiet walls); seed 7 (next unused).
 - Part 1's fix, if any, adds `CF`; `CS` stays the build of the branch as it is.
 
+### AR5 step 23: end the seed refinement's second MC stage when it has converged
+
+Task `ar5w`. Approved: D-20261119-N1. Starts from `feature/eval-reduction` after step 22's key
+phase. Reuses step 22's cache (worktree `agent-aba6e1bdb95dff72a`: the `J5D` runs, their
+`mc_traces`, `e1_log`, `defer_steps`, `run.json`, and the `J5SD` passes), read only. Phase A ends
+at "READY FOR KEY" or at a gate; phase B only after a recorded decision.
+
+**Why.** The owner asks for fewer evaluations and less wall-clock time at equal accuracy, and for
+general early stops. The restart study (`.claude/reports/20261116-restart-distance.md`) found that
+the stock MC local optimization rarely refines a start that is already close: from starts 0.1,
+0.3, 0.5 and 1.0 degree away it ended within 0.05 degree in 0, 5, 12 and 8 runs of 40; the same
+evaluations spent in a shrinking true ball did so in 35, 33, 29 and 34. The schedule is the weak
+part, not the restart width. But in `J5SD` the stock MC fit from a neighbour's orientation never
+runs: the BFS fits are CMA fits with no MC fallback (0 fallback runs on all eight samples). The
+same sampler does run in `J5SD`, as the second stage of the seed step's MC refinement. There it
+costs 35% to 43% of `J5SD` on the `held` types, mostly after its last gain. So this step changes
+that stage only.
+
+**What was read and run.** The restart report; PLAN steps 11, 12, 15, 16 and 22; step 22's
+`tables.md` and `summary.json`; `J5D`'s `run.json`, `mc_traces`, `e1_log` and `defer_steps` on all
+eight disclosed samples; `refine_from_candidates`, `MCOptimizer.optimize` and
+`variance_minimizing_optimize` in the library. Arithmetic only, in scratch; no run. Nothing of
+`held2`; nothing of `fine7`.
+
+**What the record says.** The MC refinements are the largest single part of `J5SD` on the `held`
+types; the stock MC fit in BFS costs nothing. Reading line: per sample, `J5SD`'s total; the seed
+step's share (costing, CMA fits, MC refinements, rescue, polish and grid searches, as in step 22);
+the MC refinements alone; the BFS fits (all CMA); the grid searches (their count in brackets);
+the screen pass and the repair.
+
+| sample | J5SD total | seed step | MC refinements | BFS fits | grid (count) | screen, repair |
+|---|---|---|---|---|---|---|
+| held5 | 20,076,940 | 69.3% | 34.9% | 22.8% | 24.0% (14) | 7.9% |
+| held4 | 20,685,850 | 67.2% | 43.4% | 24.0% | 13.3% (8) | 8.8% |
+| held3 | 18,363,331 | 66.7% | 39.3% | 24.1% | 16.9% (9) | 9.2% |
+| held | 17,114,589 | 62.7% | 43.4% | 27.4% | 8.1% (4) | 9.9% |
+| mid | 7,383,368 | 45.4% | 27.7% | 43.0% | 9.0% (2) | 11.5% |
+| grad | 6,134,231 | 32.3% | 13.3% | 53.1% | 11.0% (2) | 14.6% |
+| big | 2,452,596 | 10.7% | 6.7% | 81.2% | 0.0% (0) | 8.1% |
+| held6 | 22,690,096 | 70.0% | 36.1% | 22.0% | 24.4% (16) | 8.0% |
+
+Most of a refinement's evaluations come after its last gain. Reading line: per sample, the MC
+refinements of `J5D`'s seed steps; their mean evaluations; the tail after the last gain as a share
+of `J5SD`, and the part of it in refinements that `DEF` resumed; the refinements that stopped at
+0.95, with those whose last gain came after the first stage in brackets; the ceiling (below) at a
+cap of 120 and of 300 evaluations for the second stage.
+
+| sample | refinements | mean evals | tail | in resumed | stops at 0.95 | ceiling 120 | ceil. 300 |
+|---|---|---|---|---|---|---|---|
+| held5 | 5,926 | 1,183 | 22.5% | 12.8% | 835 (450) | 25.2% | 19.9% |
+| held4 | 6,695 | 1,341 | 26.8% | 16.2% | 1,027 (568) | 32.8% | 27.0% |
+| held3 | 5,797 | 1,245 | 25.3% | 15.6% | 774 (391) | 28.9% | 23.3% |
+| held | 5,919 | 1,256 | 27.0% | 15.4% | 944 (506) | 32.1% | 25.9% |
+| mid | 1,724 | 1,184 | 18.2% | 9.9% | 361 (165) | 20.0% | 15.8% |
+| grad | 1,026 | 793 | 10.0% | 4.5% | 127 (29) | 7.8% | 4.8% |
+| big | 172 | 953 | 4.5% | 1.0% | 44 (15) | 4.4% | 3.1% |
+| held6 | 6,382 | 1,283 | 23.5% | 14.2% | 950 (479) | 26.8% | 21.8% |
+
+The **ceiling** is what `J5SD` would save if every stored refinement ended at its own count or at
+208 + cap + 1 evaluations, whichever is smaller, with the same refinements and no path change. It
+is arithmetic, not a prediction: a new second stage changes paths, and a refinement that no longer
+reaches 0.95 sends its step to the next candidate, to the rescue or to a grid search (about
+345,000 evaluations each). Three more facts. The first stage holds most early gains: the median
+last gain of a 0.95 stop is at 200 to 223 evaluations on the `held` types and `mid`. The second
+stage reaches far: on the `held` types the MC ends at 0.95 lie a median 0.44 to 0.49 degree from
+the CMA end of the same candidate, and 40% to 47% lie over 0.5 degree away. And late finds are
+real: on `held` step 15's low stop lost 68 (k = 1000) and 161 (k = 500) later 0.95 ends, and
+step 22 found 79 to 115 seeds a `held` sample only in a resumed refinement.
+
+**Terms.** **Hit ratio**: the share of simulated peaks that land on lit pixels; always the voxel's
+**own** hit ratio. **Seed step**: index the voxel, cost 20 candidates, then for the best 5 in turn
+a CMA fit and, under 0.95, an MC refinement from the same candidate; it stops at the first end at
+0.95 or more, else takes the lowest-cost end. **MC refinement**: the library's
+`refine_from_candidates` on one candidate. Its **first stage** (`FindOptimal`) runs blocks of 31
+samples in a small cube about the current state, step 0.13 degree halved on each gain, at most
+200 trial steps, and stops after three failed blocks: at most 208 evaluations. Its **second
+stage** (the variance stage) runs blocks of 10 samples from the first stage's best, doubles the
+radius after a failed block up to the box, restarts about that start with the raw radius (median
+0.32, 0.64 and then 1.11 degrees out), and grows its budget of 200 while a block's cost variance
+exceeds 0.02 squared.
+**Box**: `max(diameter/3, 0.2 deg) / 2^MinLocalResolution`, 0.329 degree in these runs. **Gain**:
+a strict drop of the running best cost. **Tail**: the evaluations after the last gain. **Ball of
+radius r**: a rotation about a uniformly random axis by the angle r times the cube root of a
+uniform number, so the points fill a ball of true angle r evenly. **Check**, **`PH(500)`**,
+**`DEF`**: as in step 22. **Right** / **wrong**: at most / over 1 degree from the truth
+(symmetry-reduced). **Fixed** / **broken**: by voxel. **Arm `J5DC`**: `J5D` with rule `CB`;
+**`J5SDC`**: `J5DC` with step 21's screen pass and wide repair. **Replay**: each stored seed step of
+`J5D` run again alone, in the script layer, from the same voxel and image.
+
+**The rule, frozen now.** Rule `CB` (converging ball). In the seed step's MC refinement the first
+stage runs as now. The second stage is replaced. It starts at the first stage's best with radius r
+equal to the box. Each proposal is the current best turned by a rotation drawn in a ball of
+radius r. A proposal with a strictly lower cost becomes the best and the new centre. After 10
+proposals in a row with no gain, r halves. The stage ends when r falls under 0.01 degree, or after
+300 proposals. Then the final evaluation, as now. The refinement's own generator goes on from the
+first stage. No hit ratio, no neighbour, no truth and no crystal symmetry inside the stage; each
+voxel is fitted on its own, so grains with orientation gradients need nothing special.
+Unchanged: the 20 costed and 5 refined candidates, CMA fits, 0.80, 0.95, `PH(500)` and `DEF` (inert
+under `CB`, see validity), `G1`, `G2b`, the grid search with its own final refinement, BFS, the
+screen pass and the wide repair. The constants 10, 0.01 degree and 300 are set now and not tuned:
+10 failures and halving come from the restart study's illustration; 0.01 degree is under half the
+median error (0.019 to 0.030 degree); 300 is 1.5 times the stock stage's starting budget.
+
+**Samples, and what has touched them.** `held5`, `held4`, `held3`, `held`, `mid`, `grad`, `big`
+and `held6`: disclosed; the rule was chosen looking at their records. `held2`: not used, not
+opened. `fine7`: not read. Clean test: a new sample `held7`, built by `held_make_sample.py` exactly
+as `held` (250 Voronoi grains, 24,570 voxels, gradients 0 to 4 degrees) with generator seed 7, as
+earlier steps built `held3` to `held6`: a new sample, not an extra random seed. Nobody reads its
+logs or maps before its runs and passes end. Clean images, Q-max 8.
+
+**Measured.** Seed-step evaluations, split into costing, CMA fits, first and second stage;
+second-stage proposals, halvings and ends (floor or cap); candidates tried per step; steps with an
+end at 0.95; rescues (`G1`, `G2b`) and grid searches; evaluations by stage; wrong voxels (Wilson
+95%); fixed and broken against `J5SD` and `S8`; median error over all 24,570 voxels; wall seconds
+of the `mid` runs under the timing preflight (reported, not gated).
+
+**Predictions, written before any run.**
+1. With `CB` the first stage of every refinement equals `J5D`'s, evaluation by evaluation (`mid`);
+   with `CB` off the replay reproduces `J5D`'s seed steps on `mid` (ends, evaluations).
+2. Replay, eight disclosed samples: the seed step's index stage 40% to 60% fewer evaluations than
+   `J5D`'s on the `held` types and `mid`, 20% to 45% on `grad` and `big`; 250 to 450 evaluations
+   per refinement (`J5D`: 793 to 1,341); the second stage ends at the floor in at least 90% of
+   refinements; steps with an end at 0.95 within 3% of `J5D`'s count.
+3. Live `J5SDC` against `J5SD`: 15% to 28% fewer evaluations on the `held` types, 10% to 20% on
+   `mid`, 3% to 8% on `grad`, 1% to 4% on `big`; broken minus fixed -3 to +4; grid searches within
+   2 of `J5D`'s; median error within 0.0005 degree.
+4. `held7`: 15% to 28% fewer evaluations than `J5SD`; broken minus fixed -3 to +4; median error
+   within 0.0005 degree; the house rule against `S8` passes.
+
+**Decision rules, fixed now.** Gate, on the disclosed samples, before `held7` is built: (g0)
+prediction 1, exactly; (g1) the replay on all eight: the index stage at least 30% fewer
+evaluations than `J5D`'s on the `held` types and `mid`, and steps that lose their 0.95 end (`J5D`
+had one, `CB` has none) at most 3% of the steps; (g2) live `J5SDC` on `mid` and `held`: at least
+10% fewer evaluations than `J5SD`, broken minus fixed at most 4, median error at most 0.001 degree
+higher, grid searches at most 2 more than `J5D`'s. Gate fails: stop, report, no tuning (no change
+of 10, 0.01 degree, 300 or the start radius), no `held7`. Then `J5SDC` passes on a sample if,
+against `J5SD`: (1) at least 10% fewer evaluations on the `held` types and `mid`, 2% on `grad`, 1%
+on `big`; (2) broken minus fixed at most 4; (3) median error at most 0.001 degree higher; (4) the
+house rule against `S8`: at least 20% fewer evaluations, broken minus fixed at most 5, median error
+at most 0.005 degree higher. The step passes if `J5SDC` passes on `held7` and on the five disclosed
+samples run live (`mid`, `held`, `held6`, `grad`, `big`). Fails on `held7`: no key value; study
+merge. Rule (2) allows 4, not step 22's 3: every refinement's second stage changes, so more seed
+ends move and BFS routes shift more; 4 stays under the house rule's 5. Set now, before any run.
+
+**Validity checks.** Each refinement's generator is keyed as in `J5D` (voxel, kind, call count);
+the second stage continues it. The first stage is checked identical to `J5D`'s on `mid`. Every
+evaluation is counted, the final one and any check included. `PH(500)` and `DEF` are inert under
+`CB`: the first stage stops after three failed blocks (at most about 96 evaluations with no gain)
+and the second stage has at most 300 proposals, so no refinement has 500 evaluations without a
+gain; the runs must show zero checks and zero pauses, else stop. A unit test checks the ball (no
+angle over r, median angle 0.794 r, axes even over the sphere). The arm reads no truth. Steps whose
+taken end moves over 0.05 degree from `J5D`'s are listed with both ends. Guards on `held2`, `held7`
+and `fine7`.
+
+**Machine.** Runs go one at a time (owner rule of 16 Nov). Replay on eight samples (about 24
+million). Gate: `J5DC` live on `mid` and `held`, each then the screen pass and the wide repair
+(about 18 million). Then `J5SDC` live on `held6`, `grad`, `big` (about 25 million). Then `held7`
+built (about 15 minutes); `S8` (about 68 million); `J5D` and its passes (about 23 million);
+`J5DC` and its passes (about 17 million). In all about 175 million. Step 22's runs did 9 to 20
+million an hour, so 9 to 19 process-hours, and the same in wall time, one run at a time. Caps:
+480 minutes for `S8`, 300 the rest. `S8` and `J5SD` on `held7` stay as clean baselines.
+
+**Stop rule:** stop and report if a stored count does not reproduce (both tables above), if
+prediction 1 fails, if the gate fails, if any check or pause fires under `CB`, if `J5DC` runs on
+any sample before `ar5/ball/frozen.json` is committed, if `held7`'s logs or maps are read before
+its runs and passes end, if anything of `held2` is opened or listed, if `fine7` is read, or if a
+run hits its cap.
+
+**Phase A (script layer).** 1. Link step 22's cache read only; check the counts of both tables;
+write only into this step's cache. 2. Tests first, `tests/test_ar5_ball.py`: the ball's draws; r
+halves after exactly 10 failures in a row and never otherwise; the stage ends at the floor or at
+300; strict-less acceptance moves the centre; the first stage untouched; the generator continued;
+every evaluation counted; zero checks and pauses under `CB`; guards on `held2`, `held7`, `fine7`.
+3. Commit `frozen.json` (rule, constants, gate, decision rules, hashes). 4. g0 on `mid`. 5. Replay
+on the eight samples (g1). 6. Gate (g2). 7. `J5SDC` on `held6`, `grad`, `big`. 8. Build `held7`
+(pilot first); `S8`, `J5D` with passes, `J5DC` with passes. Plot first (run evaluations against
+wrong voxels: `S8`, `J5SD`, `J5SDC`, six panels); tables; predictions. "READY FOR KEY".
+
+**Phase B (key).** One opt-in key `SeedIndexMCBall` (0 or 1, default 0, off), valid only with
+`SeedByIndexing` and `SeedIndexStopHitRatio` above 0: the seed step's MC refinement gets the
+converging second stage; the grid search's own refinement and the BFS fits are untouched. Parsed in
+`config_file.py`, checked in `check_bfs_keys`. Unit tests; key-off suite with no golden change; key
+on, a library run on `mid` equal to the script arm `J5DCl` (step 22's `J5Dl` with `CB`: the
+library's draws, no `G2b`), the same map and evaluation count. Page `findings_ar5_ball.md` (plot
+first), history, pareto rows, README.
+
+**Files:** `scripts/autoresearch/ar5/ball_*.py`, `tests/test_ar5_ball.py`,
+`benchmarks/autoresearch/ar5/ball/` (under 3 MB tracked; the cache untracked).
+
+**Library changes:** none in phase A (the script layer replaces the stage through a subclass, as
+steps 11 to 16 did); phase B the key, if the step passes. The C++ code is not changed. With the key
+off the library does exactly what it does now.
+
+**What would make us stop the line.** The gate fails; `held7` saves under 10% against `J5SD` or
+breaks more than 4 net; or lost 0.95 ends turn into rescues and grid searches that eat the saving.
+
+**Not in this step.** The stock MC fit in BFS (it does not run in `J5SD`; it matters for `S8` and
+C++ only); the restart-width fix; the first stage's schedule; the grid search's own refinement; a
+pure stop at the check; a smaller `PH` k; CMA settings; learned proposals; the boundary-pass skip;
+realistic images; other crystals; a C++ change; another random seed; `held2`; `fine7`.
+
+**Choices made.**
+- This idea: replace the second stage, which holds most of the tail, with a stage that ends once
+  its step is under 0.01 degree. A general early stop (stop when the search has converged, not
+  when a budget that grows with the cost variance runs out), no model, no threshold on the hit
+  ratio, symmetry-agnostic. Ceiling 20% to 33% of `J5SD` on the `held` types, 16% to 20% on `mid`.
+  Weak side: the stock stage's wide restarts (0.3 to 1.6 degrees out) find the right basin late
+  in some refinements, and the ball gives up that reach; lost 0.95 ends move to the next
+  candidate, the rescue or a grid search, which only the replay and live runs can size. Small on
+  `grad` (5% to 8%) and `big` (3% to 4%). Chosen looking at eight disclosed samples, so `held7` is
+  the only clean test. About 9 to 19 hours, one run at a time.
+- Runners-up: a ball for the whole refinement, from the candidate (saves up to about 6% more, the
+  first stage's 208 evaluations a refinement, but drops the stage where most 0.95 ends are found);
+  a fixed budget of 200 for the second stage with no growth (an exact prefix, replayable, but a
+  budget, not a schedule: its cube draws still rarely land near the start); the restart-width fix
+  alone (no gain in 160 cases at the 5-degree box; at the 0.33-degree box it keeps the variance
+  high and makes the stage longer); a pure stop at the check (23% to 31% of `J5S`, about 400
+  changed seed steps a sample; a stop, not a schedule); a smaller `PH` k (tuning a rule on the
+  disclosed samples); the stock MC fit in BFS (0 evaluations in `J5SD`); learned grid proposals
+  (grid 8% to 24% on the `held` types; step 10's cut failed).
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
