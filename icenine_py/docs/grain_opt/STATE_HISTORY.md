@@ -310,3 +310,15 @@ became AR6 on 2026-11-16 at the owner's request.
   a wider search: all 20 indexing candidates through the strict cost and the finisher on 5, then
   the reconstructor's grid-search fallback (`hooks.grid_seed`); rand / corr3, judged against
   GO4e's best pipeline.
+
+## Now as of GO4g close (2026-11-16 21:55 PST)
+
+- **GO4g closed** (2026-11-16 21:55 PST, G1b I54 yes): after `L/366/3,G/15/0.15,N/30/0.3`, the
+  all-candidates seed path `W/20/0.15` takes rand to 25 / 5 / 21 / 14% and corr3 to 2 / 3 / 3 /
+  21% above 0.1 deg (0.5 / 1 / 2 / 5 deg); adding the grid search `X/1/0.15` (rand only) gives
+  17 / 2 / 7 / 6%, wrong voxels 229 -> 25 of 1,043, at 4 s per voxel. `findings.md` "GO4g".
+- GO4f: remaining failures were search failures. GO9 / GO9b (G2a), GO7-7c (G2b) closed.
+- **Owner item:** G2c (I25 GNLayerNet) waits for the owner (asked 2026-11-16 20:15 PST).
+- **Next action:** plan and run GO4h (I55): `X` on corr3 and a per-voxel strict polish after
+  `W,X` (e.g. `V/61/0.02`) on both samples, aimed at rand 0.5 deg (17%, mostly 0.1-1 deg);
+  judged against GO4g.

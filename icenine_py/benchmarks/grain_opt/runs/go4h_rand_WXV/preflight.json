@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-11-16T22:57:33",
+  "host": "ilium.local",
+  "loadavg": [
+    3.72265625,
+    3.83544921875,
+    3.47705078125
+  ],
+  "cpu_count": 10,
+  "power": "ac",
+  "omp_num_threads": "1",
+  "mkl_num_threads": "1",
+  "torch_threads": 1,
+  "busy_processes": [
+    {
+      "pid": 24930,
+      "cpu": 55.9,
+      "command": "/System/Library/Frameworks/CoreSpotlight.framework/spotlightknowledged"
+    }
+  ]
+}

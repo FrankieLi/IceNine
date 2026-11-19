@@ -1021,3 +1021,32 @@ Verdicts by the rule written before the runs:
 - What remains is precision more than search on rand at 0.5 deg (17%, nearly all between 0.1
   and 1 deg): a final per-voxel strict polish is the next lever. Next (later, G1b): `X` on corr3
   and a per-voxel polish (`V`) after `W,X`.
+
+## GO4h: grid search on corr3 and a final per-voxel polish (goal G1b, idea I55)
+
+Question: does a final per-voxel strict polish (`V/61/0.02`) after the full search fix rand's
+near misses at 0.5 deg, and what does the grid search `X` do on corr3? Pipeline
+`L/366/3,G/15/0.15,N/30/0.3,W/20/0.15,X/1/0.15,V/61/0.02`; tables
+`benchmarks/grain_opt/go4h/{corr3,rand}.md` (runs finished before the machine restart of
+2026-11-17; `X` on rand reproduces GO4g exactly). Share above 0.1 deg (wrong, above 1 deg);
+median deg.
+
+| sample, after | 0.5 deg | 1 deg | 2 deg | 5 deg | s / voxel |
+|---|---|---|---|---|---|
+| corr3, `W` (GO4g) | 2% (0.4%), 0.012 | 3% (0%), 0.009 | 3% (1%), 0.009 | 21% (13%), 0.016 | 0.39 |
+| corr3, `W,X` | 1.5% (0%), 0.012 | 2% (0%), 0.009 | 1% (0%), 0.008 | 10% (4%), 0.011 | 1.98 |
+| corr3, `W,X,V` | 1% (0%), 0.009 | 1% (0%), 0.006 | 0.4% (0%), 0.006 | 7% (4%), 0.006 | 1.98 |
+| rand, `W,X` (GO4g) | 17% (0.4%), 0.018 | 2% (1%), 0.010 | 7% (5%), 0.007 | 6% (3%), 0.013 | 4.0 |
+| rand, `W,X,V` | 16% (0.4%), 0.008 | 1.4% (1%), 0.006 | 5% (5%), 0.005 | 4% (3%), 0.007 | 4.1 |
+
+Verdicts by the rule written before the runs:
+
+- I55 is answered no: rand at 0.5 deg goes from 17% to 16% (limit 11%). No level gets worse.
+- The polish halves the median error everywhere (to 0.005-0.009 deg) at about 6 s for the whole
+  sample, but leaves rand's 0.5 deg near misses (0.1-0.75 deg) in place: their strict cost is
+  below the 0.15 gate, so no search stage touches them, and a 0.02 deg polish cannot move 0.1-0.7
+  deg.
+- corr3 with the grid search: 5 deg from 21% to 10%, wrong voxels 37 -> 10; with the polish
+  corr3 ends at 1 / 1 / 0.4 / 7% above 0.1 deg. With GO4c's ladder alone it was 3 / 9 / 31 / 72%.
+- Follow-up (later, G1b): a per-level gate (the 0.5 deg near misses need a wider local step, or a
+  gate on misfit to neighbours, not on the strict cost alone).

@@ -5,15 +5,19 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO4g closed** (2026-11-16 21:55 PST, G1b I54 yes): after `L/366/3,G/15/0.15,N/30/0.3`, the
-  all-candidates seed path `W/20/0.15` takes rand to 25 / 5 / 21 / 14% and corr3 to 2 / 3 / 3 /
-  21% above 0.1 deg (0.5 / 1 / 2 / 5 deg); adding the grid search `X/1/0.15` (rand only) gives
-  17 / 2 / 7 / 6%, wrong voxels 229 -> 25 of 1,043, at 4 s per voxel. `findings.md` "GO4g".
-- GO4f: remaining failures were search failures. GO9 / GO9b (G2a), GO7-7c (G2b) closed.
-- **Owner item:** G2c (I25 GNLayerNet) waits for the owner (asked 2026-11-16 20:15 PST).
-- **Next action:** plan and run GO4h (I55): `X` on corr3 and a per-voxel strict polish after
-  `W,X` (e.g. `V/61/0.02`) on both samples, aimed at rand 0.5 deg (17%, mostly 0.1-1 deg);
-  judged against GO4g.
+- **GO4h closed** (2026-11-18 16:45 PST, G1b I55 no): full search + per-voxel polish ends corr3 at
+  1 / 1 / 0.4 / 7% and rand at 16 / 1.4 / 5 / 4% above 0.1 deg (0.5 / 1 / 2 / 5 deg), medians
+  0.005-0.009 deg; rand's 0.5 deg near misses (0.1-0.75 deg) sit below the strict-cost gate.
+  Best G1b pipeline: `L/366/3,G/15/0.15,N/30/0.3,W/20/0.15,X/1/0.15,V/61/0.02` (2-4 s per voxel).
+- Machine restart on 2026-11-17; GO4h had finished. Wake job `dc9287aa` survived.
+- **Program order** (owner via the coordinator, 2026-11-18): I53 (split merged spots) next, then
+  I25 GNLayerNet at low priority; the rest of G2c (I26, I27) skipped. The owner's I25 choice
+  came relayed; it is not in DECISIONS.md (the logging script was refused for a relayed
+  approval), so ask the owner to confirm in their own words before launching an implementer.
+- **Next action:** plan and run GO7d (I53): split observed connected components that a PSF merged,
+  using the predicted spot positions (assign each lit pixel to the nearest predicted spot of the
+  grain or its neighbours) before taking centroids; fast strain fit on `strain_psf10`, judged
+  against GO7b (2.3 / 2.7 / 5.7e-4) and clean (1.3 / 1.3 / 2.1e-4).
 
 ## Running jobs
 
