@@ -989,6 +989,35 @@ the 1e-4 level reported, not judged.
 
 Budget: about 30-60 s per grain (21-parameter Jacobians); two runs in parallel, under 60 minutes.
 
+### GO5s: non-linear strain-gradient sample and the linear fit on it (goal G1c, idea I61)
+
+Question: a smooth per-grain strain field richer than linear is the case where a quadratic field
+(I62) or a prior (I64) could pay off. Build that sample, and measure what the linear (6 + 12) fits
+recover on it, as the baseline for I62 and I64.
+
+Sample `straingq` (`make_strain_gradient_sample.py --mode nonlinear`, scripts only): the `strain`
+grain means (same seed and draws), plus per grain three intragranular parts of equal RMS: an
+in-plane linear term, a quadratic term (d_x^2, d_x d_y, d_y^2, each centred over the grain) and a
+smooth Gaussian random field per strain component (squared-exponential kernel, correlation length
+3 voxel spacings), each scaled to tensor RMS level / sqrt(3) over the grain's voxels, so the total
+intragranular part has RMS about the grain's level (as `straing`). Rendered clean and stored in
+this worktree; the per-voxel ground truth in `strain_vox.npy`. The linear share of the
+intragranular field (the least-squares linear projection of the ground truth, per grain) is
+reported as the best a linear fit could do.
+
+Arms (S36, `--sample straingq --grad --ratio_hi 2.5`, `hyb` lambda 8; output
+`benchmarks/grain_opt/go5s/`): strain only with the linear field at the ground-truth orientation
+(CMA, 900), and the fast fit + CMA gradient leg from the painted start (GO5q's arms).
+
+Judging rule (written before any run). I61 is answered (sample delivered) when the sample renders
+and the oracle linear projection explains at most 50% of the intragranular variance (median over
+grains; so a non-linear field has room to gain). The linear fits are judged against their `straing`
+results (GO5q): they hold when their mean-strain medians at 5e-4 and 1e-3 are within 1.5 x of
+GO5q's; their relative error against the full intragranular field is reported next to the oracle
+linear floor.
+
+Budget: sample and render about 5 minutes; the two arms about 40 and 50 minutes in parallel.
+
 ### GO6 onwards
 
 Strain queue (owner, 2026-11-19, from the literature review in the sibling thread "Review neural

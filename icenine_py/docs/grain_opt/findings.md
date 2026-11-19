@@ -1186,3 +1186,35 @@ Verdicts by the rule written before the runs:
   gradient arm.
 - Next (I60, queued): a Gauss-Newton fit with per-spot second-moment (spot spread) residuals as
   well as centroids, since the gradient acts on the spread; judged against these arms.
+
+## GO5r: Gauss-Newton gradient fit with spot-spread residuals (goal G1c, idea I60)
+
+Question: does Gauss-Newton on per-spot centroids plus second moments (row variance and
+column-row covariance; the column variance was dropped before the runs, biased by -4.2 px^2 at
+the ground truth from the in-frame omega smear) recover the linear strain gradient on `straing`
+better and faster than GO5q's CMA fits? Rows in `benchmarks/grain_opt/go5r/`. When every
+Gauss-Newton stage was skipped (9 of 36 grains from the painted start), GO5q's CMA gradient leg ran
+instead (amendment before the runs).
+
+| arm | mean error 1e-4 / 5e-4 / 1e-3 | relative gradient error | orientation | s / grain |
+|---|---|---|---|---|
+| CMA, strain only at the ground-truth orientation (GO5q) | 1.4 / 1.3 / 1.7e-4 | 4.65 / 0.77 / 0.45 | 0 | 63 |
+| Gauss-Newton + moments, at the ground-truth orientation | 0.95 / 1.4 / 1.1e-4 | 12.3 / 1.28 / 0.81 | 0 | 15 |
+| CMA hybrid + gradient, painted start (GO5q) | 2.0 / 1.7 / 2.4e-4 | 4.12 / 0.97 / 0.58 | 0.011 / 0.013 / 0.023 | 123 |
+| fast fit + CMA gradient leg (GO5q) | 1.9 / 1.4 / 2.8e-4 | 2.71 / 0.79 / 0.66 | 0.010 / 0.019 / 0.036 | 76 |
+| fast fit + Gauss-Newton + moments | 1.3 / 1.4 / 2.8e-4 | 12.7 / 1.38 / 0.74 | 0.010 / 0.020 / 0.038 | 50 |
+
+Verdicts by the rule written before the runs:
+
+- I60 is answered no: the gradient error is worse than the CMA hybrid's at 5e-4 and 1e-3 (1.38 /
+  0.74 against 0.97 / 0.58), not 0.5 or better. The spread residuals pull the 12 gradient numbers
+  toward noise (relative error above 1 means a gradient larger than the ground truth's in the
+  wrong direction); the single smoke grain (237: 0.26) was not representative.
+- Where Gauss-Newton helps is the mean and the time: at the ground-truth orientation it gives the
+  best mean strain so far (0.95 / 1.4 / 1.1e-4) in 15 s per grain against CMA's 63 s, and from
+  the painted start the same mean as the fast fit at 50 s against 76 s.
+- The intragranular gradient stays weakly observed by every cost tried (coverage, centroids,
+  spreads): the spot-shape signal of a linear gradient across a grain is a fraction of a pixel
+  and comparable to the model-image mismatch in spot shape (the omega smear). A smoother
+  parameterisation (I62) or a prior (I64) can only help if the signal is there; the non-linear
+  sample (I61) tests the case where the field is richer.

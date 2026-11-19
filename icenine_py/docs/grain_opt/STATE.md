@@ -5,22 +5,21 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO5q closed** (2026-11-18 22:25 PST, I59 no): on `straing` (mean + linear in-plane gradient)
-  the 6 + 12 fits recover the mean (1.3-2.9e-4; a uniform fit misses it by 3.6e-4 / 1.0e-3) but
-  only part of the gradient (relative error 0.45 at 1e-3 at the ground-truth orientation, 0.58-0.97
-  from the painted start; noise at 1e-4). `fit_strain.py --sample straing --grad`.
-- **Approval** D-20261118-I1 (owner, 2026-11-19 05:54 UTC, "I approve - go ahead and try them"):
-  the strain queue I60-I64 (from the literature review in the sibling thread "Review neural methods
-  for grain gradients") and I25 at low priority after it.
-- **Next action:** plan and run GO5r (I60): Gauss-Newton / LM over mean rotation + 18 strain numbers
-  on per-spot centroid and second-moment (spread) residuals, on `straing`, against GO5q's CMA hybrid
-  and fast-fit gradient arms (accuracy and time). Then I61 (`straingq`), I62, I63 if needed, I64,
-  then I25.
+- **GO5r closed** (2026-11-18 23:00 PST, I60 no): Gauss-Newton on centroids + spot spreads fits the
+  gradient worse than CMA (rel. error 1.38 / 0.74 from the painted start against 0.97 / 0.58) but
+  gives the best mean at the ground-truth orientation (0.95 / 1.4 / 1.1e-4, 15 s per grain).
+  I65 logged: build the region from the outlier-cleaned start (painted outliers add spurious
+  spots; likely the cause of stalled grains).
+- GO5q: on `straing` the gradient is only partly observed; fitting it fixes the mean.
+- **Approval** D-20261118-I1: strain queue I60-I64 (from the literature review in the sibling thread
+  "Review neural methods for grain gradients"), then I25 at low priority.
+- **Next action:** GO5s (I61): build and render `straingq` (mean + linear + quadratic + smooth
+  random field), report the oracle linear share and the linear fits on it; then I62 (quadratic
+  field), I63 if needed, I64, then I25. I65 when the queue allows.
 
 ## Running jobs
 
-- GO5r (started 2026-11-18 22:23 PST): `fit_strain.py --sample straing --grad --gnm --out go5r`, arms E@GT and
-  GP4@P. Do not start a second copy.
+- None.
 
 ## Data (git-ignored, in this worktree; link, do not copy)
 
