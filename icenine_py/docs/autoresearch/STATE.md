@@ -47,7 +47,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v60 live.
   Step 22 (`ar5v`; cache in `agent-aba6e1bdb95dff72a`): MERGED 566eea3f, key `SeedIndexMCDefer`.
   Steps 24 (db26a50b, failed g2) and 25 (e0bfff98, negative: AUC 0.55-0.59) MERGED. v60 live.
-  Step 26 (`ar5z`, N6, faster ray indexer, same candidates): implementer a9b64d4f28a05d7e6 runs.
+  Step 26 (`ar5z`) handed back 16766d7a: exact, timing gates NOT JUDGED (not quiet). Review ab6bc21b298d6fca8.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
