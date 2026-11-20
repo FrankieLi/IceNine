@@ -47,7 +47,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v60 live.
   Step 22 (`ar5v`; cache in `agent-aba6e1bdb95dff72a`): MERGED 566eea3f, key `SeedIndexMCDefer`.
   Steps 24, 25, 26 MERGED, no key. Step 27 (`ar5aa`, 0528f36d) FAILED c2 (+2.19% evals, limit 2%)
-  and c3 (held grid searches 7 vs 4); wall -44.9% contended. Review a671f98ee7148e562; step 28 draft.
+  and c3 (held grid searches 7 vs 4); wall -44.9% contended. Rev. a671f98ee7148e562; step 28 plan.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
