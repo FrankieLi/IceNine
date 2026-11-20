@@ -601,6 +601,65 @@ def _refine_rotation_fast(
     return R, int(ok.sum())
 
 
+_REFINE_CHUNK = 32  # clusters refined together (the largest array is chunk x rays x vectors)
+
+
+def _refine_clusters_fast(
+    R0: np.ndarray,
+    g: np.ndarray,
+    gl: np.ndarray,
+    gh: np.ndarray,
+    len_ok: np.ndarray,
+    crystal: CrystalModel,
+    p: IndexParams,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """``refine_rotation`` of every cluster rotation in ``R0`` (C, 3, 3), several at a time. Every
+    cluster goes through the same operations in the same order as in the reference (the batch only
+    stacks them; the least-squares fit of each cluster takes the rays it explains), so the
+    rotations and counts are the same. Returns (rotations (C, 3, 3), explained counts (C,))."""
+    C = len(R0)
+    q = crystal.q
+    h = crystal.h
+    R = np.array(R0, dtype=np.float64)
+    explained = np.zeros(C, dtype=np.int64)
+    active = np.arange(C)
+    n_it = p.refine_iters
+    for it in range(n_it + 1):
+        nxt: List[np.ndarray] = []
+        for c0 in range(0, len(active), _REFINE_CHUNK):
+            idx = active[c0 : c0 + _REFINE_CHUNK]
+            ph = np.matmul(h, R[idx].transpose(0, 2, 1))  # (A, K, 3) = h R^T
+            cos = np.where(
+                len_ok[None], np.matmul(gh, (ph / q[None, :, None]).transpose(0, 2, 1)), -2.0
+            )  # (A, n, K)
+            j = np.argmax(cos, axis=2)
+            cmax = np.take_along_axis(cos, j[:, :, None], axis=2)[:, :, 0]
+            found = cmax > -1.5
+            ang = np.where(found, np.degrees(np.arccos(np.clip(cmax, -1.0, 1.0))), np.inf)
+            rel = np.where(found, np.abs(gl[None, :] / q[j] - 1.0), np.inf)
+            j = np.where(found, j, -1)
+            ok = (ang <= p.ang_tol_deg) & (rel <= p.len_tol)
+            n_ok = ok.sum(axis=1)
+            stop = (n_ok < 2) | (it == n_it)
+            explained[idx[stop]] = n_ok[stop]
+            go = np.nonzero(~stop)[0]
+            if len(go) == 0:
+                continue
+            M = np.empty((len(go), 3, 3))
+            for t, a in enumerate(go):
+                M[t] = g[ok[a]].T @ h[j[a][ok[a]]]
+            U, _, Vt = np.linalg.svd(M)
+            d = np.sign(np.linalg.det(U @ Vt))
+            scale = np.ones((len(go), 1, 3))
+            scale[:, 0, 2] = d
+            R[idx[go]] = (U * scale) @ Vt
+            nxt.append(idx[go])
+        active = np.concatenate(nxt) if nxt else np.zeros(0, dtype=np.int64)
+        if len(active) == 0:
+            break
+    return R, explained
+
+
 def index_rays_fast(
     g: np.ndarray,
     crystal: CrystalModel,
@@ -620,20 +679,13 @@ def index_rays_fast(
     gl = np.linalg.norm(g, axis=1)
     gh = g / gl[:, None]
     len_ok = np.abs(gl[:, None] / crystal.q[None, :] - 1.0) <= p.len_tol
-    Rs: List[np.ndarray] = []
-    ex: List[int] = []
-    vn: List[int] = []
-    for R, v in zip(cl_R, cl_n):
-        Rr, e = _refine_rotation_fast(R, g, gl, gh, len_ok, crystal, p)
-        Rs.append(Rr)
-        ex.append(e)
-        vn.append(int(v))
+    Rs_a, ex_a = _refine_clusters_fast(cl_R, g, gl, gh, len_ok, crystal, p)
+    vn_a = np.asarray(cl_n, dtype=np.int64)
     t3 = time.perf_counter()
-    if not Rs:
+    if len(Rs_a) == 0:
         return Candidates(
             np.zeros((0, 3, 3)), np.zeros(0, int), np.zeros(0, int), n, ne, npairs, len(votes)
         )
-    Rs_a, ex_a, vn_a = np.stack(Rs), np.asarray(ex), np.asarray(vn)
     order = np.lexsort((-vn_a, -ex_a))
     keepR: List[int] = []
     for i in order:
