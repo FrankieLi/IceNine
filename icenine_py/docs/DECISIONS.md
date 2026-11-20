@@ -2254,3 +2254,17 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   approved, 5 to 6 hours, one run at a time; held7 unused under tier 1; a key (phase B) needs a
   new decision. If the machine is not quiet the timed runs wait; no process of the owner is
   stopped. Where: icenine_py/docs/autoresearch/PLAN.md (AR5 steps 25, 26).
+
+### D-20261120-N1 · AR5 step 26 merged as a study; step 27 approved, phase A · AR5 step 26 merged as a study (no key); AR5 step 27 (indexer with 50,000 ray pairs) approved
+- 2026-11-20, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Step 26 merged at ae16e2c7 as a study:
+  index_voxel_fast equals the old indexer on all tested data but not by construction; timing gates
+  not judged (machine not quiet); no key. Step 27, rule PX: the indexer's max_pairs is 50,000 in
+  place of 600,000, nothing else changes; on 400 stored seed voxels (contended) indexing seconds
+  fell 54% and 78% with no loss from the top 20 candidates. Phase A approved with index_voxel in
+  both arms: gates on counts first (q1, c1, c2, c3), paired timings in one session (t1, t2, judged
+  with any load), then the house rule against S8 on the clean sample held7, which this step uses
+  up. About 10 to 11 hours, one run at a time. A key needs a new decision. Sized as the next step:
+  trying nearby accepted orientations with a longer fit before indexing (about 80% of seed steps
+  end within 1 degree of an earlier accepted neighbour). Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR5 steps 26, 27).
