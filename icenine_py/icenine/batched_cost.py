@@ -130,6 +130,10 @@ class _DeviceConstants:
 class BatchedCostEvaluator:
     """Batched local cost of one ``VoxelCostFunction`` (hard mode, ``pixel_radius`` 0).
 
+    ``cost_fn.rocking_deg`` (the strict rocking window) is checked only when the evaluator is
+    constructed (``unsupported_reason``): set it before building evaluators; a value set later is
+    not seen by an existing one.
+
     ``evaluate_many(R, voxel_vertices, phase_index)`` returns one ``OverlapInfo`` per orientation
     and adds B to ``cost_fn.eval_count``. ``timing`` accumulates seconds in "torch" (stages A-C and
     the host transfer), "host_prep" and "stage_d" (the C calls), and "fused" (the batched fused C

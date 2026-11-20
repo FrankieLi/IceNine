@@ -16,6 +16,7 @@ The main entry point is `VoxelCostFunction.evaluate()`, which:
 import math
 import warnings
 from dataclasses import dataclass
+from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -519,6 +520,7 @@ class FrameTable:
     """
 
     __slots__ = ("source", "n_frames", "n_det", "images", "rows", "cols", "_filled", "unions")
+    MAX_UNIONS = 64  # rocking-window union cache size (LRU)
 
     def __init__(self, exp_data: ExperimentalData, n_frames: int, n_det: int) -> None:
         self.source = exp_data
@@ -529,12 +531,16 @@ class FrameTable:
         self.cols = 0
         self._filled = np.zeros(n_frames, dtype=bool)
         # rocking window (opt-in): frames tuple -> per-detector OR of those binary frames
-        self.unions: Dict[Tuple[int, ...], List[np.ndarray]] = {}
+        # bounded (LRU, ``MAX_UNIONS`` keys): each key holds n_det binary frames (about 4 MB per
+        # 2048 x 2048 uint8 frame), so the cache stays under MAX_UNIONS * n_det * 4 MB
+        self.unions: "OrderedDict[Tuple[int, ...], List[np.ndarray]]" = OrderedDict()
 
     def union_images(self, frames: Tuple[int, ...]) -> List[np.ndarray]:
         """Per detector, the pixelwise OR of the binary frames ``frames`` (sorted tuple)."""
         got = self.unions.get(frames)
-        if got is None:
+        if got is not None:
+            self.unions.move_to_end(frames)
+        else:
             self.ensure(np.asarray(frames, dtype=np.int64))
             got = []
             for d in range(self.n_det):
@@ -543,6 +549,8 @@ class FrameTable:
                     acc = np.maximum(acc, self.images[f * self.n_det + d])
                 got.append(acc)
             self.unions[frames] = got
+            while len(self.unions) > self.MAX_UNIONS:
+                self.unions.popitem(last=False)
         return got
 
     def ensure(self, frames: np.ndarray) -> None:
@@ -620,8 +628,8 @@ def _rocking_window(
 ) -> Tuple[List[np.ndarray], np.ndarray]:
     """(image list, wedge indices) for the rocking window: a peak whose window spans several
     frames points at the OR of those binary frames, appended to the table's list after its own
-    ``n_frames * n_det`` entries; a one-frame window keeps its frame. The frame of omega* (``wedge``)
-    is always in the window."""
+    ``n_frames * n_det`` entries; a one-frame window keeps its frame. The frame of omega*
+    (``wedge``) is always in the window."""
     wins = rocking_window_frames(
         omegas.detach().numpy(), reflected.detach().numpy(), rocking_deg,
         range_map.low, range_map.width, frame_index,
@@ -1571,6 +1579,7 @@ class VoxelCostFunction:
             self.cpp_edge_rules,
             self.eta_limit,
             self.min_sin_eta,
+            self.rocking_deg,
         )
 
     def _fused_context(self, phase_index: int) -> Optional[_FusedContext]:

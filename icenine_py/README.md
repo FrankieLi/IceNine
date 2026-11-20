@@ -712,6 +712,21 @@ Two blurs of the forward model, all default off (0 = off; output bit-identical, 
 | `ForwardSimulation.psf_sigma_px`, `.psf_threshold`, `.rocking_deg` (batched path only) | PSF, rocking | each rendered frame is Gaussian-blurred, then pixels below `psf_threshold` x the frame maximum (default 1e-3) go dark; a peak's intensity is split over the rocking frames, weights summing to 1. `render_full.py`: `--psf-sigma-px`, `--psf-threshold`, `--rocking-deg` |
 | `VoxelCostFunction(rocking_deg=)` | strict rocking window | a peak counts as lit where it is lit in any frame its window overlaps (pixelwise OR of those binary frames); hard mode, C fast path, no `ray_rule`; the fused cost and `BatchedCostEvaluator` refuse it |
 
+Notes:
+
+- `rocking_deg` of the cost function is part of the fused context's modes: setting it after a fused
+  evaluate rebuilds the context and falls back to the torch path with a `RuntimeWarning`.
+  `BatchedCostEvaluator` checks it only at construction: set it before building evaluators.
+- The window's union-frame cache (`FrameTable.unions`) is an LRU of 64 keys, at most
+  64 x n_det x about 4 MB for 2048 x 2048 frames (upper bound, not measured).
+- `SpotModel` spread points of zero mass (frames outside the scan or in a gap) are dropped when
+  packing, and `build_region` widens its spot boxes by the PSF reach (ceil(sqrt(3) sigma) pixels)
+  and the rocking half-window (frames, narrowest |sin eta| of the spot).
+- Scan ends and gaps: `SpotModel` keeps rows whose omega* is outside the scan or in a gap and
+  spreads them into live frames; the renderer (`omega_valid`) and the strict cost
+  (`valid_indices`) drop such peaks before rocking, so the three differ there.
+- The cost of the spread (9 x PSF points, k x rocking points per row) is not measured.
+
 `abs(sin eta)` is floored at 0.01. Derivation of the window: `docs/omega_peak_width_derivation.md`.
 Tests: `tests/test_go7f_psf_rocking.py`.
 

@@ -19,6 +19,7 @@ from go7f_fixture import EX, fingerprint
 import icenine.grain_fit as GF
 from icenine import cost_functions as CF
 from icenine.cost_functions import VoxelCostFunction
+from scipy.spatial.transform import Rotation
 
 from test_center_screen import three_voxels  # noqa: F401  (fixture)
 
@@ -208,8 +209,6 @@ def test_render_rocking_conserves_intensity_per_peak() -> None:
         s2, n2 = o[k]
         assert n == 1 and s2 <= s * (1 + 1e-9)
         n_split += n2 > 1
-        if n2 > 1 or s2 == pytest.approx(s):
-            continue
     full = [k for k in b if o[k][0] == pytest.approx(b[k][0], rel=1e-9)]
     assert len(full) > 0.8 * len(b)  # the rest lost a share to frames outside the scan
     assert n_split > 5
@@ -334,13 +333,24 @@ def test_strict_cost_rocking_rules() -> None:
     from icenine import batched_cost as BC
 
     with pytest.raises(ValueError):
-        VoxelCostFunction(None, [], None, None, None, [], rocking_deg=-1.0)  # type: ignore[arg-type]
-    cf = VoxelCostFunction(None, [], None, None, None, [], rocking_deg=0.3)  # type: ignore[arg-type]
+        VoxelCostFunction(
+            None, [], None, None, None, [], rocking_deg=-1.0  # type: ignore[arg-type]
+        )
+    cf = VoxelCostFunction(
+        None,  # type: ignore[arg-type]
+        [],
+        None,
+        None,
+        None,
+        [],
+        rocking_deg=0.3,
+        eta_limit=math.pi / 2,
+    )
     assert cf.rocking_deg == 0.3
     # the batched evaluator and the fused path do not implement the window: they refuse it
     assert "rocking" in str(BC.unsupported_reason(cf)) or not CF._HAS_C_RASTERIZE
     if CF._C_HAS_FUSED:
-        assert "rocking" in str(CF.fused_unsupported_reason(cf)) or cf.eta_limit is None
+        assert "rocking" in str(CF.fused_unsupported_reason(cf))
     # soft mode has no window
     with pytest.raises(ValueError):
         CF.calculate_diffraction_overlap_batched(
@@ -355,3 +365,39 @@ def test_strict_cost_rocking_rules() -> None:
             mode="soft",
             rocking_deg=0.3,
         )
+
+
+@needs_c
+def test_rocking_set_after_fused_evaluate_is_honoured(
+    three_voxels: Dict[str, Any],  # noqa: F811
+) -> None:
+    """Setting ``rocking_deg`` after the fused context exists must rebuild it (the fused path has
+    no window), so the cost equals that of a cost function built with the window."""
+    if not CF._C_HAS_FUSED:
+        pytest.skip("fused evaluate not built")
+    c = three_voxels
+    phase, verts = c["voxel"].phase, c["vertices"]
+    R0 = np.asarray(c["voxel"].orientation, dtype=np.float64)
+    width = math.degrees(float(c["kwargs"]["range_map"].width))
+    R = Rotation.from_rotvec([0, 0, np.radians(0.7 * width)]).as_matrix() @ R0
+    kw = dict(pixel_radius=0, mode="hard", eta_limit=math.pi / 2, **c["kwargs"])
+    ref = VoxelCostFunction(rocking_deg=1.5 * width, **kw)
+    base = VoxelCostFunction(**kw).evaluate(R, verts, phase)
+    cf = VoxelCostFunction(fused_cost=True, **kw)
+    assert cf.evaluate(R, verts, phase).pixel_overlap == base.pixel_overlap
+    cf.rocking_deg = 1.5 * width
+    with pytest.warns(RuntimeWarning, match="rocking"):
+        got = cf.evaluate(R, verts, phase)
+    want = ref.evaluate(R, verts, phase)
+    assert got.pixel_overlap == want.pixel_overlap > base.pixel_overlap
+
+
+def test_frame_table_union_cache_is_bounded() -> None:
+    table = CF.FrameTable.__new__(CF.FrameTable)
+    table.unions = CF.OrderedDict()
+    table.n_det = 1
+    table.images = [np.zeros((2, 2), dtype=np.uint8) for _ in range(300)]
+    table._filled = np.ones(300, dtype=bool)
+    for i in range(CF.FrameTable.MAX_UNIONS + 20):
+        table.union_images((i, i + 1))
+    assert len(table.unions) == CF.FrameTable.MAX_UNIONS

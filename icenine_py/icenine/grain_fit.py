@@ -196,6 +196,7 @@ class SpotRows:
     sin_eta: Optional[Tensor] = None  # |sin eta| of the diffracted ray (rocking window width)
     spread: Optional["SpotModel"] = None  # the model, only when its PSF or rocking is on
 
+
 def strain_to_m(strain: Tensor) -> Tensor:
     """M = (I + eps)^-1 (n, 3, 3) from crystal-frame symmetric strain (n, 6)
     [e11 e22 e33 e23 e13 e12]; differentiable."""
@@ -571,7 +572,13 @@ def build_region(
     edge or a gap). The ratio of every spot is kept in ``Spot.ratio``. None keeps all.
 
     ``strain`` (optional, (n_all, 6), see ``SpotModel.predict``): the start prediction of members
-    and shell is made with it (default None: unstrained, unchanged)."""
+    and shell is made with it (default None: unstrained, unchanged).
+
+    With the model's PSF or rocking on, the pixel pad grows by ceil(sqrt(3) psf_sigma_px) and the
+    frame pad by ceil(rocking half-window in frames) of the spot's narrowest |sin eta|, so the
+    spread mass falls inside the observed box. Scan ends and gaps: the model keeps rows whose
+    omega* is outside the scan or in a gap and spreads them into live frames, whereas the stock
+    renderer and the strict cost drop such peaks first (``omega_valid``, ``valid_indices``)."""
     st = None if strain is None else torch.as_tensor(np.asarray(strain), dtype=DT)
     members = [int(v) for v in members]
     shell = [int(v) for v in shell]
@@ -597,12 +604,26 @@ def build_region(
             c = cols_v[ii]
             r = rows_v[ii]
             fr = rows.frame[ii]
-            c0 = max(int(math.floor(float(c.min()))) - pad_px, 0)
-            c1 = min(int(math.floor(float(c.max()))) + pad_px + 1, W)
-            r0 = max(int(math.floor(float(r.min()))) - pad_px, 0)
-            r1 = min(int(math.floor(float(r.max()))) + pad_px + 1, H)
-            f0 = int(fr.min()) - pad_frames
-            f1 = int(fr.max()) + pad_frames + 1
+            spread_f = 0
+            pad_c = pad_px
+            if model.spreading:
+                # the spread mass reaches the rocking half-window and the PSF's outermost node
+                # beyond the unspread rows: widen the box (and the frames) by that much
+                pad_c += int(math.ceil(math.sqrt(3.0) * model.psf_sigma_px))
+                if model.rocking_deg > 0 and rows.sin_eta is not None:
+                    hmax = (
+                        math.radians(model.rocking_deg)
+                        / float(rows.sin_eta[ii].abs().clamp_min(0.01).min())
+                        / 2.0
+                        / model.sc.width
+                    )
+                    spread_f = int(math.ceil(hmax))
+            c0 = max(int(math.floor(float(c.min()))) - pad_c, 0)
+            c1 = min(int(math.floor(float(c.max()))) + pad_c + 1, W)
+            r0 = max(int(math.floor(float(r.min()))) - pad_c, 0)
+            r1 = min(int(math.floor(float(r.max()))) + pad_c + 1, H)
+            f0 = int(fr.min()) - pad_frames - spread_f
+            f1 = int(fr.max()) + pad_frames + spread_f + 1
             obs, val = images.lit(det, f0, f1, r0, r1, c0, c1)
             if keep_px is not None and len(obs):
                 keep = _touching_components(
@@ -715,7 +736,13 @@ def pack_predicted(
             if j is None:
                 continue
             p = torch.stack([pc[i], pr[i], fpall[i]], -1)
-            groups[j].append((p, m[i]))
+            mi = m[i]
+            if rows.spread is not None:
+                # spread points past the scan or in a gap carry no mass: drop them so that one
+                # wide-window row does not pad every spot (defaults keep every point)
+                live = mi > 0
+                p, mi = p[live], mi[live]
+            groups[j].append((p, mi))
     sizes = []
     for j in range(S):
         n = sum(int(g[1].shape[0]) for g in groups[j])
