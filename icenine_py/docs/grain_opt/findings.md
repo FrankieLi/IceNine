@@ -1348,3 +1348,33 @@ the median of per-voxel medians; the per-magnitude held-out medians (clean 0.014
 GO8b (the network inside grains on observed `rand` / `corr3` windows) can start; it needs a new
 extractor of frame-coded windows from the observed stacks, since the network has only ever seen
 simulated windows.
+
+## GO8b: GNLayerNet inside grains (goal G2c, idea I25 part 2)
+
+Question: on the observed `rand` / `corr3` images, does the retrained GNLayerNet refine the voxels
+a local search leaves off? New `run_pipeline.py` stage `Q/3/0` (`scripts/grain_opt/nn_refine.py`:
+observed 32 x 32 px, frames frame0 +- 4 windows at each peak of the voxel's nominal orientation,
+frame-coded as the training windows; up to 3 rounds per voxel, each kept only if the strict cost
+drops). Tables `benchmarks/grain_opt/go8/{rand,corr3}.md`. Share above 0.1 deg per level.
+
+| sample, pipeline | 0.5 deg | 1 deg | 2 deg | 5 deg | ms / voxel |
+|---|---|---|---|---|---|
+| rand, `L/366/3` (GO4c) | 48% | 53% | 77% | 83% | 36 |
+| rand, `L/366/3,Q/3/0` | 48% | 53% | 77% | 83% | 77 |
+| rand, `Q/3/0` from the grain-centre start | 97% | 100% | 100% | 100% | 44 |
+| corr3, `L/366/3` (GO4c) | 3% | 9% | 31% | 72% | 35 |
+| corr3, `L/366/3,Q/3/0` | 3% | 9% | 31% | 72% | 76 |
+| corr3, `Q/3/0` from the grain-centre start | 99% | 100% | 100% | 100% | 54 |
+
+Verdict by the rule written before the runs: I25 is answered no. After the ladder the network
+changes one voxel in 1,043 on rand (0.5 deg: 130 -> 129 above 0.1 deg) and none on corr3; from the
+grain-centre start it moves voxels only slightly (rand 0.5 deg median 0.44 deg from about 0.5).
+
+Diagnosis (a probe before the judged runs, on undeformed `grad` voxels nudged off the ground
+truth): the network barely corrects known offsets on observed windows (0.3 deg -> 0.28-0.37 deg;
+0.7 deg -> 0.37-0.77 deg) and drifts off the ground truth by up to 0.3 deg when started there. It
+was trained on windows showing one voxel's spots (plus at most two neighbouring voxels and a twin
+in the realism layer); an observed window at a voxel's peak shows the whole grain's spot and other
+spots in the frames around it, which it has never seen. A network trained on grain-like windows
+(windows rendered from whole grains with intragranular misorientation) would be the follow-up;
+the reproduction (GO8a) shows the training pipeline itself works here.

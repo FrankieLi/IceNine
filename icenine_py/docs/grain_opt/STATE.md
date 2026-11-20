@@ -5,16 +5,17 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO5v closed** (2026-11-19 15:50 PST, I65 yes): building each grain's region from the start map
-  with painted outliers set to the medoid (`fit_strain.py --clean_start`) removes all 9 stalls and
-  CMA fallbacks of the fast strain fit; medians unchanged, 1e-3 tail 2.7e-4 -> 1.5e-4, 29 s per
-  grain. The same fix likely applies to `run_pipeline.py` (not tested).
-- GO5u: strain queue I59-I64 done (internal strain field recovered only at 1e-3, best 0.72).
-- **Approval** D-20261118-I1: I25 (GNLayerNet) at low priority, implementer allowed.
-- **Next action:** plan GO8 (I25): GNLayerNet (`icenine/toy_orientation_model.py`, design in
-  `docs/orientation_nn_design.md`) as a per-voxel refiner inside grains on rand / corr3 at 0.5 and
-  1 deg; first find how windows are taken from observed stacks, then the dataset, training (under
-  2 h) and the inside-grain test, by an implementer if the brief script accepts the approval.
+- **GO8a / GO8b closed** (2026-11-19 16:20 PST, I25 no): GNLayerNet retrained to its documented
+  accuracy (held-out 0.0178 / 0.0725 deg), but on observed `rand` / `corr3` windows it changes 1 of
+  1,043 voxels after the ladder and barely moves voxels from the grain centre: trained on
+  single-voxel windows, it has never seen grain-wide spots. Follow-up I66 (retrain on grain-like
+  windows) is a larger piece of work; offered to the owner. Weights in
+  `scripts/toy_orientation_sweep_model_realistic_s0.pt` (git-ignored).
+- GO5v: region from the cleaned start removes the fast fit's stalls (I65 yes).
+- The approved queue (D-20261118-I1: I59-I64, I25) is done.
+- **Next action:** plan and run GO4j (I67): `--clean_start` in `run_pipeline.py` (region built from
+  the start map with painted outliers set to the medoid) on the G20 strict-field arm (`Astrict/100`,
+  painted start), judged against GO2/GO7's clean reference (3 of 853 above 0.1 deg, median 0.0146).
 
 ## Running jobs
 

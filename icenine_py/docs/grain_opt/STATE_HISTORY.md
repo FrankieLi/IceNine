@@ -459,3 +459,16 @@ became AR6 on 2026-11-16 at the owner's request.
 - **Approval** D-20261118-I1: I25 (GNLayerNet) at low priority, next after I65.
 - **Next action:** GO5v (I65) running: region built from the outlier-cleaned start (`--clean_start`);
   then I25.
+
+## Now as of GO5v close (2026-11-19 15:50 PST)
+
+- **GO5v closed** (2026-11-19 15:50 PST, I65 yes): building each grain's region from the start map
+  with painted outliers set to the medoid (`fit_strain.py --clean_start`) removes all 9 stalls and
+  CMA fallbacks of the fast strain fit; medians unchanged, 1e-3 tail 2.7e-4 -> 1.5e-4, 29 s per
+  grain. The same fix likely applies to `run_pipeline.py` (not tested).
+- GO5u: strain queue I59-I64 done (internal strain field recovered only at 1e-3, best 0.72).
+- **Approval** D-20261118-I1: I25 (GNLayerNet) at low priority, implementer allowed.
+- **Next action:** plan GO8 (I25): GNLayerNet (`icenine/toy_orientation_model.py`, design in
+  `docs/orientation_nn_design.md`) as a per-voxel refiner inside grains on rand / corr3 at 0.5 and
+  1 deg; first find how windows are taken from observed stacks, then the dataset, training (under
+  2 h) and the inside-grain test, by an implementer if the brief script accepts the approval.

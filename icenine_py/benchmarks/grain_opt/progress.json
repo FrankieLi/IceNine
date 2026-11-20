@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-19 16:15 PST",
+ "updated": "2026-11-19 16:20 PST",
  "steps": [
   {
    "id": "GO0",
@@ -352,6 +352,14 @@
    "status": "done",
    "date": "2026-11-19",
    "result": "Datasets regenerated and the realism-trained GNLayerNet retrained on the GPU (about 18 min): held-out median error 0.0178 deg on clean windows (documented 0.0176) and 0.0725 deg on realistic windows (documented 0.0827). Reproduction gate passed; GO8b (inside grains on observed windows) next.",
+   "commit": ""
+  },
+  {
+   "id": "GO8b",
+   "title": "GNLayerNet inside grains (I25 part 2)",
+   "status": "done",
+   "date": "2026-11-19",
+   "result": "The retrained GNLayerNet as a per-voxel refiner on observed rand / corr3 windows: after the ladder it changes 1 of 1,043 voxels (rand 0.5 deg 48% -> 48%), from the grain-centre start it barely moves voxels. I25 no. Trained on single-voxel windows, it has never seen grain-wide spots; a retraining on grain-like windows is the follow-up (I66).",
    "commit": ""
   }
  ],
