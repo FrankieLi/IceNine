@@ -65,7 +65,9 @@ def main() -> None:
     ap.add_argument("--cache", default=str(RD / "cache"))
     a = ap.parse_args()
     cache = Path(a.cache)
-    exact = {s: load(RD / f"exact_{s}.json") for s in SAMPLES}
+    exact = {
+        s: load(RD / f"exact_{s}.json") or load(RD / f"exact_{s}_untimed.json") for s in SAMPLES
+    }
     live: Dict[str, Dict[str, Any]] = {}
     for s in ("mid", "held"):
         for arm in ("old", "new"):
