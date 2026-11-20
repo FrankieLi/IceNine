@@ -1143,6 +1143,31 @@ reported for context. Wall time per voxel reported; a run over 2 hours is stoppe
 Budget: preparing a voxel nominal (peak set, observer) and one network call per round; about
 0.3-1 s per voxel per round (measured on a smoke grain first); 4 runs, each under 2 hours.
 
+### GO2b: boundary pass for paint errors (goal G1a, idea I32)
+
+Question: after the G20 strict-field fit (`Astrict/100`, painted start, flood groups), 6 of the
+1,082 voxels stay wrong (39-57 deg; 3 of them among the 853 voxels with a C record): boundary voxels
+painted with the neighbouring grain's orientation, so flood-fill puts them in the pick's group while
+their ground-truth grain is the neighbour. Their strict costs (0.13-0.26) sit above the fitted
+voxels' (about 0.08). Does a boundary pass that lets each high-cost voxel try its neighbours'
+orientations from other groups recover them?
+
+Method: a new `run_pipeline.py` stage `P/<evals>/<threshold>`: for each group member whose strict cost
+is above the threshold, candidates = the painted orientations of its neighbours (within the
+neighbour radius) that belong to other flood groups plus the current orientations of its in-group
+neighbours; the candidate with the lowest strict cost is taken if it beats the voxel's, then a
+per-voxel strict CMA polish of `evals` evaluations (sigma 0.02 deg) as the `V` stage. Arm on G20:
+`Astrict/100,P/30/0.12`; output `benchmarks/grain_opt/go2b/`.
+
+Judging rule (written before any run). Reference: GO7's clean `Astrict/100` (853 C voxels: 3 above
+0.1 deg, median 0.0146 deg; all 1,082 voxels: 6 wrong above 1 deg). I32 is answered yes when the
+wrong voxels among all 1,082 fall from 6 to at most 2 and the C-voxel share above 0.1 deg falls from
+3 to at most 1, with the C-voxel median within 5% of 0.0146. Voxels tried and changed, and time, are
+reported.
+
+Budget: G20 `Astrict/100` takes about 3 minutes; the pass adds a few strict evaluations per gated
+voxel.
+
 ### GO6 onwards
 
 Strain queue (owner, 2026-11-19, from the literature review in the sibling thread "Review neural
