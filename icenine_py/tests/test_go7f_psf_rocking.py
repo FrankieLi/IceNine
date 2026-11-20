@@ -415,7 +415,7 @@ def test_frame_table_unions_are_compact_exact_and_hold_a_large_working_set() -> 
         assert got.dtype == np.uint8 and np.array_equal(got, want)
     assert len(table.unions) == len(keys)  # nothing evicted: the working set is held
     stored = table.unions[keys[5]][0]
-    assert stored.ndim == 1 and stored.dtype == np.int64  # lit-pixel indices, not a dense image
+    assert stored.ndim == 1 and stored.dtype == np.int32  # lit-pixel indices, not a dense image
     again = table.union_images(keys[5])[0]  # a hit: same cached indices, a fresh dense image
     assert table.unions[keys[5]][0] is stored
     again[:] = 7  # the caller owns the dense image; the cache is unaffected

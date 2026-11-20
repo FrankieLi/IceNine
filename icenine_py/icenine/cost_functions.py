@@ -523,7 +523,7 @@ class FrameTable:
         "source", "n_frames", "n_det", "images", "rows", "cols", "_filled", "unions", "_lit"
     )
     # Compact union cache size (LRU keys). A key holds n_det int64 arrays of lit-pixel indices
-    # (a few dozen entries each on a sparse frame), so this cap is generous and cheap; it must
+    # (int32; a few dozen entries on the sparse fixture, size on realistic data unmeasured); it must
     # exceed the distinct keys one evaluation needs (212-441 measured on the three_voxels fixture)
     MAX_UNIONS = 100_000
 
@@ -543,7 +543,7 @@ class FrameTable:
     def _lit_indices(self, slot: int) -> np.ndarray:
         got = self._lit.get(slot)
         if got is None:
-            got = np.flatnonzero(self.images[slot])
+            got = np.flatnonzero(self.images[slot]).astype(np.int32)  # frames < 2**31 pixels
             self._lit[slot] = got
         return got
 

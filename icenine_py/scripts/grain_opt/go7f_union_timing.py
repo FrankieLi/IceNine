@@ -46,7 +46,7 @@ def main(out: Path) -> None:
             t0 = time.perf_counter()
             cf.evaluate(R, verts, phase)
             times.append(time.perf_counter() - t0)
-        table = cf.frame_table
+        table = cf.frame_table()
         keys = len(table.unions) if table is not None else 0
         res["rows"].append(
             {
