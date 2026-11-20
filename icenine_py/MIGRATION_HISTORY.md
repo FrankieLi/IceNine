@@ -13861,10 +13861,11 @@ passes through `IndexParams` (the live runs wrap `index_voxel` in the launching 
 change. `held7` was NOT built (gates c2 and c3 did not pass, as the plan says); nothing of `held2`
 or `fine7`.
 
-Result in one line: the rule makes the indexer 76% faster and the whole `J5SD` run 45% faster
-(contended), and it loses almost no candidates, but the evaluation count went up 2.19% (limit 2%)
-because three more seed steps on `held` reached the grid search. Two gates are not met, so phase A
-stops here. A key (phase B) needs a new decision.
+Result in one line: the rule gives 76% less indexing time and 45% less wall time for the whole
+`J5SD` run (contended), and it loses almost no candidates, but the evaluation count went up 2.19%
+(limit 2%). In the accounting below, the grid search is 367,369 of the 535,927 extra evaluations (net
+one more grid search: `held` 7 against 4, `mid` 0 against 2); that is accounting, not a tested
+cause. Two gates are not met, so phase A stops here. A key (phase B) needs a new decision.
 
 Reading line: first the plot, then the tables. Left: minutes of wall for each whole `J5SD` run,
 old and new setting, indexing in orange. Right: voxels broken and fixed against stored `J5SD`,
@@ -13940,23 +13941,42 @@ Reading line: indexer work and wall seconds of the four runs, from the wrapper's
 | held | 855657758 | 183923622 | 362140868 | 76413880 | 4009 | 794 | 6199 | 3061 | 50.6% | contended / contended | 2.4 / 2.4 |
 <!-- /table:px_wall -->
 
-Where the extra evaluations came from. The stage split of the evaluation counts (same code, same
-counting) shows that nearly all of the difference is the grid search: `held` new 2,421,061 against
-stored 1,387,715 (7 steps against 4, about 346,000 each), `mid` new 0 against 665,977 (0 against
-2). Without the grid search the summed totals differ by +0.75%. This is consistent with the plan's
-warning that one lost candidate can send a seed step to the grid search; which candidate was lost
-in the three extra `held` steps was not traced. The two samples moved in opposite directions on
-evaluations (`mid` 7.88% fewer, `held` 6.53% more), so the route noise is large against the 2% limit.
+Where the extra evaluations are. The stage split of the evaluation counts (same code, same
+counting). On `held` the extra evaluations are 1,117,493, of which the grid search is 1,033,346
+(92%): new 2,421,061 against stored 1,387,715 (7 grid searches against 4, about 346,000 each). On
+`mid` the total is 581,566 fewer, of which the grid search is 665,977 fewer (0 against 2). Pooled,
+the extra is 535,927 and the net grid change 367,369 (69%); without the grid search the summed
+totals differ by +0.75%. The grid-search voxels (old rerun, equal to stored; new): `held` old 3207,
+7225, 13831, 20758; new 7225, 11428, 13284, 13831, 15599, 18884, 19825 (2 shared, 2 old only, 5 new
+only); `mid` old 7167, 16979, new none. What the logs show about candidates on `held`: voxel 19825
+went to the grid search in the new run although its q1 row has the stored accepted orientation at
+rank 0 (nearest candidate 0.71 degree against 0.68 under base); the one `held` voxel q1 lost from
+the top 20, 12171, was seeded in the new run and passed the seed test. Seed steps whose candidates
+all failed the seed test (`index_fallback_seed_test`, which then go to the rescue) fell from 66 to
+63; successful rescues fell from 46 to 38 (polished 16 to 18). The cause of the extra grid searches
+is NOT TESTED. The two samples moved in opposite directions on evaluations (`mid` 7.88% fewer,
+`held` 6.53% more). The effect of the route was not measured (one run per arm). The logs show that
+the sets of seed steps that failed the seed test overlap in only 20 of 66 and 63 voxels on `held`,
+and 4 of 12 and 9 on `mid`.
+
+Same cost model in both arms. Milliseconds per evaluation by stage (wall of the stage over its
+evaluations, `run.json`): neighbour stage 0.105 (old rerun) and 0.106 (new) on `held`, 0.105 and
+0.106 on `mid`; revisit stage 0.107 and 0.107 on both samples (see `extra.json`).
 
 Accuracy. Against stored `J5SD` the new runs ended with 17 wrong voxels on `mid` (stored 23: 10
 fixed, 4 broken) and 42 on `held` (stored 45: 19 fixed, 16 broken); median errors moved by +0.00012
 and -0.00027 degree. Gate c3 is met on `mid`; on `held` the grid-search count rises by 3 (limit 2),
-so c3 is not met as frozen (`grid_fallbacks_left`: 7 against 4; the other reading of "seed steps that
-reach the grid search", `index_fallback_seed_test`, fell from 66 to 63 and from 12 to 9).
+so c3 is not met as frozen (the frozen text names `grid_fallbacks_left`: 7 against 4). Beside it,
+the seed steps that failed the seed test and went to the rescue (`index_fallback_seed_test`) fell
+from 66 to 63 on `held` and from 12 to 9 on `mid`; this is not a reading of c3.
 
-Deviations and limits. The sizing's accepted orientation is the stored seed step's best fit, not
-the final map. Home paths were removed from the kept preflight and timing JSON files with `sed`
+Deviations and limits. The q1 interval's upper end (0.55%) is above the 0.5% limit; the gate is
+judged on the count (6 of 2,396, limit 11), and the denominator is 2,396 because 4 voxels were not in
+the base top 20 (`held5` 1, `held6` 1, `big` 2). The sizing's accepted orientation is the stored
+seed step's best fit, not the final map. The old `held` run was left to finish after c2 was known to
+fail, only to complete t2 (the stop rule stops only `held7`). One listing of `ar3/` showed the name
+of a `held2` directory; nothing in it was opened or listed. The stacks and mics were linked read-only
+from step 22's worktree. The pilot's preflight JSON and `cache_pilot` were deleted. Home paths were removed from the kept preflight and timing JSON files with `sed`
 after the runs (text only). A pilot with `--smoke 40` was started and stopped after 9 minutes
 (`defer_run --smoke` does not shorten the run); the wrapper's exit logging was checked on a failing
-call instead. Not tested: why the three extra `held` steps lost their candidates; a quiet repeat of
-t1 or t2.
+call instead. Not tested: why `held` had more grid searches; a quiet repeat of t1 or t2.

@@ -376,8 +376,15 @@ def main() -> None:
     q1, t1, live, h1 = load("q1"), load("t1"), load("live"), load("h1")
     tabs = tables(q1, t1, live, h1)
     DT.write_tables(RD / "tables.md", tabs)
+    extra = json.loads((RD / "extra.json").read_text()) if (RD / "extra.json").exists() else None
+    split = (
+        json.loads((RD / "stage_split.json").read_text())
+        if (RD / "stage_split.json").exists()
+        else None
+    )
     (RD / "summary.json").write_text(
-        json.dumps(dict(q1=q1, t1=t1, live=live, h1=h1), indent=1) + "\n"
+        json.dumps(dict(q1=q1, t1=t1, live=live, h1=h1, extra=extra, stage_split=split), indent=1)
+        + "\n"
     )
     plot(live, h1)
     print("wrote", sorted(tabs))
