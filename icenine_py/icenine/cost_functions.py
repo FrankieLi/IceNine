@@ -519,8 +519,13 @@ class FrameTable:
     ``exp_data=None`` and have its data attached later.
     """
 
-    __slots__ = ("source", "n_frames", "n_det", "images", "rows", "cols", "_filled", "unions")
-    MAX_UNIONS = 64  # rocking-window union cache size (LRU)
+    __slots__ = (
+        "source", "n_frames", "n_det", "images", "rows", "cols", "_filled", "unions", "_lit"
+    )
+    # Compact union cache size (LRU keys). A key holds n_det int64 arrays of lit-pixel indices
+    # (a few dozen entries each on a sparse frame), so this cap is generous and cheap; it must
+    # exceed the distinct keys one evaluation needs (212-441 measured on the three_voxels fixture)
+    MAX_UNIONS = 100_000
 
     def __init__(self, exp_data: ExperimentalData, n_frames: int, n_det: int) -> None:
         self.source = exp_data
@@ -530,28 +535,41 @@ class FrameTable:
         self.rows = 0
         self.cols = 0
         self._filled = np.zeros(n_frames, dtype=bool)
-        # rocking window (opt-in): frames tuple -> per-detector OR of those binary frames
-        # bounded (LRU, ``MAX_UNIONS`` keys): each key holds n_det binary frames (about 4 MB per
-        # 2048 x 2048 uint8 frame), so the cache stays under MAX_UNIONS * n_det * 4 MB
+        # rocking window (opt-in): frames tuple -> per-detector sorted flat indices of the lit
+        # pixels of the OR of those binary frames (compact; dense images are built per call)
         self.unions: "OrderedDict[Tuple[int, ...], List[np.ndarray]]" = OrderedDict()
+        self._lit: Dict[int, np.ndarray] = {}  # frame * n_det + det -> flat lit indices
+
+    def _lit_indices(self, slot: int) -> np.ndarray:
+        got = self._lit.get(slot)
+        if got is None:
+            got = np.flatnonzero(self.images[slot])
+            self._lit[slot] = got
+        return got
 
     def union_images(self, frames: Tuple[int, ...]) -> List[np.ndarray]:
-        """Per detector, the pixelwise OR of the binary frames ``frames`` (sorted tuple)."""
-        got = self.unions.get(frames)
-        if got is not None:
+        """Per detector, the pixelwise OR of the binary frames ``frames`` (sorted tuple), as new
+        dense uint8 images. The union is cached only as lit-pixel indices; the dense image is a
+        zero-filled array (lazily mapped, so only touched pages use memory) with those pixels
+        set, built on every call and owned by the caller."""
+        idx = self.unions.get(frames)
+        if idx is not None:
             self.unions.move_to_end(frames)
         else:
             self.ensure(np.asarray(frames, dtype=np.int64))
-            got = []
+            idx = []
             for d in range(self.n_det):
-                acc = self.images[frames[0] * self.n_det + d]
-                for f in frames[1:]:
-                    acc = np.maximum(acc, self.images[f * self.n_det + d])
-                got.append(acc)
-            self.unions[frames] = got
+                parts = [self._lit_indices(f * self.n_det + d) for f in frames]
+                idx.append(np.unique(np.concatenate(parts)))
+            self.unions[frames] = idx
             while len(self.unions) > self.MAX_UNIONS:
                 self.unions.popitem(last=False)
-        return got
+        out = []
+        for d in range(self.n_det):
+            dense = np.zeros((self.rows, self.cols), dtype=np.uint8)
+            dense.reshape(-1)[idx[d]] = 1
+            out.append(dense)
+        return out
 
     def ensure(self, frames: np.ndarray) -> None:
         """Fill the frames in ``frames`` (integer frame indices, all in ``[0, n_frames)``)."""
