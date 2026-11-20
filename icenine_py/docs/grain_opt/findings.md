@@ -1417,3 +1417,47 @@ deg from the ground truth); for the other four the right candidate is probably n
 picked by unpolished strict cost (the right candidates score worst before polishing). G1a's frontier
 arm now leaves 1 of 853 C voxels above 0.1 deg at 4.7 ms per voxel. Not pursued further (4 voxels of
 1,082).
+
+## GO7f: detector PSF and rocking curve in the forward model (goal G2b, ideas I23, I24 model part)
+
+Library change approved by the owner (D-20261119-I1), built by an implementer on
+`feature/grain-opt-go7f-psf-rocking` and merged into `feature/grain-opt` (df583c97) after three
+code reviews. All options are opt-in: `SpotModel(psf_sigma_px, rocking_deg)`, renderer PSF and
+rocking, and the strict cost's `rocking_deg` window. Defaults stay bit-identical (19 fixed arrays,
+full suite unchanged apart from the 2 failures already on the parent). Script flags:
+`fit_strain.py --model_psf S`, `run_pipeline.py --rocking_deg A` (b20afe48).
+
+**GO7f-a (model PSF).** Fast fit `GP4@P --ratio_hi 2.5` on `strain_psf10` (1 px PSF images) with
+the model PSF at sigma 1 px, S36 (12 grains per level), rows
+`benchmarks/grain_opt/go7f/GP4_P_hyb8_S36_mpsf1_r2.5.json`.
+
+| arm | strain median 5e-4 | strain median 1e-3 | orientation median 5e-4 / 1e-3 (deg) | evals / grain |
+|---|---|---|---|---|
+| GO7e clean (no PSF in images) | 1.2e-4 | 1.4e-4 | (limit 0.03) | |
+| GO7e PSF images, no model PSF | 2.12e-4 | 3.49e-4 | 0.027 / 0.047 | 914 / 1128 |
+| GO7f-a PSF images, model PSF 1 px | 2.16e-4 | 4.15e-4 | 0.042 / 0.086 | 948 / 1169 |
+
+Verdict by the rule written before the run: no. Not "yes" (strain medians above 1.5 x clean, 1.8e-4
+and 2.1e-4; orientation medians above 0.03 deg), not "partly" (no 1.5 x improvement over the GO7e
+PSF arm; both medians are slightly worse and the 1e-3 orientation median doubles). Wall time per
+grain 54 s against 29 s (contended, preflight refused, single run). The model PSF alone does not
+undo the 1 px PSF damage; GO7e traced that damage to the region area-ratio filter, which this arm
+kept at 2.5 (GO7f-c checks the model PSF without it).
+
+**GO7f-b (strict-cost rocking window).** G20 `Astrict/100` on `grad_rock10` (alpha 1.0) with
+`--rocking_deg 1.0`, run `benchmarks/grain_opt/runs/go7f_grad_rock10_As100_rw1/`.
+
+| G20 `Astrict/100` | grains rejected by the gate | above 0.1 deg, 853 C voxels | C-voxel median |
+|---|---|---|---|
+| clean images (GO7) | none | 3 (0.1-1.0%) | 0.0146 |
+| `grad_rock10`, no window (GO7) | 64, 197 | 20 (1.5-3.6%) | 0.0134 |
+| `grad_rock10`, window 1.0 deg | 64, 197, 493 | 21 (1.6-3.7%) | 0.0138 |
+
+Verdict by the rule written before the run: no. Grain 197 is still rejected (mean strict cost of
+its group 0.329 -> 0.340 with the window, against 0.353 -> 0.366 without and 0.095 on clean images),
+and the share above 0.1 deg stays outside the clean interval. The window lowers the strict cost only
+slightly, so most of the rocking damage to the strict cost is not frames being missed. Hypothesis to
+check (GO7f-d): spreading a reflection over frames lowers its per-frame intensity, so weak
+reflections fall under the binarisation threshold and their predicted pixels have nothing to hit in
+any frame. With the window the strict cost runs on the torch path (no fused C path):
+3,215 ms per voxel against 3.2 (contended, preflight refused).

@@ -1223,6 +1223,23 @@ without asking.
 Budget: implementation and tests by an implementer in its own worktree (a few hours), then each
 experiment under 30 minutes.
 
+Results (2026-11-19, `findings.md`): GO7f-a no, GO7f-b no.
+
+**Follow-ups (judging rules written here, before any run, 2026-11-19 22:30 PST):**
+- GO7f-c, model PSF without the ratio filter: `GP4@P` on `strain_psf10` with `--model_psf 1` and
+  the default region filter (no `--ratio_hi`), S36. GO7e traced the 1 px PSF damage to the ratio
+  filter; with the model footprint widened the default filter may fit. Same rule as GO7f-a: yes
+  when strain medians at 5e-4 and 1e-3 are at most 1.8e-4 and 2.1e-4 and both orientation medians at
+  most 0.03 deg; partly when both strain medians improve at least 1.5 x on GO7e's PSF arm (2.1e-4,
+  3.5e-4). Under 30 minutes.
+- GO7f-d, diagnosis of the rocking damage (no verdict on an idea; it decides the next rocking
+  step): the mean strict cost at the ground-truth orientation of every voxel of G20's groups on
+  clean `grad`, on `grad_rock10`, and on `grad_rock10` with the window 1.0, plus the share of
+  predicted spots with no lit pixel in any frame of their window. Reading: if the window brings the
+  ground-truth strict cost to within 1.25 x the clean value, the A-stage rejection is a search
+  problem; if not and the unlit-spot share explains most of the gap, it is threshold dilution (then
+  the next step is a rocking-aware threshold or intensity cost, owner-visible). Under 30 minutes.
+
 ### GO6 onwards
 
 Strain queue (owner, 2026-11-19, from the literature review in the sibling thread "Review neural

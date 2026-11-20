@@ -486,3 +486,30 @@ became AR6 on 2026-11-16 at the owner's request.
 - **Next action:** plan and run GO4j (I67): `--clean_start` in `run_pipeline.py` (region built from
   the start map with painted outliers set to the medoid) on the G20 strict-field arm (`Astrict/100`,
   painted start), judged against GO2/GO7's clean reference (3 of 853 above 0.1 deg, median 0.0146).
+
+## Now as of GO7f merge (2026-11-19 21:15 PST)
+
+- **GO2b / GO2c closed** (2026-11-19 16:25 PST, G1a I32 no): a boundary pass recovers paint errors
+  only if neighbour candidates are polished before comparison (`P2/60/0.12`): 2 of 6 recovered, C
+  voxels above 0.1 deg 3 -> 1 of 853 (median 0.0147 deg, 4.7 ms per voxel); 4 remain.
+- GO8b: I25 no (GNLayerNet trained on single-voxel windows does not transfer to observed grain
+  windows; I66 offered to the owner). I67 dropped (not applicable). I26 / I27 dropped (owner).
+- **Open choices for the owner** (reported 2026-11-19): I66 (retrain GNLayerNet on grain-like
+  windows; sizable), I35 (G1b pipeline from a real painted start on rand / corr3: needs the AR3
+  painter run on each sample first), model-side rocking / PSF (library changes, need approval).
+- **I35 scoped** (2026-11-19 16:35 PST): the AR3 painter (`scripts/autoresearch/ar3/run_gradient.py`,
+  BFS with `PaintGrains 1`, hard-wired to `grad`) would need a per-sample copy; it runs in one
+  process and took 7,390 s on `grad` (contended), so a `rand` / `corr3` paint likely exceeds the
+  2 h run limit. The cached ray pairings can be reused (`ray_cache.ensure`).
+- **Approved** D-20261119-I1 (owner, 2026-11-20 03:58 UTC, "go ahead with the library change"):
+  GO7f, opt-in PSF and rocking curve in SpotModel, the stock renderer and the strict cost.
+- **Next action:** GO7f library part with an implementer (task branch
+  `feature/grain-opt-go7f-psf-rocking`, own worktree); on hand-back: `verify_handback.sh`,
+  `/review-task`, merge into `feature/grain-opt`, then experiments GO7f-a (PSF) and GO7f-b (rocking).
+
+## Running jobs
+
+- GO7f implementer (started 2026-11-19 20:00 PST, background agent, own worktree, branch
+  `feature/grain-opt-go7f-psf-rocking`; report `.claude/reports/20261119-2000-go7f-psf-rocking.md`).
+  Do not start a second agent on that branch.
+

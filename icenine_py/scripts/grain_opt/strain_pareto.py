@@ -49,6 +49,8 @@ ARMS = [
     ("go7e/GP4_P_hyb8_S36_r2.5.json", "fast fit, ratio filter 2.5, 1 px PSF images", "fast", True),
     ("go5p/GP4_P_hyb8_S36_r2.5.json", "fast fit, ratio filter 2.5, noisy", "fast", True),
     ("go5p/GP4_P_hyb8_S36_intclean_r2.5.json", "fast fit, ratio 2.5 + intclean, noisy", "fast", True),
+    ("go7f/GP4_P_hyb8_S36_mpsf1_r2.5.json", "fast fit, ratio 2.5, model PSF 1 px, 1 px PSF images", "fast", True),
+    ("go7f/GP4_P_hyb8_S36_mpsf1.json", "fast fit, model PSF 1 px, 1 px PSF images", "fast", True),
 ]
 
 

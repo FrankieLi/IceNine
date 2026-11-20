@@ -5,29 +5,28 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO2b / GO2c closed** (2026-11-19 16:25 PST, G1a I32 no): a boundary pass recovers paint errors
-  only if neighbour candidates are polished before comparison (`P2/60/0.12`): 2 of 6 recovered, C
-  voxels above 0.1 deg 3 -> 1 of 853 (median 0.0147 deg, 4.7 ms per voxel); 4 remain.
-- GO8b: I25 no (GNLayerNet trained on single-voxel windows does not transfer to observed grain
-  windows; I66 offered to the owner). I67 dropped (not applicable). I26 / I27 dropped (owner).
-- **Open choices for the owner** (reported 2026-11-19): I66 (retrain GNLayerNet on grain-like
-  windows; sizable), I35 (G1b pipeline from a real painted start on rand / corr3: needs the AR3
-  painter run on each sample first), model-side rocking / PSF (library changes, need approval).
-- **I35 scoped** (2026-11-19 16:35 PST): the AR3 painter (`scripts/autoresearch/ar3/run_gradient.py`,
-  BFS with `PaintGrains 1`, hard-wired to `grad`) would need a per-sample copy; it runs in one
-  process and took 7,390 s on `grad` (contended), so a `rand` / `corr3` paint likely exceeds the
-  2 h run limit. The cached ray pairings can be reused (`ray_cache.ensure`).
-- **Approved** D-20261119-I1 (owner, 2026-11-20 03:58 UTC, "go ahead with the library change"):
-  GO7f, opt-in PSF and rocking curve in SpotModel, the stock renderer and the strict cost.
-- **Next action:** GO7f library part with an implementer (task branch
-  `feature/grain-opt-go7f-psf-rocking`, own worktree); on hand-back: `verify_handback.sh`,
-  `/review-task`, merge into `feature/grain-opt`, then experiments GO7f-a (PSF) and GO7f-b (rocking).
+- **GO7f library part merged** (df583c97, 2026-11-19 21:15 PST, D-20261119-I1): opt-in
+  `SpotModel(psf_sigma_px, rocking_deg)`, renderer PSF / rocking, strict-cost `rocking_deg`
+  window; defaults bit-identical; three code reviews. Script flags `--model_psf` (fit_strain) and
+  `--rocking_deg` (run_pipeline) in b20afe48.
+- **GO7f-a no** (model PSF 1 px, ratio 2.5, `strain_psf10`): strain medians 2.16e-4 / 4.15e-4 at
+  5e-4 / 1e-3 (GO7e PSF arm 2.12e-4 / 3.49e-4), orientation medians 0.042 / 0.086 deg.
+- **GO7f-b no** (strict-cost rocking window 1.0 on `grad_rock10`): grain 197 still rejected (and
+  493 now too); C voxels above 0.1 deg 21 of 853 (no window 20, clean 3); median 0.0138. The window
+  barely lowers the strict cost; torch path 3.2 s per voxel.
+- **Open choices for the owner** (unchanged): I66 (retrain GNLayerNet on grain-like windows), I35
+  (G1b from a real painted start on rand / corr3, paint likely over 2 h). Owner decisions on GO7f
+  defaults pending: renderer options as attributes vs config keys, PSF lit threshold 1e-3 of the
+  frame maximum, |sin eta| floor 0.01, high500 freeze test policy.
+- **Next action:** close GO7f-c (model PSF without the ratio filter) and GO7f-d (rocking damage
+  diagnosis) by the PLAN rules; then pick the next G-goal step per the program balance.
 
 ## Running jobs
 
-- GO7f implementer (started 2026-11-19 20:00 PST, background agent, own worktree, branch
-  `feature/grain-opt-go7f-psf-rocking`; report `.claude/reports/20261119-2000-go7f-psf-rocking.md`).
-  Do not start a second agent on that branch.
+- GO7f-c: `fit_strain.py --arm GP4@P --cost hyb --lam 8 --per_level 12 --stack
+  strain_psf10_clean.npy --model_psf 1 --out go7f` (started 2026-11-19 22:15 PST, log
+  `benchmarks/grain_opt/go7f/go7f_c.log`).
+- GO7f-d: `scripts/grain_opt/go7f_diag.py` (started 22:19 PST, log `.../go7f/go7f_d.log`).
 
 ## Data (git-ignored, in this worktree; link, do not copy)
 
