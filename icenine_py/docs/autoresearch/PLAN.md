@@ -6091,6 +6091,158 @@ the seed step's fits; the neighbour stage; batching; C++; realistic images; extr
 
 Approved: D-20261120-N1, phase A, with `index_voxel` in both arms; phase B needs a new decision.
 
+### AR5 step 28: a small pair sample first, the full sample again when the seed test fails
+
+Task `ar5ab`. Starts from `feature/eval-reduction` after step 27's merge (its scripts are reused).
+Reads step 27's run cache in the main checkout (`ar5/px/cache`), read only. Phase A only after a
+recorded decision; a key (phase B) needs a second one.
+
+**Why.** Step 27's rule `PX` (`max_pairs` 50,000) cut indexing seconds 75.8% and pooled wall 44.9%,
+but failed two count gates: evaluations +2.19% (limit 2%) and, on `held`, 7 grid searches against 4
+(limit 2 more). Each grid search costs about 346,000 evaluations and 23 s. The verdict stands; `PX`
+alone is not tried again. The stored rows show the extra grid searches are NOT lost candidates:
+the two settings give the fragile fits different starts, and they fail on different voxels. A
+second try with the full sample would have kept out of the grid search every voxel `PX` sent there.
+
+**What was read and run.** PLAN step 27, its report, `px_*.py`; `reconstructor.py` (`_index_seed`);
+`defer_run.py`, `high500_run.py`, `polish_rules.make_wrapper`, `order_draws.py`. Stored rows of
+step 27's old and new runs (`mid`, `held`): `e1_log`, `polish_log`, `run.json`, `px_index_run_*`,
+`after.npy`, logs. Scratch `s28_*.py`: stored rows only, and 11 voxels indexed with both settings
+(no evaluation, one thread, contended). No run; nothing of `held2`, `fine7`.
+
+**Terms.** **Seed step**: index the voxel, cost 20 candidates, refine the best 5 (CMA, then MC
+under 0.95). **Seed test** fails: no candidate, or the step's hit ratio is under 0.80
+(`_index_seed`: `hit < min_acceleration_threshold`). Then come the **rescue** (`G1`: CMA from the
+step's kept ends, accept at 0.95), the **polish** (`G2b`: local grid and CMA about each rescue end,
+accept at 0.95) and the **grid search** (full search). **Old**, **new**: step 27's runs with
+600,000 and 50,000 pairs (old = stored `J5SD`). **Shared voxel**: seeded once in both runs.
+
+**What the runs did.** Reading line: per run, seed steps, steps failing the seed test, and where
+those ended (rescued by `G1`, by `G2b`, or sent to the grid search).
+
+| run | seed steps | failed seed test | `G1` | `G2b` | grid search |
+|---|---|---|---|---|---|
+| mid old (= stored) | 1,626 | 12 | 8 | 2 | 2 |
+| mid new | 1,664 | 9 | 8 | 1 | 0 |
+| held old (= stored) | 3,685 | 66 | 46 | 16 | 4 |
+| held new | 3,679 | 63 | 38 | 18 | 7 |
+
+The failure rate barely moves. But which voxels fail changes a lot: of 2,691 shared `held` voxels,
+62 fail old and 60 fail new, yet only 20 fail in both (mid: 983 shared, 12 and 9, 4 in both).
+Every grid voxel is a reseed. 6 of the 13 grid searches ended under 0.80 (rejected anyway).
+
+**Lost candidates? No.** Reading line: per voxel that reached a grid search in either run, its
+outcome old then new, and the rank among the 20 candidates of the orientation finally accepted
+(old map / new map) at 600,000 and at 50,000 pairs; -1 would mean not in the top 20.
+
+| voxel | old to new | rank, 600,000 | rank, 50,000 | voxel | old to new | rank, 600,000 | rank, 50,000 |
+|---|---|---|---|---|---|---|---|
+| mid 7167 | grid, pass | 0 / 0 | 0 / 0 | held 20758 | grid, pass | 1 / 0 | 1 / 0 |
+| mid 16979 | grid, pass | 0 / 0 | 0 / 0 | held 15599 | pass, grid | 2 / 2 | 2 / 2 |
+| held 7225 | grid, grid | 0 / 0 | 0 / 0 | held 19825 | pass, grid | 0 / 0 | 0 / 0 |
+| held 3207 | grid, pass | 0 / 0 | 0 / 0 | held 18884 | `G1`, grid | 0 / 4 | 0 / 4 |
+| held 13831 | grid, grid | 0 / 0 | 0 / 0 | held 13284 | `G1`, grid | 0 / 0 | 0 / 0 |
+| | | | | held 11428 | pass, grid | 4 / 0 | 0 / 0 |
+
+All 11 accepted orientations stay in the top 5 at both settings, mostly first. The nearest
+candidate's angle to them changes by 0 to 0.57 degree, and fits from such starts end differently
+(the cost is sharp within 0.2 to 0.5 degree). 5 voxels newly reach the grid search; 4 no longer do.
+So step 28 does not restore lost candidates; it is a second try from other starts.
+
+**Replay, sized.** Seed-step fits use a fresh `default_rng(0)`; rescue, polish and grid use draws
+keyed by voxel. So a voxel's chain is fixed by its candidates (69 voxels under 50,000 pairs gave
+equal evaluations in both runs), and `PXF` at a shared voxel is the new step, then, if it fails,
+the stored old chain. Reading line: per sample, over shared voxels, evaluations of seed steps,
+rescue, polish and grid; steps sent to the rescue; grid searches; ray pairs fewer than old.
+
+| sample | shared | old | `PX` | `PXF` | `PXF` vs old | to rescue o/PX/PXF | grid o/PX/PXF | pairs fewer |
+|---|---|---|---|---|---|---|---|---|
+| mid | 983 | 2,483,991 | 1,919,642 | 1,955,036 | -21.3% | 12 / 9 / 4 | 2 / 0 / 0 | 52.4% |
+| held | 2,691 | 8,719,207 | 10,010,675 | 8,375,442 | -3.9% | 62 / 60 / 20 | 4 / 7 / 2 | 76.8% |
+
+Fallbacks on shared voxels: 9 (`mid`) and 60 (`held`); their steps cost 47,406 and 272,939
+evaluations, their indexings 6.9 and 110.9 s (contended). Without grid searches `PXF` costs 7.5%
+and 4.8% more than old: a 50,000-pair step costs 3% to 7% more on average, plus the fallbacks.
+The gain rests on 2 to 3 fewer grid searches per run.
+
+**The rule, frozen now.** Rule `PXF`. (1) A seed step (seed or reseed) indexes with `max_pairs`
+50,000, as `PX`. (2) If it fails the seed test (hit ratio under 0.80, or no candidate) and that
+indexing kept a subsample (the voxel had more than 50,000 ray pairs), the same voxel is indexed
+again with 600,000 pairs and the whole seed step runs again on the new candidates, same pick, same
+generators, no candidate skipped. (3) If that step passes, it is the result. Else `G1`, `G2b` and
+the grid search run as now, from the second step's kept ends. (4) Both steps count as the seed's
+evaluations; both indexings count in c1. Nothing else changes (pair generator 0, `n_seeds` 150,
+`top_k` 20, tolerances, BFS, screen, repair). No truth, no threshold read from data, nothing
+crystal-specific. Script layer only: a wrapper of `BFSReconstruction._index_seed`.
+
+**Samples.** Gates: `mid`, `held` (in-sample); old arm there: step 27's old runs (= stored
+`J5SD`), so only the new arm runs. Clean test: `held7` (generator seed 7 of the held family, built
+as `held`; nothing of it exists). `held2` not opened or listed; `fine7` not read.
+
+**Gates, fixed now.** Counts first; they do not depend on machine load. No candidate gate (q1).
+- c1 (indexer work): ray pairs and votes of the new runs, fallback indexings included, at least
+  50% lower than stored `J5SD`'s seed voxels indexed again (step 27's c1 rows), pooled.
+- c2 (evaluations): new `J5SD` at most 2% more than stored (7,383,368 + 17,114,589), summed.
+- c3 (accuracy, against stored `J5SD`, 23 and 45 wrong; per sample): broken minus fixed at most
+  3; median error at most 0.001 degree higher; seed steps reaching the grid search at most 2 more.
+- t2 (whole run): pooled wall of the new `J5SD` runs at least 25% lower than step 27's old runs
+  (8,219 s), judged with any load; preflight verdicts and sampled load reported.
+- h1, house rule on `held7`: new `J5SD` against `S8`, at least 20% fewer evaluations, broken minus
+  fixed at most 5, median error at most 0.005 degree higher; wall seconds of both reported.
+
+**Predictions, before any run.** c1: 68% to 76% fewer pairs. c2: -5% to +1% (centre -2.5%).
+Fallbacks: `mid` 7 to 14, `held` 50 to 70; steps to the rescue `mid` 2 to 7, `held` 15 to 30.
+c3: broken minus fixed -6 to +3; grid searches `mid` 0 to 1, `held` 1 to 4. t2: 35% to 50% lower
+(step 27's `PX`: 44.9%). h1 passes.
+
+**Costs.** Tests and wrapper 1 hour; new `J5SD` on `mid` and `held` 1.5 hours; h1 (build `held7`,
+`S8`, new `J5SD`) 4 to 5 hours. In all 6.5 to 7.5 hours, one run at a time.
+
+**Stop rules.** A test fails. A fallback at a voxel seeded once in step 27's old run does not equal
+the stored old step (evaluations, fits, hit ratio): the replay premise is broken, stop. Any other
+`IndexParams` value differs. c1, c2 or c3 fails: no `held7`. `held2` opened or listed, `fine7`
+read. A gate is never loosened after a run; every refused preflight is kept.
+
+**Validity checks.** Logged per seed step: `n_pairs`, `n_votes`, seconds of each indexing, a
+fallback flag, both steps' evaluations and hit ratios. The stop rule's reproduction check on every
+such voxel (about 5 on `mid`, 45 on `held`). One thread; same `SmoothCost` and rays as step 27.
+
+**Known limits.** In-sample: the rule was designed after seeing step 27's `mid` and `held` runs,
+and the replay uses them; `held7` is the clean test. The replay covers shared voxels only (60% and
+73% of steps) and ignores route changes. Each grid search is 1.4% of pooled evaluations, so c2's
+margin is 2 to 3 grid searches. t2 is not paired in one session. Copper only (rule generic).
+
+**Phase A.** 1. Commit `pxf/frozen.json` (rule, gates, predictions, hashes). 2. Tests first,
+`tests/test_ar5_pxf.py`: no fallback at or under 50,000 pairs; the fallback step equals a direct
+600,000-pair step at the voxel; `G1` gets the second step's kept ends; both steps' evaluations
+counted; hexagonal fixture runs. 3. New `J5SD` on `mid`, then `held`; score c1 to c3, t2. 4. h1.
+Plot first (wall per sample, old, `PX` and `PXF`, indexing and evaluations stacked; beside it
+grid searches and broken and fixed), then the tables.
+
+**Phase B (key).** Opt-in `RayIndexMaxPairs N` and `RayIndexFallbackFull 1` in `check_bfs_keys`;
+key-off suite, no golden change; `findings_ar5_pxf.md`, history, README. **Files:** `pxf_*.py`
+(reusing `px_launch`, `px_score`, `px_build_held7`), `tests/test_ar5_pxf.py`, `ar5/pxf/` (< 3 MB).
+
+**Not in this step.** `PX` alone; other pair counts; a second 50,000-pair try from another pair
+generator (no stored rows to size it); skipping grid searches that end rejected (6 of 13); reuse
+(A); `n_seeds`, `top_k`; the seed step's fits; C++; realistic images; extra seeds.
+
+**Choices made.**
+- This idea: it keeps `PX`'s indexing saving (pairs 73% fewer counting fallbacks) and, by the
+  replay, takes steps to the rescue from 74 to 24 and grid searches from 6 to 2 on shared voxels.
+  Weak side: the gain over old is 2 to 3 grid searches per run, a small count; in-sample design.
+- No skip of candidates near ones already tried: the second step helps because its starts lie
+  0 to 0.6 degree from the first; a skip within 1 degree would drop most and break reproduction.
+- Full sample as the fallback, not another 50,000-pair sample: only it reproduces stored steps, so
+  it is sized now and checked exactly in the run. Only after a subsampled first indexing (else the
+  step would be identical).
+- Runner-up (A), reuse known orientations with a longer fit: larger possible saving (79% to 83% of
+  seed steps skip indexing), but its success rate needs evaluations and new BFS code.
+- Old `J5SD` on `held7` too (about 1 hour) would give a clean count comparison; left as an option.
+
+Approved: D-20261120-N2, phase A, plus plain `J5SD` on `held7` (reported, not a gate).
+Phase B needs a new decision.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
