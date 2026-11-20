@@ -1,0 +1,18 @@
+{
+ "sample": "held7",
+ "generator_seed": 7,
+ "n_voxels": 24570,
+ "n_grains": 250,
+ "stack_matches_render": true,
+ "counts_from": "the end of pxf_build_held7.py (exit 0)",
+ "sha256": {
+  "sample/gradient_grid.mic": "044ea68cc3898b65a9b8b531ffecee4eed244a0381061be4c7ac99026bbfe714",
+  "sample/gradient_truth.mic": "1b008a7d590749cbe0f9d895d184cfed76868df3f0b6973de2c80244f2dc7f44",
+  "sample/grainmap.npy": "49ebfed9fa3ba0bb24d467a56544f06902fd2e59cf6df4e9cdec2e3a9a95d243",
+  "sample/sample.json": "7d9696a3be12db3e4a064e8a849e86a2469464d775d255bf4b977ff62c199376",
+  "held7_stack.json": "e24b1cf04e2661cdc54a9406b31652463696a8b341e19eab9ec84d72e3113b8f",
+  "stacks/held7_clean.npy": "5501f228dda284513bb077c84b6e84418ae776afe5f1e84cfa6e7a9ee626863e"
+ },
+ "frozen_at": "2026-11-20T10:18:37-0800",
+ "note": "written before S8, the new J5SD or the plain J5SD ran on held7; no truth, orientation or map of held7 was analysed"
+}
