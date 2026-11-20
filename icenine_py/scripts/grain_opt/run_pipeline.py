@@ -53,9 +53,9 @@ def parse(p: str) -> List[Tuple[str, str, int, int]]:
         head, n = parts[0], int(parts[1])
         order = 2 if len(parts) > 2 and parts[2] == "o2" else 1
         kind, obj = head[0], head[1:]
-        if kind in "VNLGWX" and len(parts) > 2:  # V/<evals>/<sigma deg>
+        if kind in "VNLGWXQ" and len(parts) > 2:  # V/<evals>/<sigma deg>
             obj = parts[2]
-        assert kind in "ABVNLGWX", st
+        assert kind in "ABVNLGWXQ", st
         if kind in "NL" and len(parts) > 2:
             obj = parts[2]
         if kind in "AB":
@@ -180,6 +180,7 @@ def main() -> None:
         Cref = {r["voxel"]: r for r in CM.G.load_gz(CM.C.OUT / "fine" / "runs" / "C" / "refine.json.gz")}
     R_cur = S.R0.copy()
     hooks = None
+    nnref = None
     grains, vox_rows = [], []
     t_all = time.time()
     for g in picks:
@@ -252,6 +253,33 @@ def main() -> None:
                 used = ev_tot / len(members)
                 info.update(gated=n_gate, improved=n_found, threshold=thr)
                 f_old = f_new = float("nan")
+            elif kind == "Q":  # GO8b: GNLayerNet refiner, rounds kept only if the strict cost drops
+                thr = float(obj) if obj else 0.0
+                if nnref is None:
+                    import nn_refine as NR
+
+                    nnref = NR.NNRefiner(S, str(CM.ICE / "scripts" / "toy_orientation_sweep_model_realistic_s0.pt"))
+                R_new = R_now.copy()
+                s_cur = s_now.copy()
+                n_gate, n_found, calls0 = 0, 0, nnref.n_calls
+                for i, v in enumerate(members):
+                    if s_now[i] <= thr:
+                        continue
+                    n_gate += 1
+                    for _r in range(n):
+                        Rq = nnref.propose(v, R_new[i])
+                        if Rq is None:
+                            break
+                        sq = float(S.strict(Rq[None], [v])[0])
+                        if sq < s_cur[i]:
+                            R_new[i], s_cur[i] = Rq, sq
+                        else:
+                            break
+                    if s_cur[i] < s_now[i]:
+                        n_found += 1
+                used = (nnref.n_calls - calls0) / len(members)
+                info.update(gated=n_gate, improved=n_found, threshold=thr)
+                f_old = f_new = float("nan")
             elif kind in "WX":  # GO4g: wider seed path (W) or grid search (X) above the gate
                 thr = float(obj) if obj else 0.15
                 if hooks is None:
@@ -300,7 +328,7 @@ def main() -> None:
                 used = float(np.mean(used_v))
                 f_old = f_new = float("nan")
             s_new = S.strict(R_new, members)
-            if kind in "VNLGWX":  # per voxel: keep a voxel's fit only if its strict cost did not rise
+            if kind in "VNLGWXQ":  # per voxel: keep a voxel's fit only if its strict cost did not rise
                 keep = s_new <= s_now
                 R_new = np.where(keep[:, None, None], R_new, R_now)
                 s_new = np.where(keep, s_new, s_now)
