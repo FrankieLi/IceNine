@@ -13,8 +13,13 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 - **Open choices for the owner** (reported 2026-11-19): I66 (retrain GNLayerNet on grain-like
   windows; sizable), I35 (G1b pipeline from a real painted start on rand / corr3: needs the AR3
   painter run on each sample first), model-side rocking / PSF (library changes, need approval).
-- **Next action:** if no owner direction, plan I35 (scope the AR3 paint run on rand / corr3, then the
-  best G1b pipeline from that start with flood groups).
+- **I35 scoped** (2026-11-19 16:35 PST): the AR3 painter (`scripts/autoresearch/ar3/run_gradient.py`,
+  BFS with `PaintGrains 1`, hard-wired to `grad`) would need a per-sample copy; it runs in one
+  process and took 7,390 s on `grad` (contended), so a `rand` / `corr3` paint likely exceeds the
+  2 h run limit. The cached ray pairings can be reused (`ray_cache.ensure`).
+- **Waiting for the owner** (asked 2026-11-19 16:35 PST): I35 (allow paint runs over 2 h?), I66, or
+  model-side rocking / PSF. No step is running; the wake job will re-check.
+- **Next action:** follow the owner's choice; with none, idle (nothing else queued).
 
 ## Running jobs
 
