@@ -1532,3 +1532,27 @@ covariance term is dominated by a few windows whose observed spread is far from 
 (strict 0.834). Whole-window moments are not usable as an orientation objective without the
 outlier handling that the strain fit's Tukey-weighted centroid residuals have (GO5i). 2-3 s per
 grain (contended).
+
+## GO1b: noise floor against curvature near the ground truth (goal G1a, idea I4)
+
+`probe_curv.py` (grains 381 and 302, rotation only, 3 axes, 21 offsets in +-0.05 deg, parabola per
+axis), rows `benchmarks/grain_opt/go1b/curv.json`. Medians over the 3 axes of the vertex offset
+|d*| and of the noise-limited resolution r = sqrt(sigma / k), in degrees:
+
+| objective | 381: abs(d*) | 381: r | 302: abs(d*) | 302: r | reading 381 / 302 |
+|---|---|---|---|---|---|
+| strict (grain mean) | 0.0045 | 0.0175 | 0.0013 | 0.0191 | noise floor / noise floor |
+| least squares | 0.0063 | 0.0061 | 0.0084 | 0.0114 | mixed / noise floor |
+| Sinkhorn, intensity (r3, b1) | 0.0024 | 0.0074 | 0.0132 | 0.0128 | mixed / mixed |
+| Poisson deviance (b 0.5) | 0.0079 | 0.0213 | 0.0258 | 0.0318 | noise floor / noise floor |
+
+Reading by the rule written before the run: no objective shows a clearly shifted bottom ("bias":
+|d*| >= 0.01 deg with r < |d*| / 2) on either grain. The GO1 offsets of the smooth objectives
+(0.01-0.04 deg) are of the order of their scan residuals, so I4's "pixel discreteness noise"
+explanation is consistent with the data and a systematic bias is not shown. Caveat: sigma is the
+residual about a parabola over +-0.05 deg, which also holds shape that is not parabolic (the strict
+cost is step-like, and its r of 0.018 deg overstates its noise: CMA reached 0.006 / 0.008 deg in
+GO1), so r is an upper bound on the noise-limited resolution, and the readings lean towards "noise
+floor". Practical consequence unchanged: the strict cost (or the Gauss-Newton centroid fit with
+robust weights) finishes; the smooth objectives find the basin. 1-54 s per objective and grain
+(contended).

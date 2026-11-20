@@ -23,6 +23,7 @@ VARIANTS = {
     "sink_r3_b05_dil": dict(kind="sinkhorn", reach_px=3.0, blur_px=0.5, dilate=0.29),
     "sink_r3_b1_int": dict(kind="sinkhorn", reach_px=3.0, blur_px=1.0, intensity=True),
     "ls": dict(kind="ls"),
+    "strict": dict(kind="strict"),
 }
 
 
@@ -45,7 +46,7 @@ def main() -> None:
         for name in a.variants:
             spec = GF.ObjectiveSpec(**VARIANTS[name])
             prob = GF.GrainProblem(S.model, S.images, S.R0, S.V, S.xy, members, shell, S.sym,
-                                   spec=spec)
+                                   spec=spec, strict_fn=S.strict)
             Rt_al = GF.align_to(Rt, prob.field.R_ref, S.sym)
             w_t = GF.matrix_to_rotvec(Rt_al[:1] @ prob.field.R_ref.T)[0]
             th0 = np.zeros(prob.field.n_params)

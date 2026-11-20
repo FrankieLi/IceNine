@@ -9,7 +9,7 @@ details in the findings page named in the last column. New ideas get the next fr
 | I1 | G1a | Bias study: where each objective's minimum sits against the ground truth (6 variants + LS) | done | GO1: Sinkhorn variants flat within 0.031-0.041 deg of ground truth (objective <1% lower); strict cost 0.006-0.008 deg | findings.md |
 | I2 | G2a | Pixel-box dilation of the prediction (lit pixels are those a spot touches) | done | GO1: no effect (0.034 / 0.041 deg, same as without) | findings.md |
 | I3 | G2b | Soft "pixel touched" model: sigmoid of signed distance pixel-square to spot union | proposed | | |
-| I4 | G1a | Sub-pixel noise floor: objective curvature vs strict cost curvature, per spot | proposed | | |
+| I4 | G1a | Sub-pixel noise floor: objective curvature vs strict cost curvature, per spot | done (GO1b) | no clear bias near the ground truth: smooth objectives' vertex offsets are within their scan noise (r 0.006-0.032 deg, grain level, not per spot) | findings.md |
 | I5 | G1a | Stage A CMA: budget sweep 50 / 100 / 200 / 400 evaluations, sigma0 0.02 / 0.05 deg | done | GO2: 50/100/200/400 eval: >0.1 deg 20/3/3/3 of 853; median 0.0148/0.0146/0.0111/0.0062; quadratic worse at equal budget | findings.md |
 | I6 | G1a | Stage B Adam / L-BFGS on per-voxel offsets with smoothness weight sweep | proposed | GO2: dropped from the run (2 h cap); revisit for far starts in GO4 | findings.md |
 | I7 | G1a | Gauss-Newton / LM on per-spot centroid (and second-moment) residuals, autograd Jacobian | proposed | | |

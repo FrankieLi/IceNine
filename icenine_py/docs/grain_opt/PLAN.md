@@ -70,6 +70,24 @@ objective is "unbiased enough" if its offset is below 0.01 deg on both grains (t
 error on level-0 grains is 0.016 deg, on all painted voxels 0.041 deg). If no arm qualifies, the
 next step studies the cause (I3, I4) before any optimizer study.
 
+### GO1b: noise floor against curvature of each objective near the ground truth (goal G1a, idea I4)
+
+Question (written 2026-11-19 23:20 PST, before any run): GO1 found the smooth objectives' optima
+0.01-0.04 deg from the ground truth and the strict cost's within 0.008. Is that a shifted bottom
+(bias) or a flat bottom lost in evaluation noise (pixel discreteness)?
+
+Method (`scripts/grain_opt/probe_curv.py`, no library change): grains 381 and 302 of `grad`, grain
+rotation only; along each of 3 orthonormal rotation axes, the objective at 21 offsets from -0.05 to
++0.05 deg around the ground truth. Per axis, a least-squares parabola gives the curvature k, the
+vertex d*, and the residual rms sigma; the noise-limited resolution is r = sqrt(sigma / k) (the
+offset at which the parabola's rise equals the noise). Objectives: strict (grain mean), least
+squares, intensity-weighted Sinkhorn (r3, b1), Poisson deviance (b = 0.5).
+
+Reading (no verdict on an idea beyond I4): per objective and grain, the median over axes of |d*|
+and r. I4 is answered "noise floor" for an objective if r >= |d*| and r >= 0.01 deg (the bottom is
+flat within the noise), "bias" if |d*| >= 0.01 deg and r < |d*| / 2 (the bottom is clearly
+shifted), otherwise "mixed". Output `benchmarks/grain_opt/go1b/`. Budget: under 30 minutes.
+
 ### GO2: optimizer Pareto on G20 (ideas I5, I6, I9, I10, I28, I29)
 
 Question: for each objective, how many objective evaluations per voxel buy how much accuracy, and which chain

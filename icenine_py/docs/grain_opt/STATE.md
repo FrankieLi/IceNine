@@ -18,8 +18,11 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
   keys, PSF lit threshold 1e-3, |sin eta| floor 0.01, high500 freeze test policy).
 - **GO9d closed** (G2a, I19 no as objective): centroid optimum 0.036 / 0.080 deg, with covariance
   0.04 / 0.82 deg. G2a objectives done: only the Poisson deviance nears the strict cost.
-- **Next action:** the remaining proposed ideas are I3 (soft pixel-touched model), I4 (noise floor),
-  I8 (blur annealing); plan I4 (G1a) next unless the owner picks one of the open choices.
+- **GO1b closed** (G1a, I4): no objective shows a clearly shifted bottom near the ground truth;
+  the smooth objectives' offsets sit within their scan noise (strict r 0.018 deg is an upper bound).
+- **Next action:** remaining proposed ideas are I3 (soft pixel-touched model) and
+  I8 (blur annealing), both low expected value after GO1b and the GN fast fit; plan I3 next
+  unless the owner picks one of the open choices.
 
 ## Running jobs
 
