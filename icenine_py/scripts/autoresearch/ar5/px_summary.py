@@ -196,6 +196,16 @@ def tables(q1: Any, t1: Any, live: Any, h1: Any) -> Dict[str, str]:
                 ("load", "mean load old / new", None),
             ],
         )
+    if q1 and t1 and live:
+        out["px_gates"] = mtable(
+            gate_rows(q1, t1, live),
+            [
+                ("gate", "gate", None),
+                ("what", "measured", None),
+                ("limit", "limit", None),
+                ("verdict", "verdict", None),
+            ],
+        )
     if h1:
         r = h1
         rows = [
@@ -226,6 +236,88 @@ def tables(q1: Any, t1: Any, live: Any, h1: Any) -> Dict[str, str]:
             ],
         )
     return out
+
+
+def gate_rows(q1: Any, t1: Any, live: Any) -> List[Dict[str, Any]]:
+    """The frozen gates against the measured numbers (verdicts from the frozen judges)."""
+    import px_rules as PR
+
+    rows: List[Dict[str, Any]] = []
+    j = q1["judge"]
+    rows.append(
+        dict(
+            gate="q1",
+            what=(
+                f"{j['lost']} of {j['was_in_top20']} voxels lost from the top 20, "
+                f"{j['gained']} gained"
+            ),
+            limit="at most 0.5% lost",
+            verdict="met" if j["ok"] else "not met",
+        )
+    )
+    npairs = sum(r["index_work"]["new"]["total"]["pairs"] for r in live.values())
+    nvotes = sum(r["index_work"]["new"]["total"]["votes"] for r in live.values())
+    p = t1["pooled"]
+    c1 = PR.judge_c1(npairs, nvotes, p["old_pairs"], p["old_votes"])
+    rows.append(
+        dict(
+            gate="c1",
+            what=(
+                f"pairs {pct(c1['pairs_fewer'])} fewer, votes {pct(c1['votes_fewer'])} fewer "
+                "(new live runs against the stored seed voxels indexed again)"
+            ),
+            limit="at least 60% fewer",
+            verdict="met" if c1["ok"] else "not met",
+        )
+    )
+    tot = sum(r["totals"]["new"]["total"] for r in live.values())
+    c2 = PR.judge_c2(tot)
+    rows.append(
+        dict(
+            gate="c2",
+            what=f"{c2['new']:,} against {c2['stored']:,} stored ({100 * c2['more']:+.2f}%)",
+            limit="at most 2% more",
+            verdict="met" if c2["ok"] else "not met",
+        )
+    )
+    for s, r in live.items():
+        c3 = r["c3"]
+        rows.append(
+            dict(
+                gate=f"c3 {s}",
+                what=(
+                    f"broken minus fixed {c3['net']}, median error change "
+                    f"{c3['median_higher']:+.5f} deg, grid searches {c3['grid_extra']:+d}"
+                ),
+                limit="at most 3; at most 0.001 deg; at most 2 more",
+                verdict="met" if c3["ok"] else "not met",
+            )
+        )
+    rows.append(
+        dict(
+            gate="t1",
+            what=f"indexing seconds {pct(t1['judge']['fewer'])} lower (contended)",
+            limit="at least 50% lower",
+            verdict="met" if t1["judge"]["ok"] else "not met",
+        )
+    )
+    ow = sum(r["job"]["old"]["wall_s"] for r in live.values())
+    nw = sum(r["job"]["new"]["wall_s"] for r in live.values())
+    t2 = PR.judge_t(PR.fewer(nw, ow), 0.25)
+    rows.append(
+        dict(
+            gate="t2",
+            what=f"pooled wall {pct(t2['fewer'])} lower ({ow} s to {nw} s; contended)",
+            limit="at least 25% lower",
+            verdict="met" if t2["ok"] else "not met",
+        )
+    )
+    rows.append(
+        dict(
+            gate="h1", what="held7 not built (c2 and c3 not met)", limit="", verdict="not evaluated"
+        )
+    )
+    return rows
 
 
 def plot(live: Any, h1: Any) -> None:

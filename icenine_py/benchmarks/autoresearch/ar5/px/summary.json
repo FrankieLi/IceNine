@@ -1,0 +1,574 @@
+{
+ "q1": {
+  "rows": {
+   "mid": {
+    "n": 300,
+    "was_in_top20": 300,
+    "lost": 0,
+    "gained": 0,
+    "wall_s": 276.40056014060974,
+    "top1_base": 236,
+    "top5_base": 295,
+    "top20_base": 300,
+    "top1_new": 240,
+    "top5_new": 296,
+    "top20_new": 300,
+    "pairs_base": 29223665,
+    "pairs_new": 14680494,
+    "votes_base": 15600769,
+    "votes_new": 7833208,
+    "s_base": 177.31211812900034,
+    "s_new": 77.85323586600013
+   },
+   "held": {
+    "n": 300,
+    "was_in_top20": 300,
+    "lost": 1,
+    "gained": 0,
+    "wall_s": 446.7367579936981,
+    "top1_base": 250,
+    "top5_base": 300,
+    "top20_base": 300,
+    "top1_new": 254,
+    "top5_new": 299,
+    "top20_new": 299,
+    "pairs_base": 70522652,
+    "pairs_new": 15000000,
+    "votes_base": 30116768,
+    "votes_new": 6239578,
+    "s_base": 346.6576673000002,
+    "s_new": 63.43994878700033
+   },
+   "held3": {
+    "n": 300,
+    "was_in_top20": 300,
+    "lost": 0,
+    "gained": 0,
+    "wall_s": 467.4448912143707,
+    "top1_base": 256,
+    "top5_base": 299,
+    "top20_base": 300,
+    "top1_new": 255,
+    "top5_new": 299,
+    "top20_new": 300,
+    "pairs_base": 75025813,
+    "pairs_new": 15000000,
+    "votes_base": 31377076,
+    "votes_new": 6143209,
+    "s_base": 366.61793333900016,
+    "s_new": 64.6083942450002
+   },
+   "held4": {
+    "n": 300,
+    "was_in_top20": 300,
+    "lost": 0,
+    "gained": 0,
+    "wall_s": 569.1767241954803,
+    "top1_base": 256,
+    "top5_base": 298,
+    "top20_base": 300,
+    "top1_new": 250,
+    "top5_new": 300,
+    "top20_new": 300,
+    "pairs_base": 83823562,
+    "pairs_new": 15000000,
+    "votes_base": 36390234,
+    "votes_new": 6298808,
+    "s_base": 462.8885770849989,
+    "s_new": 66.47971987799977
+   },
+   "held5": {
+    "n": 300,
+    "was_in_top20": 299,
+    "lost": 3,
+    "gained": 0,
+    "wall_s": 568.7715201377869,
+    "top1_base": 236,
+    "top5_base": 293,
+    "top20_base": 299,
+    "top1_new": 245,
+    "top5_new": 291,
+    "top20_new": 296,
+    "pairs_base": 80983317,
+    "pairs_new": 15000000,
+    "votes_base": 35551261,
+    "votes_new": 6306331,
+    "s_base": 464.3526626629995,
+    "s_new": 65.86014075499963
+   },
+   "held6": {
+    "n": 300,
+    "was_in_top20": 299,
+    "lost": 1,
+    "gained": 0,
+    "wall_s": 453.76267290115356,
+    "top1_base": 252,
+    "top5_base": 298,
+    "top20_base": 299,
+    "top1_new": 251,
+    "top5_new": 297,
+    "top20_new": 298,
+    "pairs_base": 78960964,
+    "pairs_new": 15000000,
+    "votes_base": 32987420,
+    "votes_new": 6164795,
+    "s_base": 349.2351810339997,
+    "s_new": 63.779292334999944
+   },
+   "grad": {
+    "n": 300,
+    "was_in_top20": 300,
+    "lost": 1,
+    "gained": 0,
+    "wall_s": 216.79004287719727,
+    "top1_base": 227,
+    "top5_base": 300,
+    "top20_base": 300,
+    "top1_new": 226,
+    "top5_new": 299,
+    "top20_new": 299,
+    "pairs_base": 49231100,
+    "pairs_new": 14984313,
+    "votes_base": 17569606,
+    "votes_new": 5382961,
+    "s_base": 139.152102806,
+    "s_new": 52.4175430920003
+   },
+   "big": {
+    "n": 300,
+    "was_in_top20": 298,
+    "lost": 0,
+    "gained": 0,
+    "wall_s": 283.97654485702515,
+    "top1_base": 223,
+    "top5_base": 290,
+    "top20_base": 298,
+    "top1_new": 223,
+    "top5_new": 290,
+    "top20_new": 298,
+    "pairs_base": 14435965,
+    "pairs_new": 12291262,
+    "votes_base": 11150582,
+    "votes_new": 9638157,
+    "s_base": 145.051944908,
+    "s_new": 120.94800096599971
+   }
+  },
+  "judge": {
+   "lost": 6,
+   "was_in_top20": 2396,
+   "gained": 0,
+   "ok": true
+  },
+  "lost_wilson": [
+   0.0011481593022300072,
+   0.005452943037191061
+  ]
+ },
+ "t1": {
+  "rows": {
+   "mid": {
+    "n_voxels": 1626,
+    "old": {
+     "s": 950.6025169580003,
+     "pairs": 163107708,
+     "votes": 85534715
+    },
+    "new": {
+     "s": 417.39419600000014,
+     "pairs": 80264083,
+     "votes": 42210831
+    },
+    "less_pct_seconds": 56.09161678472165,
+    "less_pct_pairs": 50.79074803748698,
+    "less_pct_votes": 50.65064401044652,
+    "verdict_start": "refused: machine not quiet for timing: 1-min load 2.10 > 1.5; busy process pid 5359 (100% CPU): ~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools",
+    "verdict_end": "refused: machine not quiet for timing: 1-min load 2.27 > 1.5; busy process pid 5359 (99% CPU): ~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools",
+    "timing_label": "contended",
+    "wall_s": 1390.0122418403625
+   },
+   "held": {
+    "n_voxels": 3685,
+    "old": {
+     "s": 4006.8549107870003,
+     "pairs": 855657758,
+     "votes": 362140868
+    },
+    "new": {
+     "s": 783.5786540840003,
+     "pairs": 184223622,
+     "votes": 76452903
+    },
+    "less_pct_seconds": 80.44404722580548,
+    "less_pct_pairs": 78.4699407820948,
+    "less_pct_votes": 78.88862877525328,
+    "verdict_start": "refused: machine not quiet for timing: 1-min load 2.17 > 1.5; busy process pid 5359 (100% CPU): ~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools",
+    "verdict_end": "refused: machine not quiet for timing: 1-min load 2.59 > 1.5; busy process pid 5359 (99% CPU): ~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools",
+    "timing_label": "contended",
+    "wall_s": 4826.672726154327
+   }
+  },
+  "pooled": {
+   "old_s": 4957.457427745001,
+   "new_s": 1200.9728500840004,
+   "old_pairs": 1018765466,
+   "new_pairs": 264487705,
+   "old_votes": 447675583,
+   "new_votes": 118663734
+  },
+  "judge": {
+   "fewer": 0.75774419294806,
+   "need": 0.5,
+   "ok": true
+  }
+ },
+ "live": {
+  "mid": {
+   "sample": "mid",
+   "totals": {
+    "stored": {
+     "search": 6531563,
+     "screen_pass": 100032,
+     "repair": 751773,
+     "total": 7383368
+    },
+    "old": {
+     "search": 6531563,
+     "screen_pass": 100032,
+     "repair": 751773,
+     "total": 7383368
+    },
+    "new": {
+     "search": 5982227,
+     "screen_pass": 100472,
+     "repair": 719103,
+     "total": 6801802
+    }
+   },
+   "stored_total_matches_step22": true,
+   "old_total_equals_stored": true,
+   "old_map_equals_stored": true,
+   "wrong": {
+    "stored": {
+     "n": 23,
+     "wilson": [
+      0.0006238762691554134,
+      0.001404361757739006
+     ]
+    },
+    "old": {
+     "n": 23,
+     "wilson": [
+      0.0006238762691554134,
+      0.001404361757739006
+     ]
+    },
+    "new": {
+     "n": 17,
+     "wilson": [
+      0.0004320487203553712,
+      0.0011078651692173521
+     ]
+    }
+   },
+   "median_err_deg": {
+    "stored": 0.027046605963688786,
+    "old": 0.027046605963688786,
+    "new": 0.027171555913063215
+   },
+   "new_vs_stored": {
+    "fixed": 10,
+    "broken": 4,
+    "net": -6,
+    "median_higher": 0.00012494994937442896
+   },
+   "new_vs_old": {
+    "fixed": 10,
+    "broken": 4,
+    "net": -6,
+    "median_higher": 0.00012494994937442896
+   },
+   "old_vs_stored": {
+    "fixed": 0,
+    "broken": 0,
+    "net": 0,
+    "median_higher": 0.0
+   },
+   "grid_fallbacks_left": {
+    "stored": 2,
+    "old": 2,
+    "new": 0
+   },
+   "index_fallback_seed_test": {
+    "stored": 12,
+    "old": 12,
+    "new": 9
+   },
+   "n_seeds": {
+    "stored": 1626,
+    "old": 1626,
+    "new": 1664
+   },
+   "run_index_s": {
+    "stored": 967.1877480230095,
+    "old": 971.3636280269978,
+    "new": 451.05475953899884
+   },
+   "run_wall_s": {
+    "old": 1581.5718870162964,
+    "new": 1029.4129552841187
+   },
+   "job": {
+    "old": {
+     "label": "contended",
+     "wall_s": 2020,
+     "load_samples": 68,
+     "load_mean": 2.447941176470588,
+     "load_max": 4.85
+    },
+    "new": {
+     "label": "contended",
+     "wall_s": 1470,
+     "load_samples": 49,
+     "load_mean": 2.4191836734693877,
+     "load_max": 3.12
+    }
+   },
+   "index_work": {
+    "old": {
+     "run": {
+      "calls": 1626,
+      "pairs": 163107708,
+      "votes": 85534715,
+      "seconds": 952.8392334140025
+     },
+     "pass": {
+      "calls": 0,
+      "pairs": 0,
+      "votes": 0,
+      "seconds": 0.0
+     },
+     "arm": {
+      "calls": 0,
+      "pairs": 0,
+      "votes": 0,
+      "seconds": 0.0
+     },
+     "total": {
+      "calls": 1626,
+      "pairs": 163107708,
+      "votes": 85534715,
+      "seconds": 952.8392334140025
+     }
+    },
+    "new": {
+     "run": {
+      "calls": 1664,
+      "pairs": 82222776,
+      "votes": 43311536,
+      "seconds": 432.4910937299982
+     },
+     "pass": {
+      "calls": 0,
+      "pairs": 0,
+      "votes": 0,
+      "seconds": 0.0
+     },
+     "arm": {
+      "calls": 0,
+      "pairs": 0,
+      "votes": 0,
+      "seconds": 0.0
+     },
+     "total": {
+      "calls": 1664,
+      "pairs": 82222776,
+      "votes": 43311536,
+      "seconds": 432.4910937299982
+     }
+    }
+   },
+   "c3": {
+    "net": -6,
+    "median_higher": 0.00012494994937442896,
+    "grid_extra": -2,
+    "ok": true
+   },
+   "wall_fewer": 0.2722772277227723
+  },
+  "held": {
+   "sample": "held",
+   "totals": {
+    "stored": {
+     "search": 15419945,
+     "screen_pass": 170528,
+     "repair": 1524116,
+     "total": 17114589
+    },
+    "old": {
+     "search": 15419945,
+     "screen_pass": 170528,
+     "repair": 1524116,
+     "total": 17114589
+    },
+    "new": {
+     "search": 16466634,
+     "screen_pass": 170668,
+     "repair": 1594780,
+     "total": 18232082
+    }
+   },
+   "stored_total_matches_step22": true,
+   "old_total_equals_stored": true,
+   "old_map_equals_stored": true,
+   "wrong": {
+    "stored": {
+     "n": 45,
+     "wilson": [
+      0.0013691418781273772,
+      0.0024496179856132597
+     ]
+    },
+    "old": {
+     "n": 45,
+     "wilson": [
+      0.0013691418781273772,
+      0.0024496179856132597
+     ]
+    },
+    "new": {
+     "n": 42,
+     "wilson": [
+      0.001264958064014555,
+      0.002309639731065234
+     ]
+    }
+   },
+   "median_err_deg": {
+    "stored": 0.022775047138410505,
+    "old": 0.022775047138410505,
+    "new": 0.022503866615802115
+   },
+   "new_vs_stored": {
+    "fixed": 19,
+    "broken": 16,
+    "net": -3,
+    "median_higher": -0.00027118052260838993
+   },
+   "new_vs_old": {
+    "fixed": 19,
+    "broken": 16,
+    "net": -3,
+    "median_higher": -0.00027118052260838993
+   },
+   "old_vs_stored": {
+    "fixed": 0,
+    "broken": 0,
+    "net": 0,
+    "median_higher": 0.0
+   },
+   "grid_fallbacks_left": {
+    "stored": 4,
+    "old": 4,
+    "new": 7
+   },
+   "index_fallback_seed_test": {
+    "stored": 66,
+    "old": 66,
+    "new": 63
+   },
+   "n_seeds": {
+    "stored": 3685,
+    "old": 3685,
+    "new": 3679
+   },
+   "run_index_s": {
+    "stored": 4033.226962525024,
+    "old": 4043.2756631219727,
+    "new": 829.6377480050086
+   },
+   "run_wall_s": {
+    "old": 5443.334532737732,
+    "new": 2302.1836330890656
+   },
+   "job": {
+    "old": {
+     "label": "contended",
+     "wall_s": 6199,
+     "load_samples": 207,
+     "load_mean": 2.371014492753623,
+     "load_max": 3.43
+    },
+    "new": {
+     "label": "contended",
+     "wall_s": 3061,
+     "load_samples": 102,
+     "load_mean": 2.384803921568627,
+     "load_max": 3.3
+    }
+   },
+   "index_work": {
+    "old": {
+     "run": {
+      "calls": 3685,
+      "pairs": 855657758,
+      "votes": 362140868,
+      "seconds": 4009.461044976006
+     },
+     "pass": {
+      "calls": 0,
+      "pairs": 0,
+      "votes": 0,
+      "seconds": 0.0
+     },
+     "arm": {
+      "calls": 0,
+      "pairs": 0,
+      "votes": 0,
+      "seconds": 0.0
+     },
+     "total": {
+      "calls": 3685,
+      "pairs": 855657758,
+      "votes": 362140868,
+      "seconds": 4009.461044976006
+     }
+    },
+    "new": {
+     "run": {
+      "calls": 3679,
+      "pairs": 183923622,
+      "votes": 76413880,
+      "seconds": 794.049699724001
+     },
+     "pass": {
+      "calls": 0,
+      "pairs": 0,
+      "votes": 0,
+      "seconds": 0.0
+     },
+     "arm": {
+      "calls": 0,
+      "pairs": 0,
+      "votes": 0,
+      "seconds": 0.0
+     },
+     "total": {
+      "calls": 3679,
+      "pairs": 183923622,
+      "votes": 76413880,
+      "seconds": 794.049699724001
+     }
+    }
+   },
+   "c3": {
+    "net": -3,
+    "median_higher": -0.00027118052260838993,
+    "grid_extra": 3,
+    "ok": false
+   },
+   "wall_fewer": 0.5062106791417971
+  }
+ },
+ "h1": null
+}

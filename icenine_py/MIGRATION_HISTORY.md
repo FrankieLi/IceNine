@@ -13849,3 +13849,114 @@ measured only in a scratch script and is not kept. A key (phase B) would first n
 neighbour count (an edge check with a fallback to counting each member), and the cost of that extra
 work would have to be timed. Quiet seconds need a machine without the `cpptools` load (or a
 decision to relax the preflight for this one process).
+
+## Autoresearch AR5 step 27, phase A: a smaller ray-pair sample in the indexer (2026-11-20, task ar5aa)
+
+Approved by D-20261120-N1 (phase A, `index_voxel` in both arms). No library change: the setting
+passes through `IndexParams` (the live runs wrap `index_voxel` in the launching script and pass
+`max_pairs` 50,000 in place of 600,000). Scripts `scripts/autoresearch/ar5/px_*.py` and
+`px_run_all.sh`, tests `tests/test_ar5_px.py` (6 tests), results in
+`benchmarks/autoresearch/ar5/px/` (`frozen.json`, `voxels.json`, `q1_*.json`, `t1_*.json`,
+`score_*.json`, `summary.json`, `tables.md`, `px_wall.png`). No key, no config change, no golden
+change. `held7` was NOT built (gates c2 and c3 did not pass, as the plan says); nothing of `held2`
+or `fine7`.
+
+Result in one line: the rule makes the indexer 76% faster and the whole `J5SD` run 45% faster
+(contended), and it loses almost no candidates, but the evaluation count went up 2.19% (limit 2%)
+because three more seed steps on `held` reached the grid search. Two gates are not met, so phase A
+stops here. A key (phase B) needs a new decision.
+
+Reading line: first the plot, then the tables. Left: minutes of wall for each whole `J5SD` run,
+old and new setting, indexing in orange. Right: voxels broken and fixed against stored `J5SD`,
+paired by voxel. Every second is CONTENDED (load about 2.4 during every run; the preflight refused
+each time and its verdict was kept, not waited on).
+
+![wall per run and paired voxels](benchmarks/autoresearch/ar5/px/px_wall.png)
+
+The gates, against the numbers frozen before any run. Reading line: one row per gate.
+
+<!-- table:px_gates -->
+| gate | measured | limit | verdict |
+|---|---|---|---|
+| q1 | 6 of 2396 voxels lost from the top 20, 0 gained | at most 0.5% lost | met |
+| c1 | pairs 73.9% fewer, votes 73.3% fewer (new live runs against the stored seed voxels indexed again) | at least 60% fewer | met |
+| c2 | 25,033,884 against 24,497,957 stored (+2.19%) | at most 2% more | not met |
+| c3 mid | broken minus fixed -6, median error change +0.00012 deg, grid searches -2 | at most 3; at most 0.001 deg; at most 2 more | met |
+| c3 held | broken minus fixed -3, median error change -0.00027 deg, grid searches +3 | at most 3; at most 0.001 deg; at most 2 more | not met |
+| t1 | indexing seconds 75.8% lower (contended) | at least 50% lower | met |
+| t2 | pooled wall 44.9% lower (8219 s to 4531 s; contended) | at least 25% lower | met |
+| h1 | held7 not built (c2 and c3 not met) |  | not evaluated |
+<!-- /table:px_gates -->
+
+Candidates (gate q1, no evaluations). Reading line: per sample, 300 stored seed voxels indexed with
+the old (base) and the new setting; "in top 20" is the finally accepted orientation of the stored
+seed step being among the 20 candidates; "lost" is in it under base and not under new. The 6 lost
+voxels are 6 of 2,396 (Wilson 95% interval 0.11% to 0.55%). The accepted orientation here is the
+best fit by hit ratio of the stored seed step (as the sizing scripts), not the last map value.
+
+<!-- table:px_q1 -->
+| sample | voxels | in top 20, base | in top 20, new | lost | gained | rank 0, base | rank 0, new | pairs fewer |
+|---|---|---|---|---|---|---|---|---|
+| mid | 300 | 300 | 300 | 0 | 0 | 236 | 240 | 49.8% |
+| held | 300 | 300 | 299 | 1 | 0 | 250 | 254 | 78.7% |
+| held3 | 300 | 300 | 300 | 0 | 0 | 256 | 255 | 80.0% |
+| held4 | 300 | 300 | 300 | 0 | 0 | 256 | 250 | 82.1% |
+| held5 | 300 | 299 | 296 | 3 | 0 | 236 | 245 | 81.5% |
+| held6 | 300 | 299 | 298 | 1 | 0 | 252 | 251 | 81.0% |
+| grad | 300 | 300 | 299 | 1 | 0 | 227 | 226 | 69.6% |
+| big | 300 | 298 | 298 | 0 | 0 | 223 | 223 | 14.9% |
+| all | 2400 | 2396 | 2390 | 6 | 0 | 1936 | 1944 |  |
+<!-- /table:px_q1 -->
+
+Indexing seconds (gate t1). Reading line: all stored seed voxels of `mid` and `held`, old and new
+setting in alternating blocks of 100, one session, contended; pairs and votes are the summed work.
+
+<!-- table:px_t1 -->
+| sample | voxels | old s | new s | seconds less | pairs less | votes less | machine |
+|---|---|---|---|---|---|---|---|
+| mid | 1626 | 951 | 417 | 56.1% | 50.8% | 50.7% | contended |
+| held | 3685 | 4.01e+03 | 784 | 80.4% | 78.5% | 78.9% | contended |
+| pooled | 5311 | 4.96e+03 | 1.2e+03 | 75.8% | 74.0% | 73.5% |  |
+<!-- /table:px_t1 -->
+
+The live runs (gates c1, c2, c3, t2). Reading line: evaluations include the screen pass and the
+wide repair. "old rerun" is the old setting run again in this step; it reproduced stored `J5SD`
+exactly on both samples (same total, same final map).
+
+<!-- table:px_live -->
+| sample | evaluations, stored | old rerun | new | new vs stored | wrong, stored | wrong, old rerun | wrong, new | fixed | broken | median error change (deg) | grid searches vs stored |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| mid | 7383368 | 7383368 | 6801802 | -7.88% | 23 | 23 | 17 | 10 | 4 | +0.00012 | -2 |
+| held | 17114589 | 17114589 | 18232082 | +6.53% | 45 | 45 | 42 | 19 | 16 | -0.00027 | 3 |
+<!-- /table:px_live -->
+
+Reading line: indexer work and wall seconds of the four runs, from the wrapper's log of every
+`index_voxel` call and the job start and end times.
+
+<!-- table:px_wall -->
+| sample | pairs, old | pairs, new | votes, old | votes, new | indexing s, old | indexing s, new | wall s, old | wall s, new | wall less | preflight verdict old / new | mean load old / new |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| mid | 163107708 | 82222776 | 85534715 | 43311536 | 953 | 432 | 2020 | 1470 | 27.2% | contended / contended | 2.4 / 2.4 |
+| held | 855657758 | 183923622 | 362140868 | 76413880 | 4009 | 794 | 6199 | 3061 | 50.6% | contended / contended | 2.4 / 2.4 |
+<!-- /table:px_wall -->
+
+Where the extra evaluations came from. The stage split of the evaluation counts (same code, same
+counting) shows that nearly all of the difference is the grid search: `held` new 2,421,061 against
+stored 1,387,715 (7 steps against 4, about 346,000 each), `mid` new 0 against 665,977 (0 against
+2). Without the grid search the summed totals differ by +0.75%. This is consistent with the plan's
+warning that one lost candidate can send a seed step to the grid search; which candidate was lost
+in the three extra `held` steps was not traced. The two samples moved in opposite directions on
+evaluations (`mid` 7.88% fewer, `held` 6.53% more), so the route noise is large against the 2% limit.
+
+Accuracy. Against stored `J5SD` the new runs ended with 17 wrong voxels on `mid` (stored 23: 10
+fixed, 4 broken) and 42 on `held` (stored 45: 19 fixed, 16 broken); median errors moved by +0.00012
+and -0.00027 degree. Gate c3 is met on `mid`; on `held` the grid-search count rises by 3 (limit 2),
+so c3 is not met as frozen (`grid_fallbacks_left`: 7 against 4; the other reading of "seed steps that
+reach the grid search", `index_fallback_seed_test`, fell from 66 to 63 and from 12 to 9).
+
+Deviations and limits. The sizing's accepted orientation is the stored seed step's best fit, not
+the final map. Home paths were removed from the kept preflight and timing JSON files with `sed`
+after the runs (text only). A pilot with `--smoke 40` was started and stopped after 9 minutes
+(`defer_run --smoke` does not shorten the run); the wrapper's exit logging was checked on a failing
+call instead. Not tested: why the three extra `held` steps lost their candidates; a quiet repeat of
+t1 or t2.
