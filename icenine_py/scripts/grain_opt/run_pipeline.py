@@ -53,9 +53,9 @@ def parse(p: str) -> List[Tuple[str, str, int, int]]:
         head, n = parts[0], int(parts[1])
         order = 2 if len(parts) > 2 and parts[2] == "o2" else 1
         kind, obj = head[0], head[1:]
-        if kind in "VNLGWXQ" and len(parts) > 2:  # V/<evals>/<sigma deg>
+        if kind in "VNLGWXQP" and len(parts) > 2:  # V/<evals>/<sigma deg>
             obj = parts[2]
-        assert kind in "ABVNLGWXQ", st
+        assert kind in "ABVNLGWXQP", st
         if kind in "NL" and len(parts) > 2:
             obj = parts[2]
         if kind in "AB":
@@ -253,6 +253,32 @@ def main() -> None:
                 used = ev_tot / len(members)
                 info.update(gated=n_gate, improved=n_found, threshold=thr)
                 f_old = f_new = float("nan")
+            elif kind == "P":  # GO2b: boundary pass, neighbours' orientations from other groups
+                thr = float(obj) if obj else 0.12
+                R_new = R_now.copy()
+                pos = {v: i for i, v in enumerate(members)}
+                n_gate, n_found, ev_tot = 0, 0, 0
+                for i, v in enumerate(members):
+                    if s_now[i] <= thr:
+                        continue
+                    n_gate += 1
+                    cands = [S.R0[u] for u in S.nb[v] if lab[u] != grp]
+                    cands += [R_now[pos[u]] for u in S.nb[v] if u in pos and u != v]
+                    if not cands:
+                        continue
+                    C_ = np.stack(cands)
+                    sc = np.array([float(S.strict(C_[j : j + 1], [v])[0]) for j in range(len(C_))])
+                    ev_tot += len(C_)
+                    j = int(np.argmin(sc))
+                    if sc[j] < s_now[i]:
+                        Rb, kb = voxel_cma(S, C_[j], v, n)
+                        ev_tot += kb
+                        sb = float(S.strict(Rb[None], [v])[0])
+                        R_new[i] = Rb if sb <= sc[j] else C_[j]
+                        n_found += 1
+                used = ev_tot / len(members)
+                info.update(gated=n_gate, improved=n_found, threshold=thr)
+                f_old = f_new = float("nan")
             elif kind == "Q":  # GO8b: GNLayerNet refiner, rounds kept only if the strict cost drops
                 thr = float(obj) if obj else 0.0
                 if nnref is None:
@@ -328,7 +354,7 @@ def main() -> None:
                 used = float(np.mean(used_v))
                 f_old = f_new = float("nan")
             s_new = S.strict(R_new, members)
-            if kind in "VNLGWXQ":  # per voxel: keep a voxel's fit only if its strict cost did not rise
+            if kind in "VNLGWXQP":  # per voxel: keep a voxel's fit only if its strict cost did not rise
                 keep = s_new <= s_now
                 R_new = np.where(keep[:, None, None], R_new, R_now)
                 s_new = np.where(keep, s_new, s_now)

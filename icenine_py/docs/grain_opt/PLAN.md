@@ -1168,6 +1168,23 @@ reported.
 Budget: G20 `Astrict/100` takes about 3 minutes; the pass adds a few strict evaluations per gated
 voxel.
 
+### GO2c: boundary pass with polished candidates (goal G1a, idea I32, second design)
+
+Question: GO2b's pass compared unpolished candidates and lost the right ones (the strict cost at a
+candidate 0.2-0.4 deg off is worse than at the wrong painted orientation). If each gated voxel's
+distinct candidates (those more than 0.5 deg apart; at most the 3 with the lowest strict cost) are
+first polished with a short step ladder (60 evaluations, steps 1 / 0.3 / 0.05 deg), and the best
+polished one is taken if it beats the voxel, are the paint errors recovered?
+
+Method: `run_pipeline.py` stage `P` with a polish-first mode (`P2/<evals>/<threshold>`); arm on G20
+`Astrict/100,P2/60/0.12`; output `benchmarks/grain_opt/go2b/`.
+
+Judging rule (written before any run; GO2b's): I32 is answered yes when the wrong voxels among all
+1,082 fall from 6 to at most 2 and the C-voxel share above 0.1 deg from 3 to at most 1, with the
+C-voxel median within 5% of 0.0146.
+
+Budget: about 3 x 60 strict evaluations per gated voxel (about 70 voxels): a few minutes.
+
 ### GO6 onwards
 
 Strain queue (owner, 2026-11-19, from the literature review in the sibling thread "Review neural

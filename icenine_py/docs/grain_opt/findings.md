@@ -1378,3 +1378,21 @@ in the realism layer); an observed window at a voxel's peak shows the whole grai
 spots in the frames around it, which it has never seen. A network trained on grain-like windows
 (windows rendered from whole grains with intragranular misorientation) would be the follow-up;
 the reproduction (GO8a) shows the training pipeline itself works here.
+
+## GO2b: boundary pass for paint errors (goal G1a, idea I32)
+
+Question: does a boundary pass (`P/30/0.12`: for each voxel with strict cost above 0.12, the
+painted orientations of its other-group neighbours and its in-group neighbours' orientations as
+candidates; the lowest-cost candidate taken if it beats the voxel, then a 30-evaluation polish)
+recover the 6 boundary voxels painted with the neighbouring grain's orientation? G20,
+`Astrict/100,P/30/0.12`; table `benchmarks/grain_opt/go2b/g20.md`.
+
+Verdict by the rule written before the run: I32 (as planned) is answered no: the wrong voxels stay
+at 6 of 1,082 (3 of 853 C voxels), and the share above 0.1 deg of all voxels goes from 8 to 9; the
+pass changed 23 of 68 gated voxels, none of the wrong ones; C-voxel median 0.0144 (was 0.0146).
+
+Diagnosis: the right candidates are there (each wrong voxel has an other-group neighbour whose
+painted orientation is 0.10-0.29 deg from its ground truth, and the strict cost at the ground truth
+is 0.03-0.11 against 0.13-0.18 at the wrong painted orientation), but at an unpolished candidate
+0.17-0.39 deg off the strict cost is 0.36-0.54 (voxel 16041), worse than at the wrong orientation:
+the strict cost is sharp, so candidates must be polished before they are compared. GO2c tests that.
