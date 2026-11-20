@@ -2100,3 +2100,14 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   under 2 h, inside-grain test; implementer allowed) and the strain queue I60-I64 selected from
   the literature review. Order: GO5q, then I60, I61, I62, I63 (only if needed), I64; I25 at low
   priority after them. Where: icenine_py/docs/grain_opt/PLAN.md (GO6 onwards); IDEAS I25, I60-I64.
+
+### D-20261119-I1 · AR6 grainopt / G2b · Approved: opt-in detector PSF and rocking curve in the forward model (first library change of AR6)
+- 2026-11-19, owner. Recorded by Ilium Agent. Supersedes: none.
+- Frankie, in the project thread, 2026-11-20 03:58 UTC: "go ahead with the library change" (after
+  choosing 'Add rocking curve/PSF to library' on a decision card at 03:40 UTC). Plan
+  icenine_py/docs/grain_opt/PLAN.md section GO7f approved: an opt-in Gaussian detector PSF and an
+  opt-in rocking curve in SpotModel (grain_fit) and the stock renderer, and an opt-in rocking
+  window in the strict cost (VoxelCostFunction); defaults bit-identical, pinned by tests;
+  implementer in its own worktree, code review, merge into feature/grain-opt only, no merge to
+  develop or master. Absorption, extinction and polarization are not added without asking. Where:
+  icenine_py/docs/grain_opt/PLAN.md (GO7f); IDEAS I23, I24.
