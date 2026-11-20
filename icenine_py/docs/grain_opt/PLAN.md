@@ -1185,6 +1185,44 @@ C-voxel median within 5% of 0.0146.
 
 Budget: about 3 x 60 strict evaluations per gated voxel (about 70 voxels): a few minutes.
 
+### GO7f: detector PSF and rocking curve in the forward model (goal G2b, ideas I23, I24 model part)
+
+Owner request (decision card, 2026-11-20 03:40 UTC, relayed by the coordinator): add an opt-in
+detector PSF and an opt-in rocking curve to the forward model in `icenine/`, the first library
+change in this program. Not started until the owner confirms in their own words (the relayed card
+choice could not be logged in DECISIONS.md); absorption, extinction and polarization are not added
+without asking.
+
+**Library changes:** opt-in, defaults bit-identical:
+- `SpotModel` (grain_fit): `psf_sigma_px` (0 = off) spreads each predicted coverage point's mass
+  over a fixed set of Gaussian offsets in column and row; `rocking_deg` (0 = off) spreads each
+  row's mass over the omega frames that its window omega* +- (rocking_deg / |sin eta|) / 2
+  overlaps, weighted by overlap (`docs/omega_peak_width_derivation.md`).
+- Stock renderer (forward_simulation, `render_full.py`): the same two options on the rendered
+  intensities (PSF blur per frame before the threshold; rocking spread over frames), behind
+  config keys that default off.
+- Strict cost (`VoxelCostFunction`): an opt-in rocking window, under which a predicted pixel counts
+  as lit if it is lit in any frame its rocking window overlaps. Needed because the G20 gate
+  compares strict costs.
+- Tests: bit-identical defaults (existing suite plus a fixed small render and fixed predictions
+  compared before and after), mass conservation under PSF and rocking, the rocking frame weights
+  against the analytic width, and the strict-cost window. Code-reviewer pass before merging the
+  task branch into `feature/grain-opt`; no merge to develop or master.
+
+**Experiments (judging rules written here, before any run):**
+- GO7f-a, PSF: the fast strain fit `GP4@P --ratio_hi 2.5` on the 1 px PSF images (`strain_psf10`)
+  with the model PSF at sigma 1 px. Yes when it has no harm by GO7b's rule against the clean fast fit
+  (strain medians at 5e-4 and 1e-3 at most 1.5 x GO7e clean, 1.2e-4 and 1.4e-4; orientation medians
+  at most 0.03 deg); partly when both medians improve at least 1.5 x against GO7e's PSF arm (2.1e-4,
+  3.5e-4).
+- GO7f-b, rocking: G20 `Astrict/100` on the alpha = 1.0 rocking images (`grad_rock10`) with the
+  rocking window on in the strict cost. Yes when grain 197 is no longer rejected by the gate and
+  the share above 0.1 deg of the 853 C voxels is back within the clean arm's Wilson interval (3 of
+  853; 0.1-1.0%), with the median within 1.25 x the clean 0.0146.
+
+Budget: implementation and tests by an implementer in its own worktree (a few hours), then each
+experiment under 30 minutes.
+
 ### GO6 onwards
 
 Strain queue (owner, 2026-11-19, from the literature review in the sibling thread "Review neural

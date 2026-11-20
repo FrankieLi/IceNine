@@ -17,9 +17,13 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
   BFS with `PaintGrains 1`, hard-wired to `grad`) would need a per-sample copy; it runs in one
   process and took 7,390 s on `grad` (contended), so a `rand` / `corr3` paint likely exceeds the
   2 h run limit. The cached ray pairings can be reused (`ray_cache.ensure`).
-- **Waiting for the owner** (asked 2026-11-19 16:35 PST): I35 (allow paint runs over 2 h?), I66, or
-  model-side rocking / PSF. No step is running; the wake job will re-check.
-- **Next action:** follow the owner's choice; with none, idle (nothing else queued).
+- **Owner choice** (decision card, 2026-11-20 03:40 UTC, relayed by the coordinator): add rocking
+  curve / PSF to the library. The relayed choice could not be logged in DECISIONS.md (refused as a
+  relayed approval), and library changes need the owner's own confirmation (standing constraint),
+  asked for 2026-11-19 19:45 PST. Plan and rules written: PLAN "GO7f".
+- **Next action:** on the owner's own confirmation, log the decision with `log_decision.sh`, brief an
+  implementer for GO7f's library part (own worktree, tests, code review, merge into
+  `feature/grain-opt`), then run GO7f-a and GO7f-b. Until then nothing runs.
 
 ## Running jobs
 
