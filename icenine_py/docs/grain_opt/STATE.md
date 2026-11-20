@@ -5,7 +5,7 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO7g closed** (2026-11-19 23:05 PST, G2b, I68 yes; owner card "Rocking-aware threshold"):
+- **GO7g closed** (2026-11-19 22:55 PST, G2b, I68 yes; owner card "Rocking-aware threshold"):
   a strict-or-Poisson acceptance gate (`run_pipeline.py --gate either --store grad_rock10t0
   --model_rocking 1.0`) on the alpha 1.0 rocking images accepts grain 197 and leaves 5 of 853 C
   voxels above 0.1 deg (clean 3, strict gate 20), median 0.0134; on clean images 3 of 853, 0.0144.
