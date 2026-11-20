@@ -85,6 +85,9 @@ def main() -> None:
                 voxels=x["n_voxels"] if x else None,
                 identical=x["tier1_identical"] if x else None,
                 differ=x["n_differ"] if x else None,
+                old_s=x["old_s"] if x else None,
+                new_s=x["new_s"] if x else None,
+                less_pct=x["less_pct"] if x else None,
             )
         )
     # w1 (mid and held)
@@ -144,17 +147,32 @@ def main() -> None:
         pooled = 100 * (1 - pn / po)
     summ["w2"] = dict(rows=w2_rows, pooled_less_pct=pooled)
     (RD / "summary.json").write_text(json.dumps(summ, indent=1) + "\n")
+    parts_rows: List[Dict[str, Any]] = []
+    for s in ("mid", "held"):
+        x = exact[s]
+        if not x:
+            continue
+        for part in ("vote", "cluster", "refine", "merge"):
+            o, n = x["old_parts_s"][part], x["new_parts_s"][part]
+            parts_rows.append(
+                dict(sample=s, part=part, old_s=o, new_s=n, less_pct=100 * (1 - n / o))
+            )
     tables = {
         "ix_e1": DT.markdown_table(
             e1_rows,
-            ["sample", "voxels", "identical", "differ"],
-            labels=["sample", "voxels", "bit-identical", "differ"],
+            ["sample", "voxels", "identical", "differ", "old_s", "new_s", "less_pct"],
+            formats={"old_s": ".1f", "new_s": ".1f", "less_pct": ".1f"},
         ),
         "ix_w1": DT.markdown_table(
             w1_rows,
             ["sample", "voxels", "old_s", "new_s", "less_pct", "label"],
             formats={"old_s": ".1f", "new_s": ".1f", "less_pct": ".1f"},
             labels=["sample", "voxels", "old s", "new s", "% less", "timing label"],
+        ),
+        "ix_parts": DT.markdown_table(
+            parts_rows,
+            ["sample", "part", "old_s", "new_s", "less_pct"],
+            formats={"old_s": ".1f", "new_s": ".1f", "less_pct": ".1f"},
         ),
         "ix_w2": DT.markdown_table(
             w2_rows,
@@ -203,7 +221,7 @@ def main() -> None:
             ax[0].set_xticks(x)
             ax[0].set_xticklabels(names)
         ax[0].set_ylabel("indexing seconds (all voxels)")
-        ax[0].set_title("index only (w1)")
+        ax[0].set_title("index only (w1), contended")
         ax[0].legend()
         if w2_rows:
             names2 = [r["sample"] for r in w2_rows]
@@ -213,7 +231,7 @@ def main() -> None:
             ax[1].set_xticks(x2)
             ax[1].set_xticklabels(names2)
         ax[1].set_ylabel("wall seconds (J5SD)")
-        ax[1].set_title("whole run (w2)")
+        ax[1].set_title("whole run (w2), contended")
         fig.tight_layout()
         fig.savefig(RD / "ix_seconds.png", dpi=110)
     except Exception as e:  # noqa: BLE001

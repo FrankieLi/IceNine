@@ -13747,3 +13747,99 @@ The count fix also changes the evaluations-to-D feature, so the fitted logistic 
 is the one s1 input that changed beyond display rounding (against the first run of this script, AUC
 by up to 0.002 and saving by up to 0.03 points); the verdict is unchanged. Not tested: why `held`
 differs from the plan by 0.05 points.
+
+## Autoresearch AR5 step 26, phase A: a faster ray indexer with the same candidates (2026-11-19, task ar5z)
+
+Approved by D-20261119-N6 (phases 0 and A). New library function `ray_indexing.index_voxel_fast`
+(with `index_rays_fast`, `cluster_votes_fast`); `index_voxel` is the unchanged reference; nothing
+calls the new one unless a script does. Scripts `scripts/autoresearch/ar5/ix_*.py` and
+`ix_run_all.sh`, tests `tests/test_ar5_ix.py` (9 tests), results in
+`benchmarks/autoresearch/ar5/ix/` (`frozen.json`, `voxels.json`, `exact_*.json`, `z0.json`,
+`summary.json`, `tables.md`, `ix_seconds.png`). No key, no config change, no golden change, no
+`held7`, nothing of `held2` or `fine7`.
+
+What was found. The old indexer's seconds, on 200 `mid` voxels (every 8th stored seed step, old
+indexer only, contended): 81.5% clustering, 12.5% refining, 5.2% voting, 0.3% attaching rays and
+0.4% merging (`profile_mid_contended.json`). Clustering is one number per vote, the count of other
+votes within 1 degree, from a k-d tree: about 50,000 votes a voxel and 10 to 100 million counted
+pairs on the heavy voxels. The new indexer counts once per distinct vote (votes that differ by about
+one rounding error, from symmetry-equivalent family members, have a multiplicity of 1 to 4 in
+cubic copper) with a weight, uses a larger tree leaf, and refines all clusters together. Every
+other line is the reference's. Tried and dropped (simulation on stored votes): not counting votes
+that cannot be a seed. It needs a bound on the count within about 1.3 times to save half of the
+pairs, and the bounds that are cheap to compute are 2 to 3 times loose, so it saves nothing on the
+dense peaks that hold most of the pairs.
+
+Reading line: first the plot (seconds, old and new, contended; the left panel is the indexing
+alone on all exactness voxels of `mid` and `held`, the right one the whole `J5SD` run), then the
+tables. Every second here is CONTENDED: the owner's editor process `cpptools` has used 100% of a
+core for days, and `timing_preflight --require` refused four times (16:07, 16:28, 17:26, 17:47 on
+2026-11-19; one more try after e1, 20:07). A contended second is outside every gate.
+
+![seconds, old and new indexer, contended](benchmarks/autoresearch/ar5/ix/ix_seconds.png)
+
+Exactness (gate e1, index only). Reading line: per sample, the voxels run through both indexers, how
+many came out bit for bit equal (rotations, explained and vote counts, attached rays, order), and
+the seconds of both in alternating blocks of 100 voxels.
+
+<!-- table:ix_e1 -->
+| sample | voxels | identical | differ | old_s | new_s | less_pct |
+|---|---|---|---|---|---|---|
+| mid | 1626 | 1626 | 0 | 963.0 | 606.0 | 37.1 |
+| held | 3685 | 3685 | 0 | 4036.4 | 2624.8 | 35.0 |
+| held3 | 300 | 300 | 0 | 380.9 | 241.2 | 36.7 |
+| held4 | 300 | 300 | 0 | 472.8 | 290.8 | 38.5 |
+| held5 | 300 | 300 | 0 | 465.5 | 283.3 | 39.1 |
+| held6 | 300 | 300 | 0 | 393.3 | 252.8 | 35.7 |
+| grad | 300 | 300 | 0 | 135.0 | 93.4 | 30.8 |
+| big | 300 | 300 | 0 | 147.4 | 81.0 | 45.1 |
+<!-- /table:ix_e1 -->
+
+Where the seconds went. Reading line: the indexing seconds of `mid` and `held` split by part.
+
+<!-- table:ix_parts -->
+| sample | part | old_s | new_s | less_pct |
+|---|---|---|---|---|
+| mid | vote | 50.3 | 50.0 | 0.6 |
+| mid | cluster | 783.1 | 493.0 | 37.0 |
+| mid | refine | 123.2 | 56.7 | 54.0 |
+| mid | merge | 3.8 | 3.7 | 1.9 |
+| held | vote | 215.6 | 215.9 | -0.1 |
+| held | cluster | 3421.5 | 2202.1 | 35.6 |
+| held | refine | 381.2 | 189.1 | 50.4 |
+| held | merge | 8.7 | 8.6 | 1.0 |
+<!-- /table:ix_parts -->
+
+The live run (gates e2 and w2). Reading line: `J5SD` (step 22's script arm: the `J5D` run, J5's
+boundary pass, step 21's screen pass and wide repair) with the old and the new indexer, each run
+alone; evaluations, whether the new map equals the stored `J5SD` map byte for byte, wall seconds.
+
+<!-- table:ix_w2 -->
+| sample | evals_old | evals_new | map_new_equals_stored | wall_old | wall_new | less_pct | label |
+|---|---|---|---|---|---|---|---|
+| mid | 7,383,368 | 7,383,368 | True | 1674 | 1345 | 19.7 | contended / contended |
+| held | 17,114,589 | 17,114,589 | True | 5632 | 4282 | 24.0 | contended / contended |
+<!-- /table:ix_w2 -->
+
+The evaluation seconds (wall minus indexing) did not slow: `mid` 703 s old, 718 s new; `held` 1,586
+s old, 1,613 s new (about 2% more; contended noise or a little memory pressure, not tested).
+
+Gate verdicts. z0 (indexing at least 30% of a quiet `J5SD` estimate on `mid`): contended value 73%;
+not judged, machine not quiet. e1: met at tier 1 (7,111 of 7,111 voxels bit-identical: 5,311 of
+`mid` and `held`, 300 each of `held3` to `held6`, `grad`, `big`). e2: met at tier 1 (both new maps
+equal the stored `J5SD` maps and the counts 7,383,368 and 17,114,589; the old arm reproduces both
+too). w1 (indexing seconds at least 50% lower, quiet): not judged, machine not quiet; the contended
+value is 35.4% lower pooled over `mid` and `held` (37.1% and 35.0%), below the 50% line and below the
+prediction of 2 to 5 times. w2 (whole run at least 25% lower pooled and 15% on each, quiet): not
+judged; the contended values are 19.7% (`mid`), 24.0% (`held`) and 23.0% pooled, so the pooled line
+would also be missed. The tier 1 prediction and the unchanged-evaluations prediction hold; the speed
+predictions do not hold on the contended numbers. Not "READY FOR KEY": three timed gates cannot be
+judged here, and the two that have a contended value are below their lines.
+
+Not shown. That the votes' rounding-error duplicates have equal counts is argued, not proved: the
+spread inside a group was 2.5e-16 to 2.8e-16 on the six voxels measured in a scratch script (not
+kept in the results), a count could differ only for a
+vote whose distance to the group is within that spread of 1 degree, and no voxel of the 7,111 did.
+`index_voxel_fast` equals `index_voxel` on those voxels and on the nine fixtures of
+`tests/test_ar5_ix.py`, not on every possible input. Quiet seconds need a machine without the
+`cpptools` load (or a decision to relax the preflight for this one process).
