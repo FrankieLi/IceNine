@@ -5,30 +5,17 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO7g closed** (2026-11-19 22:55 PST, G2b, I68 yes; owner card "Rocking-aware threshold"):
-  a strict-or-Poisson acceptance gate (`run_pipeline.py --gate either --store grad_rock10t0
-  --model_rocking 1.0`) on the alpha 1.0 rocking images accepts grain 197 and leaves 5 of 853 C
-  voxels above 0.1 deg (clean 3, strict gate 20), median 0.0134; on clean images 3 of 853, 0.0144.
-  Lower thresholds (x 0.5, x 0.25, any) restore the ground-truth strict cost and the unlit-peak share
-  (0.3%) but grain 197 stays rejected: the strict gate on it is a knife edge (A-stage field 0.0927
-  against the painted start 0.0877). The 3-frame sum widens clean spots (2.67 x) and fails.
-- **Pipeline default changed** (2026-11-19 22:56 PST, scripts only, at the coordinator's request
-  after GO7g): `run_pipeline.py --gate either` (A / B stages also accepted when the group's Poisson
-  deviance does not rise) is now the default; `--gate strict` turns it off and reproduces earlier
-  runs. Checked on clean G20: 3 of 853 C voxels above 0.1 deg, median 0.0144 (same as CP2). Not in
-  the library (would need the owner's approval in their own words).
-- **GO7f closed** (D-20261119-I1 library part merged df583c97): a, b, c no; d: rocking damage is
-  threshold dilution. **GO9c / GO9d** (I20, I19) no. **GO1b** (I4): no clear bias, offsets within
-  scan noise. **GO1c** (I3): soft "pixel touched" surrogate (tau 0.25 px) qualifies, 0.0045 /
-  0.0017 deg; **GO1d no** (from displaced starts it ends 0.005-0.02 deg away, 3 of 6 within 0.01 at
-  0.03 deg; the strict cost ends at 0.002 deg and is faster). I3 closed.
-- **Open choices for the owner**: I66 (retrain GNLayerNet on grain-like windows), I35 (G1b from a
-  real painted start on rand / corr3), the GO7f defaults (renderer attributes vs config keys, PSF lit
-  threshold 1e-3, |sin eta| floor 0.01, high500 freeze test policy), and whether the strict-or-Poisson
-  gate should move into the library (needs approval; it is the scripts default now).
-- **Next action:** the proposed-idea queue is down to I8 (blur annealing for the Sinkhorn basin
-  finder), low expected value since the GN fast fit and the G1b pipeline replaced Sinkhorn; the
-  next step needs the owner's pick among the open choices above (or I8). Wake cron as fallback.
+- **Program closed** (2026-11-20 00:00 PST; owner decision card "Wrap up with a summary", relayed by
+  the coordinator at 07:55 UTC). Final summary, recommended pipelines, open questions and open owner
+  decisions: `SUMMARY.md` (also at the top of the tracking page). Branch `feature/grain-opt` stays
+  as it is for the owner's review; nothing merged to develop or master.
+- Last steps: GO7g (strict-or-Poisson gate yes on rocking images; now the `run_pipeline.py`
+  default, `--gate strict` reproduces earlier runs), GO1d (I3 no).
+- Wake job removed (session cron `dc9287aa` deleted); keep-awake released.
+- **Open owner decisions:** GO7f defaults (renderer attributes vs config keys, PSF lit threshold
+  1e-3, |sin eta| floor 0.01, high500 freeze test policy); the Poisson gate in the library; I35;
+  I66; review and merge of `feature/grain-opt`.
+- **Next action:** none until the owner reopens the program.
 
 ## Running jobs
 
@@ -71,8 +58,8 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 ## Tracking page and wake job
 
 - Page: https://claude.ai/artifact/B2wANBjWDeTN86JNgmqBKb (publish `benchmarks/grain_opt/page/index.html`).
-- Wake job: session cron `dc9287aa`, every 3 h at :17, created 2026-11-16 01:50 PST (after a
-  machine restart killed `8820401c`), expires 2026-11-23; recreate on 2026-11-22.
+- Wake job: none. Session cron `dc9287aa` (every 3 h at :17, created 2026-11-16 01:50 PST) was
+  deleted at the program close (2026-11-20 00:00 PST); recreate only if the owner reopens the program.
 
 ## Owner items
 

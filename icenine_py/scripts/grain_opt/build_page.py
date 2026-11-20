@@ -80,6 +80,21 @@ def verdict_class(v: str) -> str:
     return "done"
 
 
+def summary_glance() -> List[str]:
+    """The "## At a glance" bullets of SUMMARY.md (program close), one string per bullet."""
+    p = DOCS / "SUMMARY.md"
+    if not p.exists():
+        return []
+    m = re.search(r"^## At a glance\n(.*?)(?=^## |\Z)", p.read_text(), re.S | re.M)
+    out: List[str] = []
+    for ln in (m.group(1) if m else "").splitlines():
+        if ln.startswith("- "):
+            out.append(ln[2:].strip())
+        elif ln.strip() and out:
+            out[-1] += " " + ln.strip()
+    return out
+
+
 def md_inline(s: str) -> str:
     s = esc(s)
     s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
@@ -398,6 +413,17 @@ border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-size:13px;li
         + "".join(f'<div class="tile"><b class="{s}">{counts[s]}</b><span>{s}</span></div>' for s in STATUS_ORDER)
         + f'<div class="tile"><b>{sum(1 for s in prog["steps"] if s["status"] == "done")}'
         f'/{len(prog["steps"])}</b><span>steps done</span></div></div>',
+        *(
+            [
+                "<h2>Summary (program closed)</h2>",
+                '<div class="now">'
+                + "".join(f"<p>{md_inline(b)}</p>" for b in summary_glance())
+                + '<p class="note">Full summary, recommended pipelines and open questions: '
+                "<code>icenine_py/docs/grain_opt/SUMMARY.md</code>.</p></div>",
+            ]
+            if summary_glance()
+            else []
+        ),
         "<h2>Now</h2>",
         '<div class="now">' + "".join(f"<p>{md_inline(ln.lstrip('- '))}</p>" for ln in now) + "</div>",
         "<h2>Cost functions tried</h2>",
