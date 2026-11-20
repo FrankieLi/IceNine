@@ -1,0 +1,348 @@
+{
+ "mid": {
+  "sample": "mid",
+  "totals": {
+   "stored": {
+    "search": 6531563,
+    "screen_pass": 100032,
+    "repair": 751773,
+    "total": 7383368
+   },
+   "old": {
+    "search": 6531563,
+    "screen_pass": 100032,
+    "repair": 751773,
+    "total": 7383368
+   },
+   "new": {
+    "search": 5982227,
+    "screen_pass": 100472,
+    "repair": 719103,
+    "total": 6801802
+   }
+  },
+  "stored_total_matches_step22": true,
+  "old_total_equals_stored": true,
+  "old_map_equals_stored": true,
+  "wrong": {
+   "stored": {
+    "n": 23,
+    "wilson": [
+     0.0006238762691554134,
+     0.001404361757739006
+    ]
+   },
+   "old": {
+    "n": 23,
+    "wilson": [
+     0.0006238762691554134,
+     0.001404361757739006
+    ]
+   },
+   "new": {
+    "n": 17,
+    "wilson": [
+     0.0004320487203553712,
+     0.0011078651692173521
+    ]
+   }
+  },
+  "median_err_deg": {
+   "stored": 0.027046605963688786,
+   "old": 0.027046605963688786,
+   "new": 0.027171555913063215
+  },
+  "new_vs_stored": {
+   "fixed": 10,
+   "broken": 4,
+   "net": -6,
+   "median_higher": 0.00012494994937442896
+  },
+  "new_vs_old": {
+   "fixed": 10,
+   "broken": 4,
+   "net": -6,
+   "median_higher": 0.00012494994937442896
+  },
+  "old_vs_stored": {
+   "fixed": 0,
+   "broken": 0,
+   "net": 0,
+   "median_higher": 0.0
+  },
+  "grid_fallbacks_left": {
+   "stored": 2,
+   "old": 2,
+   "new": 0
+  },
+  "index_fallback_seed_test": {
+   "stored": 12,
+   "old": 12,
+   "new": 9
+  },
+  "n_seeds": {
+   "stored": 1626,
+   "old": 1626,
+   "new": 1664
+  },
+  "run_index_s": {
+   "stored": 967.1877480230095,
+   "old": 971.3636280269978,
+   "new": 451.05475953899884
+  },
+  "run_wall_s": {
+   "old": 1581.5718870162964,
+   "new": 1029.4129552841187
+  },
+  "job": {
+   "old": {
+    "label": "contended",
+    "wall_s": 2020,
+    "load_samples": 68,
+    "load_mean": 2.447941176470588,
+    "load_max": 4.85
+   },
+   "new": {
+    "label": "contended",
+    "wall_s": 1470,
+    "load_samples": 49,
+    "load_mean": 2.4191836734693877,
+    "load_max": 3.12
+   }
+  },
+  "index_work": {
+   "old": {
+    "run": {
+     "calls": 1626,
+     "pairs": 163107708,
+     "votes": 85534715,
+     "seconds": 952.8392334140025
+    },
+    "pass": {
+     "calls": 0,
+     "pairs": 0,
+     "votes": 0,
+     "seconds": 0.0
+    },
+    "arm": {
+     "calls": 0,
+     "pairs": 0,
+     "votes": 0,
+     "seconds": 0.0
+    },
+    "total": {
+     "calls": 1626,
+     "pairs": 163107708,
+     "votes": 85534715,
+     "seconds": 952.8392334140025
+    }
+   },
+   "new": {
+    "run": {
+     "calls": 1664,
+     "pairs": 82222776,
+     "votes": 43311536,
+     "seconds": 432.4910937299982
+    },
+    "pass": {
+     "calls": 0,
+     "pairs": 0,
+     "votes": 0,
+     "seconds": 0.0
+    },
+    "arm": {
+     "calls": 0,
+     "pairs": 0,
+     "votes": 0,
+     "seconds": 0.0
+    },
+    "total": {
+     "calls": 1664,
+     "pairs": 82222776,
+     "votes": 43311536,
+     "seconds": 432.4910937299982
+    }
+   }
+  },
+  "c3": {
+   "net": -6,
+   "median_higher": 0.00012494994937442896,
+   "grid_extra": -2,
+   "ok": true
+  },
+  "wall_fewer": 0.2722772277227723
+ },
+ "held": {
+  "sample": "held",
+  "totals": {
+   "stored": {
+    "search": 15419945,
+    "screen_pass": 170528,
+    "repair": 1524116,
+    "total": 17114589
+   },
+   "old": {
+    "search": 15419945,
+    "screen_pass": 170528,
+    "repair": 1524116,
+    "total": 17114589
+   },
+   "new": {
+    "search": 16466634,
+    "screen_pass": 170668,
+    "repair": 1594780,
+    "total": 18232082
+   }
+  },
+  "stored_total_matches_step22": true,
+  "old_total_equals_stored": true,
+  "old_map_equals_stored": true,
+  "wrong": {
+   "stored": {
+    "n": 45,
+    "wilson": [
+     0.0013691418781273772,
+     0.0024496179856132597
+    ]
+   },
+   "old": {
+    "n": 45,
+    "wilson": [
+     0.0013691418781273772,
+     0.0024496179856132597
+    ]
+   },
+   "new": {
+    "n": 42,
+    "wilson": [
+     0.001264958064014555,
+     0.002309639731065234
+    ]
+   }
+  },
+  "median_err_deg": {
+   "stored": 0.022775047138410505,
+   "old": 0.022775047138410505,
+   "new": 0.022503866615802115
+  },
+  "new_vs_stored": {
+   "fixed": 19,
+   "broken": 16,
+   "net": -3,
+   "median_higher": -0.00027118052260838993
+  },
+  "new_vs_old": {
+   "fixed": 19,
+   "broken": 16,
+   "net": -3,
+   "median_higher": -0.00027118052260838993
+  },
+  "old_vs_stored": {
+   "fixed": 0,
+   "broken": 0,
+   "net": 0,
+   "median_higher": 0.0
+  },
+  "grid_fallbacks_left": {
+   "stored": 4,
+   "old": 4,
+   "new": 7
+  },
+  "index_fallback_seed_test": {
+   "stored": 66,
+   "old": 66,
+   "new": 63
+  },
+  "n_seeds": {
+   "stored": 3685,
+   "old": 3685,
+   "new": 3679
+  },
+  "run_index_s": {
+   "stored": 4033.226962525024,
+   "old": 4043.2756631219727,
+   "new": 829.6377480050086
+  },
+  "run_wall_s": {
+   "old": 5443.334532737732,
+   "new": 2302.1836330890656
+  },
+  "job": {
+   "old": {
+    "label": "contended",
+    "wall_s": 6199,
+    "load_samples": 207,
+    "load_mean": 2.371014492753623,
+    "load_max": 3.43
+   },
+   "new": {
+    "label": "contended",
+    "wall_s": 3061,
+    "load_samples": 102,
+    "load_mean": 2.384803921568627,
+    "load_max": 3.3
+   }
+  },
+  "index_work": {
+   "old": {
+    "run": {
+     "calls": 3685,
+     "pairs": 855657758,
+     "votes": 362140868,
+     "seconds": 4009.461044976006
+    },
+    "pass": {
+     "calls": 0,
+     "pairs": 0,
+     "votes": 0,
+     "seconds": 0.0
+    },
+    "arm": {
+     "calls": 0,
+     "pairs": 0,
+     "votes": 0,
+     "seconds": 0.0
+    },
+    "total": {
+     "calls": 3685,
+     "pairs": 855657758,
+     "votes": 362140868,
+     "seconds": 4009.461044976006
+    }
+   },
+   "new": {
+    "run": {
+     "calls": 3679,
+     "pairs": 183923622,
+     "votes": 76413880,
+     "seconds": 794.049699724001
+    },
+    "pass": {
+     "calls": 0,
+     "pairs": 0,
+     "votes": 0,
+     "seconds": 0.0
+    },
+    "arm": {
+     "calls": 0,
+     "pairs": 0,
+     "votes": 0,
+     "seconds": 0.0
+    },
+    "total": {
+     "calls": 3679,
+     "pairs": 183923622,
+     "votes": 76413880,
+     "seconds": 794.049699724001
+    }
+   }
+  },
+  "c3": {
+   "net": -3,
+   "median_higher": -0.00027118052260838993,
+   "grid_extra": 3,
+   "ok": false
+  },
+  "wall_fewer": 0.5062106791417971
+ }
+}
