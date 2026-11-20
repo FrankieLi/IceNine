@@ -193,6 +193,8 @@ class SpotRows:
     col: Tensor
     row: Tensor
     hit: Tensor
+    sin_eta: Optional[Tensor] = None  # |sin eta| of the diffracted ray (rocking window width)
+    spread: Optional["SpotModel"] = None  # the model, only when its PSF or rocking is on
 
 
 def strain_to_m(strain: Tensor) -> Tensor:
@@ -215,9 +217,27 @@ def m_to_strain(M: np.ndarray) -> np.ndarray:
 class SpotModel:
     """``SmoothCost.predict`` vectorised over voxels (own orientation and triangle per voxel).
 
-    Built from a ``SmoothCost`` (which holds the reflection list and detector constants)."""
+    Built from a ``SmoothCost`` (which holds the reflection list and detector constants).
 
-    def __init__(self, sc: Any, phase: int = 0) -> None:
+    Two opt-in blurs of the predicted coverage points (``spread_points``), both default off
+    (0 = off, the model is then bit for bit what it was):
+
+    * ``psf_sigma_px``: detector point-spread, a Gaussian of this sigma (pixels) in column and
+      row. Each coverage point's mass goes to 3 x 3 fixed offsets (the 3-point Gauss-Hermite
+      nodes 0, +-sqrt(3) sigma with weights 2/3, 1/6, 1/6 per axis), which reproduce the
+      Gaussian's variance and fourth moment; the weights sum to 1, so mass is conserved.
+    * ``rocking_deg``: rocking-curve width (degrees of omega at |sin eta| = 1). A row's mass is
+      spread over the omega frames that its window omega* +- (rocking_deg / |sin eta|) / 2
+      overlaps (``docs/omega_peak_width_derivation.md``), weighted by the overlap. The spread
+      points sit at the frame centres; mass in frames outside the scan is dropped."""
+
+    def __init__(
+        self, sc: Any, phase: int = 0, psf_sigma_px: float = 0.0, rocking_deg: float = 0.0
+    ) -> None:
+        if psf_sigma_px < 0 or rocking_deg < 0:
+            raise ValueError("psf_sigma_px and rocking_deg must be >= 0")
+        self.psf_sigma_px = float(psf_sigma_px)
+        self.rocking_deg = float(rocking_deg)
         self.sc = sc
         self.g_hkl, self.g_mag = sc._g[phase]
         self.K = int(self.g_hkl.shape[0])
@@ -301,7 +321,61 @@ class SpotModel:
             col=torch.stack(cols, 1),
             row=torch.stack(rows, 1),
             hit=torch.stack(hits, 1),
+            sin_eta=torch.sin(eta).reshape(-1)[sel],
+            spread=self if self.spreading else None,
         )
+
+    @property
+    def spreading(self) -> bool:
+        """True when a PSF or a rocking curve is on."""
+        return self.psf_sigma_px > 0 or self.rocking_deg > 0
+
+    def rocking_weights(self, fpos: Tensor, sin_eta: Tensor) -> Tuple[Tensor, Tensor]:
+        """(bins (n, K) long, weights (n, K)): the frame bins that the window fpos +- h overlaps,
+        h = rocking_deg / |sin eta| / 2 in frames, and the overlap / (2 h) of each (rows of the
+        weights sum to 1 before bins outside the scan are dropped). |sin eta| is floored at 0.01."""
+        sc = self.sc
+        h = (math.radians(self.rocking_deg) / sin_eta.abs().clamp_min(0.01) / 2.0) / sc.width
+        h = h.clamp_min(1e-9)
+        lo, hi = fpos - h, fpos + h
+        b0 = torch.floor(lo).detach().to(torch.long)
+        k = int((torch.floor(hi).detach().to(torch.long) - b0).max()) + 1 if len(b0) else 1
+        bins = b0[:, None] + torch.arange(k)
+        bf = bins.to(fpos.dtype)
+        ov = (torch.minimum(hi[:, None], bf + 1.0) - torch.maximum(lo[:, None], bf)).clamp_min(0.0)
+        w = ov / (2.0 * h)[:, None]
+        live = sc.index_t[bins.clamp(-1, sc.n_bins)] >= 0
+        return bins, w * live.to(w.dtype)
+
+    def spread_points(
+        self, rows: SpotRows, pc: Tensor, pr: Tensor, m: Tensor
+    ) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+        """(cols, rows, fpos, mass), each (n, P'), of the coverage points ``pc``, ``pr``, ``m``
+        (n, P) of ``rows`` after the PSF and rocking spread (see the class doc). With both off the
+        points are returned as they are, ``fpos`` the row's continuous frame position."""
+        n, P = pc.shape
+        fp = rows.fpos[:, None].expand_as(pc)
+        if self.psf_sigma_px > 0:
+            r3 = math.sqrt(3.0) * self.psf_sigma_px
+            nodes = torch.tensor([-r3, 0.0, r3], dtype=pc.dtype)
+            wts = torch.tensor([1.0 / 6.0, 2.0 / 3.0, 1.0 / 6.0], dtype=pc.dtype)
+            dx = nodes.repeat_interleave(3)
+            dy = nodes.repeat(3)
+            ww = (wts[:, None] * wts[None, :]).reshape(-1)
+            pc = (pc[:, :, None] + dx).reshape(n, -1)
+            pr = (pr[:, :, None] + dy).reshape(n, -1)
+            m = (m[:, :, None] * ww).reshape(n, -1)
+            fp = fp[:, :, None].expand(n, P, 9).reshape(n, -1)
+        if self.rocking_deg > 0:
+            assert rows.sin_eta is not None
+            bins, w = self.rocking_weights(rows.fpos, rows.sin_eta)
+            k = bins.shape[1]
+            Q = pc.shape[1]
+            pc = pc[:, :, None].expand(n, Q, k).reshape(n, -1)
+            pr = pr[:, :, None].expand(n, Q, k).reshape(n, -1)
+            m = (m[:, :, None] * w[:, None, :]).reshape(n, -1)
+            fp = (bins.to(pc.dtype) + 0.5)[:, None, :].expand(n, Q, k).reshape(n, -1)
+        return pc, pr, fp, m
 
 
 def subtriangle_bary(n_sub: int) -> np.ndarray:
@@ -412,6 +486,21 @@ def _rows_points(rows: SpotRows, bary: Tensor, det: int) -> Tuple[Tensor, Tensor
     return pc, pr, m, ok
 
 
+def _rows_cloud(
+    rows: SpotRows, bary: Tensor, det: int
+) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+    """(cols, rows, fpos, mass, ok) of the coverage points per row on detector ``det``: as
+    ``_rows_points`` plus the continuous frame position of each point; when the model that made
+    ``rows`` has its PSF or rocking on, the points are the spread ones
+    (``SpotModel.spread_points``)."""
+    pc, pr, m, ok = _rows_points(rows, bary, det)
+    if rows.spread is not None:
+        pc, pr, fp, m = rows.spread.spread_points(rows, pc, pr, m)
+    else:
+        fp = rows.fpos[:, None].expand_as(pc)
+    return pc, pr, fp, m, ok
+
+
 def _touched_pixels(rows: SpotRows, ii: Tensor, det: int, bary: Tensor) -> int:
     """Distinct (frame, row, col) pixels touched by the coverage points of rows ``ii``."""
     pc, pr, _m = coverage_points(rows.col[ii, det], rows.row[ii, det], bary)
@@ -427,8 +516,10 @@ def _touching_components(
     pr: Tensor,
     frames: Tensor,
     keep_px: int,
+    frame_dilation: int = 1,
 ) -> np.ndarray:
-    """Mask (m,) of observed pixels whose component touches the dilated predicted footprint."""
+    """Mask (m,) of observed pixels whose component touches the dilated predicted footprint
+    (``keep_px`` pixels, ``frame_dilation`` frames)."""
     from scipy import ndimage
 
     f0, f1, r0, r1, c0, c1 = box
@@ -449,7 +540,7 @@ def _touching_components(
     ok = (pf >= 0) & (pf < shape[0]) & (pi >= 0) & (pi < shape[1]) & (pj >= 0) & (pj < shape[2])
     foot[pf[ok], pi[ok], pj[ok]] = True
     k = 2 * keep_px + 1
-    foot = ndimage.maximum_filter(foot, size=(3, k, k))
+    foot = ndimage.maximum_filter(foot, size=(2 * frame_dilation + 1, k, k))
     hit = np.unique(lab[foot & (lab > 0)])
     return np.isin(lab[fi, ri, ci], hit)
 
@@ -473,17 +564,28 @@ def build_region(
     the layer's triangles ``V`` (n_all, 3, 3), and the shell prediction in their windows.
 
     ``keep_px``: keep only the observed connected components (8-connected in a frame) that come
-    within ``keep_px`` pixels and one frame of a start-predicted coverage point; other grains'
+    within ``keep_px`` pixels and one frame (1 + the rocking half-window in frames when the model
+    spreads) of a start-predicted coverage point; other grains'
     spots in the window are dropped. None keeps every lit pixel.
 
     ``ratio``: (lo, hi) bounds on observed lit pixels / pixels touched by the start prediction
     (counted with 8 x 8 sub-triangles per voxel, as the stock render lights every pixel a spot
     touches); a
     spot outside them is dropped (overlap with another grain's spot, or a spot cut by a detector
-    edge or a gap). The ratio of every spot is kept in ``Spot.ratio``. None keeps all.
+    edge or a gap). The ratio of every spot is kept in ``Spot.ratio``. None keeps all. The
+    denominator is the footprint of the unspread start prediction even when the model spreads
+    (PSF or rocking), while the observed count covers the widened box; for data with PSF or
+    rocking the ratio can exceed ``ratio[1]`` and drop spots, so widen ``ratio`` (or pass None)
+    for such data.
 
     ``strain`` (optional, (n_all, 6), see ``SpotModel.predict``): the start prediction of members
-    and shell is made with it (default None: unstrained, unchanged)."""
+    and shell is made with it (default None: unstrained, unchanged).
+
+    With the model's PSF or rocking on, the pixel pad grows by ceil(sqrt(3) psf_sigma_px) and the
+    frame pad by ceil(rocking half-window in frames) of the spot's narrowest |sin eta|, so the
+    spread mass falls inside the observed box. Scan ends and gaps: the model keeps rows whose
+    omega* is outside the scan or in a gap and spreads them into live frames, whereas the stock
+    renderer and the strict cost drop such peaks first (``omega_valid``, ``valid_indices``)."""
     st = None if strain is None else torch.as_tensor(np.asarray(strain), dtype=DT)
     members = [int(v) for v in members]
     shell = [int(v) for v in shell]
@@ -509,16 +611,31 @@ def build_region(
             c = cols_v[ii]
             r = rows_v[ii]
             fr = rows.frame[ii]
-            c0 = max(int(math.floor(float(c.min()))) - pad_px, 0)
-            c1 = min(int(math.floor(float(c.max()))) + pad_px + 1, W)
-            r0 = max(int(math.floor(float(r.min()))) - pad_px, 0)
-            r1 = min(int(math.floor(float(r.max()))) + pad_px + 1, H)
-            f0 = int(fr.min()) - pad_frames
-            f1 = int(fr.max()) + pad_frames + 1
+            spread_f = 0
+            pad_c = pad_px
+            if model.spreading:
+                # the spread mass reaches the rocking half-window and the PSF's outermost node
+                # beyond the unspread rows: widen the box (and the frames) by that much
+                pad_c += int(math.ceil(math.sqrt(3.0) * model.psf_sigma_px))
+                if model.rocking_deg > 0 and rows.sin_eta is not None:
+                    hmax = (
+                        math.radians(model.rocking_deg)
+                        / float(rows.sin_eta[ii].abs().clamp_min(0.01).min())
+                        / 2.0
+                        / model.sc.width
+                    )
+                    spread_f = int(math.ceil(hmax))
+            c0 = max(int(math.floor(float(c.min()))) - pad_c, 0)
+            c1 = min(int(math.floor(float(c.max()))) + pad_c + 1, W)
+            r0 = max(int(math.floor(float(r.min()))) - pad_c, 0)
+            r1 = min(int(math.floor(float(r.max()))) + pad_c + 1, H)
+            f0 = int(fr.min()) - pad_frames - spread_f
+            f1 = int(fr.max()) + pad_frames + spread_f + 1
             obs, val = images.lit(det, f0, f1, r0, r1, c0, c1)
             if keep_px is not None and len(obs):
                 keep = _touching_components(
-                    obs, (f0, f1, r0, r1, c0, c1), pc[ii], pr[ii], fr, keep_px
+                    obs, (f0, f1, r0, r1, c0, c1), pc[ii], pr[ii], fr, keep_px,
+                    1 + spread_f,
                 )
                 obs, val = obs[keep], val[keep]
             if len(obs) < min_obs:
@@ -538,7 +655,7 @@ def build_region(
                 None if st is None else st[shell],
             )
             for det in range(model.n_det):
-                pc, pr, m, ok = _rows_points(srows, bary, det)
+                pc, pr, fpall, m, ok = _rows_cloud(srows, bary, det)
                 for j, s in enumerate(spots):
                     if s.key[2] != det:
                         continue
@@ -547,8 +664,7 @@ def build_region(
                     if not bool(rsel.any()):
                         continue
                     ins = inside[rsel]
-                    fp = srows.fpos[rsel][:, None].expand_as(pc[rsel])
-                    p = torch.stack([pc[rsel], pr[rsel], fp], -1)[ins].numpy()
+                    p = torch.stack([pc[rsel], pr[rsel], fpall[rsel]], -1)[ins].numpy()
                     region.shell_pts[j] = np.concatenate([region.shell_pts[j], p])
                     region.shell_mass[j] = np.concatenate(
                         [region.shell_mass[j], m[rsel][ins].numpy()]
@@ -613,11 +729,12 @@ def pack_predicted(
 ) -> Tuple[Tensor, Tensor]:
     """(x (S, P, 3), a (S, P)) predicted coverage points of the grain's rows per spot, plus the
     fixed shell points. Rows whose key is not a spot of the region are dropped (a reflection that
-    appears only away from the start is not scored; it has no window)."""
+    appears only away from the start is not scored; it has no window). With the PSF or rocking of
+    the model on (``rows.spread``) the points are the spread ones."""
     S = len(region.spots)
     groups: List[List[Tuple[Tensor, Tensor]]] = [[] for _ in range(S)]
     for det in range(n_det):
-        pc, pr, m, ok = _rows_points(rows, bary, det)
+        pc, pr, fpall, m, ok = _rows_cloud(rows, bary, det)
         keyv = (rows.refl * 2 + rows.branch).tolist()
         okl = ok.tolist()
         for i, kv in enumerate(keyv):
@@ -626,8 +743,14 @@ def pack_predicted(
             j = region.key_index.get((kv // 2, kv % 2, det))
             if j is None:
                 continue
-            p = torch.stack([pc[i], pr[i], rows.fpos[i].expand_as(pc[i])], -1)
-            groups[j].append((p, m[i]))
+            p = torch.stack([pc[i], pr[i], fpall[i]], -1)
+            mi = m[i]
+            if rows.spread is not None:
+                # spread points past the scan or in a gap carry no mass: drop them so that one
+                # wide-window row does not pad every spot (defaults keep every point)
+                live = mi > 0
+                p, mi = p[live], mi[live]
+            groups[j].append((p, mi))
     sizes = []
     for j in range(S):
         n = sum(int(g[1].shape[0]) for g in groups[j])

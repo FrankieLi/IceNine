@@ -90,6 +90,45 @@ class ForwardSimulation:
         # reciprocal vectors, g = O M g0; the Bragg angle, omega and the sin(2 theta) of the
         # intensity filter all use the strained |g|. A voxel without a deformation counts as I.
         self.apply_deformation: bool = False
+        # Opt-in detector PSF and rocking curve of the batched path (GO7f; 0 = off, output
+        # bit-identical). ``rocking_deg`` (degrees of omega at |sin eta| = 1): a peak's intensity
+        # is split over the omega frames that its window omega* +- (rocking_deg / |sin eta|) / 2
+        # overlaps, in proportion to the overlap (weights sum to 1; frames outside the scan lose
+        # their share). ``psf_sigma_px``: after all peaks are drawn each dense frame is blurred by
+        # a Gaussian of this sigma (pixels, columns and rows) and pixels below ``psf_threshold`` x
+        # the frame's maximum are set to 0 (the lit/dark decision of the rendered image).
+        self.rocking_deg: float = 0.0
+        self.psf_sigma_px: float = 0.0
+        self.psf_threshold: float = 1e-3
+
+    @staticmethod
+    def psf_blur(img: np.ndarray, sigma_px: float, threshold: float = 1e-3) -> np.ndarray:
+        """Gaussian blur (sigma in pixels, zero outside the frame) of a rendered frame; pixels
+        below ``threshold`` x the blurred maximum become 0. Intensity is conserved up to the
+        truncated tail and the frame edge."""
+        from scipy import ndimage
+
+        out = ndimage.gaussian_filter(
+            np.asarray(img, dtype=np.float64), sigma=sigma_px, mode="constant", truncate=4.0
+        )
+        mx = float(out.max()) if out.size else 0.0
+        if mx > 0 and threshold > 0:
+            out[out < threshold * mx] = 0.0
+        return out.astype(img.dtype, copy=False)
+
+    def _apply_psf(self, images: List[List[ImageData]]) -> None:
+        """Blur every dense frame in ``images`` in place (``psf_sigma_px`` > 0)."""
+        for row in images:
+            for im in row:
+                if not isinstance(im, ImageData):
+                    continue  # a null sink (frame owned by another worker)
+                if im._mode != "dense":
+                    raise NotImplementedError("psf_sigma_px needs dense ImageData frames")
+                arr = im._pixels_dense.numpy()
+                if not arr.any():
+                    continue
+                arr[...] = self.psf_blur(arr, self.psf_sigma_px, self.psf_threshold)
+                im._binary_cache = None
 
     def simulate_detector_images(
         self,
@@ -217,6 +256,8 @@ class ForwardSimulation:
         C++ Reference:
             ForwardSimulation.cpp:200-284 SimulatePeaks
         """
+        if self.rocking_deg > 0 or self.psf_sigma_px > 0:
+            raise NotImplementedError("rocking_deg and psf_sigma_px need the batched path")
         eta_limit = self.exp_setup.get_eta_limit()
         wavenumber = KEV_OVER_HBAR_C_IN_ANG * self.exp_setup.beam_energy
         beam_energy = self.exp_setup.beam_energy
@@ -499,6 +540,7 @@ class ForwardSimulation:
         print(f"  Batched data prep: {t_prep:.2f}s  ({V} voxels)")
 
         deform_all = self._deformations(sample) if self.apply_deformation else None
+        rocking = self.rocking_deg > 0
 
         # ---- Chunk loop ----
         total_rasterized = 0
@@ -700,10 +742,29 @@ class ForwardSimulation:
                     omega_np = valid_omegas[final_valid].detach().numpy()
                 intensity_np = intensity[final_valid].detach().numpy()
                 px_np = [pc[final_valid].detach().numpy() for pc in pixel_coords_list]
+                if rocking:
+                    frames_w = self._rocking_frames(
+                        f_vals[valid_flat][final_valid], ray_dir[final_valid],
+                        idx_tensor, ol_width, ol_n,
+                    )
 
                 for i in range(n_raster):
                     oi = int(wedge_np[i])
                     inten = float(intensity_np[i])
+                    if rocking:
+                        for oi_r, w_r in frames_w[i]:
+                            if self.peak_hook is not None:
+                                self.peak_hook(
+                                    int(gvox_np[i]), int(refl_np[i]), oi_r, float(omega_np[i])
+                                )
+                            for di in range(num_detectors):
+                                images[oi_r][di].add_triangle_scanline(
+                                    (float(px_np[di][i, 0, 0]), float(px_np[di][i, 0, 1])),
+                                    (float(px_np[di][i, 1, 0]), float(px_np[di][i, 1, 1])),
+                                    (float(px_np[di][i, 2, 0]), float(px_np[di][i, 2, 1])),
+                                    inten * w_r,
+                                )
+                        continue
                     if self.peak_hook is not None:
                         self.peak_hook(int(gvox_np[i]), int(refl_np[i]), oi, float(omega_np[i]))
                     for di in range(num_detectors):
@@ -720,8 +781,41 @@ class ForwardSimulation:
                     f" rasterized so far: {total_rasterized}"
                 )
 
+        if self.psf_sigma_px > 0:
+            self._apply_psf(images)
         t_total = time.time() - t0
         print(f"  Batched simulation: {t_total:.2f}s, {total_rasterized} triangles rasterized")
+
+    def _rocking_frames(
+        self,
+        fpos: torch.Tensor,
+        ray_dir: torch.Tensor,
+        idx_tensor: torch.Tensor,
+        width: float,
+        n_bins: int,
+    ) -> List[List[tuple]]:
+        """Per peak, the [(frame index, weight)] of the omega frames its rocking window overlaps.
+
+        ``fpos`` (n,): continuous omega bin position; the window is fpos +- h with
+        h = rocking_deg / |sin eta| / 2 in bins (|sin eta| floored at 0.01); a bin's weight is its
+        overlap with the window / (2 h); bins outside the scan or without a frame are dropped."""
+        ry, rz = ray_dir[:, 1].abs().double(), ray_dir[:, 2].abs().double()
+        sin_eta = (ry / torch.sqrt(ry * ry + rz * rz).clamp_min(1e-30)).clamp_min(0.01)
+        h = (math.radians(self.rocking_deg) / sin_eta / 2.0 / width).clamp_min(1e-9)
+        lo, hi = (fpos.double() - h).numpy(), (fpos.double() + h).numpy()
+        h_np = h.numpy()
+        idx = idx_tensor.numpy()
+        out: List[List[tuple]] = []
+        for i in range(len(lo)):
+            lst = []
+            for b in range(int(math.floor(lo[i])), int(math.floor(hi[i])) + 1):
+                if b < 0 or b >= n_bins or idx[b] < 0:
+                    continue
+                ov = min(hi[i], b + 1.0) - max(lo[i], float(b))
+                if ov > 0:
+                    lst.append((int(idx[b]), float(ov / (2.0 * h_np[i]))))
+            out.append(lst)
+        return out
 
     @staticmethod
     def _deformations(sample: Sample) -> torch.Tensor:

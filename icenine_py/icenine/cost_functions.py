@@ -16,6 +16,7 @@ The main entry point is `VoxelCostFunction.evaluate()`, which:
 import math
 import warnings
 from dataclasses import dataclass
+from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -518,7 +519,13 @@ class FrameTable:
     ``exp_data=None`` and have its data attached later.
     """
 
-    __slots__ = ("source", "n_frames", "n_det", "images", "rows", "cols", "_filled")
+    __slots__ = (
+        "source", "n_frames", "n_det", "images", "rows", "cols", "_filled", "unions", "_lit"
+    )
+    # Compact union cache size (LRU keys). A key holds n_det int64 arrays of lit-pixel indices
+    # (int32; a few dozen entries on the sparse fixture, size on realistic data unmeasured); it must
+    # exceed the distinct keys one evaluation needs (212-441 measured on the three_voxels fixture)
+    MAX_UNIONS = 100_000
 
     def __init__(self, exp_data: ExperimentalData, n_frames: int, n_det: int) -> None:
         self.source = exp_data
@@ -528,6 +535,41 @@ class FrameTable:
         self.rows = 0
         self.cols = 0
         self._filled = np.zeros(n_frames, dtype=bool)
+        # rocking window (opt-in): frames tuple -> per-detector sorted flat indices of the lit
+        # pixels of the OR of those binary frames (compact; dense images are built per call)
+        self.unions: "OrderedDict[Tuple[int, ...], List[np.ndarray]]" = OrderedDict()
+        self._lit: Dict[int, np.ndarray] = {}  # frame * n_det + det -> flat lit indices
+
+    def _lit_indices(self, slot: int) -> np.ndarray:
+        got = self._lit.get(slot)
+        if got is None:
+            got = np.flatnonzero(self.images[slot]).astype(np.int32)  # frames < 2**31 pixels
+            self._lit[slot] = got
+        return got
+
+    def union_images(self, frames: Tuple[int, ...]) -> List[np.ndarray]:
+        """Per detector, the pixelwise OR of the binary frames ``frames`` (sorted tuple), as new
+        dense uint8 images. The union is cached only as lit-pixel indices; the dense image is a
+        zero-filled array (lazily mapped, so only touched pages use memory) with those pixels
+        set, built on every call and owned by the caller."""
+        idx = self.unions.get(frames)
+        if idx is not None:
+            self.unions.move_to_end(frames)
+        else:
+            self.ensure(np.asarray(frames, dtype=np.int64))
+            idx = []
+            for d in range(self.n_det):
+                parts = [self._lit_indices(f * self.n_det + d) for f in frames]
+                idx.append(np.unique(np.concatenate(parts)))
+            self.unions[frames] = idx
+            while len(self.unions) > self.MAX_UNIONS:
+                self.unions.popitem(last=False)
+        out = []
+        for d in range(self.n_det):
+            dense = np.zeros((self.rows, self.cols), dtype=np.uint8)
+            dense.reshape(-1)[idx[d]] = 1
+            out.append(dense)
+        return out
 
     def ensure(self, frames: np.ndarray) -> None:
         """Fill the frames in ``frames`` (integer frame indices, all in ``[0, n_frames)``)."""
@@ -564,6 +606,67 @@ def _pixel_coordinate(
     return pix
 
 
+def rocking_window_frames(
+    omegas: np.ndarray,
+    reflected: np.ndarray,
+    rocking_deg: float,
+    low: float,
+    width: float,
+    frame_index: np.ndarray,
+) -> List[Tuple[int, ...]]:
+    """Per peak, the sorted frames overlapped by the rocking window omega +- h, with
+    h = rocking_deg / |sin eta| / 2 (degrees; |sin eta| of ``reflected``, floored at 0.01).
+
+    ``frame_index`` maps omega bins to frames (-1: none; its last entry is a sentinel). A bin
+    outside the scan or without a frame is skipped."""
+    n_bins = len(frame_index) - 1
+    ry = np.abs(reflected[:, 1].astype(np.float64))
+    rz = np.abs(reflected[:, 2].astype(np.float64))
+    sin_eta = np.maximum(ry / np.maximum(np.hypot(ry, rz), 1e-30), 0.01)
+    h = np.maximum(np.radians(rocking_deg) / sin_eta / 2.0 / width, 1e-9)
+    fpos = (omegas.astype(np.float64) - low) / width
+    b0 = np.floor(fpos - h).astype(np.int64)
+    b1 = np.floor(fpos + h).astype(np.int64)
+    out: List[Tuple[int, ...]] = []
+    for a, b in zip(b0.tolist(), b1.tolist()):
+        fr = {int(frame_index[k]) for k in range(max(a, 0), min(b, n_bins - 1) + 1)}
+        fr.discard(-1)
+        out.append(tuple(sorted(fr)))
+    return out
+
+
+def _rocking_window(
+    table: "FrameTable",
+    wedge: np.ndarray,
+    omegas: "torch.Tensor",
+    reflected: "torch.Tensor",
+    rocking_deg: float,
+    range_map: SimulationRange,
+    frame_index: np.ndarray,
+) -> Tuple[List[np.ndarray], np.ndarray]:
+    """(image list, wedge indices) for the rocking window: a peak whose window spans several
+    frames points at the OR of those binary frames, appended to the table's list after its own
+    ``n_frames * n_det`` entries; a one-frame window keeps its frame. The frame of omega*
+    (``wedge``) is always in the window."""
+    wins = rocking_window_frames(
+        omegas.detach().numpy(), reflected.detach().numpy(), rocking_deg,
+        range_map.low, range_map.width, frame_index,
+    )
+    local = np.asarray(wedge, dtype=np.int32).copy()
+    extra_keys: Dict[Tuple[int, ...], int] = {}
+    for p, fr in enumerate(wins):
+        key = tuple(sorted(set(fr) | {int(wedge[p])}))
+        if len(key) == 1:
+            local[p] = key[0]
+            continue
+        j = extra_keys.setdefault(key, len(extra_keys))
+        local[p] = table.n_frames + j
+    image_list = list(table.images)
+    for key in extra_keys:
+        image_list.extend(table.union_images(key))
+    return image_list, local
+
+
 def calculate_diffraction_overlap_batched(
     sample: Sample,
     voxel_vertices: torch.Tensor,
@@ -581,6 +684,7 @@ def calculate_diffraction_overlap_batched(
     cpp_edge_rules: bool = False,
     frame_index: Optional[np.ndarray] = None,
     frame_table: "Optional[FrameTable]" = None,
+    rocking_deg: float = 0.0,
 ) -> OverlapInfo:
     """
     Batched version of calculate_diffraction_overlap.
@@ -627,11 +731,19 @@ def calculate_diffraction_overlap_batched(
     omegas to frames and of collecting the binary frames for the C stage is skipped. A
     ``frame_table`` built for another ``exp_data`` or detector count is ignored.
 
+    ``rocking_deg`` (opt-in, default 0 = off, GO7f): a rocking window. A peak's pixels count as lit
+    if they are lit in any omega frame that the window omega* +- (rocking_deg / |sin eta|) / 2
+    overlaps (|sin eta| of the diffracted ray, floored at 0.01), i.e. each peak is compared with
+    the pixelwise OR of those binary frames; the frame of omega* is always in the window. Hard
+    mode on the C fast path only (``mode='hard'``, no ``ray_rule``); anything else raises.
+
     C++ Reference: OverlapInfo.h PixelBasedPeakOverlapCounter (pixel_radius > 0)
                    OverlapInfo.h ShapePixelOverlapCounter (pixel_radius == 0)
     """
     n_detectors = len(detector_list)
     overlap_info = OverlapInfo()
+    if rocking_deg > 0 and (ray_rule is not None or mode != 'hard'):
+        raise ValueError("rocking_deg needs mode='hard' and no ray_rule")
     n_peaks = len(peak_omegas)
     if ray_rule is not None:
         cpp_rule = True
@@ -828,6 +940,11 @@ def calculate_diffraction_overlap_batched(
         table.ensure(v_wedge_np)
         image_list = table.images
         local_wedge = v_wedge_np  # (M,) frame indices into the table
+        if rocking_deg > 0:
+            image_list, local_wedge = _rocking_window(
+                table, v_wedge_np, v_omegas, reflected, rocking_deg,
+                range_map, frame_index,
+            )
 
         if ray_rule is not None and obs_in is None:
             # observed-ray check for all peaks of the evaluation in one C call (no Python loop)
@@ -898,6 +1015,10 @@ def calculate_diffraction_overlap_batched(
 
     else:
         # ---- Fallback: sequential Python loop ----
+        if rocking_deg > 0:
+            raise NotImplementedError(
+                "rocking_deg needs the C fast path (hard mode, built _rasterize extension)"
+            )
         case_counts = np.zeros(8, dtype=np.int64) if ray_rule is not None else None
         for p in range(M):
             wedge_idx = int(v_wedge[p])
@@ -1027,6 +1148,7 @@ FUSED_ARGUMENTS: Dict[str, str] = {
     "ray_rule": "fallback",  # RayOverlapRule falls back
     "cpp_edge_rules": "covered",
     "fused_cost": "key",
+    "rocking_deg": "fallback",  # the rocking window (GO7f) is not in C; > 0 falls back
 }
 
 _FUSED_MAX_DETECTORS = 8  # MAX_DETECTORS of _stage_d.h
@@ -1056,6 +1178,8 @@ def fused_unsupported_reason(cost_fn: "VoxelCostFunction") -> Optional[str]:
         return "the ray rule (RayOverlapRule)"
     if cost_fn.eta_limit is None:
         return "no eta limit"
+    if cost_fn.rocking_deg > 0:
+        return "the rocking window (rocking_deg)"
     n_det = len(cost_fn.detector_list)
     if n_det < 1 or n_det > _FUSED_MAX_DETECTORS:
         return f"{n_det} detectors (1 to {_FUSED_MAX_DETECTORS} supported)"
@@ -1333,6 +1457,7 @@ class VoxelCostFunction:
         ray_rule: "Optional[RayRule]" = None,
         cpp_edge_rules: bool = False,
         fused_cost: bool = False,
+        rocking_deg: float = 0.0,
     ):
         """
         Args:
@@ -1385,7 +1510,15 @@ class VoxelCostFunction:
                    no eta limit, more than 8 detectors, an extension built without
                    ``HAS_FUSED``) uses the torch path, with one ``RuntimeWarning`` per reason
                    (``fused_unsupported_reason``, ``FUSED_ARGUMENTS``).
+            rocking_deg: Opt-in rocking window of the strict cost (GO7f), degrees of omega at
+                   |sin eta| = 1; default 0 = off (unchanged). A predicted pixel counts as lit
+                   if it is lit in any omega frame that omega* +- (rocking_deg / |sin eta|) / 2
+                   overlaps (``calculate_diffraction_overlap_batched``). Hard mode on the C fast
+                   path, no ``ray_rule``; with it on, ``fused_cost`` falls back to the torch path.
         """
+        if rocking_deg < 0:
+            raise ValueError("rocking_deg must be >= 0")
+        self.rocking_deg = float(rocking_deg)
         self.fused_cost = fused_cost
         self._fused_ctx: Dict[int, _FusedContext] = {}
         self._fused_vt: Optional[torch.Tensor] = None  # vertices of the cached array, its version
@@ -1464,6 +1597,7 @@ class VoxelCostFunction:
             self.cpp_edge_rules,
             self.eta_limit,
             self.min_sin_eta,
+            self.rocking_deg,
         )
 
     def _fused_context(self, phase_index: int) -> Optional[_FusedContext]:
@@ -1673,4 +1807,5 @@ class VoxelCostFunction:
                 if self.ray_rule is not None
                 else {}
             ),
+            **({"rocking_deg": self.rocking_deg} if self.rocking_deg > 0 else {}),
         )

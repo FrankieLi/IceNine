@@ -485,5 +485,10 @@ def test_the_only_frozen_file_that_differs_is_the_phase_b_docstring_note() -> No
         "icenine/boundary_repair.py",
         "icenine/config_file.py",
         "icenine/reconstructor.py",
+        # GO7f (D-20261119-I1): approved opt-in PSF and rocking curve, defaults bit-identical
+        "icenine/batched_cost.py",
+        "icenine/cost_functions.py",
+        "icenine/forward_simulation.py",
+        "icenine/grain_fit.py",
     }
     assert set(differ) <= allowed, differ

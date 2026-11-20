@@ -87,6 +87,9 @@ def _worker(args: Dict[str, Any]) -> Dict[str, Any]:
         cfg.max_q = args["max_q"]
     sim = ForwardSimulation(cfg)
     sim.apply_deformation = bool(args.get("strain", False))  # opt-in: .mic columns 13-18
+    sim.psf_sigma_px = float(args.get("psf_sigma_px", 0.0))  # opt-in (GO7f), 0 = off
+    sim.psf_threshold = float(args.get("psf_threshold", sim.psf_threshold))
+    sim.rocking_deg = float(args.get("rocking_deg", 0.0))  # opt-in (GO7f), 0 = off
     sim.exp_setup.initialize_experiment()
     omega_ranges = sim.exp_setup.get_omega_range_list()
     file_ranges = sim.exp_setup.get_file_range_list()
@@ -186,6 +189,27 @@ def build_parser() -> argparse.ArgumentParser:
         help="apply the per-voxel deformation M of the .mic (columns 13-18, g = O M g0); "
         "default off (output unchanged)",
     )
+    ap.add_argument(
+        "--psf-sigma-px",
+        type=float,
+        default=0.0,
+        help="opt-in detector PSF: blur every frame with a Gaussian of this sigma (pixels) before "
+        "the lit threshold (--psf-threshold); 0 = off (output unchanged)",
+    )
+    ap.add_argument(
+        "--psf-threshold",
+        type=float,
+        default=1e-3,
+        help="with the PSF on: pixels below this fraction of the frame maximum are dark",
+    )
+    ap.add_argument(
+        "--rocking-deg",
+        type=float,
+        default=0.0,
+        help="opt-in rocking curve (degrees of omega at |sin eta| = 1): each peak's intensity is "
+        "split over the omega frames its window +- (rocking_deg / |sin eta|) / 2 overlaps; "
+        "0 = off (output unchanged)",
+    )
     ap.add_argument("--out-root", default=str(EX / "ScatteringData_PhaseD"))
     ap.add_argument(
         "--overwrite",
@@ -241,6 +265,9 @@ def main() -> None:
             "noise": args.noise,
             "max_q": args.max_q,
             "strain": args.strain,
+            "psf_sigma_px": args.psf_sigma_px,
+            "psf_threshold": args.psf_threshold,
+            "rocking_deg": args.rocking_deg,
             "variants": args.variants.split(","),
         }
         for w in range(args.workers)
@@ -262,6 +289,12 @@ def main() -> None:
         "noise_params": asdict(NoiseParams.named(args.noise)),
         "n_voxels": results[0]["n_voxels"],
         "strain": bool(args.strain),
+        **(
+            {"psf_sigma_px": args.psf_sigma_px, "psf_threshold": args.psf_threshold}
+            if args.psf_sigma_px > 0
+            else {}
+        ),
+        **({"rocking_deg": args.rocking_deg} if args.rocking_deg > 0 else {}),
         "workers": args.workers,
         "timing_label": f"contended ({args.workers} workers; machine quiet at start: {quiet})",
         "wall_s": wall,
