@@ -53,6 +53,8 @@ def parse(p: str) -> List[Tuple[str, str, int, int]]:
         head, n = parts[0], int(parts[1])
         order = 2 if len(parts) > 2 and parts[2] == "o2" else 1
         kind, obj = head[0], head[1:]
+        if head == "P2":  # GO2c: boundary pass, polish candidates first
+            kind, obj = "P", ""
         if kind in "VNLGWXQP" and len(parts) > 2:  # V/<evals>/<sigma deg>
             obj = parts[2]
         assert kind in "ABVNLGWXQP", st
@@ -254,6 +256,7 @@ def main() -> None:
                 info.update(gated=n_gate, improved=n_found, threshold=thr)
                 f_old = f_new = float("nan")
             elif kind == "P":  # GO2b: boundary pass, neighbours' orientations from other groups
+                polish_first = "P2/" in a.pipeline  # GO2c
                 thr = float(obj) if obj else 0.12
                 R_new = R_now.copy()
                 pos = {v: i for i, v in enumerate(members)}
@@ -269,6 +272,26 @@ def main() -> None:
                     C_ = np.stack(cands)
                     sc = np.array([float(S.strict(C_[j : j + 1], [v])[0]) for j in range(len(C_))])
                     ev_tot += len(C_)
+                    if polish_first:  # GO2c: up to 3 distinct candidates, ladder each, take best
+                        from icenine.ray_indexing import misorientation_deg as _mis
+
+                        keep: list = []
+                        for j in np.argsort(sc):
+                            if all(float(_mis(C_[j][None], C_[q][None], S.sym)[0]) > 0.5 for q in keep):
+                                keep.append(int(j))
+                            if len(keep) == 3:
+                                break
+                        best_R, best_s = None, s_now[i]
+                        for j in keep:
+                            Rl, kl = voxel_ladder(S, C_[j], v, n, 1.0)
+                            ev_tot += kl
+                            sl = float(S.strict(Rl[None], [v])[0])
+                            if sl < best_s:
+                                best_R, best_s = Rl, sl
+                        if best_R is not None:
+                            R_new[i] = best_R
+                            n_found += 1
+                        continue
                     j = int(np.argmin(sc))
                     if sc[j] < s_now[i]:
                         Rb, kb = voxel_cma(S, C_[j], v, n)

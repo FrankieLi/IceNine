@@ -472,3 +472,17 @@ became AR6 on 2026-11-16 at the owner's request.
   `docs/orientation_nn_design.md`) as a per-voxel refiner inside grains on rand / corr3 at 0.5 and
   1 deg; first find how windows are taken from observed stacks, then the dataset, training (under
   2 h) and the inside-grain test, by an implementer if the brief script accepts the approval.
+
+## Now as of GO8b close (2026-11-19 16:20 PST)
+
+- **GO8a / GO8b closed** (2026-11-19 16:20 PST, I25 no): GNLayerNet retrained to its documented
+  accuracy (held-out 0.0178 / 0.0725 deg), but on observed `rand` / `corr3` windows it changes 1 of
+  1,043 voxels after the ladder and barely moves voxels from the grain centre: trained on
+  single-voxel windows, it has never seen grain-wide spots. Follow-up I66 (retrain on grain-like
+  windows) is a larger piece of work; offered to the owner. Weights in
+  `scripts/toy_orientation_sweep_model_realistic_s0.pt` (git-ignored).
+- GO5v: region from the cleaned start removes the fast fit's stalls (I65 yes).
+- The approved queue (D-20261118-I1: I59-I64, I25) is done.
+- **Next action:** plan and run GO4j (I67): `--clean_start` in `run_pipeline.py` (region built from
+  the start map with painted outliers set to the medoid) on the G20 strict-field arm (`Astrict/100`,
+  painted start), judged against GO2/GO7's clean reference (3 of 853 above 0.1 deg, median 0.0146).

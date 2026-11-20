@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-19 16:20 PST",
+ "updated": "2026-11-19 16:25 PST",
  "steps": [
   {
    "id": "GO0",
@@ -360,6 +360,14 @@
    "status": "done",
    "date": "2026-11-19",
    "result": "The retrained GNLayerNet as a per-voxel refiner on observed rand / corr3 windows: after the ladder it changes 1 of 1,043 voxels (rand 0.5 deg 48% -> 48%), from the grain-centre start it barely moves voxels. I25 no. Trained on single-voxel windows, it has never seen grain-wide spots; a retraining on grain-like windows is the follow-up (I66).",
+   "commit": ""
+  },
+  {
+   "id": "GO2b",
+   "title": "Boundary pass for paint errors (G1a)",
+   "status": "done",
+   "date": "2026-11-19",
+   "result": "Boundary voxels painted with the neighbouring grain's orientation: comparing unpolished neighbour candidates changes none of the 6 wrong voxels (sharp strict cost); polishing up to 3 candidates first recovers 2 (C voxels above 0.1 deg 3 -> 1 of 853, median 0.0147 deg, 4.7 ms per voxel). I32 no (4 wrong voxels remain, limit 2).",
    "commit": ""
   }
  ],

@@ -1396,3 +1396,24 @@ painted orientation is 0.10-0.29 deg from its ground truth, and the strict cost 
 is 0.03-0.11 against 0.13-0.18 at the wrong painted orientation), but at an unpolished candidate
 0.17-0.39 deg off the strict cost is 0.36-0.54 (voxel 16041), worse than at the wrong orientation:
 the strict cost is sharp, so candidates must be polished before they are compared. GO2c tests that.
+
+## GO2c: boundary pass with polished candidates (goal G1a, idea I32, second design)
+
+Question: with each gated voxel's distinct candidates (more than 0.5 deg apart, the 3 with the
+lowest unpolished strict cost) polished by a 60-evaluation step ladder before comparison
+(`Astrict/100,P2/60/0.12` on G20), are the paint errors recovered? Table
+`benchmarks/grain_opt/go2b/g20_p2.md`.
+
+| G20 | wrong (above 1 deg), all 1,082 | above 0.1 deg, 853 C voxels | C-voxel median | ms / voxel |
+|---|---|---|---|---|
+| `Astrict/100` (GO7 clean) | 6 | 3 | 0.0146 | 3.1 |
+| `+P/30/0.12` (GO2b) | 6 | 3 | 0.0144 | 3.5 |
+| `+P2/60/0.12` | 4 | 1 | 0.0147 | 4.7 |
+
+Verdict by the rule written before the run: I32 is answered no: the C-voxel share above 0.1 deg
+falls from 3 to 1 (limit met) and the median holds, but the wrong voxels among all 1,082 fall only
+from 6 to 4 (limit 2). Two paint errors are recovered (voxels 16041 and 13971, now 0.019 and 0.032
+deg from the ground truth); for the other four the right candidate is probably not among the three
+picked by unpolished strict cost (the right candidates score worst before polishing). G1a's frontier
+arm now leaves 1 of 853 C voxels above 0.1 deg at 4.7 ms per voxel. Not pursued further (4 voxels of
+1,082).

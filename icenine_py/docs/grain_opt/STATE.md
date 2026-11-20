@@ -5,17 +5,16 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO8a / GO8b closed** (2026-11-19 16:20 PST, I25 no): GNLayerNet retrained to its documented
-  accuracy (held-out 0.0178 / 0.0725 deg), but on observed `rand` / `corr3` windows it changes 1 of
-  1,043 voxels after the ladder and barely moves voxels from the grain centre: trained on
-  single-voxel windows, it has never seen grain-wide spots. Follow-up I66 (retrain on grain-like
-  windows) is a larger piece of work; offered to the owner. Weights in
-  `scripts/toy_orientation_sweep_model_realistic_s0.pt` (git-ignored).
-- GO5v: region from the cleaned start removes the fast fit's stalls (I65 yes).
-- The approved queue (D-20261118-I1: I59-I64, I25) is done.
-- **Next action:** plan and run GO4j (I67): `--clean_start` in `run_pipeline.py` (region built from
-  the start map with painted outliers set to the medoid) on the G20 strict-field arm (`Astrict/100`,
-  painted start), judged against GO2/GO7's clean reference (3 of 853 above 0.1 deg, median 0.0146).
+- **GO2b / GO2c closed** (2026-11-19 16:25 PST, G1a I32 no): a boundary pass recovers paint errors
+  only if neighbour candidates are polished before comparison (`P2/60/0.12`): 2 of 6 recovered, C
+  voxels above 0.1 deg 3 -> 1 of 853 (median 0.0147 deg, 4.7 ms per voxel); 4 remain.
+- GO8b: I25 no (GNLayerNet trained on single-voxel windows does not transfer to observed grain
+  windows; I66 offered to the owner). I67 dropped (not applicable). I26 / I27 dropped (owner).
+- **Open choices for the owner** (reported 2026-11-19): I66 (retrain GNLayerNet on grain-like
+  windows; sizable), I35 (G1b pipeline from a real painted start on rand / corr3: needs the AR3
+  painter run on each sample first), model-side rocking / PSF (library changes, need approval).
+- **Next action:** if no owner direction, plan I35 (scope the AR3 paint run on rand / corr3, then the
+  best G1b pipeline from that start with flood groups).
 
 ## Running jobs
 
