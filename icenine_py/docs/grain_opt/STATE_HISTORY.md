@@ -538,3 +538,25 @@ became AR6 on 2026-11-16 at the owner's request.
   strain_psf10_clean.npy --model_psf 1 --out go7f` (started 2026-11-19 22:15 PST, log
   `benchmarks/grain_opt/go7f/go7f_c.log`).
 - GO7f-d: `scripts/grain_opt/go7f_diag.py` (started 22:19 PST, log `.../go7f/go7f_d.log`).
+
+## Now as of GO1b close (2026-11-19 22:45 PST)
+
+- **GO7f closed** (2026-11-19 22:40 PST, G2b; library part merged df583c97, D-20261119-I1):
+  a no (model PSF 1 px, ratio 2.5), b no (strict-cost rocking window), c no (model PSF, default
+  filter: 2.96e-4 / 5.52e-4, 0.056 / 0.103 deg), d: the rocking damage is threshold dilution, not
+  search (grain 197 ground-truth strict 0.056 clean, 0.329 rocked, 0.316 with the window; peaks
+  with no lit pixel 0.3% -> 12%). I23 and I24 closed no; best PSF arm stays GO7e.
+- **GO9c closed** (G2a, I20 no): per-spot MMD optimum 0.011 / 0.095 deg from the ground truth
+  (grains 381 / 302); kernel width and weights barely matter.
+- **Open choices for the owner**: I66 (retrain GNLayerNet on grain-like windows), I35 (G1b from a
+  real painted start on rand / corr3, paint likely over 2 h), a rocking-aware threshold or
+  intensity cost in the gate (from GO7f-d), and the GO7f defaults (renderer attributes vs config
+  keys, PSF lit threshold 1e-3, |sin eta| floor 0.01, high500 freeze test policy).
+- **GO9d closed** (G2a, I19 no as objective): centroid optimum 0.036 / 0.080 deg, with covariance
+  0.04 / 0.82 deg. G2a objectives done: only the Poisson deviance nears the strict cost.
+- **GO1b closed** (G1a, I4): no objective shows a clearly shifted bottom near the ground truth;
+  the smooth objectives' offsets sit within their scan noise (strict r 0.018 deg is an upper bound).
+- **Next action:** remaining proposed ideas are I3 (soft pixel-touched model) and
+  I8 (blur annealing), both low expected value after GO1b and the GN fast fit; plan I3 next
+  unless the owner picks one of the open choices.
+

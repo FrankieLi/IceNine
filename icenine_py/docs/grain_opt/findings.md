@@ -1449,7 +1449,7 @@ kept at 2.5 (GO7f-c checks the model PSF without it).
 
 | G20 `Astrict/100` | grains rejected by the gate | above 0.1 deg, 853 C voxels | C-voxel median |
 |---|---|---|---|
-| clean images (GO7) | none | 3 (0.1-1.0%) | 0.0146 |
+| clean images (GO7) | 64, 493 | 3 (0.1-1.0%) | 0.0146 |
 | `grad_rock10`, no window (GO7) | 64, 197 | 20 (1.5-3.6%) | 0.0134 |
 | `grad_rock10`, window 1.0 deg | 64, 197, 493 | 21 (1.6-3.7%) | 0.0138 |
 
@@ -1574,3 +1574,44 @@ the first smooth objective to do so; `soft_t01` does not (0.0135 deg on grain 30
 sharper edges bring back the strict cost's steps). Caveat: like GO1 this starts at the ground truth,
 and the objective moves little over 150 evaluations (0.0236 -> 0.0235 on 381), so it shows an
 unbiased bottom, not a basin. GO1d tests it from displaced starts. 2-5 s per grain (contended).
+
+## GO7g: rocking-aware threshold and a Poisson gate (goal G2b, idea I68)
+
+Owner request (decision card, relayed 2026-11-20 06:46 UTC). G20 `Astrict/100` (strict cost
+without the window), alpha 1.0 rocking images; runs `benchmarks/grain_opt/runs/go7g_*`, image sets
+from `rock_stack.py --thr_scale / --sum_k`, diagnosis `benchmarks/grain_opt/go7f/diag_go7g.json`
+(strict cost at the ground truth and peaks with no lit pixel: grain 197's group / 200 other voxels).
+
+| arm | lit pixels vs clean | grains rejected | C voxels above 0.1 deg (of 853) | C median | GT strict, 197 | unlit peaks 197 / other | verdict |
+|---|---|---|---|---|---|---|---|
+| clean (GO7) | 1.00 | 64, 493 | 3 (0.1-1.0%) | 0.0146 | 0.056 | 0.3% / 0.5% | reference |
+| `grad_rock10` (GO7) | 1.34 | 64, 197 | 20 (1.5-3.6%) | 0.0134 | 0.329 | 12.0% / 1.2% | reference |
+| T1 threshold x 0.5 | 1.88 | 64, 197, 493 | 20 | 0.0136 | 0.109 | 0.7% / 0.5% | no |
+| T2 threshold x 0.25 | 2.28 | 64, 197, 493 | 20 | 0.0137 | 0.059 | 0.3% / 0.5% | no |
+| T3 any spread intensity | 3.21 | 64, 197, 493 | 20 | 0.0144 | 0.056 | 0.3% / 0.5% | no |
+| T4 3-frame sum | 3.19 | 64, 197, 493 | 24 (1.9-4.2%) | 0.0142 | 0.153 | 2.7% / 0.7% | no |
+| C4 3-frame sum, clean | 2.67 | 64, 197, 493 | 20 | 0.0137 | 0.133 | 2.6% / 0.7% | (T4 clean check fails) |
+| P1 Poisson gate | 1.34 | 381, 302, 41, 64, 493 | 5 (0.3-1.4%) | 0.0136 | | | yes |
+| P2 strict or Poisson gate | 1.34 | 64 | 5 (0.3-1.4%) | 0.0134 | | | yes |
+| CP1 Poisson gate, clean | 1.00 | 381, 302, 41, 214, 37, 64 | 3 | 0.0144 | | | (clean check passes) |
+| CP2 strict or Poisson, clean | 1.00 | 37, 64 | 3 | 0.0144 | | | (clean check passes) |
+
+Verdict by the rules written before the runs: the Poisson gate is yes (P1 and P2: grain 197
+accepted, 5 of 853 above 0.1 deg with an interval overlapping the clean one, median 0.0134-0.0136,
+and on clean images 3 of 853 at 0.0144); every threshold arm is no (grain 197 stays rejected).
+P2 ("either") is the arm to keep: it rejects only grain 64, while P1 also rejects the level-0 grains
+381, 302 and 41 (their Poisson deviance rises a little at a fit that is already within 0.02 deg;
+harmless here because their painted starts are good).
+
+Why the thresholds fail although they fix the data: a lower threshold restores the ground-truth
+strict cost and the unlit-peak share exactly (x 0.25 and 0: 0.056-0.059 and 0.3%, as on clean
+images), yet grain 197 is still rejected. Its A stage (one smooth field per grain from the painted
+start) ends just above the painted start's strict cost (x 0.25: 0.0927 against 0.0877); on clean
+images it was accepted by a hair (0.0947 against 0.0952). The strict-cost gate on this level-1.0
+grain is a knife edge, and the Poisson deviance, which reads the intensities, separates the fits.
+The 3-frame sum is worse: it widens spots in omega on clean images too (2.67 x the lit pixels).
+
+Caveats: the emulation has no noise or background, and the Poisson gate reads the full spread
+intensities (`--store grad_rock10t0`); on real data the counts below the binarisation threshold are
+noisy. 15-21 s per G20 run (contended, single runs). Correction to GO7f-b's table: the clean run
+rejects grains 64 and 493 (not none).

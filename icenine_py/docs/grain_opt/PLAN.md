@@ -1303,6 +1303,7 @@ Budget: implementation and tests by an implementer in its own worktree (a few ho
 experiment under 30 minutes.
 
 Results (2026-11-19, `findings.md`): GO7f-a no, GO7f-b no, GO7f-c no, GO7f-d: threshold dilution, not search.
+GO7g (2026-11-19): Poisson gate yes (P1, P2), thresholds no.
 
 **Follow-ups (judging rules written here, before any run, 2026-11-19 22:12 PST):**
 - GO7f-c, model PSF without the ratio filter: `GP4@P` on `strain_psf10` with `--model_psf 1` and

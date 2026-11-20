@@ -174,6 +174,7 @@ def main() -> None:
                     help="GO7g: A-stage acceptance on the strict cost, the Poisson deviance, or either")
     ap.add_argument("--model_rocking", type=float, default=0.0, help="GO7g: SpotModel rocking width (deg)")
     ap.add_argument("--store", default=None, help="GO7g: intensity store tag in place of the stack's")
+    ap.add_argument("--ratio_off", action="store_true", help="GO7g: region without the area-ratio filter")
     a = ap.parse_args()
     stages = parse(a.pipeline)
     out = CM.OUT / "runs" / a.name
@@ -205,7 +206,8 @@ def main() -> None:
         bnd = set(GF.boundary_members(members, S.nb))
         t1 = time.time()
         prob = GF.GrainProblem(S.model, S.images, R_cur, S.V, S.xy, members, shell, S.sym,
-                               strict_fn=S.strict)
+                               strict_fn=S.strict,
+                               region_kw=dict(ratio=None) if a.ratio_off else None)
         rec: Dict[str, Any] = dict(true_grain=int(g), level=T.level_of[g], group=grp,
                                    n_vox=len(members), n_in_true=int((gm[members] == g).sum()),
                                    n_spots=prob.n_spots, t_region_s=time.time() - t1, stages=[])
