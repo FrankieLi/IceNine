@@ -2268,3 +2268,18 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   trying nearby accepted orientations with a longer fit before indexing (about 80% of seed steps
   end within 1 degree of an earlier accepted neighbour). Where:
   icenine_py/docs/autoresearch/PLAN.md (AR5 steps 26, 27).
+
+### D-20261120-N2 · AR5 step 27 merged (failed c2, c3); step 28 approved, phase A · AR5 step 27 merged as a failed study; AR5 step 28 (50,000 pairs first, full sample on a failed seed test) approved
+- 2026-11-20, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Step 27 (rule PX) merged at 87c1f49a as a failed
+  study: evaluations +2.19% (limit 2%), grid searches on held 7 against 4 (limit 2 more); indexing
+  seconds 75.8% and pooled wall 44.9% lower (contended). No key; the gates are not loosened; PX
+  alone is not tried again. Stored rows show the extra grid searches are not lost candidates: the
+  two pair settings give different starts and fail on different voxels (held: 62 old, 60 new, 20
+  both). Step 28, rule PXF: a seed step indexes with 50,000 pairs; if it fails the seed test and
+  the pairs were subsampled, the voxel is indexed again with 600,000 pairs and the seed step
+  repeated, then rescue and grid search as now. Phase A approved with step 27's count gates
+  unchanged (c1 at 50% as planned), then the house rule on the clean sample held7, which this step
+  uses up; plain J5SD also runs on held7 and is reported, not a gate. mid and held are in-sample
+  for this rule. About 7.5 to 8.5 hours, one run at a time. A key needs a new decision. Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR5 steps 27, 28).
