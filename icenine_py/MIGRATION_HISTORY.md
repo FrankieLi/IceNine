@@ -13291,3 +13291,26 @@ keep the highest hit ratio, then the lowest cost, then the current end. `frozen.
   `tests/test_boundary_repair.py` (14). Findings text waits in
   `.claude/reports/20261115-1646-ar5t-findings_ar5_cmarepair.md` (its write under `docs/` was
   refused twice).
+
+## Opt-in detector PSF and rocking curve in the forward model (GO7f, 2026-11-19, task go7f-psf-rocking)
+
+- **Library change (first of AR6, owner D-20261119-I1), all opt-in, defaults bit-identical.**
+  `SpotModel(psf_sigma_px, rocking_deg)` (`icenine/grain_fit.py`): PSF as 3 x 3 Gauss-Hermite
+  offsets per coverage point, rocking as overlap-weighted frames of the window omega* +-
+  (rocking_deg / |sin eta|) / 2; `SpotRows` gains `sin_eta` and `spread`, and `pack_predicted` and
+  the shell of `build_region` use the spread points through `_rows_cloud`, so every script that packs
+  predictions gets them without a change. Stock renderer (`icenine/forward_simulation.py`,
+  `scripts/phase_d/render_full.py`): `rocking_deg` splits a peak's intensity over the frames (batched
+  path), `psf_sigma_px` blurs every dense frame and then darkens pixels below `psf_threshold` x the
+  frame maximum; the serial path refuses both. Strict cost (`icenine/cost_functions.py`):
+  `VoxelCostFunction(rocking_deg=)` compares each peak with the OR of the binary frames its window
+  overlaps (`rocking_window_frames`, `FrameTable.union_images`); `fused_cost` and
+  `BatchedCostEvaluator` refuse it (`FUSED_ARGUMENTS` classifies it as a fallback argument).
+- **Choices to review.** PSF threshold relative to the frame maximum (1e-3 default, so a spot below
+  that fraction of the brightest spot in its frame is dropped); window floor |sin eta| >= 0.01; the
+  render options are `ForwardSimulation` attributes and `render_full.py` flags, not `ConfigFile`
+  keys; spread points sit at frame centres (the frame cost is zero inside the frame, so the sub-frame
+  position only matters for the home frame).
+- Tests: `tests/test_go7f_psf_rocking.py` (13) with `tests/go7f_fixture.py` and
+  `tests/data/go7f_baseline.npz` (new golden, made from the code before the change; no existing
+  golden changed); `tests/test_fused_cost.py` gains the `rocking_deg` rejected value.

@@ -700,6 +700,21 @@ The batched cost function is organized into four stages:
 
 Stage D processes all M peaks × N detectors in a single C call via `_rasterize.c:stage_d_overlap()`. It uses pre-cached uint8 binary images (`ImageData.get_binary_numpy()`) and implements triangle overlap, pixel-radius search, contiguity validation, and Welford quality aggregation entirely in C. A Python fallback path is available when the C extension is not compiled.
 
+### Detector PSF and rocking curve (opt-in, GO7f)
+
+Two blurs of the forward model, all default off (0 = off; output bit-identical, checked against
+`tests/data/go7f_baseline.npz`, a render and predictions made before the options existed):
+
+| Where | Option | Effect |
+|-------|--------|--------|
+| `grain_fit.SpotModel(sc, psf_sigma_px=, rocking_deg=)` | PSF | each coverage point's mass goes to 3 x 3 fixed offsets (Gauss-Hermite nodes 0, +-sqrt(3) sigma; Gaussian variance and 4th moment exact, mass conserved) |
+| | rocking | a row's mass is split over the frames that omega* +- (rocking_deg / abs(sin eta)) / 2 overlaps, weighted by overlap, points at frame centres; frames outside the scan lose their share |
+| `ForwardSimulation.psf_sigma_px`, `.psf_threshold`, `.rocking_deg` (batched path only) | PSF, rocking | each rendered frame is Gaussian-blurred, then pixels below `psf_threshold` x the frame maximum (default 1e-3) go dark; a peak's intensity is split over the rocking frames, weights summing to 1. `render_full.py`: `--psf-sigma-px`, `--psf-threshold`, `--rocking-deg` |
+| `VoxelCostFunction(rocking_deg=)` | strict rocking window | a peak counts as lit where it is lit in any frame its window overlaps (pixelwise OR of those binary frames); hard mode, C fast path, no `ray_rule`; the fused cost and `BatchedCostEvaluator` refuse it |
+
+`abs(sin eta)` is floored at 0.01. Derivation of the window: `docs/omega_peak_width_derivation.md`.
+Tests: `tests/test_go7f_psf_rocking.py`.
+
 ## Toy Orientation NN Scripts (`scripts/`)
 
 Prototype pipeline for learning local orientation refinement (status and plan in

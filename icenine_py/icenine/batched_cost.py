@@ -511,6 +511,8 @@ def unsupported_reason(cost_fn: VoxelCostFunction) -> Optional[str]:
         return "soft mode"
     if cost_fn.ray_rule is not None:
         return "the ray rule"
+    if cost_fn.rocking_deg > 0:
+        return "the rocking window (rocking_deg)"
     if not CF._HAS_C_RASTERIZE:
         return "the _rasterize C extension is missing"
     if cost_fn.cpp_edge_rules and not CF._C_HAS_VERTEX_LIT:

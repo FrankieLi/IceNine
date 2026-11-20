@@ -139,6 +139,7 @@ def test_every_fallback_argument_has_a_rejected_value(s2: Dict[str, Any]) -> Non
         "ray_rule": RayRule(arm="R", radius_px=2, registration_mm=0.0),
         "eta_limit": None,
         "detector_list": list(ds.setup.detector_list) * 5,  # 10 detectors
+        "rocking_deg": 0.1,
     }
     for name, kind in FUSED_ARGUMENTS.items():
         if kind != "fallback":
