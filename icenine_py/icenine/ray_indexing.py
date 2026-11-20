@@ -477,6 +477,235 @@ def index_voxel(
 
 
 # --------------------------------------------------------------------------------------------
+# a faster indexer with the same candidates (autoresearch AR5 step 26, rule ``IX``)
+#
+# ``index_voxel_fast`` returned the same candidates as ``index_voxel`` on every voxel tested (7,111
+# voxels) and in two live runs; it is NOT exact by construction (see ``_vote_counts_fast``).
+# Nothing about the parameters, the vote generator, the seed order or the merge changes; two
+# things are done differently: (1) the neighbour count of the votes is made once per distinct vote
+# and weighted by its multiplicity (votes that differ by about one rounding error are taken to
+# have the same count: consistent with the tests, not proved), with a larger k-d tree leaf; (2)
+# the part of the refinement that
+# does not depend on the rotation (relative ray length against every reciprocal-vector length) is
+# computed once per voxel, and the explained-ray count is not recomputed when the last match was
+# made at the same rotation. ``index_voxel`` is the reference and stays unchanged.
+# --------------------------------------------------------------------------------------------
+_FAST_LEAF = 64  # k-d tree leaf size of the count (another leaf gave equal counts when tried)
+_DUP_SCALE = 1e11  # votes whose reduced quaternions round to the same value are one distinct vote
+_MAX_MULT_CLASSES = 8  # more distinct multiplicities than this: count with one tree of all votes
+
+
+def _vote_counts_fast(q: np.ndarray, chord: float) -> np.ndarray:
+    """Number of votes within ``chord`` (Euclidean, quaternion space) of every vote, themselves
+    included: what ``cKDTree(q).query_ball_point(q, chord, return_length=True)`` returned on all
+    tested voxels, from one query per distinct vote (votes equal after rounding to ``1 /
+    _DUP_SCALE`` are one vote) against one small tree per multiplicity. Known limit, not exact by
+    construction: every vote of a group gets the representative's count, and the other groups are
+    counted at their representative's position, so a vote whose distance to a group lies within
+    the group's spread of ``chord`` can get another count than the tree gives (see
+    ``test_vote_counts_edge_case_differs_from_tree``)."""
+    n = len(q)
+    key = np.round(q * _DUP_SCALE).astype(np.int64)
+    order = np.lexsort((np.arange(n), key[:, 3], key[:, 2], key[:, 1], key[:, 0]))
+    ks = key[order]
+    start = np.r_[True, np.any(ks[1:] != ks[:-1], axis=1)]
+    gid_sorted = np.cumsum(start) - 1
+    gid = np.empty(n, dtype=np.int64)
+    gid[order] = gid_sorted
+    rep = order[start]  # lowest index of every distinct vote
+    mult = np.bincount(gid_sorted)
+    qr = q[rep]
+    classes = np.unique(mult)
+    if len(rep) == n or len(classes) > _MAX_MULT_CLASSES:
+        tree = cKDTree(q, leafsize=_FAST_LEAF)
+        cnt_rep = np.asarray(tree.query_ball_point(qr, chord, return_length=True), dtype=np.int64)
+    else:
+        cnt_rep = np.zeros(len(rep), dtype=np.int64)
+        for k in classes:
+            sel = mult == k
+            tk = cKDTree(qr[sel], leafsize=_FAST_LEAF)
+            cnt_rep += int(k) * np.asarray(
+                tk.query_ball_point(qr, chord, return_length=True), dtype=np.int64
+            )
+    return cnt_rep[gid]
+
+
+def cluster_votes_fast(
+    votes: np.ndarray, sym: np.ndarray, p: IndexParams
+) -> Tuple[np.ndarray, np.ndarray]:
+    """``cluster_votes`` with the neighbour count of ``_vote_counts_fast``; the seed loop (order,
+    symmetric recount, aligned mean) is the reference's, line for line. Counts as in
+    ``_vote_counts_fast`` (equal on tested voxels, not exact by construction)."""
+    if len(votes) == 0:
+        return np.zeros((0, 3, 3)), np.zeros(0, dtype=int)
+    red = reduce_rotations(votes, sym)
+    q = _quat_pm(red)
+    chord = 2.0 * np.sin(np.radians(p.cluster_deg) / 4.0)
+    cnt = _vote_counts_fast(q, chord)
+    tree = cKDTree(q)
+    seeds = np.argsort(-cnt, kind="stable")
+    assigned = np.zeros(len(q), dtype=bool)
+    sel_R: List[np.ndarray] = []
+    sel_n: List[int] = []
+    sym_t = sym.transpose(0, 2, 1).reshape(len(sym), 9).T
+    for s in seeds:
+        if len(sel_R) >= p.n_seeds:
+            break
+        if assigned[s]:
+            continue
+        Rs = red[s]
+        eq = np.einsum("ij,sjk->sik", Rs, sym)
+        qe = _quat_pm(eq)
+        pts = np.concatenate([qe, -qe])
+        hits = set()
+        for lst in tree.query_ball_point(pts, chord):
+            hits.update(lst)
+        idx = np.fromiter(hits, dtype=np.int64)
+        assigned[idx] = True
+        assigned[s] = True
+        mem = red[idx]
+        tr = np.einsum("ij,mik->mjk", Rs, mem).reshape(len(idx), 9) @ sym_t
+        al = np.einsum("mij,mjk->mik", mem, sym[np.argmax(tr, axis=1)])
+        U, _, Vt = np.linalg.svd(al.sum(0))
+        Rm = U @ np.diag([1.0, 1.0, np.sign(np.linalg.det(U @ Vt))]) @ Vt
+        sel_R.append(Rm)
+        sel_n.append(len(idx))
+    order = np.argsort(-np.asarray(sel_n), kind="stable")
+    return np.stack(sel_R)[order], np.asarray(sel_n)[order]
+
+
+_REFINE_CHUNK = 32  # clusters refined together (the largest array is chunk x rays x vectors)
+
+
+def _refine_clusters_fast(
+    R0: np.ndarray,
+    g: np.ndarray,
+    gl: np.ndarray,
+    gh: np.ndarray,
+    len_ok: np.ndarray,
+    crystal: CrystalModel,
+    p: IndexParams,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """``refine_rotation`` of every cluster rotation in ``R0`` (C, 3, 3), several at a time. Every
+    cluster goes through the same operations in the same order as in the reference (the batch only
+    stacks them; the least-squares fit of each cluster takes the rays it explains), so the
+    rotations and counts are the same. Returns (rotations (C, 3, 3), explained counts (C,))."""
+    C = len(R0)
+    q = crystal.q
+    h = crystal.h
+    R = np.array(R0, dtype=np.float64)
+    explained = np.zeros(C, dtype=np.int64)
+    active = np.arange(C)
+    n_it = p.refine_iters
+    for it in range(n_it + 1):
+        nxt: List[np.ndarray] = []
+        for c0 in range(0, len(active), _REFINE_CHUNK):
+            idx = active[c0 : c0 + _REFINE_CHUNK]
+            ph = np.matmul(h, R[idx].transpose(0, 2, 1))  # (A, K, 3) = h R^T
+            cos = np.where(
+                len_ok[None], np.matmul(gh, (ph / q[None, :, None]).transpose(0, 2, 1)), -2.0
+            )  # (A, n, K)
+            j = np.argmax(cos, axis=2)
+            cmax = np.take_along_axis(cos, j[:, :, None], axis=2)[:, :, 0]
+            found = cmax > -1.5
+            ang = np.where(found, np.degrees(np.arccos(np.clip(cmax, -1.0, 1.0))), np.inf)
+            rel = np.where(found, np.abs(gl[None, :] / q[j] - 1.0), np.inf)
+            j = np.where(found, j, -1)
+            ok = (ang <= p.ang_tol_deg) & (rel <= p.len_tol)
+            n_ok = ok.sum(axis=1)
+            stop = (n_ok < 2) | (it == n_it)
+            explained[idx[stop]] = n_ok[stop]
+            go = np.nonzero(~stop)[0]
+            if len(go) == 0:
+                continue
+            M = np.empty((len(go), 3, 3))
+            for t, a in enumerate(go):
+                M[t] = g[ok[a]].T @ h[j[a][ok[a]]]
+            U, _, Vt = np.linalg.svd(M)
+            d = np.sign(np.linalg.det(U @ Vt))
+            scale = np.ones((len(go), 1, 3))
+            scale[:, 0, 2] = d
+            R[idx[go]] = (U * scale) @ Vt
+            nxt.append(idx[go])
+        active = np.concatenate(nxt) if nxt else np.zeros(0, dtype=np.int64)
+        if len(active) == 0:
+            break
+    return R, explained
+
+
+def index_rays_fast(
+    g: np.ndarray,
+    crystal: CrystalModel,
+    p: IndexParams,
+    top_k: int = 20,
+    keep_votes: bool = False,
+) -> Candidates:
+    """``index_rays`` with ``cluster_votes_fast`` and the hoisted refinement (same output on all
+    tested voxels)."""
+    t0 = time.perf_counter()
+    n = len(g)
+    if n < 2:
+        return Candidates(np.zeros((0, 3, 3)), np.zeros(0, int), np.zeros(0, int), n_rays=n)
+    votes, ne, npairs = cast_votes(g, crystal, p)
+    t1 = time.perf_counter()
+    cl_R, cl_n = cluster_votes_fast(votes, crystal.sym, p)
+    t2 = time.perf_counter()
+    gl = np.linalg.norm(g, axis=1)
+    gh = g / gl[:, None]
+    len_ok = np.abs(gl[:, None] / crystal.q[None, :] - 1.0) <= p.len_tol
+    Rs_a, ex_a = _refine_clusters_fast(cl_R, g, gl, gh, len_ok, crystal, p)
+    vn_a = np.asarray(cl_n, dtype=np.int64)
+    t3 = time.perf_counter()
+    if len(Rs_a) == 0:
+        return Candidates(
+            np.zeros((0, 3, 3)), np.zeros(0, int), np.zeros(0, int), n, ne, npairs, len(votes)
+        )
+    order = np.lexsort((-vn_a, -ex_a))
+    keepR: List[int] = []
+    for i in order:
+        if len(keepR) >= top_k:
+            break
+        if (
+            keepR
+            and (
+                misorientation_deg(Rs_a[i][None], Rs_a[keepR], crystal.sym) < 1.0 * p.merge_deg
+            ).any()
+        ):
+            continue
+        keepR.append(int(i))
+    sel = np.asarray(keepR)
+    t4 = time.perf_counter()
+    return Candidates(
+        Rs_a[sel],
+        ex_a[sel],
+        vn_a[sel],
+        n,
+        ne,
+        npairs,
+        len(votes),
+        seconds=dict(vote=t1 - t0, cluster=t2 - t1, refine=t3 - t2, merge=t4 - t3, total=t4 - t0),
+        vote_R=votes if keep_votes else None,
+    )
+
+
+def index_voxel_fast(
+    sc: Any,
+    voxel_vertices: Any,
+    crystal: CrystalModel,
+    p: IndexParams,
+    top_k: int = 20,
+    keep_votes: bool = False,
+) -> Tuple[Candidates, np.ndarray]:
+    """The candidates and attached rays of ``index_voxel`` (rule ``IX``: same rotations, same
+    counts, same order on all 7,111 tested voxels; not by construction), computed faster.
+    Unused unless called."""
+    att = sc.attached_rays(voxel_vertices)
+    g = scattering_vectors(sc, att)
+    res = index_rays_fast(g, crystal, p, top_k, keep_votes)
+    return res, att
+
+
+# --------------------------------------------------------------------------------------------
 # the BFS seed search (autoresearch AR2): index, strict cost on the first candidates, finisher
 # --------------------------------------------------------------------------------------------
 SEED_N_COST = 5  # candidates that get the strict cost

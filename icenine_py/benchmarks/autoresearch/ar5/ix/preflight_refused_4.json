@@ -1,0 +1,36 @@
+{
+  "timestamp": "2026-11-19T17:47:23",
+  "host": "newt.local",
+  "loadavg": [
+    1.4912109375,
+    1.5634765625,
+    1.74169921875
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": null,
+  "mkl_num_threads": null,
+  "torch_threads": 8,
+  "busy_processes": [
+    {
+      "pid": 443,
+      "cpu": 99.7,
+      "command": "/usr/libexec/mobileassetd"
+    },
+    {
+      "pid": 633,
+      "cpu": 57.9,
+      "command": "/System/Library/PrivateFrameworks/CloudKitDaemon.framework/Support/cloudd"
+    },
+    {
+      "pid": 5359,
+      "cpu": 100.0,
+      "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+    },
+    {
+      "pid": 83926,
+      "cpu": 22.5,
+      "command": "/System/Library/PrivateFrameworks/CacheDelete.framework/deleted"
+    }
+  ]
+}
