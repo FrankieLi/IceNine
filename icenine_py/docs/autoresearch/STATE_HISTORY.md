@@ -1319,3 +1319,21 @@ Decisions D-20261119-N5 (approval) and D-20261119-N6. Reports in the main `.clau
 - Step 26 (task `ar5z`, a faster ray indexer with the same candidates) is approved by
   D-20261119-N6. It targets wall time, not evaluations: stored J5SD runs spend 41% to 77% of
   contended wall time in ray indexing.
+
+### AR5 step 26 (faster ray indexer; task `ar5z`), merged as a study at ae16e2c7 on 2026-11-20
+
+Decision D-20261119-N6. Reports in the main `.claude/reports/`: `20261119-1542-ar5z.md` and
+review `20261120-0035-review-ar5z.md`.
+
+- Idea: a faster ray indexer, `index_voxel_fast`, with the same candidates. It targets wall
+  time, not evaluations.
+- Exactness gates e1 and e2 met at tier 1 on the tested data. e1: 7,111 of 7,111 voxels equal.
+  e2: live J5SD equals the stored maps and counts on `mid` and `held`.
+- "Equal on tested data, not by construction": a vote on the 1-degree edge can change a
+  neighbour count.
+- Timing gates z0, w1, w2 are NOT JUDGED: the machine was not quiet and the preflight refused.
+- Contended numbers: indexing 35.4% lower pooled (line 50%), wall 23.0% lower pooled (line 25%).
+  Both would be missed.
+- No key. The new function is in the library, unused by default. No default change. Suite: 2379
+  passed, 45 skipped, 1 deselected.
+- A key would first need an exact neighbour count. Step 27 is being drafted.
