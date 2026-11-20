@@ -63,6 +63,15 @@ import bf_guard as BG  # noqa: E402
 
 BG.refuse_sample(SAMPLE)  # held2, fine7, foreign names; held7 until gate_passed
 
+import high500_guard as _H5G  # noqa: E402
+
+# held7 is a sample of this step (bf_guard, above, gates it). Step 16's guard, reached through the
+# older steps' set-ups (defer_common adds held4 to held6 to it), never learned the name: the first
+# S8 launch on held7 stopped at it in 11 s ("high500 rule: sample 'held7' is not one of ..."),
+# before any method ran. Same treatment as held4 to held6 (the name only; nothing else changes).
+if "held7" not in _H5G.SAMPLES:
+    _H5G.SAMPLES = tuple(_H5G.SAMPLES) + ("held7",)  # type: ignore[assignment]
+
 import bf_freeze as _BFF  # noqa: E402
 
 _BFF.problems = lambda: ""  # type: ignore[assignment]  # step 24's check is off (ours passed)
