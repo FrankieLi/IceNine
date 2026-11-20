@@ -778,6 +778,24 @@ sigma 0.03 deg, 150 evaluations, from the ground truth). An arm qualifies if its
 
 Budget: under 30 minutes.
 
+### GO9d: per-spot moment matching as an orientation objective (goal G2a, idea I19)
+
+Question (written 2026-11-19 23:00 PST, before any run): does matching per-spot moments (the
+weighted centroid, and the column / row covariance) of predicted and observed spots have its
+optimum at the ground truth? (GO5i used centroid residuals inside the strain fit; this is the
+orientation-only bias test.)
+
+Objective (`probe_poisson.py --variants mom mom_c`, no library change): per spot window, the
+predicted coverage points (grain plus fixed shell, weights a) and the observed lit pixel centres
+(weights the clean intensity); centroid c in (column px, row px, frame) and the 2 x 2 column / row
+covariance C. `mom_c`: sum over spots of |c_pred - c_obs|^2; `mom`: plus |C_pred - C_obs|_F^2 (px^2;
+the frame variance is left out, as GO5's moment residuals found it biased by the omega smear).
+Spots with no predicted mass add a fixed penalty of 25 px^2.
+
+Protocol and rule: GO1's (grains 381 and 302, CMA over the rotation, sigma 0.03 deg, 150
+evaluations, from the ground truth); an arm qualifies if its optimum is below 0.01 deg from the
+ground truth on both grains. Output `benchmarks/grain_opt/go9d/`. Budget: under 30 minutes.
+
 ### GO4e: neighbour pass after the gated seed path (goal G1b, idea I51)
 
 Question: GO4d's ladder + gated seed path (`L/366/3,G/15/0.15`) left rand at 2 deg with 52% of

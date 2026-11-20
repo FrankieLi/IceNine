@@ -1514,3 +1514,21 @@ weights barely matter, which points at a systematic difference between the two p
 predicted coverage points against lit-pixel centres, with the neighbour shell's points in the
 windows) rather than at the kernel. Among the G2a objectives only the Poisson deviance comes near
 the strict cost. 4-12 s per grain for 150 evaluations (contended).
+
+## GO9d: per-spot moment matching as an orientation objective (goal G2a, idea I19)
+
+GO1 protocol; `probe_poisson.py --variants mom mom_c --out go9d`, rows
+`benchmarks/grain_opt/go9d/moments.json`.
+
+| arm | optimum from ground truth, 381 / 302 (deg) | objective at ground truth, 381 / 302 | strict at optimum, 302 |
+|---|---|---|---|
+| `mom_c` (centroids) | 0.0357 / 0.0795 | 126 / 358 px^2 | 0.156 |
+| `mom` (+ column / row covariance) | 0.0436 / 0.8175 | 12,209 / 49,753 | 0.834 |
+
+Verdict by the rule written before the run: no, for both arms. Even at the ground truth the
+centroids differ by about 1.2 px rms per spot (126 px^2 over 82 spots on grain 381), and the
+covariance term is dominated by a few windows whose observed spread is far from the predicted one
+(merged spots or neighbour pixels in the window); on grain 302 it pulls the fit 0.8 deg away
+(strict 0.834). Whole-window moments are not usable as an orientation objective without the
+outlier handling that the strain fit's Tukey-weighted centroid residuals have (GO5i). 2-3 s per
+grain (contended).

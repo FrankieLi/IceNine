@@ -16,8 +16,10 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
   real painted start on rand / corr3, paint likely over 2 h), a rocking-aware threshold or
   intensity cost in the gate (from GO7f-d), and the GO7f defaults (renderer attributes vs config
   keys, PSF lit threshold 1e-3, |sin eta| floor 0.01, high500 freeze test policy).
-- **Next action:** GO9d (I19, G2a): per-spot moment matching (centroid + covariance) as an
-  orientation objective under the GO1 protocol; write the rule into PLAN first.
+- **GO9d closed** (G2a, I19 no as objective): centroid optimum 0.036 / 0.080 deg, with covariance
+  0.04 / 0.82 deg. G2a objectives done: only the Poisson deviance nears the strict cost.
+- **Next action:** the remaining proposed ideas are I3 (soft pixel-touched model), I4 (noise floor),
+  I8 (blur annealing); plan I4 (G1a) next unless the owner picks one of the open choices.
 
 ## Running jobs
 

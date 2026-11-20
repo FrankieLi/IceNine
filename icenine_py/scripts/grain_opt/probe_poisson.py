@@ -105,6 +105,46 @@ class MMD:
         return tot
 
 
+class Moments:
+    """GO9d (I19): sum over spots of |c_pred - c_obs|^2 (centroid in column, row, frame) and, with
+    ``cov``, |C_pred - C_obs|_F^2 (column / row covariance); predicted weights a, observed weights
+    the clean intensity. A spot with no predicted mass adds ``miss`` px^2."""
+
+    def __init__(self, prob: object, cov: bool, miss: float = 25.0) -> None:
+        self.prob, self.cov, self.miss = prob, cov, miss
+        self.c, self.C = [], []
+        for sp in prob.region.spots:
+            y = np.asarray(sp.obs, float)
+            w = np.asarray(sp.obs_val, float)
+            c, C = self._mom(y, w / w.sum())
+            self.c.append(c)
+            self.C.append(C)
+
+    @staticmethod
+    def _mom(p: np.ndarray, w: np.ndarray) -> tuple:
+        c = w @ p
+        d = p[:, :2] - c[:2]
+        return c, (d * w[:, None]).T @ d
+
+    def __call__(self, R: torch.Tensor) -> float:
+        prob = self.prob
+        with torch.no_grad():
+            rows = prob.model.predict(R, prob.V)
+            x, a = GF.pack_predicted(prob.region, rows, prob.bary, prob.model.n_det, with_shell=True)
+        x, a = x.numpy(), a.numpy()
+        tot = 0.0
+        for j in range(len(self.c)):
+            live = a[j] > 0
+            if not live.any():
+                tot += self.miss
+                continue
+            c, C = self._mom(x[j][live], a[j][live] / a[j][live].sum())
+            tot += float(((c - self.c[j]) ** 2).sum())
+            if self.cov:
+                tot += float(((C - self.C[j]) ** 2).sum())
+        return tot
+
+
 def spot_intensities(S: object, prob: object) -> np.ndarray:
     """GO9b: I_j = F / (|sin eta| sin 2theta) per spot: F the reflection's form intensity (the
     structure's reflection list filtered by Q-max, as SmoothCost), eta and 2 theta from the lab
@@ -161,6 +201,8 @@ def main() -> None:
         for name in a.variants:
             if name in mmd:
                 obj = MMD(prob, mmd[name][0], 1.0, mmd[name][1])
+            elif name in ("mom", "mom_c"):  # GO9d
+                obj = Moments(prob, cov=name == "mom")
             else:
                 b, I_use = table[name]
                 obj = Poisson(prob, gain, b, I_use)
@@ -186,7 +228,9 @@ def main() -> None:
                        strict_opt=float(S.strict(R_opt, members).mean()), t_s=time.time() - t0)
             print(json.dumps(row), flush=True)
             out.append(row)
-    (CM.OUT / a.out / ("mmd.json" if any(v.startswith("mmd") for v in a.variants) else "poisson.json")).write_text(json.dumps(out, indent=1) + "\n")
+    (CM.OUT / a.out / ("mmd.json" if any(v.startswith("mmd") for v in a.variants)
+                          else "moments.json" if any(v.startswith("mom") for v in a.variants)
+                          else "poisson.json")).write_text(json.dumps(out, indent=1) + "\n")
 
 
 if __name__ == "__main__":
