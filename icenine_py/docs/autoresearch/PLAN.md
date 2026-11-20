@@ -5940,6 +5940,157 @@ random seed; `held2`; `fine7`.
 
 Approved: D-20261119-N6, phases 0 and A; phase B needs a new decision.
 
+### AR5 step 27: a smaller ray-pair sample in the indexer, checked by the final cost (not exact)
+
+Task `ar5aa`. Starts from `feature/eval-reduction` after step 26's merge. Reads step 22's cache
+through the links in `ar5/ix/cache` (main checkout), read only. Phase A only after a recorded
+decision; phase B (a key) needs a second one.
+
+**Why.** Ray indexing counts no evaluations, yet it is 50% to 65% of `J5D`'s wall time even with
+step 26's faster indexer (contended: `mid` 627 of 1,247 s, `held` 2,668 of 4,097 s). Clustering is
+82% to 84% of the indexer, and it is bound by the number of votes. Votes grow with the ray pairs:
+a median of 100,046 pairs on `mid` and 229,206 on `held`, under the cap of 600,000. On 400 stored
+seed voxels, a cap of 50,000 pairs cut indexing seconds by 54% (`mid`) and 78% (`held`), and the
+orientation the run finally accepted stayed among the top 20 candidates in every voxel where it
+was before. The seed step's own strict costs and fits then check every candidate as now.
+
+**What was read and run.** STATE; PLAN steps 22 to 26; step 26's report and review; shmem on step
+26, reseeds, AR3 steps 6, 8, 9; `ray_indexing.py` (`index_voxel`, `index_voxel_fast`);
+`reconstructor.py` (`_reseed_clusters`, `_bfs_expand`). Stored rows: `J5D` logs, `e1_log`,
+`recon.mic`, `run.json` of `mid` and `held` (step 26's live runs, equal to step 22's). Scratch
+`size27a.py` (reuse, stored rows only) and `size27b.py` (indexer settings on 200 seed voxels of
+`mid` and 200 of `held`, a fixed stride, order of settings alternating per voxel, one thread,
+contended: load 2.9 to 4.5, `cpptools` busy). No evaluation, no run; nothing of `held2`, `fine7`.
+
+**Terms.** **Seed step**: index the voxel, cost 20 candidates, refine the best 5 (a CMA fit, then
+MC under 0.95). **Reseed**: a seed step on the voxel nearest the centre of a cluster of rejected
+voxels. **Ray pairs**: pairs of attached rays that vote; above `max_pairs` a fixed random subsample
+(generator 0) is kept. **Votes**: rotations cast by the pairs. **Rank**: position of the first
+candidate within 1 degree of the orientation the stored run finally accepted at that voxel.
+**Evaluation**, **contended**, **quiet**: as step 26. **Paired timing**: old and new run in one
+session, interleaved, so machine load falls on both alike.
+
+**(B) Cheaper settings, measured.** Reading line: per setting, the share of 200 voxels with rank 0,
+under 5, under 20, and the mean indexing seconds per voxel (contended), `mid` then `held`. All
+settings use step 26's clustering, so `base` is today's output.
+
+| setting | top 1 mid / held | top 5 | top 20 | s per voxel mid / held |
+|---|---|---|---|---|
+| base (600,000 pairs, 150 seeds) | 77.5% / 82.5% | 99.0% / 98.0% | 100% / 99.5% | 0.380 / 0.688 |
+| 150,000 pairs | 77.5 / 82.0 | 98.5 / 98.0 | 100 / 99.0 | 0.368 / 0.379 |
+| 50,000 pairs | 76.5 / 82.0 | 99.0 / 99.5 | 100 / 100 | 0.174 / 0.150 |
+| 20,000 pairs | 77.5 / 82.5 | 99.5 / 98.0 | 99.5 / 99.0 | 0.092 / 0.099 |
+| 25 seeds | 77.5 / 82.5 | 99.5 / 98.5 | 99.5 / 99.0 | 0.325 / 0.614 |
+| refine top 40 clusters | 77.5 / 82.5 | 99.0 / 98.5 | 99.5 / 99.0 | 0.352 / 0.648 |
+| 50,000 pairs and 25 seeds | 77.0 / 82.5 | 99.0 / 100 | 99.0 / 100 | 0.130 / 0.095 |
+
+Paired by voxel, 50,000 pairs lost no voxel from the top 20 (gained 1) and moved 1 from rank 1 to
+rank 5. The nearest candidate's angle to the accepted orientation is unchanged (median 0.368 and
+0.389 degree, against 0.376 and 0.395). Fewer seeds or refined clusters save little: the rest of
+the indexer is 8% to 10% of `base`. A coarse-to-fine vote was not built (pairs already do it).
+
+**(A) Known orientations first, sized.** Reading line: per sample, the share of seed steps whose
+accepted orientation lies within 0.5, 1, 2, 5 degrees of a voxel accepted EARLIER in the run
+within 5 side lengths; in brackets, the share that also ended at hit ratio 0.95 or more.
+
+| sample | steps | 0.5 | 1 | 2 | 5 |
+|---|---|---|---|---|---|
+| mid | 1,626 | 84.6% (78.5%) | 90.2% (83.3%) | 92.0% (85.0%) | 92.3% (85.3%) |
+| held | 3,685 | 76.6% (67.7%) | 89.7% (78.7%) | 92.2% (80.8%) | 93.1% (81.4%) |
+
+The 8 nearest accepted voxels hold one within 1 degree in 89.4% and 88.7% of steps. Why the BFS
+failed there: in 1,339 of 1,354 (`mid`) and 2,873 of 2,901 (`held`) such steps, a voxel within 2
+side lengths and 1 degree of the answer was accepted before the voxel's last rejected fit; the
+voxel was then fitted a median 6 and 7 more times, best hit ratio a median 0.838 and 0.791, while
+the seed step reached 0.990. The neighbour fit (CMA, 60 evaluations, first step 0.05 degree) stops
+short of an answer 0.3 to 1 degree away (AR3 step 8's class A, untested there). Reuse would need the
+seed step's longer fit, not the same start. Its share is an upper bound; the CMA result is not
+measured without evaluations. Saved per success: indexing plus up to 781 (`mid`) and 1,274
+(`held`) evaluations; cost per failure: about 209.
+
+**(C), (D).** (C) Exact headroom: the vote count is about 90% of clustering (25 seeds cut it only
+5% to 7%), so an exact gain needs a compiled neighbour count (an edge check adds a query); likely
+30% to 50% of indexing. (D) A learned proposer: 22,087 stored seed steps to train on; it must
+match top 20 in 99.5% to 100%. After (B), indexing is 0.10 to 0.17 s a step, about 30% of a wall
+that is itself 27% (`mid`) to 51% (`held`) shorter (projected from the table, contended).
+
+**The rule, frozen now.** Rule `PX`: the indexer runs with `max_pairs` 50,000 in place of 600,000.
+Nothing else changes: the pair generator (seed 0), tolerances, `n_seeds` 150, `top_k` 20, the
+seed step, rescue, BFS, screen and repair. Both arms use the same indexer function (`index_voxel`,
+or `index_voxel_fast` in both if step 26's key is approved first). No truth, no threshold read
+from data after this freeze, nothing crystal-specific. Chosen on 400 voxels of `mid` and `held`:
+in-sample, so `held7` is the clean test.
+
+**Samples.** Disclosed: `held3` to `held6`, `held`, `mid`, `grad`, `big`. Candidate quality: 300
+stored seed voxels per sample (generator 27) of all eight. Gates: `mid` and `held`. Clean test:
+`held7` (generator seed 7 of the held family, built as `held`; nothing of it exists). `held2` not
+opened or listed; `fine7` not read.
+
+**Gates, fixed now.** Counts first; they do not depend on machine load.
+- q1 (candidates, no evaluations): over the 2,400 voxels, the final orientation leaves the top 20
+  in at most 0.5% of voxels where it was in it under `base` (gained ones reported apart).
+- c1 (indexer work): summed ray pairs and votes of the new runs at least 60% lower than those of
+  stored `J5SD`'s seed voxels (indexed again, no evaluations), `mid` and `held` pooled.
+- c2 (evaluations): new `J5SD` at most 2% more than stored (7,383,368 + 17,114,589), summed.
+- c3 (accuracy, against stored `J5SD`, 23 and 45 wrong; `mid` and `held` pooled): broken minus
+  fixed at most 3 per sample; median error at most 0.001 degree higher; seed steps that reach
+  the grid search at most 2 more per sample.
+- t1 (paired, index only): old and new settings on the 5,311 stored seed voxels of `mid` and
+  `held`, alternating blocks of 100, one session: summed indexing seconds at least 50% lower.
+- t2 (paired, whole run): `J5SD` old and new in the order old `mid`, new `mid`, new `held`, old
+  `held`, one session, preflight before each, load sampled every 30 s: pooled wall at least 25%
+  lower. t1 and t2 are judged with any load, and reported with the preflight verdicts; a quiet
+  repeat of t2 is added if a quiet window comes, but is not required.
+- h1, house rule on `held7` (a non-exact change): new `J5SD` against `S8`, at least 20% fewer
+  evaluations, broken minus fixed at most 5, median error at most 0.005 degree higher.
+
+**Predictions, before any run.** q1: 0 to 6 lost. c1: pairs 70% to 80% lower. c2: within 1%.
+c3: -3 to +3. t1: 55% to 80% lower. t2: `mid` 25% to 40%, `held` 40% to 60% less. h1 passes.
+
+**Costs.** q1: 2,400 voxels, two settings, no evaluations, about 0.7 hour. t1: about 1.5 hours.
+c1 to c3 and t2: four live runs (the two old runs also check that stored `J5SD` reproduces), about
+4 hours. h1: build `held7`, run `S8` and new `J5SD` on it, about 4 to 5 hours. In all 10 to 11
+hours, one run at a time.
+
+**Stop rules.** q1 fails (no live run); an old run does not reproduce stored `J5SD`; any other
+`IndexParams` value differs; c2 or c3 fails (no `held7`); `held2` opened or listed, `fine7` read.
+A gate is never loosened after a timed run; every refused preflight is kept.
+
+**Validity checks.** `n_pairs`, `n_votes` logged per seed step (c1 read from the run). One thread.
+Same `SmoothCost` and rays in both arms; ms per evaluation by stage reported. No truth read before
+scoring (as step 24).
+
+**Known limits.** In-sample choice (two samples); route noise; a voxel under 50,000 pairs is
+unchanged; contended t1, t2 give a ratio, not quiet seconds; copper only (the rule is generic).
+
+**Phase A.** 1. Commit `px/frozen.json` (rule, gates, voxel lists, hashes). 2. Tests first,
+`tests/test_ar5_px.py`: `max_pairs` reaches `cast_votes`; under 50,000 pairs the output equals
+`base`; hexagonal fixture runs. 3. q1, t1. 4. c1 to c3, t2. 5. h1. Plot first (wall per sample,
+old and new, indexing and evaluations stacked; beside it broken and fixed), then the tables.
+
+**Phase B (key).** Opt-in `RayIndexMaxPairs N` (default 600,000), checked in `check_bfs_keys`;
+key-off suite, no golden change. Page `findings_ar5_px.md`, history, README.
+**Files:** `scripts/autoresearch/ar5/px_*.py`, `tests/test_ar5_px.py`, `ar5/px/` (under 3 MB).
+Library: phase A none (the setting passes through `IndexParams`); phase B the key.
+
+**Not in this step.** Reuse (A); an exact count (C); a learned proposer (D); `n_seeds`, `top_k`;
+the seed step's fits; the neighbour stage; batching; C++; realistic images; extra seeds.
+
+**Choices made.**
+- This idea: the largest wall saving per machine hour. Indexing seconds 54% to 78% lower on stored
+  voxels with no top-20 loss, one parameter, no new search code; about 10 hours with `held7`.
+  Weak side: not exact (route noise), in-sample choice, contended micro-benchmark.
+- 50,000, not 20,000 pairs: 20,000 is 1.5 to 1.9 times faster again but lost 1 of 200 top-20
+  voxels on each sample; one lost candidate can send a seed step to the grid search (24,000 to
+  93,000 evaluations), which c2 would feel. 25 seeds on top saves little more on `held`.
+- Runner-up (A), reuse known orientations (8 nearest accepted voxels, one 200-evaluation CMA fit,
+  index only under 0.95): at most 79% to 83% of seed steps skip indexing, and evaluations may
+  fall; but its success rate needs evaluations to measure, and new BFS code. After (B) it can
+  still remove most of the remaining 30%. The natural next step.
+- (C) 30% to 50% of indexing at best, compiled code. (D) the same pot as (A), hours of training.
+
+Approved: D-20261120-N1, phase A, with `index_voxel` in both arms; phase B needs a new decision.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
