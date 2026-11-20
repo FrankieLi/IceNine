@@ -17,15 +17,17 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
   BFS with `PaintGrains 1`, hard-wired to `grad`) would need a per-sample copy; it runs in one
   process and took 7,390 s on `grad` (contended), so a `rand` / `corr3` paint likely exceeds the
   2 h run limit. The cached ray pairings can be reused (`ray_cache.ensure`).
-- **Owner choice pending** (2026-11-19 19:58 PST): a relayed "decision card" choice (library rocking /
-  PSF) was not confirmed; the owner wrote "I am not seeing the card tap". Nothing was changed. Asked
-  the owner to reply in words: 1 I35, 2 I66, 3 library PSF / rocking (plan PLAN "GO7f", unused until
-  chosen), 4 stop.
-- **Next action:** follow the owner's own reply; until then nothing runs.
+- **Approved** D-20261119-I1 (owner, 2026-11-20 03:58 UTC, "go ahead with the library change"):
+  GO7f, opt-in PSF and rocking curve in SpotModel, the stock renderer and the strict cost.
+- **Next action:** GO7f library part with an implementer (task branch
+  `feature/grain-opt-go7f-psf-rocking`, own worktree); on hand-back: `verify_handback.sh`,
+  `/review-task`, merge into `feature/grain-opt`, then experiments GO7f-a (PSF) and GO7f-b (rocking).
 
 ## Running jobs
 
-- None.
+- GO7f implementer (started 2026-11-19 20:00 PST, background agent, own worktree, branch
+  `feature/grain-opt-go7f-psf-rocking`; report `.claude/reports/20261119-2000-go7f-psf-rocking.md`).
+  Do not start a second agent on that branch.
 
 ## Data (git-ignored, in this worktree; link, do not copy)
 
