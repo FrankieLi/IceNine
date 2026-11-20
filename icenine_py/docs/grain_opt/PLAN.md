@@ -1115,10 +1115,33 @@ Budget: datasets about 5 minutes and 7 GB of disk; training about 15-20 minutes 
 
 ### GO8b: GNLayerNet inside grains (goal G2c, idea I25, part 2)
 
-To be written after GO8a passes: observed windows from the `rand` / `corr3` stacks (new extractor:
-32 x 32 x 9-frame windows at each voxel's predicted peaks, frame-coded as the training windows),
-the retrained network as a per-voxel refiner from the grain-centre start and after the ladder, at
-the 0.5 and 1 deg levels, against the ladder and GO4i's pipeline.
+Question: GO8a retrained the realism-trained GNLayerNet (a learned per-voxel Gauss-Newton refiner,
+offsets up to 1 deg, trained on simulated windows with neighbour overlap and detector noise). On the
+observed `rand` / `corr3` images, does it refine the voxels a local search leaves off, after the
+step ladder?
+
+Method (scripts only): a new `run_pipeline.py` stage `Q/<iterations>/<threshold>`: for each voxel
+of a grain whose strict cost is above the threshold (0 = every voxel), up to `iterations` rounds of
+(nominal = the voxel's current orientation; peak set, window placement, context and nominal offsets
+from `perturbation_sweep.prepare_nominal` on the ManyGrains geometry, whose voxel grid equals the
+samples' grid; observed windows cut from the sample's binary stack, 32 x 32 px at each peak's
+detector, frames frame0 +- 4, each lit pixel coded by its frame offset, the lit frame nearest frame0
+when several are lit, as the training windows; the network's offset applied as exp([delta]x) R_nom),
+keeping a round only if it lowers the voxel's strict cost. Weights
+`scripts/toy_orientation_sweep_model_realistic_s0.pt`. Benchmark GO4 (`--start centre --group
+true`, 1,043 voxels per sample, levels 0.5 / 1 / 2 / 5 deg); output `benchmarks/grain_opt/go8/`.
+Arms on rand and corr3: `L/366/3,Q/3/0` (network after the ladder, every voxel) and `Q/3/0` (network
+from the grain-centre start, to see its reach).
+
+Judging rule (written before any run). Reference: GO4c `L/366/3` on the same sample (rand 48 / 53 /
+77 / 83%, corr3 3 / 9 / 31 / 72% above 0.1 deg). I25 is answered yes when `L/366/3,Q/3/0` lowers the
+share above 0.1 deg on rand by at least a third at 0.5 and at 1 deg (to at most 32% and 35%) with no
+level worse by more than 2 points on either sample; partly when it lowers rand at 0.5 and 1 deg by
+at least 5 points each. The `Q/3/0` arm and the GO4i pipeline (rand 4.5 / 0.4 / 3.3 / 3.2%) are
+reported for context. Wall time per voxel reported; a run over 2 hours is stopped and reported.
+
+Budget: preparing a voxel nominal (peak set, observer) and one network call per round; about
+0.3-1 s per voxel per round (measured on a smoke grain first); 4 runs, each under 2 hours.
 
 ### GO6 onwards
 

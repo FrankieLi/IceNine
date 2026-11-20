@@ -1326,3 +1326,25 @@ Verdicts by the rule written before the runs:
 - The same painted-map region is used by every grain fit in this program (`run_pipeline.py`'s
   orientation pipelines, the CMA hybrid); `--clean_start` should become the default there too. Not
   tested here.
+
+## GO8a: retrain GNLayerNet (goal G2c, idea I25 part 1; owner approval D-20261118-I1)
+
+Question: with no GNLayerNet weights or datasets on this machine, can the documented
+realism-trained network be retrained to its documented accuracy (the gate before using it inside
+grains)? Recipe of `docs/orientation_nn_design.md` section 9: ManyGrains datasets (30 voxels by
+radius, 24 trained, 6 held out, 500 offsets per voxel within 1 deg, distractor layer), aux sidecar,
+`train_toy_orientation_nn.py --arch gn --gn-iters 3 ... --realistic-train all --seed 0` on the GPU.
+Datasets about 6 minutes, training about 12 minutes. Weights `scripts/toy_orientation_sweep_model_realistic_s0.pt`
+(git-ignored); results `benchmarks/grain_opt/go8/dis_res_gn_k3_corr_s0.json`.
+
+| held-out median error (deg) | clean | neighbours | noise | all |
+|---|---|---|---|---|
+| documented, seed 0 (design doc) | 0.0176 | | | 0.0827 |
+| retrained here, seed 0 (median of per-voxel medians) | 0.0178 | 0.0708 | 0.0227 | 0.0725 |
+
+Verdict by the rule written before the run: GO8a passes (at most 1.25 x the seed-0 reference on
+clean and `all`: 0.0178 against 0.022, 0.0725 against 0.103). The metric printed by the trainer is
+the median of per-voxel medians; the per-magnitude held-out medians (clean 0.014-0.021 deg) agree.
+GO8b (the network inside grains on observed `rand` / `corr3` windows) can start; it needs a new
+extractor of frame-coded windows from the observed stacks, since the network has only ever seen
+simulated windows.

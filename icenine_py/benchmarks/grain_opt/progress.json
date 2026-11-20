@@ -1,6 +1,6 @@
 {
  "program": "AR6 grainopt",
- "updated": "2026-11-19 15:50 PST",
+ "updated": "2026-11-19 16:15 PST",
  "steps": [
   {
    "id": "GO0",
@@ -344,6 +344,14 @@
    "status": "done",
    "date": "2026-11-19",
    "result": "Building each grain region from the start map with painted outliers set to the medoid removes all 9 stalls and CMA fallbacks of the fast strain fit; medians unchanged (1.3/1.2/1.4e-4), 75th percentile at 1e-3 2.7e-4 -> 1.5e-4, 29 s per grain (was 35). I65 yes.",
+   "commit": ""
+  },
+  {
+   "id": "GO8a",
+   "title": "Retrain GNLayerNet (I25 part 1)",
+   "status": "done",
+   "date": "2026-11-19",
+   "result": "Datasets regenerated and the realism-trained GNLayerNet retrained on the GPU (about 18 min): held-out median error 0.0178 deg on clean windows (documented 0.0176) and 0.0725 deg on realistic windows (documented 0.0827). Reproduction gate passed; GO8b (inside grains on observed windows) next.",
    "commit": ""
   }
  ],
