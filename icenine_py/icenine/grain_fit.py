@@ -516,8 +516,10 @@ def _touching_components(
     pr: Tensor,
     frames: Tensor,
     keep_px: int,
+    frame_dilation: int = 1,
 ) -> np.ndarray:
-    """Mask (m,) of observed pixels whose component touches the dilated predicted footprint."""
+    """Mask (m,) of observed pixels whose component touches the dilated predicted footprint
+    (``keep_px`` pixels, ``frame_dilation`` frames)."""
     from scipy import ndimage
 
     f0, f1, r0, r1, c0, c1 = box
@@ -538,7 +540,7 @@ def _touching_components(
     ok = (pf >= 0) & (pf < shape[0]) & (pi >= 0) & (pi < shape[1]) & (pj >= 0) & (pj < shape[2])
     foot[pf[ok], pi[ok], pj[ok]] = True
     k = 2 * keep_px + 1
-    foot = ndimage.maximum_filter(foot, size=(3, k, k))
+    foot = ndimage.maximum_filter(foot, size=(2 * frame_dilation + 1, k, k))
     hit = np.unique(lab[foot & (lab > 0)])
     return np.isin(lab[fi, ri, ci], hit)
 
@@ -562,14 +564,19 @@ def build_region(
     the layer's triangles ``V`` (n_all, 3, 3), and the shell prediction in their windows.
 
     ``keep_px``: keep only the observed connected components (8-connected in a frame) that come
-    within ``keep_px`` pixels and one frame of a start-predicted coverage point; other grains'
+    within ``keep_px`` pixels and one frame (1 + the rocking half-window in frames when the model
+    spreads) of a start-predicted coverage point; other grains'
     spots in the window are dropped. None keeps every lit pixel.
 
     ``ratio``: (lo, hi) bounds on observed lit pixels / pixels touched by the start prediction
     (counted with 8 x 8 sub-triangles per voxel, as the stock render lights every pixel a spot
     touches); a
     spot outside them is dropped (overlap with another grain's spot, or a spot cut by a detector
-    edge or a gap). The ratio of every spot is kept in ``Spot.ratio``. None keeps all.
+    edge or a gap). The ratio of every spot is kept in ``Spot.ratio``. None keeps all. The
+    denominator is the footprint of the unspread start prediction even when the model spreads
+    (PSF or rocking), while the observed count covers the widened box; for data with PSF or
+    rocking the ratio can exceed ``ratio[1]`` and drop spots, so widen ``ratio`` (or pass None)
+    for such data.
 
     ``strain`` (optional, (n_all, 6), see ``SpotModel.predict``): the start prediction of members
     and shell is made with it (default None: unstrained, unchanged).
@@ -627,7 +634,8 @@ def build_region(
             obs, val = images.lit(det, f0, f1, r0, r1, c0, c1)
             if keep_px is not None and len(obs):
                 keep = _touching_components(
-                    obs, (f0, f1, r0, r1, c0, c1), pc[ii], pr[ii], fr, keep_px
+                    obs, (f0, f1, r0, r1, c0, c1), pc[ii], pr[ii], fr, keep_px,
+                    1 + spread_f,
                 )
                 obs, val = obs[keep], val[keep]
             if len(obs) < min_obs:

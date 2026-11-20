@@ -68,6 +68,7 @@ def _model_rows(**kw: Any) -> Tuple[Any, Any, Any]:
         Vs = torch.as_tensor(
             np.stack([_get_voxel_vertices(v).numpy() for v in mic.voxels]), dtype=torch.float64
         )
+        model.test_RV = (Rs.numpy(), Vs.numpy())  # type: ignore[attr-defined]
         return model, model.predict(Rs, Vs), sc
     finally:
         os.chdir(cwd)
@@ -392,12 +393,90 @@ def test_rocking_set_after_fused_evaluate_is_honoured(
     assert got.pixel_overlap == want.pixel_overlap > base.pixel_overlap
 
 
-def test_frame_table_union_cache_is_bounded() -> None:
+def _tiny_table(n: int) -> "CF.FrameTable":
     table = CF.FrameTable.__new__(CF.FrameTable)
     table.unions = CF.OrderedDict()
+    table._lit = {}
     table.n_det = 1
-    table.images = [np.zeros((2, 2), dtype=np.uint8) for _ in range(300)]
-    table._filled = np.ones(300, dtype=bool)
-    for i in range(CF.FrameTable.MAX_UNIONS + 20):
-        table.union_images((i, i + 1))
-    assert len(table.unions) == CF.FrameTable.MAX_UNIONS
+    table.n_frames = n
+    table.rows = table.cols = 4
+    rng = np.random.default_rng(3)
+    table.images = [(rng.random((4, 4)) < 0.2).astype(np.uint8) for _ in range(n)]
+    table._filled = np.ones(n, dtype=bool)
+    return table
+
+
+def test_frame_table_unions_are_compact_exact_and_hold_a_large_working_set() -> None:
+    table = _tiny_table(300)
+    keys = [(i, i + 1, i + 2) for i in range(297)]  # more than the old 64-key cap
+    for k in keys:
+        got = table.union_images(k)[0]
+        want = np.maximum(np.maximum(table.images[k[0]], table.images[k[1]]), table.images[k[2]])
+        assert got.dtype == np.uint8 and np.array_equal(got, want)
+    assert len(table.unions) == len(keys)  # nothing evicted: the working set is held
+    stored = table.unions[keys[5]][0]
+    assert stored.ndim == 1 and stored.dtype == np.int64  # lit-pixel indices, not a dense image
+    again = table.union_images(keys[5])[0]  # a hit: same cached indices, a fresh dense image
+    assert table.unions[keys[5]][0] is stored
+    again[:] = 7  # the caller owns the dense image; the cache is unaffected
+    assert np.array_equal(table.union_images(keys[5])[0], _dense(stored))
+
+
+def _dense(idx: np.ndarray) -> np.ndarray:
+    out = np.zeros(16, dtype=np.uint8)
+    out[idx] = 1
+    return out.reshape(4, 4)
+
+
+def test_frame_table_union_cache_lru_keeps_recent_key() -> None:
+    table = _tiny_table(40)
+    old = CF.FrameTable.MAX_UNIONS
+    CF.FrameTable.MAX_UNIONS = 5
+    try:
+        for i in range(5):
+            table.union_images((i, i + 1))
+        table.union_images((0, 1))  # touch the oldest
+        table.union_images((10, 11))  # evicts the least recently used, (1, 2)
+        assert (0, 1) in table.unions and (1, 2) not in table.unions
+        assert len(table.unions) == 5
+    finally:
+        CF.FrameTable.MAX_UNIONS = old
+
+
+def test_touching_components_frame_dilation() -> None:
+    pc = torch.full((1, 1), 5.5)
+    pr = torch.full((1, 1), 5.5)
+    fr = torch.tensor([10])
+    obs = np.array([[5.5, 5.5, 12.5]])  # (col, row, frame + 0.5): two frames from home
+    box = (6, 15, 0, 12, 0, 12)
+    assert not GF._touching_components(obs, box, pc, pr, fr, 3).any()  # default: one frame
+    assert GF._touching_components(obs, box, pc, pr, fr, 3, 3).all()
+    obs1 = np.array([[5.5, 5.5, 11.5]])
+    assert GF._touching_components(obs1, box, pc, pr, fr, 3).all()
+
+
+@needs_ex
+def test_build_region_keeps_pixels_two_frames_from_home_with_rocking() -> None:
+    model0, rows0, _sc = _model_rows()
+    width_deg = math.degrees(model0.sc.width)
+    model, rows, _sc2 = _model_rows(rocking_deg=4.0 * width_deg)
+    R, V = model.test_RV  # type: ignore[attr-defined]
+    bary = torch.as_tensor(GF.subtriangle_bary(3))
+    pc, pr, _m, ok = GF._rows_points(rows0, bary, 0)
+    cand = torch.nonzero(ok & (rows0.frame >= 4) & (rows0.frame < model0.sc.n_bins - 8))[:, 0]
+    i = int(cand[0])
+    col, row, home = float(pc[i].mean()), float(pr[i].mean()), int(rows0.frame[i])
+    H = W = int(max(col, row)) + 40
+    n_om = model0.sc.n_bins
+    stack = np.zeros((model0.n_det * n_om, H, W), dtype=np.uint8)
+    stack[home + 2, int(row), int(col)] = 1  # detector 0, two frames from home
+    src = GF.ImageSource(stack, n_om)
+    members, shell = [int(rows0.vox[i])], []
+    want = (int(rows0.refl[i]), int(rows0.branch[i]), 0)
+
+    def run(m: Any) -> int:
+        reg = GF.build_region(m, src, R, V, members, shell, bary, ratio=None)
+        return sum(len(s.obs) for s in reg.spots if s.key == want)
+
+    assert run(model0) == 0  # no spread: the pixel is outside the one-frame footprint
+    assert run(model) >= 1  # rocking half-window >= 2 frames: kept
