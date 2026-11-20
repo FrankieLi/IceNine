@@ -145,6 +145,38 @@ class Moments:
         return tot
 
 
+class SoftTouch:
+    """GO1c (I3): 1 - sum a L(x) / sum a, with L(x) = min(1, sum over observed lit pixels of the
+    same frame of s(dc) s(dr)), s(d) = sigmoid((0.5 - |d|) / tau): a soft strict miss fraction."""
+
+    def __init__(self, prob: object, tau: float) -> None:
+        self.prob, self.tau = prob, tau
+        self.obs = [np.asarray(sp.obs, float) for sp in prob.region.spots]
+
+    def _s(self, d: np.ndarray) -> np.ndarray:
+        return 1.0 / (1.0 + np.exp(-(0.5 - np.abs(d)) / self.tau))
+
+    def __call__(self, R: torch.Tensor) -> float:
+        prob = self.prob
+        with torch.no_grad():
+            rows = prob.model.predict(R, prob.V)
+            x, a = GF.pack_predicted(prob.region, rows, prob.bary, prob.model.n_det, with_shell=True)
+        x, a = x.numpy(), a.numpy()
+        hit, tot = 0.0, 0.0
+        for j, y in enumerate(self.obs):
+            live = a[j] > 0
+            if not live.any():
+                continue
+            p, m = x[j][live], a[j][live]
+            tot += float(m.sum())
+            if len(y) == 0:
+                continue
+            same = np.floor(p[:, None, 2]) == np.floor(y[None, :, 2])
+            w = self._s(p[:, None, 0] - y[None, :, 0]) * self._s(p[:, None, 1] - y[None, :, 1]) * same
+            hit += float((m * np.minimum(1.0, w.sum(1))).sum())
+        return 1.0 - hit / max(tot, 1e-12)
+
+
 def spot_intensities(S: object, prob: object) -> np.ndarray:
     """GO9b: I_j = F / (|sin eta| sin 2theta) per spot: F the reflection's form intensity (the
     structure's reflection list filtered by Q-max, as SmoothCost), eta and 2 theta from the lab
@@ -203,6 +235,8 @@ def main() -> None:
                 obj = MMD(prob, mmd[name][0], 1.0, mmd[name][1])
             elif name in ("mom", "mom_c"):  # GO9d
                 obj = Moments(prob, cov=name == "mom")
+            elif name in ("soft_t01", "soft_t025"):  # GO1c
+                obj = SoftTouch(prob, 0.1 if name == "soft_t01" else 0.25)
             else:
                 b, I_use = table[name]
                 obj = Poisson(prob, gain, b, I_use)
@@ -230,6 +264,7 @@ def main() -> None:
             out.append(row)
     (CM.OUT / a.out / ("mmd.json" if any(v.startswith("mmd") for v in a.variants)
                           else "moments.json" if any(v.startswith("mom") for v in a.variants)
+                          else "soft.json" if any(v.startswith("soft") for v in a.variants)
                           else "poisson.json")).write_text(json.dumps(out, indent=1) + "\n")
 
 

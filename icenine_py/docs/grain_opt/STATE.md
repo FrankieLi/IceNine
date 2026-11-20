@@ -5,7 +5,7 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO7f closed** (2026-11-19 22:55 PST, G2b; library part merged df583c97, D-20261119-I1):
+- **GO7f closed** (2026-11-19 22:40 PST, G2b; library part merged df583c97, D-20261119-I1):
   a no (model PSF 1 px, ratio 2.5), b no (strict-cost rocking window), c no (model PSF, default
   filter: 2.96e-4 / 5.52e-4, 0.056 / 0.103 deg), d: the rocking damage is threshold dilution, not
   search (grain 197 ground-truth strict 0.056 clean, 0.329 rocked, 0.316 with the window; peaks

@@ -514,7 +514,7 @@ became AR6 on 2026-11-16 at the owner's request.
   Do not start a second agent on that branch.
 
 
-## Now as of GO7f-a/b close (2026-11-19 22:35 PST)
+## Now as of GO7f-a/b close (2026-11-19 22:20 PST)
 
 - **GO7f library part merged** (df583c97, 2026-11-19 21:15 PST, D-20261119-I1): opt-in
   `SpotModel(psf_sigma_px, rocking_deg)`, renderer PSF / rocking, strict-cost `rocking_deg`

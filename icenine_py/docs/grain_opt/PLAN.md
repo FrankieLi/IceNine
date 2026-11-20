@@ -72,7 +72,7 @@ next step studies the cause (I3, I4) before any optimizer study.
 
 ### GO1b: noise floor against curvature of each objective near the ground truth (goal G1a, idea I4)
 
-Question (written 2026-11-19 23:20 PST, before any run): GO1 found the smooth objectives' optima
+Question (written 2026-11-19 22:43 PST, before any run): GO1 found the smooth objectives' optima
 0.01-0.04 deg from the ground truth and the strict cost's within 0.008. Is that a shifted bottom
 (bias) or a flat bottom lost in evaluation noise (pixel discreteness)?
 
@@ -87,6 +87,27 @@ Reading (no verdict on an idea beyond I4): per objective and grain, the median o
 and r. I4 is answered "noise floor" for an objective if r >= |d*| and r >= 0.01 deg (the bottom is
 flat within the noise), "bias" if |d*| >= 0.01 deg and r < |d*| / 2 (the bottom is clearly
 shifted), otherwise "mixed". Output `benchmarks/grain_opt/go1b/`. Budget: under 30 minutes.
+
+### GO1c: soft "pixel touched" surrogate of the strict cost (goal G2b, idea I3)
+
+Question (written 2026-11-19 22:46 PST, before any run): the strict cost is the only objective
+whose optimum sits within 0.01 deg of the ground truth, but it is a step function. Does a smooth
+surrogate of it, with soft pixel edges, keep that property?
+
+Objective (`probe_poisson.py --variants soft_t01 soft_t025`, no library change): per predicted
+coverage point x (grain plus fixed shell, weight a) in spot window j, its lit-ness
+L(x) = min(1, sum over observed lit pixels p of the same frame of s(dc) s(dr)), with
+s(d) = sigmoid((0.5 - |d|) / tau) and d the offset from the pixel centre in pixels; objective =
+1 - sum a L / sum a over all spots (a mass-weighted soft miss fraction). Arms tau = 0.1 px
+(`soft_t01`) and 0.25 px (`soft_t025`).
+
+Protocol and rule: GO1's (grains 381 and 302, CMA over the rotation, sigma 0.03 deg, 150
+evaluations, from the ground truth); an arm qualifies if its optimum is below 0.01 deg from the
+ground truth on both grains. Output `benchmarks/grain_opt/go1c/`. Budget: under 30 minutes.
+
+Result (2026-11-19): `soft_t025` qualifies (0.0045 / 0.0017 deg), `soft_t01` does not. Parked
+(owner chose the rocking-aware threshold, GO7g): GO1d would test `soft_t025` from displaced
+starts (0.03 and 0.1 deg, 3 seeds per grain) against the strict cost from the same starts.
 
 ### GO2: optimizer Pareto on G20 (ideas I5, I6, I9, I10, I28, I29)
 
@@ -776,7 +797,7 @@ Budget: a few minutes.
 
 ### GO9c: per-spot MMD with a Gaussian kernel as an orientation objective (goal G2a, idea I20)
 
-Question (written 2026-11-19 22:50 PST, before any run): GO1's smooth objectives and GO9's Poisson
+Question (written 2026-11-19 22:37 PST, before any run): GO1's smooth objectives and GO9's Poisson
 deviance put the optimum 0.010-0.095 deg from the ground truth. Does a kernel two-sample distance
 per spot, which compares the whole predicted and observed point clouds without a transport plan,
 have its optimum at the ground truth?
@@ -798,7 +819,7 @@ Budget: under 30 minutes.
 
 ### GO9d: per-spot moment matching as an orientation objective (goal G2a, idea I19)
 
-Question (written 2026-11-19 23:00 PST, before any run): does matching per-spot moments (the
+Question (written 2026-11-19 22:41 PST, before any run): does matching per-spot moments (the
 weighted centroid, and the column / row covariance) of predicted and observed spots have its
 optimum at the ground truth? (GO5i used centroid residuals inside the strain fit; this is the
 orientation-only bias test.)
@@ -1283,7 +1304,7 @@ experiment under 30 minutes.
 
 Results (2026-11-19, `findings.md`): GO7f-a no, GO7f-b no, GO7f-c no, GO7f-d: threshold dilution, not search.
 
-**Follow-ups (judging rules written here, before any run, 2026-11-19 22:30 PST):**
+**Follow-ups (judging rules written here, before any run, 2026-11-19 22:12 PST):**
 - GO7f-c, model PSF without the ratio filter: `GP4@P` on `strain_psf10` with `--model_psf 1` and
   the default region filter (no `--ratio_hi`), S36. GO7e traced the 1 px PSF damage to the ratio
   filter; with the model footprint widened the default filter may fit. Same rule as GO7f-a: yes
@@ -1297,6 +1318,44 @@ Results (2026-11-19, `findings.md`): GO7f-a no, GO7f-b no, GO7f-c no, GO7f-d: th
   ground-truth strict cost to within 1.25 x the clean value, the A-stage rejection is a search
   problem; if not and the unlit-spot share explains most of the gap, it is threshold dilution (then
   the next step is a rocking-aware threshold or intensity cost, owner-visible). Under 30 minutes.
+
+### GO7g: rocking-aware threshold and a Poisson gate (goal G2b, idea I68)
+
+Owner request (decision card "Rocking-aware threshold", 2026-11-20 06:46 UTC, relayed by the
+coordinator): stop rocked images losing weak spots, in scripts; a further library change needs the
+owner first. Written 2026-11-19 22:48 PST, before any run.
+
+Facts that shape the arms: the clean store holds every rendered pixel (minimum 56,921, the weakest
+reflection), so the clean binary stack is "any rendered intensity"; `rock_stack.py` spreads those
+intensities over frames and thresholds at 62,203 (the clean 5th percentile). A lower global
+threshold therefore cannot change the clean images; a frame sum can.
+
+Arms (each on G20 `Astrict/100`, strict cost without the window, paired with GO7's clean and
+no-window `grad_rock10` runs; image sets built by `rock_stack.py` with new options):
+- T1 `--thr_scale 0.5`, T2 `--thr_scale 0.25`, T3 `--thr_scale 0` (lit wherever any spread
+  intensity lands): lower global thresholds on the alpha 1.0 images.
+- T4 `--sum_k 1`: rocking-aware, lit where the sum of the spread intensity over frames t-1..t+1
+  reaches the threshold (a 3-frame max-projection before thresholding); clean check C4: the same
+  3-frame sum on the clean images (`--alpha 0 --sum_k 1`).
+- P1 `--gate pois`: A-stage acceptance on the Poisson deviance (GO9, b = 0.5, on the full spread
+  intensities `--store grad_rock10t0`, since a detector records counts below the binarisation
+  threshold; model rocking 1.0 deg via `SpotModel(rocking_deg)`) in place of the strict
+  cost; P2 `--gate either`: accept if the strict cost or the Poisson deviance does not rise
+  (alongside); clean check CP1: `--gate pois` on clean `grad` (no model rocking).
+- For every image set: `go7f_diag.py` (strict cost at the ground truth and the share of predicted
+  peaks with no lit pixel, grain 197's group and 200 other G20 voxels).
+
+Rule (per arm): yes when grain 197 is accepted, the C-voxel share above 0.1 deg has a Wilson
+interval overlapping the clean one (0.1-1.0%; clean 3 of 853), and the C-voxel median is at most
+1.25 x the clean 0.0146 deg; partly when grain 197 is accepted and the share improves on the
+no-window rocked run (20 of 853) without meeting the rest. An arm that changes the clean images
+(T4, P1/P2) also needs its clean check within the same limits (share interval overlapping the
+clean one, median at most 1.25 x clean), else it is no. Reported, not judged: the unlit-peak share
+against the clean 0.3% / 0.5%. Caveat written now: the emulation has no noise or background, so a
+lower threshold here is optimistic; on real data it would also light noise.
+
+Budget: each image set about 3 min to build, each G20 run a few minutes (fused strict), the Poisson
+gate adds one deviance per stage; all under 2 h.
 
 ### GO6 onwards
 

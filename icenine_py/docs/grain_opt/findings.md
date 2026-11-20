@@ -1556,3 +1556,21 @@ GO1), so r is an upper bound on the noise-limited resolution, and the readings l
 floor". Practical consequence unchanged: the strict cost (or the Gauss-Newton centroid fit with
 robust weights) finishes; the smooth objectives find the basin. 1-54 s per objective and grain
 (contended).
+
+## GO1c: soft "pixel touched" surrogate of the strict cost (goal G2b, idea I3)
+
+GO1 protocol; `probe_poisson.py --variants soft_t01 soft_t025 --out go1c`, rows
+`benchmarks/grain_opt/go1c/soft.json`.
+
+| arm | optimum from ground truth, 381 / 302 (deg) | strict at ground truth / at optimum, 381; 302 |
+|---|---|---|
+| strict (GO1) | 0.0060 / 0.0082 | |
+| Poisson (GO9) | 0.0101 / 0.0060 | |
+| `soft_t01` (tau 0.1 px) | 0.0047 / 0.0135 | 0.081 / 0.082; 0.052 / 0.053 |
+| `soft_t025` (tau 0.25 px) | 0.0045 / 0.0017 | 0.081 / 0.086; 0.052 / 0.053 |
+
+Verdict by the rule written before the run: `soft_t025` qualifies (below 0.01 deg on both grains),
+the first smooth objective to do so; `soft_t01` does not (0.0135 deg on grain 302, where its
+sharper edges bring back the strict cost's steps). Caveat: like GO1 this starts at the ground truth,
+and the objective moves little over 150 evaluations (0.0236 -> 0.0235 on 381), so it shows an
+unbiased bottom, not a basin. GO1d tests it from displaced starts. 2-5 s per grain (contended).

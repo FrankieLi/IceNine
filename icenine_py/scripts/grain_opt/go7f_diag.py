@@ -23,6 +23,8 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--n", type=int, default=200)
     ap.add_argument("--rocking", type=float, default=1.0)
+    ap.add_argument("--stacks", nargs="*", default=None, help="GO7g: stack tags (no window) in place of the GO7f arms")
+    ap.add_argument("--out", default="diag_d.json")
     a = ap.parse_args()
     rows = json.load(gzip.open(CM.OUT / "runs" / "go7_clean_As100" / "voxels.json.gz"))
     g197 = [r["voxel"] for r in rows if r["pick"] == 197]
@@ -31,6 +33,8 @@ def main() -> None:
     pick = sorted(rng.choice(rest, size=min(a.n, len(rest)), replace=False).tolist())
     arms = [("clean", None, 0.0), ("rock10", "grad_rock10_clean.npy", 0.0),
             ("rock10_window", "grad_rock10_clean.npy", a.rocking)]
+    if a.stacks:
+        arms = [(s, None if s == "grad" else f"{s}_clean.npy", 0.0) for s in a.stacks]
     out = {"n_g197": len(g197), "n_rest": len(pick), "rocking_deg": a.rocking, "arms": {}}
     for name, stack, rock in arms:
         t0 = time.time()
@@ -51,7 +55,7 @@ def main() -> None:
         out["arms"][name] = res
         print(json.dumps({name: res}), flush=True)
     (CM.OUT / "go7f").mkdir(exist_ok=True)
-    json.dump(out, open(CM.OUT / "go7f" / "diag_d.json", "w"), indent=1)
+    json.dump(out, open(CM.OUT / "go7f" / a.out, "w"), indent=1)
 
 
 if __name__ == "__main__":

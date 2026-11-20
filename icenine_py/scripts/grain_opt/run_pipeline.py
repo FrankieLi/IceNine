@@ -170,10 +170,20 @@ def main() -> None:
     ap.add_argument("--b-lr", type=float, default=0.01)
     ap.add_argument("--b-mu", type=float, default=1.0)
     ap.add_argument("--rocking_deg", type=float, default=0.0, help="GO7f: strict-cost rocking window (deg)")
+    ap.add_argument("--gate", default="strict", choices=["strict", "pois", "either"],
+                    help="GO7g: A-stage acceptance on the strict cost, the Poisson deviance, or either")
+    ap.add_argument("--model_rocking", type=float, default=0.0, help="GO7g: SpotModel rocking width (deg)")
+    ap.add_argument("--store", default=None, help="GO7g: intensity store tag in place of the stack's")
     a = ap.parse_args()
     stages = parse(a.pipeline)
     out = CM.OUT / "runs" / a.name
-    S = CM.Sample(out, start=a.start, sample=a.sample, stack=a.stack, rocking_deg=a.rocking_deg)
+    S = CM.Sample(out, start=a.start, sample=a.sample, stack=a.stack, rocking_deg=a.rocking_deg,
+                  model_rocking=a.model_rocking, store=a.store)
+    gain = 1244.0
+    if a.gate != "strict":  # GO7g: Poisson deviance (GO9, b = 0.5) on the stored intensities
+        from probe_poisson import Poisson
+
+        gain = float(np.percentile(S.images.store["val"], 5)) / 50.0
     T = S.T
     gm = np.asarray(T.gmap)
     lab = GF.group_grains(S.R0, S.nb, S.sym, 2.0) if a.group == "flood" else gm.copy()
@@ -386,6 +396,14 @@ def main() -> None:
                 info["voxels_kept"] = int(keep.sum())
             else:
                 acc = (f_new <= f_old) and (s_new.mean() <= s_now.mean())
+                if a.gate != "strict":  # GO7g: Poisson deviance in place of, or alongside, the strict gate
+                    pois = Poisson(prob, gain, 0.5)
+                    with torch.no_grad():
+                        p_old = pois(torch.as_tensor(R_now, dtype=GF.DT))
+                        p_new = pois(torch.as_tensor(R_new, dtype=GF.DT))
+                    acc_p = p_new <= p_old
+                    info.update(pois_old=float(p_old), pois_new=float(p_new), acc_strict=bool(acc))
+                    acc = acc_p if a.gate == "pois" else (acc or acc_p)
             info.update(accepted=bool(acc), strict_old=float(s_now.mean()),
                         strict_new=float(s_new.mean()), renders_per_voxel=float(used),
                         t_s=time.time() - t2)

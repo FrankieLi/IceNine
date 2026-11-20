@@ -103,11 +103,14 @@ class Sample:
         stack: Any = None,
         rocking_deg: float = 0.0,
         model_psf: float = 0.0,
+        model_rocking: float = 0.0,
+        store: Any = None,
     ) -> None:
         """``stack``: another stack file name in place of ``<sample>_clean.npy`` (GO5m, noisy
         images of the same sample; its store is read from ``<stack tag>/intensity_clean.npz``).
         GO7f (library options, default off): ``rocking_deg`` turns on the strict cost's rocking
-        window; ``model_psf`` sets the ``SpotModel`` detector PSF sigma (px)."""
+        window; ``model_psf`` sets the ``SpotModel`` detector PSF sigma (px); ``model_rocking`` its
+        rocking width (deg, GO7g)."""
         from icenine import grain_fit as GF
         from icenine.reconstructor import _get_voxel_vertices
         from icenine.smooth_cost import _build_smooth_cost
@@ -142,13 +145,13 @@ class Sample:
         self.phase = int(self.mic.voxels[0].phase)
         assert all(int(v.phase) == self.phase for v in self.mic.voxels)
         self.model = (
-            GF.SpotModel(self.sc, phase=self.phase, psf_sigma_px=model_psf)
-            if model_psf > 0
+            GF.SpotModel(self.sc, phase=self.phase, psf_sigma_px=model_psf, rocking_deg=model_rocking)
+            if model_psf > 0 or model_rocking > 0
             else GF.SpotModel(self.sc, phase=self.phase)
         )
         stack = np.load(str(PHASE_D / "stacks" / stack_name), mmap_mode="r")
         store = None
-        tag = stack_name.replace("_clean.npy", "")
+        tag = store or stack_name.replace("_clean.npy", "")  # GO7g: --store reads another tag's intensities
         sp = PHASE_D / tag / "intensity_clean.npz"
         if intensity and sp.exists():
             z = np.load(sp)

@@ -31,6 +31,8 @@ def main() -> None:
     ap.add_argument("--alpha", type=float, required=True, help="Bragg window, deg")
     ap.add_argument("--out", required=True)
     ap.add_argument("--cap", type=float, default=8.0, help="max window, frames")
+    ap.add_argument("--thr_scale", type=float, default=1.0, help="GO7g: threshold x this (0 = any)")
+    ap.add_argument("--sum_k", type=int, default=0, help="GO7g: lit where the sum over t-k..t+k reaches thr")
     a = ap.parse_args()
     from icenine import spot_pairing as sp
 
@@ -39,7 +41,7 @@ def main() -> None:
     width_deg = math.degrees(float(S.sc.width))
     z = np.load(CM.PHASE_D / a.tag / "intensity_clean.npz")
     offs, rows, cols, vals = z["frame"], z["row"], z["col"], z["val"]
-    thr = float(np.percentile(vals, 5))
+    thr = float(np.percentile(vals, 5)) * a.thr_scale
     stack_path = CM.PHASE_D / "stacks" / f"{a.out}_clean.npy"
     store_dir = CM.PHASE_D / a.out
     store_dir.mkdir(parents=True, exist_ok=True)
@@ -62,6 +64,10 @@ def main() -> None:
             p = sp.pixel_to_lab(g, c + 0.5, r + 0.5)
             s_eta = np.abs(p[:, 1]) / np.maximum(np.hypot(p[:, 1], p[:, 2]), 1e-12)
             D = np.minimum(a.alpha / width_deg / np.maximum(s_eta, 1e-9), a.cap)  # frames
+            if a.alpha <= 0:  # GO7g clean check: no spread
+                contrib[o].append((r, c, v))
+                n_spread.append(0.0)
+                continue
             lo, hi = o + 0.5 - D / 2, o + 0.5 + D / 2
             n_spread.append(float(np.mean(D > 1.0)))
             kmax = int(math.ceil(a.cap / 2)) + 1
@@ -73,18 +79,32 @@ def main() -> None:
                 m = w > 0
                 if m.any():
                     contrib[t].append((r[m], c[m], v[m] * w[m]))
+        imgs: dict = {}
+
+        def frame_img(t: int) -> np.ndarray:
+            if t not in imgs:
+                im = np.zeros((NROW, NCOL), dtype=np.float64)
+                for r, c, v in contrib[t]:
+                    np.add.at(im, (r, c), v)
+                imgs[t] = im
+            return imgs[t]
+
         for t in range(N_OMEGA):
-            img = np.zeros((NROW, NCOL), dtype=np.float64)
-            for r, c, v in contrib[t]:
-                np.add.at(img, (r, c), v)
-            lit = img >= thr
+            img = frame_img(t)
+            if a.sum_k > 0:  # GO7g: threshold the sum over frames t-k..t+k (within the scan)
+                ref = sum(frame_img(u) for u in range(max(0, t - a.sum_k), min(N_OMEGA, t + a.sum_k + 1)))
+            else:
+                ref = img
+            lit = ref > 0 if thr <= 0 else ref >= thr
             stack[d * N_OMEGA + t] = lit.astype(np.uint8)
             kk, jj = np.nonzero(lit)
             o_rows.append(kk.astype(np.uint16))
             o_cols.append(jj.astype(np.uint16))
-            o_vals.append(img[kk, jj].astype(np.float32))
+            o_vals.append(ref[kk, jj].astype(np.float32))
             o_offs.append(o_offs[-1] + len(kk))
-            contrib[t] = []
+            for u in [u for u in imgs if u < t - a.sum_k]:
+                del imgs[u]
+                contrib[u] = []
     stack.flush()
     del stack
     np.savez(store_dir / "intensity_clean.npz", frame=np.asarray(o_offs, np.int64),
