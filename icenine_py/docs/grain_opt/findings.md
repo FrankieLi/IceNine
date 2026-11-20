@@ -1461,3 +1461,56 @@ check (GO7f-d): spreading a reflection over frames lowers its per-frame intensit
 reflections fall under the binarisation threshold and their predicted pixels have nothing to hit in
 any frame. With the window the strict cost runs on the torch path (no fused C path):
 3,215 ms per voxel against 3.2 (contended, preflight refused).
+
+**GO7f-c (model PSF, default region filter).** `GP4@P --model_psf 1` on `strain_psf10`, no ratio
+filter, S36; rows `benchmarks/grain_opt/go7f/GP4_P_hyb8_S36_mpsf1.json`. Strain medians 2.96e-4 /
+5.52e-4 at 5e-4 / 1e-3, orientation medians 0.056 / 0.103 deg (GO7b, the same filter without the
+model PSF: 2.70e-4 / 5.66e-4, 0.039 / 0.061 deg). Verdict by the rule written before the run: no
+(neither the clean limits nor a 1.5 x gain on the GO7e PSF arm). The model PSF does not help the
+fast fit on 1 px PSF images with either region filter; the best PSF arm stays GO7e (ratio 2.5, no
+model PSF). Wall time per grain about 30 s (contended, on battery, single run).
+
+**GO7f-d (diagnosis of the rocking damage).** Strict cost at the ground-truth orientation,
+`benchmarks/grain_opt/go7f/diag_d.json`: grain 197's group (54 voxels, 2,910 predicted peaks on the
+detector) and a seeded 200 of the other G20 voxels (12,995 peaks).
+
+| images | grain 197 mean strict | peaks with no lit pixel | other voxels mean strict | peaks with no lit pixel |
+|---|---|---|---|---|
+| clean `grad` | 0.056 | 0.3% | 0.073 | 0.5% |
+| `grad_rock10` | 0.329 | 12.0% | 0.122 | 1.2% |
+| `grad_rock10` + window 1.0 | 0.316 | 11.0% | 0.119 | 1.1% |
+
+Reading (rule written before the run): the window leaves grain 197's ground-truth strict cost at
+5.6 x clean (limit for "a search problem" 1.25 x), so the gate rejection is not a search problem:
+the strict cost itself scores the ground truth badly on the rocking images. Peaks with no lit pixel
+in any frame of their window rise from 0.3% to 11-12% for grain 197 (level 1.0, the most deformed)
+and from 0.5% to 1.2% elsewhere. That accounts for part of the gap, not most of it (a peak's share of
+the cost is its pixels; unlit peaks are about 0.11 of the 0.26 rise if the peaks carry equal pixel
+counts, an approximation not checked). The rest is plausibly lit spots that shrink under the
+threshold (their weaker edge pixels dilute below it); not verified. Both are threshold-dilution
+effects, which a frame window cannot fix. The next rocking step would be a rocking-aware threshold or
+an intensity cost in the gate (owner-visible, offered). The other voxels lose much less (0.073 ->
+0.122), which matches the single-grain rejection seen in GO7.
+
+## GO9c: per-spot MMD with a Gaussian kernel as an orientation objective (goal G2a, idea I20)
+
+GO1 protocol (grains 381 and 302, CMA over the rotation, sigma 0.03 deg, 150 evaluations, from the
+ground truth); `probe_poisson.py --variants mmd mmd_s2 mmd_bin --out go9c`, rows
+`benchmarks/grain_opt/go9c/mmd.json`.
+
+| arm | optimum from ground truth, 381 / 302 (deg) | strict cost at ground truth / at optimum, 302 |
+|---|---|---|
+| strict (GO1) | 0.0060 / 0.0082 | |
+| Poisson b = 0.5 (GO9) | 0.0101 / 0.0060 | |
+| least squares (GO1) | 0.0117 / 0.0423 | |
+| `mmd` (s 1 px, intensity weights) | 0.0109 / 0.0945 | 0.052 / 0.116 |
+| `mmd_s2` (s 2 px) | 0.0131 / 0.0978 | 0.052 / 0.123 |
+| `mmd_bin` (s 1 px, uniform weights) | 0.0199 / 0.0957 | 0.052 / 0.115 |
+
+Verdict by the rule written before the run: no, for all three arms. On grain 302 the MMD optimum
+sits about 0.095 deg off, more than the least-squares bias, and the strict cost there is twice its
+value at the ground truth, so MMD prefers a visibly worse fit. The kernel width and the observed
+weights barely matter, which points at a systematic difference between the two point clouds (the
+predicted coverage points against lit-pixel centres, with the neighbour shell's points in the
+windows) rather than at the kernel. Among the G2a objectives only the Poisson deviance comes near
+the strict cost. 4-12 s per grain for 150 evaluations (contended).

@@ -5,28 +5,23 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
 
 ## Now
 
-- **GO7f library part merged** (df583c97, 2026-11-19 21:15 PST, D-20261119-I1): opt-in
-  `SpotModel(psf_sigma_px, rocking_deg)`, renderer PSF / rocking, strict-cost `rocking_deg`
-  window; defaults bit-identical; three code reviews. Script flags `--model_psf` (fit_strain) and
-  `--rocking_deg` (run_pipeline) in b20afe48.
-- **GO7f-a no** (model PSF 1 px, ratio 2.5, `strain_psf10`): strain medians 2.16e-4 / 4.15e-4 at
-  5e-4 / 1e-3 (GO7e PSF arm 2.12e-4 / 3.49e-4), orientation medians 0.042 / 0.086 deg.
-- **GO7f-b no** (strict-cost rocking window 1.0 on `grad_rock10`): grain 197 still rejected (and
-  493 now too); C voxels above 0.1 deg 21 of 853 (no window 20, clean 3); median 0.0138. The window
-  barely lowers the strict cost; torch path 3.2 s per voxel.
-- **Open choices for the owner** (unchanged): I66 (retrain GNLayerNet on grain-like windows), I35
-  (G1b from a real painted start on rand / corr3, paint likely over 2 h). Owner decisions on GO7f
-  defaults pending: renderer options as attributes vs config keys, PSF lit threshold 1e-3 of the
-  frame maximum, |sin eta| floor 0.01, high500 freeze test policy.
-- **Next action:** close GO7f-c (model PSF without the ratio filter) and GO7f-d (rocking damage
-  diagnosis) by the PLAN rules; then pick the next G-goal step per the program balance.
+- **GO7f closed** (2026-11-19 22:55 PST, G2b; library part merged df583c97, D-20261119-I1):
+  a no (model PSF 1 px, ratio 2.5), b no (strict-cost rocking window), c no (model PSF, default
+  filter: 2.96e-4 / 5.52e-4, 0.056 / 0.103 deg), d: the rocking damage is threshold dilution, not
+  search (grain 197 ground-truth strict 0.056 clean, 0.329 rocked, 0.316 with the window; peaks
+  with no lit pixel 0.3% -> 12%). I23 and I24 closed no; best PSF arm stays GO7e.
+- **GO9c closed** (G2a, I20 no): per-spot MMD optimum 0.011 / 0.095 deg from the ground truth
+  (grains 381 / 302); kernel width and weights barely matter.
+- **Open choices for the owner**: I66 (retrain GNLayerNet on grain-like windows), I35 (G1b from a
+  real painted start on rand / corr3, paint likely over 2 h), a rocking-aware threshold or
+  intensity cost in the gate (from GO7f-d), and the GO7f defaults (renderer attributes vs config
+  keys, PSF lit threshold 1e-3, |sin eta| floor 0.01, high500 freeze test policy).
+- **Next action:** GO9d (I19, G2a): per-spot moment matching (centroid + covariance) as an
+  orientation objective under the GO1 protocol; write the rule into PLAN first.
 
 ## Running jobs
 
-- GO7f-c: `fit_strain.py --arm GP4@P --cost hyb --lam 8 --per_level 12 --stack
-  strain_psf10_clean.npy --model_psf 1 --out go7f` (started 2026-11-19 22:15 PST, log
-  `benchmarks/grain_opt/go7f/go7f_c.log`).
-- GO7f-d: `scripts/grain_opt/go7f_diag.py` (started 22:19 PST, log `.../go7f/go7f_d.log`).
+- none.
 
 ## Data (git-ignored, in this worktree; link, do not copy)
 

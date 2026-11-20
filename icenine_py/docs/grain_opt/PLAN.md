@@ -756,6 +756,28 @@ truth on both grains (written before any run). Output `benchmarks/grain_opt/go9b
 
 Budget: a few minutes.
 
+### GO9c: per-spot MMD with a Gaussian kernel as an orientation objective (goal G2a, idea I20)
+
+Question (written 2026-11-19 22:50 PST, before any run): GO1's smooth objectives and GO9's Poisson
+deviance put the optimum 0.010-0.095 deg from the ground truth. Does a kernel two-sample distance
+per spot, which compares the whole predicted and observed point clouds without a transport plan,
+have its optimum at the ground truth?
+
+Objective (`probe_poisson.py --variants mmd ...`, no library change): per spot window j, the
+predicted coverage points x_i (grain plus fixed neighbour shell, `pack_predicted`, weights a_i
+normalised to sum 1) against the observed lit pixel centres y_k (weights the clean intensity,
+normalised to sum 1); Gaussian kernel k = exp(-(dc^2 + dr^2) / (2 s^2) - df^2 / (2 s_f^2)) with s
+in pixels and s_f = 1 frame; MMD^2_j = a'K_xx a - 2 a'K_xy w + w'K_yy w; objective = sum over spots.
+Arms: `mmd` (s = 1 px, intensity weights), `mmd_s2` (s = 2 px), `mmd_bin` (s = 1 px, uniform
+observed weights).
+
+Protocol and rule: GO1's (`grad`, level-0 grains 381 and 302, CMA over the grain rotation only,
+sigma 0.03 deg, 150 evaluations, from the ground truth). An arm qualifies if its optimum is below
+0.01 deg from the ground truth on both grains. References: strict 0.0060 / 0.0082; Poisson
+(GO9) 0.0101 / 0.0060; least squares 0.0117 / 0.0423. Output `benchmarks/grain_opt/go9c/`.
+
+Budget: under 30 minutes.
+
 ### GO4e: neighbour pass after the gated seed path (goal G1b, idea I51)
 
 Question: GO4d's ladder + gated seed path (`L/366/3,G/15/0.15`) left rand at 2 deg with 52% of
@@ -1223,7 +1245,7 @@ without asking.
 Budget: implementation and tests by an implementer in its own worktree (a few hours), then each
 experiment under 30 minutes.
 
-Results (2026-11-19, `findings.md`): GO7f-a no, GO7f-b no.
+Results (2026-11-19, `findings.md`): GO7f-a no, GO7f-b no, GO7f-c no, GO7f-d: threshold dilution, not search.
 
 **Follow-ups (judging rules written here, before any run, 2026-11-19 22:30 PST):**
 - GO7f-c, model PSF without the ratio filter: `GP4@P` on `strain_psf10` with `--model_psf 1` and

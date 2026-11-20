@@ -65,6 +65,46 @@ class Poisson:
         return float(2.0 * dev.sum())
 
 
+class MMD:
+    """GO9c (I20): sum over spots of the squared MMD between the predicted coverage points
+    (weights a, normalised per spot) and the observed lit pixel centres (weights the clean
+    intensity, or uniform), Gaussian kernel with s px in column / row and s_f frames in frame."""
+
+    def __init__(self, prob: object, s: float, s_f: float = 1.0, intensity: bool = True) -> None:
+        self.prob = prob
+        self.scale = np.array([1.0 / s, 1.0 / s, 1.0 / s_f])
+        self.obs, self.w, self.kyy = [], [], []
+        for sp in prob.region.spots:
+            y = np.asarray(sp.obs, float) * self.scale
+            w = np.asarray(sp.obs_val, float) if intensity else np.ones(len(y))
+            w = w / w.sum()
+            self.obs.append(y)
+            self.w.append(w)
+            self.kyy.append(float(w @ self._k(y, y) @ w))
+
+    @staticmethod
+    def _k(p: np.ndarray, q: np.ndarray) -> np.ndarray:
+        d2 = ((p[:, None, :] - q[None, :, :]) ** 2).sum(-1)
+        return np.exp(-0.5 * d2)
+
+    def __call__(self, R: torch.Tensor) -> float:
+        prob = self.prob
+        with torch.no_grad():
+            rows = prob.model.predict(R, prob.V)
+            x, a = GF.pack_predicted(prob.region, rows, prob.bary, prob.model.n_det, with_shell=True)
+        x, a = x.numpy(), a.numpy()
+        tot = 0.0
+        for j in range(len(self.obs)):
+            live = a[j] > 0
+            if not live.any():
+                tot += self.kyy[j]
+                continue
+            p = x[j][live] * self.scale
+            m = a[j][live] / a[j][live].sum()
+            tot += float(m @ self._k(p, p) @ m - 2.0 * m @ self._k(p, self.obs[j]) @ self.w[j]) + self.kyy[j]
+        return tot
+
+
 def spot_intensities(S: object, prob: object) -> np.ndarray:
     """GO9b: I_j = F / (|sin eta| sin 2theta) per spot: F the reflection's form intensity (the
     structure's reflection list filtered by Q-max, as SmoothCost), eta and 2 theta from the lab
@@ -117,9 +157,13 @@ def main() -> None:
         th0[:3] = w_t
         I_spot = spot_intensities(S, prob) if "pois_sf" in a.variants else None
         table = {"pois": (0.5, None), "pois_b5": (5.0, None), "pois_sf": (0.5, I_spot)}
+        mmd = {"mmd": (1.0, True), "mmd_s2": (2.0, True), "mmd_bin": (1.0, False)}  # GO9c
         for name in a.variants:
-            b, I_use = table[name]
-            obj = Poisson(prob, gain, b, I_use)
+            if name in mmd:
+                obj = MMD(prob, mmd[name][0], 1.0, mmd[name][1])
+            else:
+                b, I_use = table[name]
+                obj = Poisson(prob, gain, b, I_use)
 
             def f(w: np.ndarray) -> float:
                 th = th0.copy()
@@ -142,7 +186,7 @@ def main() -> None:
                        strict_opt=float(S.strict(R_opt, members).mean()), t_s=time.time() - t0)
             print(json.dumps(row), flush=True)
             out.append(row)
-    (CM.OUT / a.out / "poisson.json").write_text(json.dumps(out, indent=1) + "\n")
+    (CM.OUT / a.out / ("mmd.json" if any(v.startswith("mmd") for v in a.variants) else "poisson.json")).write_text(json.dumps(out, indent=1) + "\n")
 
 
 if __name__ == "__main__":
