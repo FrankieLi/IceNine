@@ -208,6 +208,9 @@ def main() -> None:
     ap.add_argument("--evals", type=int, default=150)
     ap.add_argument("--variants", nargs="+", default=["pois", "pois_b5"])
     ap.add_argument("--out", default="go9")
+    ap.add_argument("--start_off", type=float, default=0.0, help="GO1d: start D deg from the ground truth")
+    ap.add_argument("--seeds", type=int, default=1, help="GO1d: random start axes (seeds 0..n-1)")
+    ap.add_argument("--sigma", type=float, default=0.03, help="CMA sigma, deg")
     a = ap.parse_args()
     import cma
 
@@ -237,6 +240,8 @@ def main() -> None:
                 obj = Moments(prob, cov=name == "mom")
             elif name in ("soft_t01", "soft_t025"):  # GO1c
                 obj = SoftTouch(prob, 0.1 if name == "soft_t01" else 0.25)
+            elif name == "strict":  # GO1d reference: the grain-mean strict cost
+                obj = (lambda mem: lambda R: float(S.strict(R.numpy(), mem).mean()))(members)
             else:
                 b, I_use = table[name]
                 obj = Poisson(prob, gain, b, I_use)
@@ -247,23 +252,29 @@ def main() -> None:
                 with torch.no_grad():
                     return obj(prob.field.orientations(torch.as_tensor(th)))
 
-            t0 = time.time()
-            es = cma.CMAEvolutionStrategy(list(w_t), np.radians(0.03),
-                                          {"seed": 1, "maxfevals": a.evals, "verbose": -9})
-            es.optimize(f)
-            w = np.asarray(es.result.xbest)
-            th = th0.copy()
-            th[:3] = w
-            with torch.no_grad():
-                R_opt = prob.field.orientations(torch.as_tensor(th)).numpy()
-            row = dict(grain=g, variant=name, gain=gain, n_spots=prob.n_spots,
-                       offset_deg=float(np.median(T.err(R_opt, members))), f_truth=f(w_t),
-                       f_opt=f(w), strict_truth=float(S.strict(Rt, members).mean()),
-                       strict_opt=float(S.strict(R_opt, members).mean()), t_s=time.time() - t0)
-            print(json.dumps(row), flush=True)
-            out.append(row)
+            for seed in range(a.seeds):
+                w0 = w_t.copy()
+                if a.start_off > 0:  # GO1d: rotate the start by start_off deg about a seeded axis
+                    ax = np.random.default_rng(seed).normal(size=3)
+                    w0 = w_t + np.radians(a.start_off) * ax / np.linalg.norm(ax)
+                t0 = time.time()
+                es = cma.CMAEvolutionStrategy(list(w0), np.radians(a.sigma),
+                                              {"seed": 1, "maxfevals": a.evals, "verbose": -9})
+                es.optimize(f)
+                w = np.asarray(es.result.xbest)
+                th = th0.copy()
+                th[:3] = w
+                with torch.no_grad():
+                    R_opt = prob.field.orientations(torch.as_tensor(th)).numpy()
+                row = dict(grain=g, variant=name, gain=gain, n_spots=prob.n_spots, seed=seed,
+                           start_off=a.start_off, offset_deg=float(np.median(T.err(R_opt, members))),
+                           f_truth=f(w_t), f_opt=f(w), strict_truth=float(S.strict(Rt, members).mean()),
+                           strict_opt=float(S.strict(R_opt, members).mean()), t_s=time.time() - t0)
+                print(json.dumps(row), flush=True)
+                out.append(row)
     (CM.OUT / a.out / ("mmd.json" if any(v.startswith("mmd") for v in a.variants)
                           else "moments.json" if any(v.startswith("mom") for v in a.variants)
+                          else f"starts_{a.start_off:g}.json" if a.start_off > 0
                           else "soft.json" if any(v.startswith("soft") for v in a.variants)
                           else "poisson.json")).write_text(json.dumps(out, indent=1) + "\n")
 

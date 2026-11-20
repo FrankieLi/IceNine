@@ -1615,3 +1615,25 @@ Caveats: the emulation has no noise or background, and the Poisson gate reads th
 intensities (`--store grad_rock10t0`); on real data the counts below the binarisation threshold are
 noisy. 15-21 s per G20 run (contended, single runs). Correction to GO7f-b's table: the clean run
 rejects grains 64 and 493 (not none).
+
+## GO1d: soft "pixel touched" surrogate from displaced starts (goal G2b, idea I3)
+
+`probe_poisson.py --variants soft_t025 strict --start_off D --seeds 3 --sigma 0.05 --evals 300`,
+grains 381 and 302, the same 3 seeded start axes for both objectives; rows
+`benchmarks/grain_opt/go1d/starts_0.03.json`, `starts_0.1.json`. End offset from the ground truth
+(deg), per seed:
+
+| start offset | objective | 381 (seeds 0, 1, 2) | 302 (seeds 0, 1, 2) | within 0.01 deg | median |
+|---|---|---|---|---|---|
+| 0.03 deg | `soft_t025` | 0.0050, 0.0050, 0.0050 | 0.0118, 0.0220, 0.0149 | 3 of 6 | 0.0084 |
+| 0.03 deg | strict | 0.0006, 0.0004, 0.0021 | 0.0023, 0.0089, 0.0008 | 6 of 6 | 0.0015 |
+| 0.1 deg | `soft_t025` | 0.0049, 0.0049, 0.0046 | 0.0117, 0.0117, 0.0047 | 4 of 6 | 0.0049 |
+| 0.1 deg | strict | 0.0004, 0.0027, 0.0010 | 0.0013, 0.0048, 0.0118 | 5 of 6 | 0.0020 |
+
+Verdict by the rule written before the run: no (3 of 6 within 0.01 deg at 0.03 deg, limit 5; median
+at 0.1 deg 0.0049 against the strict cost's 0.0020). The soft surrogate's bottom is unbiased at the
+ground truth (GO1c) but wide: it ends 0.005-0.02 deg away, while the strict cost with 300
+evaluations and sigma 0.05 deg ends at 0.0015-0.002 deg (better than GO1's 150 evaluations and
+sigma 0.03). The strict cost is also about 20-50 x faster here (0.2-0.3 s per run, fused C path,
+against 4-11 s for the numpy surrogate). I3 closed: no use as a finisher; the strict cost (or the
+Gauss-Newton centroid fit) stays.

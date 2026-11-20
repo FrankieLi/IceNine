@@ -2,7 +2,9 @@
 
 A pipeline is a comma list of stages, applied in order to each grain (largest first in the pick
 list order), each stage gated by the acceptance rule (objective of the stage and mean strict cost
-of the group's voxels do not get worse):
+of the group's voxels do not get worse; for A and B stages, by default since GO7g, a stage is also
+accepted when the group's Poisson deviance does not rise: ``--gate either``; ``--gate strict``
+reproduces runs before 2026-11-19 22:56 PST):
 
 * ``A<obj>/<evals>[/o2]``: CMA over the grain field (rotation + linear field; ``o2`` quadratic)
   on objective ``obj`` in {sink, sinki (intensity-weighted Sinkhorn), ls, strict}, at most
@@ -170,8 +172,9 @@ def main() -> None:
     ap.add_argument("--b-lr", type=float, default=0.01)
     ap.add_argument("--b-mu", type=float, default=1.0)
     ap.add_argument("--rocking_deg", type=float, default=0.0, help="GO7f: strict-cost rocking window (deg)")
-    ap.add_argument("--gate", default="strict", choices=["strict", "pois", "either"],
-                    help="GO7g: A-stage acceptance on the strict cost, the Poisson deviance, or either")
+    ap.add_argument("--gate", default="either", choices=["strict", "pois", "either"],
+                    help="GO7g: A-stage acceptance on the strict cost, the Poisson deviance, or either "
+                    "(default either since 2026-11-19 22:56 PST; --gate strict reproduces earlier runs)")
     ap.add_argument("--model_rocking", type=float, default=0.0, help="GO7g: SpotModel rocking width (deg)")
     ap.add_argument("--store", default=None, help="GO7g: intensity store tag in place of the stack's")
     ap.add_argument("--ratio_off", action="store_true", help="GO7g: region without the area-ratio filter")

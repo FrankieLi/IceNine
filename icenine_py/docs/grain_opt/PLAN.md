@@ -109,6 +109,15 @@ Result (2026-11-19): `soft_t025` qualifies (0.0045 / 0.0017 deg), `soft_t01` doe
 (owner chose the rocking-aware threshold, GO7g): GO1d would test `soft_t025` from displaced
 starts (0.03 and 0.1 deg, 3 seeds per grain) against the strict cost from the same starts.
 
+GO1d (rule written 2026-11-19 22:56 PST, before any run; resumed after GO7g): `probe_poisson.py
+--variants soft_t025 strict --start_off D --seeds 3` on grains 381 and 302: each start is the
+ground truth rotated by D deg about a seeded random axis (D = 0.03 and 0.1; seeds 0-2, the same
+starts for both objectives); CMA over the rotation, sigma 0.05 deg, 300 evaluations. Yes when
+`soft_t025` ends within 0.01 deg of the ground truth from at least 5 of the 6 starts at 0.03 deg
+and its median end offset over the 6 starts at 0.1 deg is at most the strict cost's; partly when
+only the first holds. Output `benchmarks/grain_opt/go1d/`.
+Result (2026-11-19): GO1d no (3 of 6 within 0.01 deg at 0.03 deg; median 0.0049 against strict 0.0020 at 0.1 deg).
+
 ### GO2: optimizer Pareto on G20 (ideas I5, I6, I9, I10, I28, I29)
 
 Question: for each objective, how many objective evaluations per voxel buy how much accuracy, and which chain

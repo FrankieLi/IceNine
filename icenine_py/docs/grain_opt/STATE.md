@@ -12,16 +12,23 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
   Lower thresholds (x 0.5, x 0.25, any) restore the ground-truth strict cost and the unlit-peak share
   (0.3%) but grain 197 stays rejected: the strict gate on it is a knife edge (A-stage field 0.0927
   against the painted start 0.0877). The 3-frame sum widens clean spots (2.67 x) and fails.
+- **Pipeline default changed** (2026-11-19 22:56 PST, scripts only, at the coordinator's request
+  after GO7g): `run_pipeline.py --gate either` (A / B stages also accepted when the group's Poisson
+  deviance does not rise) is now the default; `--gate strict` turns it off and reproduces earlier
+  runs. Checked on clean G20: 3 of 853 C voxels above 0.1 deg, median 0.0144 (same as CP2). Not in
+  the library (would need the owner's approval in their own words).
 - **GO7f closed** (D-20261119-I1 library part merged df583c97): a, b, c no; d: rocking damage is
   threshold dilution. **GO9c / GO9d** (I20, I19) no. **GO1b** (I4): no clear bias, offsets within
   scan noise. **GO1c** (I3): soft "pixel touched" surrogate (tau 0.25 px) qualifies, 0.0045 /
-  0.0017 deg; basin test GO1d parked.
+  0.0017 deg; **GO1d no** (from displaced starts it ends 0.005-0.02 deg away, 3 of 6 within 0.01 at
+  0.03 deg; the strict cost ends at 0.002 deg and is faster). I3 closed.
 - **Open choices for the owner**: I66 (retrain GNLayerNet on grain-like windows), I35 (G1b from a
   real painted start on rand / corr3), the GO7f defaults (renderer attributes vs config keys, PSF lit
   threshold 1e-3, |sin eta| floor 0.01, high500 freeze test policy), and whether the strict-or-Poisson
-  gate should become the pipeline default (scripts) or move into the library (needs approval).
-- **Next action:** GO1d (I3 basin test: `soft_t025` from displaced starts 0.03 / 0.1 deg against the
-  strict cost), rule already in PLAN.
+  gate should move into the library (needs approval; it is the scripts default now).
+- **Next action:** the proposed-idea queue is down to I8 (blur annealing for the Sinkhorn basin
+  finder), low expected value since the GN fast fit and the G1b pipeline replaced Sinkhorn; the
+  next step needs the owner's pick among the open choices above (or I8). Wake cron as fallback.
 
 ## Running jobs
 
