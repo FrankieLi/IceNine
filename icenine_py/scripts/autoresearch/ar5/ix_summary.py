@@ -54,7 +54,6 @@ def live_row(cache: Path, arm: str, s: str) -> Optional[Dict[str, Any]]:
         evals=int(run["evals_total"]) + int(rep["pass_evals"]) + int(rep["n_evals"]),
         wall_s=float(run["wall_total_s"]) + float(rep["wall_pass_s"]) + float(rep["wall_repair_s"]),
         index_s=float(st["index_s"]),
-        n_seed_steps=int(st.get("n_seed_steps", 0)),
         map_equal_stored=equal,
         label=label,
     )
@@ -145,7 +144,16 @@ def main() -> None:
         po = sum(r["wall_old"] for r in w2_rows)
         pn = sum(r["wall_new"] for r in w2_rows)
         pooled = 100 * (1 - pn / po)
+    for r in w2_rows:
+        o, n = live[f"old_{r['sample']}"], live[f"new_{r['sample']}"]
+        r["wall_minus_index_old"] = o["wall_s"] - o["index_s"]
+        r["wall_minus_index_new"] = n["wall_s"] - n["index_s"]
     summ["w2"] = dict(rows=w2_rows, pooled_less_pct=pooled)
+    summ["e1_totals"] = dict(
+        mid_and_held=sum(exact[s]["n_voxels"] for s in ("mid", "held") if exact[s]),
+        all=sum(x["n_voxels"] for x in exact.values() if x),
+        identical_all=sum(x["tier1_identical"] for x in exact.values() if x),
+    )
     (RD / "summary.json").write_text(json.dumps(summ, indent=1) + "\n")
     parts_rows: List[Dict[str, Any]] = []
     for s in ("mid", "held"):

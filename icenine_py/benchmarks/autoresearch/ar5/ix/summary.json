@@ -970,7 +970,6 @@
    "evals": 7383368,
    "wall_s": 1674.4888970851898,
    "index_s": 971.3094834530001,
-   "n_seed_steps": 0,
    "map_equal_stored": true,
    "label": "contended"
   },
@@ -980,7 +979,6 @@
    "evals": 7383368,
    "wall_s": 1344.717171907425,
    "index_s": 627.1136298360045,
-   "n_seed_steps": 0,
    "map_equal_stored": true,
    "label": "contended"
   },
@@ -990,7 +988,6 @@
    "evals": 17114589,
    "wall_s": 5631.517442941666,
    "index_s": 4045.853021575997,
-   "n_seed_steps": 0,
    "map_equal_stored": true,
    "label": "contended"
   },
@@ -1000,7 +997,6 @@
    "evals": 17114589,
    "wall_s": 4281.709481716156,
    "index_s": 2668.3967374280182,
-   "n_seed_steps": 0,
    "map_equal_stored": true,
    "label": "contended"
   }
@@ -1026,7 +1022,9 @@
     "less_pct": 19.693873500851744,
     "index_old": 971.3094834530001,
     "index_new": 627.1136298360045,
-    "label": "contended / contended"
+    "label": "contended / contended",
+    "wall_minus_index_old": 703.1794136321897,
+    "wall_minus_index_new": 717.6035420714204
    },
    {
     "sample": "held",
@@ -1040,9 +1038,16 @@
     "less_pct": 23.96881435424316,
     "index_old": 4045.853021575997,
     "index_new": 2668.3967374280182,
-    "label": "contended / contended"
+    "label": "contended / contended",
+    "wall_minus_index_old": 1585.6644213656687,
+    "wall_minus_index_new": 1613.3127442881378
    }
   ],
   "pooled_less_pct": 22.989025853994814
+ },
+ "e1_totals": {
+  "mid_and_held": 5311,
+  "all": 7111,
+  "identical_all": 7111
  }
 }

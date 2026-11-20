@@ -479,25 +479,31 @@ def index_voxel(
 # --------------------------------------------------------------------------------------------
 # a faster indexer with the same candidates (autoresearch AR5 step 26, rule ``IX``)
 #
-# ``index_voxel_fast`` returns what ``index_voxel`` returns. Nothing about the parameters, the
-# vote generator, the seed order or the merge changes; only work that does not change the output
-# is cut: (1) the neighbour count of the votes is made once per distinct vote and weighted by its
-# multiplicity (votes that differ by about one rounding error, from symmetry-equivalent family
-# members, have the same count), with a larger k-d tree leaf; (2) the part of the refinement that
+# ``index_voxel_fast`` returned the same candidates as ``index_voxel`` on every voxel tested (7,111
+# voxels) and in two live runs; it is NOT exact by construction (see ``_vote_counts_fast``).
+# Nothing about the parameters, the vote generator, the seed order or the merge changes; two
+# things are done differently: (1) the neighbour count of the votes is made once per distinct vote
+# and weighted by its multiplicity (votes that differ by about one rounding error are taken to
+# have the same count: consistent with the tests, not proved), with a larger k-d tree leaf; (2)
+# the part of the refinement that
 # does not depend on the rotation (relative ray length against every reciprocal-vector length) is
 # computed once per voxel, and the explained-ray count is not recomputed when the last match was
 # made at the same rotation. ``index_voxel`` is the reference and stays unchanged.
 # --------------------------------------------------------------------------------------------
-_FAST_LEAF = 64  # k-d tree leaf size of the neighbour count (any value gives the same counts)
+_FAST_LEAF = 64  # k-d tree leaf size of the count (another leaf gave equal counts when tried)
 _DUP_SCALE = 1e11  # votes whose reduced quaternions round to the same value are one distinct vote
 _MAX_MULT_CLASSES = 8  # more distinct multiplicities than this: count with one tree of all votes
 
 
 def _vote_counts_fast(q: np.ndarray, chord: float) -> np.ndarray:
     """Number of votes within ``chord`` (Euclidean, quaternion space) of every vote, themselves
-    included: what ``cKDTree(q).query_ball_point(q, chord, return_length=True)`` returns, from one
-    query per distinct vote (votes equal after rounding to ``1 / _DUP_SCALE`` are one vote; their
-    spread is about one unit in the last place) against one small tree per multiplicity."""
+    included: what ``cKDTree(q).query_ball_point(q, chord, return_length=True)`` returned on all
+    tested voxels, from one query per distinct vote (votes equal after rounding to ``1 /
+    _DUP_SCALE`` are one vote) against one small tree per multiplicity. Known limit, not exact by
+    construction: every vote of a group gets the representative's count, and the other groups are
+    counted at their representative's position, so a vote whose distance to a group lies within
+    the group's spread of ``chord`` can get another count than the tree gives (see
+    ``test_vote_counts_edge_case_differs_from_tree``)."""
     n = len(q)
     key = np.round(q * _DUP_SCALE).astype(np.int64)
     order = np.lexsort((np.arange(n), key[:, 3], key[:, 2], key[:, 1], key[:, 0]))
@@ -528,7 +534,8 @@ def cluster_votes_fast(
     votes: np.ndarray, sym: np.ndarray, p: IndexParams
 ) -> Tuple[np.ndarray, np.ndarray]:
     """``cluster_votes`` with the neighbour count of ``_vote_counts_fast``; the seed loop (order,
-    symmetric recount, aligned mean) is the reference's, line for line."""
+    symmetric recount, aligned mean) is the reference's, line for line. Counts as in
+    ``_vote_counts_fast`` (equal on tested voxels, not exact by construction)."""
     if len(votes) == 0:
         return np.zeros((0, 3, 3)), np.zeros(0, dtype=int)
     red = reduce_rotations(votes, sym)
@@ -565,40 +572,6 @@ def cluster_votes_fast(
         sel_n.append(len(idx))
     order = np.argsort(-np.asarray(sel_n), kind="stable")
     return np.stack(sel_R)[order], np.asarray(sel_n)[order]
-
-
-def _refine_rotation_fast(
-    R: np.ndarray,
-    g: np.ndarray,
-    gl: np.ndarray,
-    gh: np.ndarray,
-    len_ok: np.ndarray,
-    crystal: CrystalModel,
-    p: IndexParams,
-) -> Tuple[np.ndarray, int]:
-    """``refine_rotation`` with the rotation-independent parts (``gl``, ``gh``, ``len_ok``: the
-    rays whose length matches a reciprocal vector) passed in; same arithmetic, same result."""
-    q = crystal.q
-    ok = np.zeros(0, dtype=bool)
-    n_it = p.refine_iters
-    for it in range(n_it + 1):
-        ph = crystal.h @ R.T
-        cos = np.where(len_ok, gh @ (ph / q[:, None]).T, -2.0)
-        j = np.argmax(cos, axis=1)
-        cmax = cos[np.arange(len(g)), j]
-        found = cmax > -1.5
-        ang = np.where(found, np.degrees(np.arccos(np.clip(cmax, -1.0, 1.0))), np.inf)
-        rel = np.where(found, np.abs(gl / q[j] - 1.0), np.inf)
-        j = np.where(found, j, -1)
-        ok = (ang <= p.ang_tol_deg) & (rel <= p.len_tol)
-        if it == n_it or ok.sum() < 2:  # the last match is the explained count of ``R``
-            break
-        H = crystal.h[j[ok]]
-        M = g[ok].T @ H
-        U, _, Vt = np.linalg.svd(M)
-        d = np.sign(np.linalg.det(U @ Vt))
-        R = U @ np.diag([1.0, 1.0, d]) @ Vt
-    return R, int(ok.sum())
 
 
 _REFINE_CHUNK = 32  # clusters refined together (the largest array is chunk x rays x vectors)
@@ -667,7 +640,8 @@ def index_rays_fast(
     top_k: int = 20,
     keep_votes: bool = False,
 ) -> Candidates:
-    """``index_rays`` with ``cluster_votes_fast`` and the hoisted refinement (same output)."""
+    """``index_rays`` with ``cluster_votes_fast`` and the hoisted refinement (same output on all
+    tested voxels)."""
     t0 = time.perf_counter()
     n = len(g)
     if n < 2:
@@ -723,7 +697,8 @@ def index_voxel_fast(
     keep_votes: bool = False,
 ) -> Tuple[Candidates, np.ndarray]:
     """The candidates and attached rays of ``index_voxel`` (rule ``IX``: same rotations, same
-    counts, same order), computed faster. Unused unless called."""
+    counts, same order on all 7,111 tested voxels; not by construction), computed faster.
+    Unused unless called."""
     att = sc.attached_rays(voxel_vertices)
     g = scattering_vectors(sc, att)
     res = index_rays_fast(g, crystal, p, top_k, keep_votes)

@@ -223,3 +223,28 @@ def test_index_voxel_fast_same_as_index_voxel(crystal: RI.CrystalModel) -> None:
     assert np.array_equal(att_a, att_b)
     same(a, b)
     assert len(a.R) >= 1
+
+
+def test_vote_counts_edge_case_differs_from_tree() -> None:
+    """DOCUMENTS A KNOWN LIMIT (not a wanted behaviour): the fast count is not exact by
+    construction. Two votes a rounding error apart (a1, a2) and a third (b) at about ``chord``
+    from them: the tree counts each vote on its own, the fast count gives a2 a1's count and counts
+    b from a1's position, so with b on the edge the counts can differ. Some such configurations
+    differ (the review found about half); well inside the edge they agree."""
+    rng = np.random.default_rng(3)
+    chord = 0.01
+    n_diff = n_agree_far = 0
+    for _ in range(200):
+        a1 = rng.normal(size=4)
+        a1 /= np.linalg.norm(a1)
+        u = rng.normal(size=4)
+        u /= np.linalg.norm(u)
+        a2 = a1 + 4e-16 * u
+        q = np.stack([a1, a2, a1 + chord * u])
+        want = np.asarray(cKDTree(q).query_ball_point(q, chord, return_length=True))
+        n_diff += int(not np.array_equal(want, RI._vote_counts_fast(q, chord)))
+        far = np.stack([a1, a2, a1 + 0.5 * chord * u])
+        want_far = np.asarray(cKDTree(far).query_ball_point(far, chord, return_length=True))
+        n_agree_far += int(np.array_equal(want_far, RI._vote_counts_fast(far, chord)))
+    assert n_diff > 0  # the known difference exists
+    assert n_agree_far == 200  # and does not show away from the edge

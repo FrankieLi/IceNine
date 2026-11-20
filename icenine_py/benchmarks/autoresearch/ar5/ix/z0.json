@@ -33,7 +33,7 @@
  "stored_wall_contended_s": 1664.6504831314087,
  "stored_index_s_contended": 967.1877480230095,
  "gate": "share >= 0.30",
- "gate_met": true,
+ "contended_share_at_or_above_line": true,
  "timing_label": "contended",
  "verdict": "not judged: machine not quiet",
  "preflight_start": {

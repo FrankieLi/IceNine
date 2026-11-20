@@ -152,7 +152,7 @@ def main() -> None:
         stored_wall_contended_s=tab["stored_wall"],
         stored_index_s_contended=tab["stored_index_s"],
         gate="share >= 0.30",
-        gate_met=bool(share >= 0.30),
+        contended_share_at_or_above_line=bool(share >= 0.30),
         timing_label="single-worker" if quiet else "contended",
         verdict=(
             ("met" if share >= 0.30 else "not met") if quiet else "not judged: machine not quiet"

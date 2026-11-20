@@ -13753,22 +13753,22 @@ differs from the plan by 0.05 points.
 Approved by D-20261119-N6 (phases 0 and A). New library function `ray_indexing.index_voxel_fast`
 (with `index_rays_fast`, `cluster_votes_fast`); `index_voxel` is the unchanged reference; nothing
 calls the new one unless a script does. Scripts `scripts/autoresearch/ar5/ix_*.py` and
-`ix_run_all.sh`, tests `tests/test_ar5_ix.py` (9 tests), results in
+`ix_run_all.sh`, tests `tests/test_ar5_ix.py` (10 tests), results in
 `benchmarks/autoresearch/ar5/ix/` (`frozen.json`, `voxels.json`, `exact_*.json`, `z0.json`,
 `summary.json`, `tables.md`, `ix_seconds.png`). No key, no config change, no golden change, no
 `held7`, nothing of `held2` or `fine7`.
 
 What was found. The old indexer's seconds, on 200 `mid` voxels (every 8th stored seed step, old
-indexer only, contended): 81.5% clustering, 12.5% refining, 5.2% voting, 0.3% attaching rays and
-0.4% merging (`profile_mid_contended.json`). Clustering is one number per vote, the count of other
-votes within 1 degree, from a k-d tree: about 50,000 votes a voxel and 10 to 100 million counted
-pairs on the heavy voxels. The new indexer counts once per distinct vote (votes that differ by about
-one rounding error, from symmetry-equivalent family members, have a multiplicity of 1 to 4 in
-cubic copper) with a weight, uses a larger tree leaf, and refines all clusters together. Every
-other line is the reference's. Tried and dropped (simulation on stored votes): not counting votes
-that cannot be a seed. It needs a bound on the count within about 1.3 times to save half of the
-pairs, and the bounds that are cheap to compute are 2 to 3 times loose, so it saves nothing on the
-dense peaks that hold most of the pairs.
+indexer only; the label "contended" of this profile is assumed, no preflight JSON was saved with
+it): 81.5% clustering, 12.5% refining, 5.2% voting, 0.3% attaching rays and 0.4% merging
+(`profile_mid_contended.json`). Clustering is one number per vote, the count of other votes within
+1 degree, from a k-d tree: about 50,000 votes a voxel. The new indexer counts once per distinct
+vote (votes that differ by about one rounding error are taken to have the same count, which is
+consistent with the results below and was not proved; the multiplicity of a vote depends on the
+point group) with a weight, uses a larger tree leaf, and refines all clusters together. Every other
+line is the reference's. One more idea, not counting votes that cannot be a seed, was tried only as
+an exploratory scratch simulation, not kept; it suggested that it would save little on the dense
+peaks, and nothing here relies on it.
 
 Reading line: first the plot (seconds, old and new, contended; the left panel is the indexing
 alone on all exactness voxels of `mid` and `held`, the right one the whole `J5SD` run), then the
@@ -13779,8 +13779,9 @@ core for days, and `timing_preflight --require` refused four times (16:07, 16:28
 ![seconds, old and new indexer, contended](benchmarks/autoresearch/ar5/ix/ix_seconds.png)
 
 Exactness (gate e1, index only). Reading line: per sample, the voxels run through both indexers, how
-many came out bit for bit equal (rotations, explained and vote counts, attached rays, order), and
-the seconds of both in alternating blocks of 100 voxels.
+many came out equal (rotations, explained and vote counts, attached rays, order), and the seconds
+of both in alternating blocks of 100 voxels. Seconds are contended; the rows `held3` to `big` were
+exactness runs (tag `untimed`), not for timing.
 
 <!-- table:ix_e1 -->
 | sample | voxels | identical | differ | old_s | new_s | less_pct |
@@ -13821,25 +13822,30 @@ alone; evaluations, whether the new map equals the stored `J5SD` map byte for by
 | held | 17,114,589 | 17,114,589 | True | 5632 | 4282 | 24.0 | contended / contended |
 <!-- /table:ix_w2 -->
 
-The evaluation seconds (wall minus indexing) did not slow: `mid` 703 s old, 718 s new; `held` 1,586
-s old, 1,613 s new (about 2% more; contended noise or a little memory pressure, not tested).
+Wall minus indexing (evaluations, the one-time ray pairing and the BFS bookkeeping; in
+`summary.json`) did not shrink or grow much: `mid` 703 s old, 718 s new; `held` 1,586 s old, 1,613
+s new (about 2% more; contended noise or a little memory pressure, not tested).
 
 Gate verdicts. z0 (indexing at least 30% of a quiet `J5SD` estimate on `mid`): contended value 73%;
-not judged, machine not quiet. e1: met at tier 1 (7,111 of 7,111 voxels bit-identical: 5,311 of
-`mid` and `held`, 300 each of `held3` to `held6`, `grad`, `big`). e2: met at tier 1 (both new maps
-equal the stored `J5SD` maps and the counts 7,383,368 and 17,114,589; the old arm reproduces both
-too). w1 (indexing seconds at least 50% lower, quiet): not judged, machine not quiet; the contended
-value is 35.4% lower pooled over `mid` and `held` (37.1% and 35.0%), below the 50% line and below the
-prediction of 2 to 5 times. w2 (whole run at least 25% lower pooled and 15% on each, quiet): not
+not judged, machine not quiet. e1: met at tier 1 on the tested data (all 7,111 tested voxels equal:
+5,311 of `mid` and `held`, 300 each of `held3` to `held6`, `grad`, `big`; totals in `summary.json`).
+e2: met at tier 1 on the tested data (both new maps equal the stored `J5SD` maps and the counts
+7,383,368 and 17,114,589; the old arm reproduces both too). w1 (indexing seconds at least 50%
+lower, quiet): not judged, machine not quiet; the contended value is 35.4% lower pooled over `mid`
+and `held` (37.1% and 35.0%), so w1 would be missed (below the 50% line and below the prediction of
+2 to 5 times). w2 (whole run at least 25% lower pooled and 15% on each, quiet): not
 judged; the contended values are 19.7% (`mid`), 24.0% (`held`) and 23.0% pooled, so the pooled line
 would also be missed. The tier 1 prediction and the unchanged-evaluations prediction hold; the speed
-predictions do not hold on the contended numbers. Not "READY FOR KEY": three timed gates cannot be
-judged here, and the two that have a contended value are below their lines.
+predictions do not hold on the contended numbers. Outcome: exactness gates e1 and e2 met at tier 1
+on the tested data; timing gates z0, w1, w2 not judged (machine not quiet); on contended numbers w1
+and pooled w2 would be missed; no key.
 
-Not shown. That the votes' rounding-error duplicates have equal counts is argued, not proved: the
-spread inside a group was 2.5e-16 to 2.8e-16 on the six voxels measured in a scratch script (not
-kept in the results), a count could differ only for a
-vote whose distance to the group is within that spread of 1 degree, and no voxel of the 7,111 did.
-`index_voxel_fast` equals `index_voxel` on those voxels and on the nine fixtures of
-`tests/test_ar5_ix.py`, not on every possible input. Quiet seconds need a machine without the
-`cpptools` load (or a decision to relax the preflight for this one process).
+Known limits. `index_voxel_fast` is equal to `index_voxel` on all 7,111 tested voxels, in two live
+runs and on the fixtures of `tests/test_ar5_ix.py` (10 tests), not by construction: a vote whose
+distance to a group of rounding-error duplicates lies within the group's spread of the 1-degree
+edge can get another count than the k-d tree gives, and `test_vote_counts_edge_case_differs_from_
+tree` documents this (a 3-vote case; the algorithm was not changed). The spread itself was
+measured only in a scratch script and is not kept. A key (phase B) would first need an exact
+neighbour count (an edge check with a fallback to counting each member), and the cost of that extra
+work would have to be timed. Quiet seconds need a machine without the `cpptools` load (or a
+decision to relax the preflight for this one process).
