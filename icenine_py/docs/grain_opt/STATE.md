@@ -17,13 +17,11 @@ Rewritten at every step close; at most 120 lines. How: `RUNBOOK.md`. Ideas: `IDE
   BFS with `PaintGrains 1`, hard-wired to `grad`) would need a per-sample copy; it runs in one
   process and took 7,390 s on `grad` (contended), so a `rand` / `corr3` paint likely exceeds the
   2 h run limit. The cached ray pairings can be reused (`ray_cache.ensure`).
-- **Owner choice** (decision card, 2026-11-20 03:40 UTC, relayed by the coordinator): add rocking
-  curve / PSF to the library. The relayed choice could not be logged in DECISIONS.md (refused as a
-  relayed approval), and library changes need the owner's own confirmation (standing constraint),
-  asked for 2026-11-19 19:45 PST. Plan and rules written: PLAN "GO7f".
-- **Next action:** on the owner's own confirmation, log the decision with `log_decision.sh`, brief an
-  implementer for GO7f's library part (own worktree, tests, code review, merge into
-  `feature/grain-opt`), then run GO7f-a and GO7f-b. Until then nothing runs.
+- **Owner choice pending** (2026-11-19 19:58 PST): a relayed "decision card" choice (library rocking /
+  PSF) was not confirmed; the owner wrote "I am not seeing the card tap". Nothing was changed. Asked
+  the owner to reply in words: 1 I35, 2 I66, 3 library PSF / rocking (plan PLAN "GO7f", unused until
+  chosen), 4 stop.
+- **Next action:** follow the owner's own reply; until then nothing runs.
 
 ## Running jobs
 
