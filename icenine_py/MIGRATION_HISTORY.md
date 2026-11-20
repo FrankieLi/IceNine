@@ -13311,6 +13311,16 @@ keep the highest hit ratio, then the lowest cost, then the current end. `frozen.
   render options are `ForwardSimulation` attributes and `render_full.py` flags, not `ConfigFile`
   keys; spread points sit at frame centres (the frame cost is zero inside the frame, so the sub-frame
   position only matters for the home frame).
-- Tests: `tests/test_go7f_psf_rocking.py` (13) with `tests/go7f_fixture.py` and
+- **Review fixes (commits 1ee9681f and the second-review commits).** The fused cost includes
+  `rocking_deg` in its modes (a late change is detected, warns and falls back); `build_region`
+  widens spot boxes by the PSF reach and the rocking half-window, drops zero-mass spread points in
+  `pack_predicted`, and its `keep_px` filter dilates the footprint by 1 + the rocking half-window
+  in frames (`_touching_components(frame_dilation=)`); the `ratio` filter still uses the unspread
+  touched count (documented). `FrameTable.unions` stores unions as lit-pixel indices (LRU of 100000
+  keys) and builds the dense images per call: the earlier 64-key dense LRU was smaller than one
+  evaluate's 212-441 keys and thrashed. The single-worker timing script
+  `scripts/grain_opt/go7f_union_timing.py` was blocked by the preflight (load and battery) when
+  the fixes were made and has not been run.
+- Tests: `tests/test_go7f_psf_rocking.py` (18) with `tests/go7f_fixture.py` and
   `tests/data/go7f_baseline.npz` (new golden, made from the code before the change; no existing
   golden changed); `tests/test_fused_cost.py` gains the `rocking_deg` rejected value.

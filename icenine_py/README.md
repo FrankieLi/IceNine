@@ -715,13 +715,25 @@ Two blurs of the forward model, all default off (0 = off; output bit-identical, 
 Notes:
 
 - `rocking_deg` of the cost function is part of the fused context's modes: setting it after a fused
-  evaluate rebuilds the context and falls back to the torch path with a `RuntimeWarning`.
-  `BatchedCostEvaluator` checks it only at construction: set it before building evaluators.
-- The window's union-frame cache (`FrameTable.unions`) is an LRU of 64 keys, at most
-  64 x n_det x about 4 MB for 2048 x 2048 frames (upper bound, not measured).
+  evaluate is detected (the context no longer matches) and the call falls back to the torch path
+  with a `RuntimeWarning`. `BatchedCostEvaluator` checks it only at construction: set it before
+  building evaluators.
+- The window's union cache (`FrameTable.unions`) stores each union of frames as the sorted
+  lit-pixel indices per detector (a lit fraction of about 6.5e-6 on the three_voxels fixture), in
+  an LRU of 100000 keys. The dense uint8 images the C code needs are built on every call as
+  zero-filled arrays (lazily mapped) with those pixels set. One evaluate of one voxel needed
+  212-441 distinct union keys on that fixture (reviewer probe at 0.5-2 frames of rocking); the
+  earlier 64-key dense LRU was smaller than that, so every call recomputed every union (a probe
+  measured 0.15-0.56 s per evaluate against 0.0016 s with an unbounded cache, contended and
+  without a preflight), and the unbounded dense cache held about 3.0 GB after one evaluate. The
+  compact cache and its single-worker timing: `scripts/grain_opt/go7f_union_timing.py`
+  (not yet run on a quiet machine, see MIGRATION_HISTORY).
 - `SpotModel` spread points of zero mass (frames outside the scan or in a gap) are dropped when
   packing, and `build_region` widens its spot boxes by the PSF reach (ceil(sqrt(3) sigma) pixels)
-  and the rocking half-window (frames, narrowest |sin eta| of the spot).
+  and the rocking half-window (frames, narrowest |sin eta| of the spot). The kept-component filter
+  (`keep_px`) dilates the predicted footprint by 1 + that many frames, so observed pixels in the
+  outer rocking frames survive. The `ratio` filter still divides by the pixels touched by the
+  unspread start prediction, so for data with PSF or rocking widen `ratio` or pass None.
 - Scan ends and gaps: `SpotModel` keeps rows whose omega* is outside the scan or in a gap and
   spreads them into live frames; the renderer (`omega_valid`) and the strict cost
   (`valid_indices`) drop such peaks before rocking, so the three differ there.
