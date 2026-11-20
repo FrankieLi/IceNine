@@ -1,0 +1,89 @@
+{
+ "sample": "grad",
+ "tag": "untimed",
+ "n_voxels": 300,
+ "tier1_identical": 300,
+ "tier2_ok": 300,
+ "n_differ": 0,
+ "differ": [],
+ "old_s": 134.95295,
+ "new_s": 93.369931959,
+ "less_pct": 30.812974478142195,
+ "old_parts_s": {
+  "vote": 11.656243504999935,
+  "cluster": 95.07528129100012,
+  "refine": 26.825089336000083,
+  "merge": 0.6589337849997285,
+  "total": 134.21554791699987
+ },
+ "new_parts_s": {
+  "vote": 11.754599503000236,
+  "cluster": 67.55639412699983,
+  "refine": 12.924156296000021,
+  "merge": 0.6595214559999647,
+  "total": 92.89467138200006
+ },
+ "blocks": [
+  [
+   0,
+   38.188782875,
+   26.902494750000002
+  ],
+  [
+   100,
+   53.336550125,
+   36.55880587499999
+  ],
+  [
+   200,
+   43.427617,
+   29.908631334000006
+  ]
+ ],
+ "timing_label": "contended",
+ "quiet_start": false,
+ "quiet_end": false,
+ "preflight_start": {
+  "timestamp": "2026-11-19T17:18:21",
+  "host": "newt.local",
+  "loadavg": [
+   2.07275390625,
+   2.27001953125,
+   2.2744140625
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": "1",
+  "mkl_num_threads": "1",
+  "torch_threads": 1,
+  "busy_processes": [
+   {
+    "pid": 5359,
+    "cpu": 99.3,
+    "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+   }
+  ]
+ },
+ "preflight_end": {
+  "timestamp": "2026-11-19T17:22:36",
+  "host": "newt.local",
+  "loadavg": [
+   2.2060546875,
+   2.2568359375,
+   2.2568359375
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": "1",
+  "mkl_num_threads": "1",
+  "torch_threads": 1,
+  "busy_processes": [
+   {
+    "pid": 5359,
+    "cpu": 100.0,
+    "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+   }
+  ]
+ },
+ "wall_s": 253.78644466400146
+}

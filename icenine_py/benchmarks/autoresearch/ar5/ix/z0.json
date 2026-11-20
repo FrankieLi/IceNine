@@ -1,0 +1,81 @@
+{
+ "sample": "mid",
+ "n_voxels": 200,
+ "old_200_s": 142.01502045799998,
+ "n_steps": 1626,
+ "indexing_scaled_s": 1154.5821163235398,
+ "ms_per_strict_eval_this_session": 0.04667976999998302,
+ "stored_stage_ms_contended": {
+  "index": 0.0725105646922504,
+  "rescue_grid": 0.06451025683494839,
+  "neighbour": 0.10447073097402225,
+  "screen": 0.33031957687587216,
+  "repair": 0.08616941961465059
+ },
+ "stage_multipliers": {
+  "index": 1.0,
+  "rescue_grid": 0.8896670038185892,
+  "neighbour": 1.4407656514249656,
+  "screen": 4.555468272489888,
+  "repair": 1.1883705495933063
+ },
+ "evals_by_stage": {
+  "index": 2644672,
+  "rescue_grid": 710865,
+  "neighbour": 3176026,
+  "screen": 100032,
+  "repair": 751773,
+  "other_seed": 0
+ },
+ "estimated_evaluation_s": 429.5515286920937,
+ "estimate_j5sd_s": 1584.1336450156336,
+ "share": 0.7288413575182575,
+ "stored_wall_contended_s": 1664.6504831314087,
+ "stored_index_s_contended": 967.1877480230095,
+ "gate": "share >= 0.30",
+ "gate_met": true,
+ "timing_label": "contended",
+ "verdict": "not judged: machine not quiet",
+ "preflight_start": {
+  "timestamp": "2026-11-19T17:27:07",
+  "host": "newt.local",
+  "loadavg": [
+   2.35009765625,
+   2.2802734375,
+   2.25537109375
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": "1",
+  "mkl_num_threads": "1",
+  "torch_threads": 1,
+  "busy_processes": [
+   {
+    "pid": 5359,
+    "cpu": 100.0,
+    "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+   }
+  ]
+ },
+ "preflight_end": {
+  "timestamp": "2026-11-19T17:29:31",
+  "host": "newt.local",
+  "loadavg": [
+   2.2353515625,
+   2.236328125,
+   2.2392578125
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": "1",
+  "mkl_num_threads": "1",
+  "torch_threads": 1,
+  "busy_processes": [
+   {
+    "pid": 5359,
+    "cpu": 100.0,
+    "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+   }
+  ]
+ }
+}
