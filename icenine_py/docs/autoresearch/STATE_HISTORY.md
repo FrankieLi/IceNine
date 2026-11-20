@@ -1337,3 +1337,19 @@ review `20261120-0035-review-ar5z.md`.
 - No key. The new function is in the library, unused by default. No default change. Suite: 2379
   passed, 45 skipped, 1 deselected.
 - A key would first need an exact neighbour count. Step 27 is being drafted.
+
+### AR5 step 27 (rule PX, 50,000 pairs; task `ar5aa`), merged as a failed study at 87c1f49a on 2026-11-20
+
+Decision D-20261120-N1. Reports in the main `.claude/reports/`: `20261120-0118-ar5aa.md` and
+review `20261120-0805-review-ar5aa.md`. Results: `benchmarks/autoresearch/ar5/px/`.
+
+- Idea: the ray indexer takes `max_pairs` 50,000 in place of 600,000, so it looks at fewer pairs.
+- Met: q1 (6 of 2,396 accepted orientations leave the top 20, 0 gained), c1 (pairs 73.9% fewer),
+  t1 (indexing seconds 75.8% lower, contended), t2 (pooled wall 44.9% lower, contended).
+- NOT met: c2, evaluations +2.19% against stored J5SD (limit 2%): mid 7.88% fewer, held 6.53%
+  more. c3 on held: grid searches 7 against 4 (limit 2 more).
+- Wrong voxels: mid 17 against 23, held 42 against 45.
+- The extra grid searches are not lost candidates. The cause was not tested in step 27.
+- held7 not built. No key. No library change. Suite: 2382 passed, 48 skipped, 1 deselected.
+- Step 28 (task `ar5ab`, rule PXF: 50,000 pairs first, the full sample again when the seed test
+  fails; D-20261120-N2) has started. It uses up held7.
