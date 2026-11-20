@@ -72,6 +72,8 @@ import high500_guard as _H5G  # noqa: E402
 if "held7" not in _H5G.SAMPLES:
     _H5G.SAMPLES = tuple(_H5G.SAMPLES) + ("held7",)  # type: ignore[assignment]
 
+import ball_samples as _BSM  # noqa: E402,F401  (seed 7 into the shared table before the boots)
+
 import bf_freeze as _BFF  # noqa: E402
 
 _BFF.problems = lambda: ""  # type: ignore[assignment]  # step 24's check is off (ours passed)
