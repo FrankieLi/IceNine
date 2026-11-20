@@ -169,10 +169,11 @@ def main() -> None:
     ap.add_argument("--sigma0", type=float, default=0.05)
     ap.add_argument("--b-lr", type=float, default=0.01)
     ap.add_argument("--b-mu", type=float, default=1.0)
+    ap.add_argument("--rocking_deg", type=float, default=0.0, help="GO7f: strict-cost rocking window (deg)")
     a = ap.parse_args()
     stages = parse(a.pipeline)
     out = CM.OUT / "runs" / a.name
-    S = CM.Sample(out, start=a.start, sample=a.sample, stack=a.stack)
+    S = CM.Sample(out, start=a.start, sample=a.sample, stack=a.stack, rocking_deg=a.rocking_deg)
     T = S.T
     gm = np.asarray(T.gmap)
     lab = GF.group_grains(S.R0, S.nb, S.sym, 2.0) if a.group == "flood" else gm.copy()

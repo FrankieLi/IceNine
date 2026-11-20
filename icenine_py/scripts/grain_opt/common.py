@@ -101,9 +101,13 @@ class Sample:
         intensity: bool = True,
         sample: str = "grad",
         stack: Any = None,
+        rocking_deg: float = 0.0,
+        model_psf: float = 0.0,
     ) -> None:
         """``stack``: another stack file name in place of ``<sample>_clean.npy`` (GO5m, noisy
-        images of the same sample; its store is read from ``<stack tag>/intensity_clean.npz``)."""
+        images of the same sample; its store is read from ``<stack tag>/intensity_clean.npz``).
+        GO7f (library options, default off): ``rocking_deg`` turns on the strict cost's rocking
+        window; ``model_psf`` sets the ``SpotModel`` detector PSF sigma (px)."""
         from icenine import grain_fit as GF
         from icenine.reconstructor import _get_voxel_vertices
         from icenine.smooth_cost import _build_smooth_cost
@@ -124,6 +128,8 @@ class Sample:
         assert self.T.n == self.n
         self.sym = self.T.sym
         self.cost_fn = self.bfs.reconstructor._make_local_cost_fn()
+        if rocking_deg > 0:  # GO7f: read at evaluate time (the fused path falls back, with a warning)
+            self.cost_fn.rocking_deg = float(rocking_deg)
         self.V = np.stack([_get_voxel_vertices(v).numpy().astype(np.float64) for v in self.mic.voxels])
         self.xy = self.V.mean(1)[:, :2]
         side = self.mic.voxels[0].side_length
@@ -135,7 +141,11 @@ class Sample:
         )
         self.phase = int(self.mic.voxels[0].phase)
         assert all(int(v.phase) == self.phase for v in self.mic.voxels)
-        self.model = GF.SpotModel(self.sc, phase=self.phase)
+        self.model = (
+            GF.SpotModel(self.sc, phase=self.phase, psf_sigma_px=model_psf)
+            if model_psf > 0
+            else GF.SpotModel(self.sc, phase=self.phase)
+        )
         stack = np.load(str(PHASE_D / "stacks" / stack_name), mmap_mode="r")
         store = None
         tag = stack_name.replace("_clean.npy", "")

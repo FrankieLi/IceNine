@@ -565,6 +565,7 @@ def main() -> None:
     ap.add_argument("--lam", type=float, default=2.0)
     ap.add_argument("--per_level", type=int, default=4)
     ap.add_argument("--psf_sigma", type=float, default=0.0)
+    ap.add_argument("--model_psf", type=float, default=0.0, help="GO7f: SpotModel detector PSF sigma (px)")
     ap.add_argument("--cen_split", action="store_true")
     ap.add_argument("--ratio_hi", type=float, default=None)
     ap.add_argument("--grad", action="store_true", help="GO5q: 6 + 12 strain numbers per grain")
@@ -595,6 +596,8 @@ def main() -> None:
         tag += f"_{a.cen_w}"
     if a.psf_sigma > 0:
         tag += f"_psf{a.psf_sigma:g}"
+    if a.model_psf > 0:
+        tag += f"_mpsf{a.model_psf:g}"
     if a.cen_split:
         tag += "_split"
     if a.ratio_hi is not None:
@@ -610,7 +613,8 @@ def main() -> None:
     if a.gpk > 0:
         tag += f"_gp{a.gpk}b{a.gp_beta:g}"
     start = "paint" if a.arm.endswith("@P") else "truth"
-    S = CM.Sample(out / f"run_{tag}", start=start, intensity=True, sample=a.sample, stack=a.stack)
+    S = CM.Sample(out / f"run_{tag}", start=start, intensity=True, sample=a.sample, stack=a.stack,
+                  model_psf=a.model_psf)
     T = S.T
     gm = np.asarray(T.gmap)
     label = CM.C.preflight_label(out / f"run_{tag}")
@@ -914,6 +918,7 @@ def main() -> None:
             lam=a.lam if a.cost == "hyb" else None,
             cen_w=a.cen_w,
             psf_sigma=a.psf_sigma,
+            model_psf=a.model_psf,
             cen_split=a.cen_split,
             ratio_hi=a.ratio_hi,
             grad=a.grad,
