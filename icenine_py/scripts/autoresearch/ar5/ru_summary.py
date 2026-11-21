@@ -195,9 +195,13 @@ def plot(live: Any, h8: Any) -> Optional[Path]:
         for arm, k in (("S8", "s8"), ("PXF", "pxf"), ("RU", "ru")):
             labels.append(f"held8\n{arm}")
             w = h8["job"][k]["wall_s"]
-            idx.append(0.0)
-            tri.append(h8["tries"]["try_seconds"] if k == "ru" else 0.0)
-            rest.append(float(w))
+            ix = {"s8": 0.0, "pxf": h8["index_pxf"]["seconds"], "ru": h8["tries"]["index_seconds"]}[
+                k
+            ]
+            ty = h8["tries"]["try_seconds"] if k == "ru" else 0.0
+            idx.append(ix)
+            tri.append(ty)
+            rest.append(max(0.0, float(w) - ix - ty))
     x = list(range(len(labels)))
     a1.bar(x, idx, label="indexing", color="tab:red")
     a1.bar(x, tri, bottom=idx, label="tries (RU)", color="tab:orange")

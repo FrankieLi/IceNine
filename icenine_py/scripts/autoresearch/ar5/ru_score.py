@@ -268,6 +268,7 @@ def held8() -> Dict[str, Any]:
             ru=job_times("live_ru_held8"),
         ),
         tries=try_counts(cr, s),
+        index_pxf=index_s(c, s),
         h1=RR.judge_h1(f1, ru_s8["net"], ru_s8["median_higher"]),
         h2=RR.judge_h2(f2, ru_pxf["net"], ru_pxf["median_higher"]),
     )

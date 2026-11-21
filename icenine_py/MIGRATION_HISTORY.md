@@ -14064,3 +14064,37 @@ opt-in keys; the numbers of phase A are in `benchmarks/autoresearch/ar5/pxf/` (`
   correctness check, equal to the script arm, which has no truth read); no library run on `held` or
   `held7`; the phase A limits stand (in-sample `mid` and `held`, `held7` one sample, contended unpaired
   walls, the evaluation saving rests on fewer grid searches, copper only).
+
+## Autoresearch AR5 step 29, phase A: try known nearby orientations before a seed step (2026-11-21, task ar5ad, D-20261120-N4)
+
+Script layer only; no library change. Rule `RU`: before every seed step, take the 8 voxels nearest to
+it (centre distance, ties by index) among those accepted so far (state FITTED), cost each one's
+orientation at the voxel (one evaluation each), run one CMA fit (first step 0.5 degree, 200
+evaluations) from the lowest-cost one, then a second fit from the lowest-cost start over 0.5 degree
+from the first; an end at hit ratio 0.95 or more is the seed result (no indexing, no seed step), else
+step 28's `PXF` seed step runs unchanged. Frozen in `benchmarks/autoresearch/ar5/ru/frozen.json`
+(commit 8a2f7e32) before any run. Scripts `scripts/autoresearch/ar5/ru_*.py`, tests
+`tests/test_ar5_ru.py` (13). Tables and plot: `benchmarks/autoresearch/ar5/ru/tables.md`,
+`ru_wall.png`. All walls are contended (the preflight refused every job; load 2.3 to 3.0 mean).
+
+- **Gates on `mid`, `held` (in-sample).** r1: 16,648,743 evaluations against 23,402,740, 28.9% fewer
+  (bar 15%). r2: broken minus fixed -1 on both (`mid` 5 fixed / 4 broken, `held` 11 / 10; bar 3);
+  median error lower by 0.00044 and 0.00067 degree (bar +0.001); grid searches 0 / 0 and 2 / 2.
+  r3: pooled wall 3,104 s against 4,545 s, 31.7% lower (bar 15%). All met; no gate changed.
+- **Seed steps ended by a try.** `mid` 1,403 of 1,719 (81.6%, Wilson 79.7% to 83.4%), `held` 2,721 of
+  3,736 (72.8%, 71.4% to 74.2%); the predictions 72% to 85% and 62% to 76% held.
+- **Clean test `held8` (generator seed 8).** h1 against `S8` (58,102,056 evaluations, 49 wrong):
+  10,905,900, 81.2% fewer, 30 fixed / 7 broken, median -0.00549 degree. h2 against `PXF` J5SD
+  (16,226,609, 26 wrong): 32.8% fewer (prediction 15% to 30%: above it), 9 fixed / 9 broken, median
+  -0.00060 degree. Both met. Walls 8,390 s (`S8`), 2,980 s (`PXF`), 2,008 s (`RU`), contended, not
+  paired in one session. 2,564 of 3,532 seed steps (72.6%, 71.1% to 74.0%) ended by a try.
+- **Deviations.** `ru_common` sets `PXF_PRE_FREEZE=1`: step 28's own freeze check (`pxf/frozen.json`
+  hashes against the library as of step 28's phase A) cannot agree after its phase B keys changed
+  `config_file.py` and `reconstructor.py`; `ru/frozen.json` pins in its place every library file, the
+  scripts of this step and every script that step 28 and older steps list. The `--smoke 40` pilot
+  covered the whole `mid` seed layer (1,434 of 1,728 steps ended by a try); only its validity counts
+  were read, and nothing in the rule or gates changed afterwards. `mid` and `held` data were rebuilt
+  (truth hashes and the `held` stack's lit-pixel count match the stored records).
+- **Limits.** `mid`, `held` in-sample; `held8` one sample; walls contended and unpaired; the old arm
+  is stored (built on the library before step 28's keys; its off path is claimed bit-identical);
+  copper only. Phase B (key `SeedReuseKnown`) needs a new decision.
