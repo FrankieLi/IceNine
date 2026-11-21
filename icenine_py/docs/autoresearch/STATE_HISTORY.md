@@ -1397,3 +1397,24 @@ and review `20261120-1915-review-ar5ac.md`. Results: `benchmarks/autoresearch/ar
   fit before indexing) is approved by D-20261120-N4 and has started.
 - D-20261120-N5: finer-layer runs (current recipe with a 6 h cap, then stock Python) go ahead
   after step 29.
+
+### AR5 step 29 phase A (task `ar5ad`, rule RU), merged at 75af46bb on 2026-11-21
+
+Decision D-20261120-N4. Reports in the main `.claude/reports/`: `20261120-1937-ar5ad.md` and review
+`20261121-0115-review-ar5ad.md` (Opus, approve; six wording fixes applied in b1b90ad8).
+
+- Rule RU: before a seed step, cost the 8 nearest accepted orientations. Run one 200-evaluation
+  CMA fit from the lowest-cost one, first step 0.5 degree. Then a second start. Else the PXF seed
+  step runs unchanged.
+- r1: 16,648,743 against 23,402,740 evaluations on mid plus held, 28.9% fewer (in-sample).
+- r2: broken minus fixed is -1 on each. r3: pooled wall 3,104 s against 4,545 s, 31.7% lower
+  (contended).
+- Clean sample held8 (now disclosed): 81.2% fewer evaluations than S8, 30 fixed and 7 broken.
+  32.8% fewer than PXF J5SD, 9 fixed and 9 broken.
+- Seed steps ended by a try: 81.6% mid, 72.8% held, 72.6% held8.
+- The PXF run on held8 started on battery beside a busy process. Its wall gap to RU is not a
+  saving.
+- Suite: 2449 passed, 45 skipped, 1 deselected.
+- Phase B (key `SeedReuseKnown`) needs a new decision. Not decided.
+- The all-core C++ run (arm CSP) on the finer layer was launched 01:38 on 21 Nov under
+  D-20261120-N6. CFP, the J5S 6-hour rerun and PS follow, one at a time.
