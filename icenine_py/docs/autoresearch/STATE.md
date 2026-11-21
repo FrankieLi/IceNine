@@ -45,9 +45,9 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
 - Step 14 key WAITS (held2). Steps 15 to 21 merged (caches: `J5r` `agent-aeba15b7c3850b007`,
   step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v60 live.
   Step 22 (`ar5v`; cache in `agent-aba6e1bdb95dff72a`): MERGED 566eea3f, key `SeedIndexMCDefer`.
-  Steps 24 to 27 MERGED, no key. Step 28 MERGED 66e61aa8, all gates met (N3); held7 disclosed.
-  Step 28 keys (`ar5ac`) MERGED fa31ffac (2433 passed); worktree `agent-a2ce49fff826b9a52` kept.
-  Step 29 (`ar5ad`): handed back 01:05 21 Nov (7aaaea12, gates claimed met); Opus review runs.
+  Steps 24 to 27 MERGED, no key. Step 28 + keys MERGED (66e61aa8, fa31ffac); held7 disclosed.
+  Step 29 (`ar5ad`, rule RU) MERGED 75af46bb (2449 passed), all gates met; worktree kept.
+  `fine1` all-core C++ arm CSP launched 01:38 21 Nov (cap 6.5 h); then CFP, J5S 6 h, PS.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
@@ -113,7 +113,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   Step 5's result files add about 50 MB to git; say so if you want them pruned.
 
 ## Bookkeeping
-- Next decision ID: D-20261120-N7 (first of a day is N1).
+- Next decision ID: D-20261121-N1 (first of a day is N1).
 - Wake-up job: session cron id 24092880, every 3 hours at :53, created 2026-11-16, expires
   2026-11-23. Create it again on or after 2026-11-22 and write the new id and date here.
 - Ilium: AR6 closed 20 Nov on `origin/feature/grain-opt` (read at c3245818, SUMMARY.md); and
