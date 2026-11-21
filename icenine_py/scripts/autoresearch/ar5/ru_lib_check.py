@@ -224,6 +224,32 @@ def prefix_vs_phase_a(index_log: List[Dict[str, Any]]) -> Dict[str, Any]:
     )
 
 
+def script_hashes() -> Dict[str, Any]:
+    """sha256 of ``ru_hl.py`` and of every script the freeze (``ru/frozen.json``) lists, as on disk
+    now, and whether each equals its frozen hash (the scripts ``RUl`` imports are among them; the
+    library files are not listed: they changed in this phase on purpose)."""
+    import hashlib
+
+    frozen = json.loads((RD / "frozen.json").read_text())["files"]
+    out: Dict[str, Any] = {}
+    for rel, want in sorted(frozen.items()):
+        p = ICE / rel
+        if rel.startswith("scripts/") and p.exists():
+            h = hashlib.sha256(p.read_bytes()).hexdigest()
+            out[rel] = dict(sha256=h, equals_frozen=bool(h == want))
+    p = HERE / "ru_hl.py"
+    out["scripts/autoresearch/ar5/ru_hl.py"] = dict(
+        sha256=hashlib.sha256(p.read_bytes()).hexdigest(), equals_frozen=None
+    )
+    return dict(
+        n_scripts=len(out),
+        all_frozen_scripts_equal=bool(
+            all(v["equals_frozen"] for v in out.values() if v["equals_frozen"] is not None)
+        ),
+        files=out,
+    )
+
+
 def main() -> None:
     assert RC.SAMPLE == "mid"
     hl, lib = SCACHE / "RUl_mid", SCACHE / "LibRU_mid"
@@ -293,6 +319,7 @@ def main() -> None:
         L2=l2,
         tries=try_stats(ilog),
         prefix_vs_phase_a=prefix_vs_phase_a(ilog),
+        scripts_sha256=script_hashes(),
         in_run_pass_evals_library=int(run_lib["evals_total_with_pass"]) - lib_evals,
         walls_s=dict(
             library_run=float(run_lib["wall_total_s"]),

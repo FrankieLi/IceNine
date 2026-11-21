@@ -161,6 +161,504 @@
   "same_voxel_starts_success_prefix": 4,
   "note": "consistent with phase A's arm having G2b and aligned draws, which the library lacks (starts of the same voxels have other orientations, hence other costs); that cause is not tested"
  },
+ "scripts_sha256": {
+  "n_scripts": 123,
+  "all_frozen_scripts_equal": true,
+  "files": {
+   "scripts/autoresearch/ar3/ar3_common.py": {
+    "sha256": "b2098631736e5e79f1be91973374a9311b1efaa1c87855e194661a39230cc643",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar3/gradient_common.py": {
+    "sha256": "a2942ba7c969ec8eadfd920eecb57377c931c100d3a2bb4f6941af98ad919325",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar3/held_make_sample.py": {
+    "sha256": "739575ab9a38f866c655e8aa41caa33ab8264af12ad7b32206cb814874d88b37",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar3/held_sample_lib.py": {
+    "sha256": "505b75bf6563d754f362bfa376d481ca6581f81d0a9d0413b503cbb54771a19a",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar3/held_stack_note.py": {
+    "sha256": "ad605a991652cbc20cf69a1732936407b6f9be1e9817f35951a6c6e1bc1c6ca2",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar3/reseed_common.py": {
+    "sha256": "deb4644dee4858f4c1c0dbe390701e0f95c1252da963c4346a3fba6d87814d97",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/ball_common.py": {
+    "sha256": "8ab7622549e67aceb4e9095f61c07845b40130a4ace42a7c7bb79c25febf536d",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/ball_guard.py": {
+    "sha256": "a1423e23cc3a2d5cfa471adbe1b23e6de4f27b2ab59319622987b93405acebfe",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/ball_launch.py": {
+    "sha256": "898977cfd63fb8dd7ddaaaf4db27f8f2d290cc3ce8e4412817270c1eeedd5fb0",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/ball_link_cache.sh": {
+    "sha256": "a360a8b0c83979444c1fe08953241a0aead3c17a6591776fd6687c3b785979db",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/ball_pick.py": {
+    "sha256": "ce7678ed5c03693b69f90886598a18250c68bd7cf40d22f4ed44f1dd4b45e228",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/ball_rules.py": {
+    "sha256": "60c000cc330224122b215d2c339c2aeb73909b4594f449df1a39cfb575c2cf55",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/ball_run.py": {
+    "sha256": "80d1597fe8221cd8865b5b63e65f1ae3b7a5998b8d102098bab1ee2ae0566099",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/ball_samples.py": {
+    "sha256": "fe058f15f324617b80ae75fc53c852355072e0d74c3092fb2624d16b9015740d",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/band_guard.py": {
+    "sha256": "07fe65a528e8cf6d66d952b0bf34209b1d051f7e7338802a128324e950ebdfa8",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/band_rules.py": {
+    "sha256": "ed7f39b4e4043fde3e18cf52fb4324166df540c98259ebd10560dc3bb9024527",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/band_samples.py": {
+    "sha256": "9436783d0b6464309e7e548de1184d7336c1b6b3b59909c2d545654bf6866ea7",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/bf_common.py": {
+    "sha256": "d164dcd264a5e8135ad8a0f235c70ca07dd65108485638d75260aea2c869f096",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/bf_guard.py": {
+    "sha256": "5994b584928fdcb56ea15567514fda421ca4ec16e30d156ac5668c0556ddf498",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/bf_launch.py": {
+    "sha256": "63774c3f86b88be83c0d7782000a5d3e7ca310e6b1604f5b33515e889a634c9f",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/bf_link_cache.sh": {
+    "sha256": "d173251a1831a2d40feb898779f87277559048989143d1414dc7d80476d594e9",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/bf_pick.py": {
+    "sha256": "47f865b5de60acdd32a82524e02960053a1d6af9978ddcacd07403e3459b6962",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/bf_rules.py": {
+    "sha256": "410ac5399e81c303f3e7a44cd025186d958c2817b327c7a1b857ecae204f3e28",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/bf_run.py": {
+    "sha256": "3b53e3d2a51803de46f6e178f7929d3af8f26094464ca19899bc5045890ed655",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/cmarepair_rules.py": {
+    "sha256": "826dd93616f1fa7c2fa7657d105d85000a755da53b87dcd557a1b993cc4acb55",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/defer_common.py": {
+    "sha256": "781835b26ecf12d4c90b312948327045926b0b350e8ca793e7fed29c439c3245",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/defer_guard.py": {
+    "sha256": "455c55601982530f71bd8ba8f39630afea82e250d7290c964243b7d4e91a3ea9",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/defer_launch.py": {
+    "sha256": "b374c45be9660af78c7313acf4566a9e3f0488b40177fc57a70277fb117690a1",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/defer_link_cache.sh": {
+    "sha256": "ae9d07a3cefb8931a11ccf9a2987f57a4f11c03b926dd510c124b700111736f0",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/defer_pick.py": {
+    "sha256": "663b7ac53898bb0142e35d9825fc8747e30e4e042886670c51259c3bd2cd3db8",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/defer_rules.py": {
+    "sha256": "95abb8537d9295570333d6b3ef972abb7de3a6ec7c4275021d948927f6f22280",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/defer_run.py": {
+    "sha256": "9cd3c3e12eea2412fd2447a381a2d84634e4537f8349a11c058cc44c9c96fa63",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/defer_samples.py": {
+    "sha256": "42b0a560e5a32db1dbf6ec15edf2ca4773f597686f670d0f28d7a77e654c0ed1",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/fit_common.py": {
+    "sha256": "0601dd5596e3c506fe5cee6c401221298b6b1cc7b12230ab6532d73737c641c7",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/fit_part2_stats.py": {
+    "sha256": "6aac02d5cd829aaf15f428425b1f3eb4f4cb01bdc20ad79597972777d53e9b26",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/fit_pass.py": {
+    "sha256": "3e7f172d67ce8e33ce78b0b4baea29b779bcb88fb9a886760947876b8dda028b",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/fit_rules.py": {
+    "sha256": "11b9c04861bc01dad3a1d870c73112997c7a1a18281be642572cb6fd59b69726",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/fit_run.py": {
+    "sha256": "9d4b028c18917deb3e63e634a9b38a10dd0a65b220a9d537afc9db6b7f4da044",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/fitskip_common.py": {
+    "sha256": "21ec778bbf9edcc8c1286a072bf6cb078d9528c25f940e8a6ec7eaaeb69350c6",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/fitskip_final.py": {
+    "sha256": "6066d98382857500747d8bf89d3e19de8f7fb243a60e9d7b63cba4ed81d7dcea",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/fitskip_guard.py": {
+    "sha256": "78baf0472c9e8f8ad02970f083bc6f0e00e9810b998192da46fafe78903a0c5a",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/fitskip_hook.py": {
+    "sha256": "3aa23cad97e16e242acedc5082e7ba73c3fd7b8250ef3df4d017e5ce212530c6",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/fitskip_link_cache.sh": {
+    "sha256": "91837cd07d652ed9e3e8fd33d2e4f29b3e83c470d0e05d44eabb6091c6b292ca",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/fitskip_p1.py": {
+    "sha256": "3a23fd51c30077b6e79e400344bd65fb2dc3c90d774d3a2341656ad2821cdcef",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/fitskip_pass.py": {
+    "sha256": "b9b9dba1f435c41df8f7c8a8027127b8b9411378d58bd4a13b3a8cb15fefbaeb",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/fitskip_rules.py": {
+    "sha256": "c6c083b0ea6065e046b86267558b3aa4838378aa6420f358c625a0e6f53f38ff",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/fitskip_run.py": {
+    "sha256": "9378b4d26d4fcf34f97bb89d2e73231214b161e6980ca530fb4d075bed2f7138",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/high500_common.py": {
+    "sha256": "7d3d2eee0160da54af99cbc1ee6759b662836cdff97f48202285a5b8be37b753",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/high500_gate.py": {
+    "sha256": "6e7837eaf3fed844d9b4ab9cd9fde03fdd55f65f85e1191743b31081889e1e0c",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/high500_guard.py": {
+    "sha256": "a39f1c3cbfe440ab81fe50bb10f77ce7eae8810daba368965405844749bf4cc6",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/high500_launch.py": {
+    "sha256": "254038ab5b1eb78defa704e0d40fa6aaedd7efa634a58b8653ca5cb6f522ebd7",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/high500_link_cache.sh": {
+    "sha256": "e8858901bc978be3cf192f4baa2b8518408f622c32c647a76996d26fa332ccba",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/high500_pass.py": {
+    "sha256": "5eeb71a1261ffdbe19791de7a4a049996e7a830b45c8c2e716f57f19a236ae6f",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/high500_paths.py": {
+    "sha256": "a3068342af75f667b7644ee485e27b7ea3b1b0bd376dcf2552300f1c329600ef",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/high500_pick.py": {
+    "sha256": "a0822b4ebaff029d7cadd5fc6bd6551643ef54928d79609d258f82ad2970a01f",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/high500_rules.py": {
+    "sha256": "d4593ee376e61b41a5a78bd90670557bb83a508a277cd714bdddcf07bd6ee5b1",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/high500_run.py": {
+    "sha256": "30a795e48afc238320c7a4848e5ac95beef16d4269735d8fdc65cd4aa5cd6ebb",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/high500_stored.py": {
+    "sha256": "9a1ee70548ba9d316cbc7cea347bf90bf1c956383062ca442d759c8249fe522e",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/learnskip_common.py": {
+    "sha256": "cafb3d313184c766694d9d48ddd9ef33fda40237701d0f8b38203feadebb474a",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/learnskip_features.py": {
+    "sha256": "8bc1d089117d9e226814d4678b859a8dc9c71642e8f31730a2c2295eb584ac6f",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/learnskip_guard.py": {
+    "sha256": "a45c5164b43cbec04f56a7fde3508e6d4ad43f99f283401f473510956a4edd29",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/learnskip_hook.py": {
+    "sha256": "eb529b27dea558041d967d107d54ee540de37891495bda06f6b63969eb6c65c9",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/learnskip_launch.py": {
+    "sha256": "96776f54dd98fd37fe221cb9d6f77b07ea1f65dca5d246e39e062f09c34f8da2",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/learnskip_link_cache.sh": {
+    "sha256": "aeb9ba86b0e974ad7f033f03cb819606c8629db383ca5c5d200c8c4174a9ed89",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/learnskip_model.py": {
+    "sha256": "60249ca8edfc16870bdc2afc3b79b883131c2c41324342cbeb754e7463b232cd",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/learnskip_pass.py": {
+    "sha256": "9f58685d50dd36cda8bbebdd69b65289d6c750f6081f9132498d101b30f26b09",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/learnskip_rules.py": {
+    "sha256": "626329dfa961652fedca9cddfab29bd5f4cb16fbf400f918b48893f4959bb2a8",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/learnskip_run.py": {
+    "sha256": "4b7e2884ace6cb33875026f63d41b67a21666c8a878ee6f53aad4deb62d08671",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/learnskip_samples.py": {
+    "sha256": "dc421c65fdb3bc8fac543e9f3b25d70f53122c7e61533320618a9da8c43fa568",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/mix_common.py": {
+    "sha256": "e24040daf4bc324fa16bb8f914538d20b31909c78672ace9dfdebb7efa9aceb2",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/mix_rules.py": {
+    "sha256": "1be79ce32610980dc38f8dc0ba83fbb4c06ef032fe83ff40e9200b0da0d809b0",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/order_common.py": {
+    "sha256": "b62e98392bee484dea8c61965e86e6805e53289a6ae438bb4ab1ff7eaa529c7c",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/order_draws.py": {
+    "sha256": "319f07a7dc93f07180c0b9efad60f3c3bc0bd3a03d779194675d324006269cac",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/order_freeze.py": {
+    "sha256": "7c0e8569ce597b17b9e73d6729055423138d812d84162545aa85c37779b6552d",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/order_logs.py": {
+    "sha256": "8926b1a05bd6cdb4bc047ec50d70b84ec2e90bdd43e363ed1ea5101927821d8a",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/order_pass.py": {
+    "sha256": "8b59a0d8be47a9c683931eef7a05f23b4c502a2fff57a34a37a983a19681dab9",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/order_rules.py": {
+    "sha256": "cc520ec2d7c4756c4d4ba4531628121e3658678fd53a158671353e3879cb21db",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/order_run.py": {
+    "sha256": "102c9bae3226891000427a98667a936f48f0df0164c0a9e0e321e9e770aecb92",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/polish_cases.py": {
+    "sha256": "a21d4ca61ecf65be986f0d61086b567d2dd7f3b42a103d043195b40b4f333019",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/polish_common.py": {
+    "sha256": "b2f51b229806fe4d2e452593aecfbf00a654b03bcdf19d8bcd1f60ee63a807db",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/polish_gate.py": {
+    "sha256": "439f3b08a8da73ca3b3dc9a6dd2ba373277730beedc601e10f9463be5f658b1a",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/polish_guard.py": {
+    "sha256": "f92474e0b3d36c3349a6d29babdeb621acd67296c01f6dd97826564cd2a4fa62",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/polish_link_cache.sh": {
+    "sha256": "784208ad9a3530d564e2af1e6905c92eb1833c406bfdb51724fa28476c2735f6",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/polish_probe.py": {
+    "sha256": "7a27b71c3ee8f9c4f2c8de1ec85896a3367efe55a7a99d63bb0e174f597df1bc",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/polish_rules.py": {
+    "sha256": "1c7e628ac858bcc9d6db1f08e30a7ffb4835ef45760ae5996c088e3807d62006",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/px_build_held7.py": {
+    "sha256": "18078331f4beadc3f46907a8313dc229a387fa7da688291edd030929388e70e5",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/px_common.py": {
+    "sha256": "7c1fd99d606b5b3c1215b1404ef4e588862b6a064ab6b747ceafc68ff69f6134",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/px_launch.py": {
+    "sha256": "17e14a63ad2db6a453ceb6285cf1852d606f52efab7b142ab6c50a1c9a10288d",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/px_link_cache.sh": {
+    "sha256": "d4aaf87e434b6f116616f402251bf78e17246ab84890fdd00cec18479153fed9",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/px_q1.py": {
+    "sha256": "1a3437d2546ebf6594bc9cfd0da92866f12a728624921a7f99b4ba9e09200938",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/px_rules.py": {
+    "sha256": "24814dd426f291c346f2484ffd85d3fda32bbd648304fbabba0a2f3004d500ba",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/px_run_all.sh": {
+    "sha256": "361da66c5f36597dbe8cfdf0636c18351a612301800b7d4b0e134740e8ea2a8c",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/px_t1.py": {
+    "sha256": "8dfd9769590138353050381862c85716ba86468ff649d05599d0e7c963f74586",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/px_voxels.py": {
+    "sha256": "94c6375129e9b8ae8505f540daab6f33cc31ece4a51e1ebd308248633868e4e7",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/pxf_build_held7.py": {
+    "sha256": "8d733da7da6acdf7e762e1061dd3fd770c12f3dbd7ba68b3e0b84b1ebcc42712",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/pxf_common.py": {
+    "sha256": "256a7522806b1629bfff4179d16db3a437e171cec91595e4f62c7de75de9b2b6",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/pxf_launch.py": {
+    "sha256": "1844bb33b7a8712d56db383e135cf7d5306126a7d10a6f8220352064b5a23daa",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/pxf_rules.py": {
+    "sha256": "77e0b35734a456fe4e75650cfe24337c36cf18b235a61537366ff0fb558d5b01",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/pxf_run_all.sh": {
+    "sha256": "50583e6fda899da336284897269d522be89e75176e58b85df52cbc8fa2e4d3bb",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/repair_rules.py": {
+    "sha256": "2c0e726c0ad6d256b6e4db1085f792dd2b71356f3a5695c5578c80ee73248cd8",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/rescue_common.py": {
+    "sha256": "b951a44e5ba1b6066b85de49c7c6961adab932b99bf72b5257b327d21890ae13",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/rescue_rules.py": {
+    "sha256": "18e6109364db88d6df461e8d678834c6729f73f92746fa41a016e6d68112cea8",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/rescue_run.py": {
+    "sha256": "7e9eb5eb89cacc683553d792e391168e26486cb97a7efbeef6855aeb837acf1b",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/ru_build_held8.py": {
+    "sha256": "86ef93cd905983c265e3a06c428f5dc55bb578b23ecb1fce9b39a7fe98c6488d",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/ru_common.py": {
+    "sha256": "8646fa749f93aa33283c3c53b3b7be8dfb9e035a0b6006d097419d18199de79d",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/ru_launch.py": {
+    "sha256": "41a35ba5b53f5f34aa84d516e582e272870a56cc61c4e028244dd6e578dd66bd",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/ru_rules.py": {
+    "sha256": "23d6ea9df5938b3764386e59805c416ce39db0b224a25ebf07f0afd10b3895a4",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/ru_run_all.sh": {
+    "sha256": "f8bfac17f289656d07bcbbdbedeed1de57aed3503b9abcc68254852d135ce093",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/ru_samples.py": {
+    "sha256": "b2b26dde9f51727465dc230c75b24e582b6b0f6a214bee14b609dbc03acf6034",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/screen_common.py": {
+    "sha256": "fcac133758562aee31c5050a1e7c7dcc9749c849b34b197608681c4df966f72f",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/screen_data.py": {
+    "sha256": "298b5b06faa0ac0534c545a89e101388a582fd2946c46da3d839d8705adcf969",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/screen_guard.py": {
+    "sha256": "5fbf835b1514f35504f75a8fbb14f582e7ce4f3d3bcb8e6001216143dd179077",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/screen_launch.py": {
+    "sha256": "08992725ac5554b0920d71e4e8d1f8695a924b26c8bdbc4b1644147244573273",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/screen_link_cache.sh": {
+    "sha256": "d6af553e83e0c0800ca38676c54895d3c25054df67982398c9628e508715bca4",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/screen_rules.py": {
+    "sha256": "ee96c82947842be6b42acf371fdf0583e4c0e7358b846cf933a6eef6da987def",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/screen_samples.py": {
+    "sha256": "320d9acebdcfdbf3c0679ac10bb29480ce977b3106a93dbad1b1f8ec67085a9a",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/stallhit_common.py": {
+    "sha256": "8ba71671e435e84d714b3871a0d1d99494a1deabd991cd9fa637b6176b9bbb18",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/stallhit_make_held2.py": {
+    "sha256": "e39ab91d2815dcdaba1ac977ce4b52129855e11b5f3a7209f5a15f6f364bd00a",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/stallhit_replay.py": {
+    "sha256": "c2eac591015ca2fcc10420bacda79aca265515ff25060c5cf69fcefb0b0735c6",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/stallhit_rules.py": {
+    "sha256": "dbd8f31785f8ee3afdf013f84df181b110cdaa4f72b0012bcafbc32ce5ef6d59",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/stallhit_run.py": {
+    "sha256": "6556f5660bdaf6f8bdd66efe12f51ef9d7e903b6ef73d490c656f0c09d977932",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/stallhit_whatif.py": {
+    "sha256": "332f34c6db0e07efb995edcb08f4db66e27a428d63308481990f1e0b9d484751",
+    "equals_frozen": true
+   },
+   "scripts/autoresearch/ar5/ru_hl.py": {
+    "sha256": "e3eee1f798bbd8ee747b0e1a3d2abd849b0c29a8bb54075badb200fb12f37640",
+    "equals_frozen": null
+   }
+  }
+ },
  "in_run_pass_evals_library": 3064823,
  "walls_s": {
   "library_run": 898.4288518428802,
