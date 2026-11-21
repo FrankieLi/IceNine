@@ -171,14 +171,18 @@ def write(cs_binary: str, refreeze_of: str = "", refreeze_note: str = "") -> Non
     print("wrote", P.FROZEN)
 
 
-def commit_time() -> int:
+def commit_time(first: bool = False) -> int:
+    """Commit time of frozen.json: the latest commit, or with ``first`` the very first one (an
+    amendment re-commits the file; outputs of arms run under an earlier freeze stay valid)."""
     out = subprocess.run(
-        ["git", "log", "-1", "--format=%ct", "--", str(P.FROZEN)],
+        ["git", "log", "--format=%ct", "--", str(P.FROZEN)],
         cwd=str(ICE),
         capture_output=True,
         text=True,
-    ).stdout.strip()
-    return int(out) if out else 0
+    ).stdout.split()
+    if not out:
+        return 0
+    return int(out[-1] if first else out[0])
 
 
 def problems(full: bool, outputs: bool) -> str:
@@ -211,7 +215,7 @@ def problems(full: bool, outputs: bool) -> str:
         elif saved["sha256"][k] != v:
             return f"{k} differs from the frozen hash"
     if outputs and (P.RUNS / "whole").exists():  # the slice runs predate a re-freeze, by design
-        t = commit_time()
+        t = commit_time(first=True)
         for p in (P.RUNS / "whole").rglob("*"):
             if p.is_file() and int(p.stat().st_mtime) < t:
                 return f"{p} is older than the freeze commit"
