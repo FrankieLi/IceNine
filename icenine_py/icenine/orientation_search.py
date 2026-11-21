@@ -113,6 +113,21 @@ def check_seed_index_mc_defer(v: Any) -> None:
         raise ValueError(f"SeedIndexMCDefer must be 0 (off) or 1 (on), got {v!r}")
 
 
+RAY_INDEX_MAX_PAIRS_DEFAULT = 600_000  # ray_indexing.IndexParams.max_pairs: today's setting
+
+
+def check_ray_index_max_pairs(n: Any) -> None:
+    """RayIndexMaxPairs N: an integer >= 1 (default 600,000). Raises ValueError otherwise."""
+    if isinstance(n, bool) or not isinstance(n, (int, np.integer)) or int(n) < 1:
+        raise ValueError(f"RayIndexMaxPairs must be an integer >= 1, got {n!r}")
+
+
+def check_ray_index_fallback_full(v: Any) -> None:
+    """RayIndexFallbackFull: the integer 0 (off) or 1 (on). Raises ValueError otherwise."""
+    if isinstance(v, bool) or not isinstance(v, (int, np.integer)) or int(v) not in (0, 1):
+        raise ValueError(f"RayIndexFallbackFull must be 0 (off) or 1 (on), got {v!r}")
+
+
 @dataclass
 class SearchParameters:
     """
@@ -256,6 +271,22 @@ class SearchParameters:
     #   scripts/autoresearch/ar5/defer_rules.py. Off by default (MIGRATION_HISTORY.md,
     #   "Autoresearch AR5 step 22").
     seed_index_mc_defer: int = 0
+    # ray_index_max_pairs (RayIndexMaxPairs N, AR5 step 28; default 600,000 = the indexer's
+    #   setting, nothing changes): the number of ray pairs the indexer keeps in a seed step (a
+    #   random subsample above it, ``default_rng(0)``). A smaller N makes the indexing cheaper
+    #   (50,000: about 4 times fewer pairs on the mid and held samples) and gives the fits other
+    #   starts.
+    #   Needs seed_by_indexing when it differs from the default.
+    # ray_index_fallback_full (RayIndexFallbackFull 0|1, AR5 step 28; 0 = off): rule PXF of
+    #   scripts/autoresearch/ar5/pxf_rules.py. A seed step that fails the seed test (no
+    #   candidate, or a hit ratio under min_acceleration_threshold) after an indexing that kept
+    #   a subsample (n_pairs >= ray_index_max_pairs) is run again, the whole step, with 600,000
+    #   pairs; that second step is the result (the rescue starts from its kept ends) and both
+    #   steps' evaluations count as the seed's. Needs seed_by_indexing and ray_index_max_pairs
+    #   below 600,000 (else the second step would be the same step). Off by default
+    #   (MIGRATION_HISTORY.md, "Autoresearch AR5 step 28").
+    ray_index_max_pairs: int = RAY_INDEX_MAX_PAIRS_DEFAULT
+    ray_index_fallback_full: int = 0
     # paint_grains: opt-in (config key PaintGrains, default off; AR3 step 2). With the key on,
     #   ``BFSReconstruction.reconstruct_sample`` runs ``grain_paint.paint_grains`` in place of the
     #   BFS (seeds indexed, each grain flooded by single strict scores, each voxel painted with the
@@ -367,6 +398,8 @@ class SearchParameters:
         check_seed_rescue(self.seed_rescue_sigma_deg, self.seed_rescue_evals)
         check_seed_index_mc_stall_hit(self.seed_index_mc_stall_hit)
         check_seed_index_mc_defer(self.seed_index_mc_defer)
+        check_ray_index_max_pairs(self.ray_index_max_pairs)
+        check_ray_index_fallback_full(self.ray_index_fallback_full)
         from .candidate_dedup import DedupSpec
 
         DedupSpec.parse(self.candidate_dedup)  # raises ValueError on a malformed spec
@@ -418,6 +451,10 @@ class SearchParameters:
             seed_rescue_evals=int(getattr(config, "seed_rescue_evals", 0)),
             seed_index_mc_stall_hit=int(getattr(config, "seed_index_mc_stall_hit", 0)),
             seed_index_mc_defer=int(getattr(config, "seed_index_mc_defer", 0)),
+            ray_index_max_pairs=int(
+                getattr(config, "ray_index_max_pairs", RAY_INDEX_MAX_PAIRS_DEFAULT)
+            ),
+            ray_index_fallback_full=int(getattr(config, "ray_index_fallback_full", 0)),
             paint_grains=bool(getattr(config, "paint_grains", False)),
             cpp_overlap_rule=bool(getattr(config, "cpp_overlap_rule", False)),
             cpp_edge_rules=bool(getattr(config, "cpp_edge_rules", False)),
