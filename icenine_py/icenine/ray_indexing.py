@@ -21,7 +21,7 @@ No cost function is evaluated here: a candidate is a proposal, to be checked wit
 
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 from scipy.sparse import coo_matrix
@@ -139,6 +139,60 @@ def misorientation_deg(Ra: np.ndarray, Rb: np.ndarray, sym: np.ndarray) -> np.nd
     )
     sin_part = 0.5 * np.linalg.norm(axial, axis=1)
     return np.degrees(np.arctan2(sin_part, cos_part)).reshape(shape)
+
+
+# Rule RU (SeedReuseKnown, AR5 step 29; scripts/autoresearch/ar5/ru_rules.py): the constants stay
+# as frozen there and none is a config key.
+REUSE_K_NEAREST = 8  # accepted voxels whose orientations are tried
+REUSE_SIGMA0_DEG = 0.5  # first step of the CMA fit
+REUSE_MAX_EVALS = 200  # evaluations of one fit
+REUSE_SEP_DEG = 0.5  # the second start must be MORE than this from the first
+REUSE_ACCEPT = 0.95  # hit ratio of a fit end that is taken as the seed result
+
+
+def nearest_accepted(
+    tree: Any,
+    pos: np.ndarray,
+    v: int,
+    is_accepted: Callable[[int], bool],
+    k: int = REUSE_K_NEAREST,
+) -> List[int]:
+    """The ``k`` voxels nearest to voxel ``v`` (centre distance; ties by voxel index) among those
+    for which ``is_accepted`` is true, ``v`` itself left out; fewer if fewer exist. ``tree`` is a
+    ``scipy.spatial.cKDTree`` of ``pos`` (shape (N, d)). The query grows until the k-th accepted
+    distance is strictly inside the queried radius, so that no tie at the cut is missed."""
+    n = len(pos)
+    kq = min(n, max(64, 4 * k))
+    while True:
+        _, ii = tree.query(pos[v], k=kq)
+        ii = np.atleast_1d(ii).astype(int)
+        d = np.linalg.norm(pos[ii] - pos[v], axis=1)
+        keep = np.array([int(j) != v and bool(is_accepted(int(j))) for j in ii], dtype=bool)
+        dk, ik = d[keep], ii[keep]
+        order = np.lexsort((ik, np.round(dk, 9)))
+        out = ik[order][:k]
+        if kq >= n:
+            return [int(j) for j in out]
+        if len(dk) >= k:
+            kth = np.round(dk[order][k - 1], 9)
+            if kth < np.round(d.max(), 9):
+                return [int(j) for j in out]
+        kq = min(n, kq * 4)
+
+
+def second_start(
+    order: Sequence[int],
+    R: Sequence[np.ndarray],
+    mis_deg: Callable[[np.ndarray, np.ndarray], float],
+    sep: float = REUSE_SEP_DEG,
+) -> Optional[int]:
+    """Position (in ``R``) of the lowest-cost start (``order`` is the cost order) that is more than
+    ``sep`` degrees from the lowest-cost one; None if there is none."""
+    best = int(order[0])
+    for j in order[1:]:
+        if mis_deg(np.asarray(R[int(j)]), np.asarray(R[best])) > sep:
+            return int(j)
+    return None
 
 
 def _quat_pm(R: np.ndarray) -> np.ndarray:
