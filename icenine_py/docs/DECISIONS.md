@@ -2283,3 +2283,17 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   uses up; plain J5SD also runs on held7 and is reported, not a gate. mid and held are in-sample
   for this rule. About 7.5 to 8.5 hours, one run at a time. A key needs a new decision. Where:
   icenine_py/docs/autoresearch/PLAN.md (AR5 steps 27, 28).
+
+### D-20261120-N3 · D-20261120-N3 · AR5 step 28 merged, all gates met; phase B (opt-in keys for rule PXF) approved
+- 2026-11-20, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. AR5 step 28 (rule PXF: 50,000 ray pairs first, the
+  full 600,000-pair sample again when the seed test fails) is merged as 66e61aa8 (suite 2396
+  passed, 45 skipped). All frozen gates met and recomputed by the review: c1 pairs 72.0% fewer; c2
+  evaluations 4.47% fewer on mid+held (in-sample; rests on 4 fewer grid searches, +1.18% without
+  them); c3 met; t2 wall 44.7% lower (contended, not paired in one session); h1 met on the clean
+  sample held7 (S8 77.78M evaluations, 96 wrong; new J5SD 20.08M, 42 wrong; plain J5SD 21.79M, 55
+  wrong; one sample, route effects, not proof of an accuracy gain). Phase B is approved as task
+  ar5ac: opt-in keys RayIndexMaxPairs and RayIndexFallbackFull, default off, key-off suite with no
+  golden change, a key-on library run equal to the script arm, findings text, history, README.
+  held7 is now disclosed. No merge to develop. Where: icenine_py/docs/autoresearch/PLAN.md AR5
+  step 28; .claude/reports/20261120-0826-ar5ab.md; .claude/reports/20261120-1740-review-ar5ab.md.
