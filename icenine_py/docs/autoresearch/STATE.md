@@ -47,7 +47,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   Step 22 (`ar5v`; cache in `agent-aba6e1bdb95dff72a`): MERGED 566eea3f, key `SeedIndexMCDefer`.
   Steps 24 to 27 MERGED, no key. Step 28 MERGED 66e61aa8, all gates met (N3); held7 disclosed.
   Step 28 keys (`ar5ac`) MERGED fa31ffac (2433 passed); worktree `agent-a2ce49fff826b9a52` kept.
-  Step 29 (`ar5ad`, rule RU): implementer a561945bcc20317e1 runs since 19:55 20 Nov (about 9 h).
+  Step 29 (`ar5ad`): handed back 01:05 21 Nov (7aaaea12, gates claimed met); Opus review runs.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
