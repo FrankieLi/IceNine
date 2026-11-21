@@ -81,10 +81,10 @@ def write() -> None:
                 gates=PR.GATES,
                 frozen_at=time.strftime("%Y-%m-%dT%H:%M:%S%z"),
                 note=(
-                    "no live run was made by the tracked scripts before this file was committed; "
-                    "the sizing (stored rows of step 27's mid and held runs, 11 voxels indexed "
-                    "with both settings) was made before; nothing of held2, fine7 or held7 is "
-                    "used or read"
+                    "this is the latest freeze; the first one (gates, rule, predictions) is in "
+                    "freeze_history.json with every re-freeze, its reason and what had already "
+                    "run; the sizing (stored rows of step 27's mid and held runs) was made "
+                    "before the first freeze; nothing of held2 or fine7 is used or read"
                 ),
                 **cur,
             ),

@@ -226,7 +226,7 @@ def gate_rows(live: Any, h1: Any) -> List[Dict[str, Any]]:
             gate="t2",
             what=(
                 f"pooled wall {pct(t2['fewer'])} lower ({t2['old_wall_s']} s to "
-                f"{t2['new_wall_s']} s; preflight verdicts in the wall table)"
+                f"{t2['new_wall_s']} s; contended, unpaired across sessions; see wall table)"
             ),
             limit="at least 25% lower",
             verdict="met" if t2["ok"] else "not met",
@@ -286,7 +286,7 @@ def plot(live: Any, h1: Any) -> None:
                 labels.append(f"{s}\n{a}")
         ax[0].set_xticks(xs)
         ax[0].set_xticklabels(labels, fontsize=8)
-        ax[0].set_ylabel("minutes of wall (preflight verdicts in the table)")
+        ax[0].set_ylabel("minutes of wall (all contended; runs from different sessions, unpaired)")
         ax[0].set_title("Whole J5SD run: old, PX (50,000), PXF (then 600,000)")
         ax[0].legend()
         k = 0.0
@@ -320,11 +320,69 @@ def plot(live: Any, h1: Any) -> None:
     fig.savefig(RD / "pxf_wall.png", dpi=110)
 
 
+def derived(live: Any, h1: Any) -> Dict[str, Any]:
+    """Numbers quoted in the report, from the score files only (review fixes 4 and 5).
+
+    ``without_grid``: evaluations without the grid-search stage; c2's gain rests on fewer grid
+    searches (small counts, route dependent). ``held7_new_vs_plain``: one sample, route effects;
+    not evidence of an accuracy gain. t2 and every wall: contended, unpaired across sessions."""
+    out: Dict[str, Any] = {}
+    if live:
+        tot_s = tot_n = g_s = g_n = 0
+        per = {}
+        for s, r in live["rows"].items():
+            st = r["stages"]
+            a, b = r["totals"]["stored"]["total"], r["totals"]["new"]["total"]
+            ga, gb = st["stored"]["grid"], st["new"]["grid"]
+            per[s] = dict(
+                stored_no_grid=a - ga,
+                new_no_grid=b - gb,
+                more_no_grid=(b - gb) / (a - ga) - 1,
+                index_more=st["new"]["index"] / st["stored"]["index"] - 1,
+                grid_stored=ga,
+                grid_new=gb,
+            )
+            tot_s += a - ga
+            tot_n += b - gb
+            g_s += ga
+            g_n += gb
+        out["without_grid"] = dict(
+            per_sample=per,
+            stored=tot_s,
+            new=tot_n,
+            more=tot_n / tot_s - 1,
+            grid_evals_stored=g_s,
+            grid_evals_new=g_n,
+        )
+    if h1:
+        t, st, j = h1["totals"], h1["stages"], h1["job"]
+        out["held7_new_vs_plain"] = dict(
+            wall_new_s=j["pxf"]["wall_s"],
+            wall_plain_s=j["old"]["wall_s"],
+            wall_fewer=1 - j["pxf"]["wall_s"] / j["old"]["wall_s"],
+            evals_new=t["pxf"],
+            evals_plain=t["old"],
+            evals_fewer=1 - t["pxf"] / t["old"],
+            evals_difference=t["old"] - t["pxf"],
+            grid_stage_difference=st["old"]["grid"] - st["pxf"]["grid"],
+            index_stage_more=st["pxf"]["index"] / st["old"]["index"] - 1,
+            fixed=h1["pxf_vs_old"]["fixed"],
+            broken=h1["pxf_vs_old"]["broken"],
+            note="one sample, route effects; not evidence that the rule improves accuracy",
+        )
+    out["timing_note"] = (
+        "every wall is contended; t2 compares runs of different sessions (unpaired)"
+    )
+    return out
+
+
 def main() -> None:
     live, h1 = load("live"), load("h1")
     tabs = tables(live, h1)
     DT.write_tables(RD / "tables.md", tabs)
-    (RD / "summary.json").write_text(json.dumps(dict(live=live, h1=h1), indent=1) + "\n")
+    (RD / "summary.json").write_text(
+        json.dumps(dict(live=live, h1=h1, derived=derived(live, h1)), indent=1) + "\n"
+    )
     plot(live, h1)
     print("wrote", sorted(tabs))
 

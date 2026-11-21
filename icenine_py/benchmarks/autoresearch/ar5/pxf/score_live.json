@@ -172,6 +172,28 @@
     },
     "grid_fallbacks_left": 2
    },
+   "stages": {
+    "stored": {
+     "index": 2644672,
+     "rescue": 32032,
+     "polish": 12856,
+     "grid": 665977,
+     "bfs_neighbour": 1488888,
+     "bfs_revisit": 1687138,
+     "screen_pass": 100032,
+     "repair": 751773
+    },
+    "new": {
+     "index": 2786359,
+     "rescue": 9009,
+     "polish": 1631,
+     "grid": 0,
+     "bfs_neighbour": 1489132,
+     "bfs_revisit": 1711233,
+     "screen_pass": 100522,
+     "repair": 724306
+    }
+   },
    "steps": {
     "seed_steps": 1667,
     "failed_first": 9,
@@ -376,6 +398,28 @@
      }
     },
     "grid_fallbacks_left": 4
+   },
+   "stages": {
+    "stored": {
+     "index": 9129537,
+     "rescue": 172172,
+     "polish": 43525,
+     "grid": 1387715,
+     "bfs_neighbour": 1480653,
+     "bfs_revisit": 3206343,
+     "screen_pass": 170528,
+     "repair": 1524116
+    },
+    "new": {
+     "index": 9390876,
+     "rescue": 50050,
+     "polish": 13357,
+     "grid": 693701,
+     "bfs_neighbour": 1480226,
+     "bfs_revisit": 3174745,
+     "screen_pass": 170592,
+     "repair": 1607001
+    }
    },
    "steps": {
     "seed_steps": 3669,

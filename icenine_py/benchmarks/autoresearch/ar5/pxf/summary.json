@@ -173,6 +173,28 @@
      },
      "grid_fallbacks_left": 2
     },
+    "stages": {
+     "stored": {
+      "index": 2644672,
+      "rescue": 32032,
+      "polish": 12856,
+      "grid": 665977,
+      "bfs_neighbour": 1488888,
+      "bfs_revisit": 1687138,
+      "screen_pass": 100032,
+      "repair": 751773
+     },
+     "new": {
+      "index": 2786359,
+      "rescue": 9009,
+      "polish": 1631,
+      "grid": 0,
+      "bfs_neighbour": 1489132,
+      "bfs_revisit": 1711233,
+      "screen_pass": 100522,
+      "repair": 724306
+     }
+    },
     "steps": {
      "seed_steps": 1667,
      "failed_first": 9,
@@ -377,6 +399,28 @@
       }
      },
      "grid_fallbacks_left": 4
+    },
+    "stages": {
+     "stored": {
+      "index": 9129537,
+      "rescue": 172172,
+      "polish": 43525,
+      "grid": 1387715,
+      "bfs_neighbour": 1480653,
+      "bfs_revisit": 3206343,
+      "screen_pass": 170528,
+      "repair": 1524116
+     },
+     "new": {
+      "index": 9390876,
+      "rescue": 50050,
+      "polish": 13357,
+      "grid": 693701,
+      "bfs_neighbour": 1480226,
+      "bfs_revisit": 3174745,
+      "screen_pass": 170592,
+      "repair": 1607001
+     }
     },
     "steps": {
      "seed_steps": 3669,
@@ -642,5 +686,47 @@
    "median_higher": -0.005445210049121747,
    "ok": true
   }
+ },
+ "derived": {
+  "without_grid": {
+   "per_sample": {
+    "mid": {
+     "stored_no_grid": 6717391,
+     "new_no_grid": 6822192,
+     "more_no_grid": 0.015601444072557369,
+     "index_more": 0.05357450753817483,
+     "grid_stored": 665977,
+     "grid_new": 0
+    },
+    "held": {
+     "stored_no_grid": 15726874,
+     "new_no_grid": 15886847,
+     "more_no_grid": 0.01017195152704864,
+     "index_more": 0.028625657577158625,
+     "grid_stored": 1387715,
+     "grid_new": 693701
+    }
+   },
+   "stored": 22444265,
+   "new": 22709039,
+   "more": 0.01179695570338346,
+   "grid_evals_stored": 2053692,
+   "grid_evals_new": 693701
+  },
+  "held7_new_vs_plain": {
+   "wall_new_s": 3791,
+   "wall_plain_s": 9181,
+   "wall_fewer": 0.5870820172094543,
+   "evals_new": 20075769,
+   "evals_plain": 21788476,
+   "evals_fewer": 0.07860609434088006,
+   "evals_difference": 1712707,
+   "grid_stage_difference": 2078263,
+   "index_stage_more": 0.04830182269021299,
+   "fixed": 27,
+   "broken": 14,
+   "note": "one sample, route effects; not evidence that the rule improves accuracy"
+  },
+  "timing_note": "every wall is contended; t2 compares runs of different sessions (unpaired)"
  }
 }

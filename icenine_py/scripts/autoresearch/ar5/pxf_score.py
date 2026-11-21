@@ -233,6 +233,10 @@ def live(s: str) -> Dict[str, Any]:
         job=dict(new=job_times(f"live_pxf_{s}"), old=old["job"] if old else None),
         index_work=dict(new=index_work(c, s), old=old["index_work"] if old else None),
         old_run=old,
+        stages=dict(
+            stored=BS.stage_split(stored_run, tot["stored"]),
+            new=BS.stage_split(new_run, tot["new"]),
+        ),
         steps=step_counts(c, s),
         replay=replay_check(c, s),
     )

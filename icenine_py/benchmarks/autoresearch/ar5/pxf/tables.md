@@ -5,7 +5,7 @@
 | c2 | 23,402,740 against 24,497,957 stored (-4.47%) | at most 2% more | met |
 | c3 mid | broken minus fixed -7, median error change +0.00010 deg, grid searches -2 | at most 3; at most 0.001 deg; at most 2 more | met |
 | c3 held | broken minus fixed -5, median error change -0.00020 deg, grid searches -2 | at most 3; at most 0.001 deg; at most 2 more | met |
-| t2 | pooled wall 44.7% lower (8219 s to 4545 s; preflight verdicts in the wall table) | at least 25% lower | met |
+| t2 | pooled wall 44.7% lower (8219 s to 4545 s; contended, unpaired across sessions; see wall table) | at least 25% lower | met |
 | h1 | held7: 74.2% fewer evaluations than S8, broken minus fixed -54, median error change -0.00545 deg | at least 20% fewer; at most 5; at most 0.005 deg | met |
 <!-- /table:pxf_gates -->
 

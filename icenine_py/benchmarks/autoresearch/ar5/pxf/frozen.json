@@ -36,7 +36,7 @@
   "h1": "house rule on held7 (a non-exact change): new J5SD against S8, at least 20% fewer evaluations, broken minus fixed at most 5, median error at most 0.005 degree higher; wall seconds of both reported"
  },
  "frozen_at": "2026-11-20T16:16:04-0800",
- "note": "no live run was made by the tracked scripts before this file was committed; the sizing (stored rows of step 27's mid and held runs, 11 voxels indexed with both settings) was made before; nothing of held2, fine7 or held7 is used or read",
+ "note": "latest freeze; the first one (08:35:43, commit 9c25b185: rule, gates, predictions) and the three re-freezes with reasons and what had already run are in freeze_history.json; the sizing (stored rows of step 27 mid and held runs) was made before the first freeze; nothing of held2 or fine7 is used or read",
  "files": {
   "scripts/autoresearch/ar5/band_guard.py": "07fe65a528e8cf6d66d952b0bf34209b1d051f7e7338802a128324e950ebdfa8",
   "scripts/autoresearch/ar5/band_rules.py": "ed7f39b4e4043fde3e18cf52fb4324166df540c98259ebd10560dc3bb9024527",
