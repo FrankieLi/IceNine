@@ -1,0 +1,311 @@
+{
+ "rule": "the arm with the fewer seed-step evaluations among those whose seed-test passes (a) and ends within 1 degree (b) are each at most 1% of all steps below M's (net counts, pooled over the pick samples big and grad); M if neither qualifies",
+ "pick_samples": [
+  "big",
+  "grad"
+ ],
+ "n_steps": 1608,
+ "one_percent_of_steps": 16.08,
+ "pooled": {
+  "n_steps": 1608,
+  "arms": {
+   "M": {
+    "n_pass": 1592,
+    "n_right": 1583,
+    "evals": 5865469,
+    "candidates_refined": 2821,
+    "candidates_mc_ran": 2821,
+    "share_mc_ran": 1.0,
+    "steps_mc_ran": 1608,
+    "steps_missing": 0
+   },
+   "X60": {
+    "n_pass": 1594,
+    "n_right": 1584,
+    "evals": 4390198,
+    "candidates_refined": 2740,
+    "candidates_mc_ran": 2075,
+    "share_mc_ran": 0.7572992700729927,
+    "steps_mc_ran": 978,
+    "steps_missing": 1,
+    "paired_passed": {
+     "both": 1592,
+     "m_only": 0,
+     "arm_only": 2,
+     "neither": 14
+    },
+    "paired_right": {
+     "both": 1583,
+     "m_only": 0,
+     "arm_only": 1,
+     "neither": 24
+    },
+    "evals_fall_vs_M": 0.2515179945542292
+   },
+   "X200": {
+    "n_pass": 1596,
+    "n_right": 1589,
+    "evals": 2501991,
+    "candidates_refined": 2506,
+    "candidates_mc_ran": 1185,
+    "share_mc_ran": 0.4728651237031125,
+    "steps_mc_ran": 603,
+    "steps_missing": 0,
+    "paired_passed": {
+     "both": 1592,
+     "m_only": 0,
+     "arm_only": 4,
+     "neither": 12
+    },
+    "paired_right": {
+     "both": 1582,
+     "m_only": 1,
+     "arm_only": 7,
+     "neither": 18
+    },
+    "evals_fall_vs_M": 0.5734371795332991
+   }
+  }
+ },
+ "rule_a": {
+  "X60": true,
+  "X200": true
+ },
+ "rule_b": {
+  "X60": true,
+  "X200": true
+ },
+ "pick": "X200",
+ "stop_needed": false,
+ "by_sample": {
+  "big": {
+   "n_steps": 329,
+   "arms": {
+    "M": {
+     "n_pass": 329,
+     "n_right": 329,
+     "evals": 2856712,
+     "candidates_refined": 465,
+     "candidates_mc_ran": 465,
+     "share_mc_ran": 1.0,
+     "steps_mc_ran": 329,
+     "steps_missing": 0
+    },
+    "X60": {
+     "n_pass": 329,
+     "n_right": 329,
+     "evals": 2251212,
+     "candidates_refined": 465,
+     "candidates_mc_ran": 390,
+     "share_mc_ran": 0.8387096774193549,
+     "steps_mc_ran": 258,
+     "steps_missing": 0,
+     "paired_passed": {
+      "both": 329,
+      "m_only": 0,
+      "arm_only": 0,
+      "neither": 0
+     },
+     "paired_right": {
+      "both": 329,
+      "m_only": 0,
+      "arm_only": 0,
+      "neither": 0
+     },
+     "evals_fall_vs_M": 0.211956963110037
+    },
+    "X200": {
+     "n_pass": 329,
+     "n_right": 329,
+     "evals": 938875,
+     "candidates_refined": 435,
+     "candidates_mc_ran": 163,
+     "share_mc_ran": 0.37471264367816093,
+     "steps_mc_ran": 117,
+     "steps_missing": 0,
+     "paired_passed": {
+      "both": 329,
+      "m_only": 0,
+      "arm_only": 0,
+      "neither": 0
+     },
+     "paired_right": {
+      "both": 329,
+      "m_only": 0,
+      "arm_only": 0,
+      "neither": 0
+     },
+     "evals_fall_vs_M": 0.6713441887036565
+    }
+   }
+  },
+  "grad": {
+   "n_steps": 1279,
+   "arms": {
+    "M": {
+     "n_pass": 1263,
+     "n_right": 1254,
+     "evals": 3008757,
+     "candidates_refined": 2356,
+     "candidates_mc_ran": 2356,
+     "share_mc_ran": 1.0,
+     "steps_mc_ran": 1279,
+     "steps_missing": 0
+    },
+    "X60": {
+     "n_pass": 1265,
+     "n_right": 1255,
+     "evals": 2138986,
+     "candidates_refined": 2275,
+     "candidates_mc_ran": 1685,
+     "share_mc_ran": 0.7406593406593407,
+     "steps_mc_ran": 720,
+     "steps_missing": 1,
+     "paired_passed": {
+      "both": 1263,
+      "m_only": 0,
+      "arm_only": 2,
+      "neither": 14
+     },
+     "paired_right": {
+      "both": 1254,
+      "m_only": 0,
+      "arm_only": 1,
+      "neither": 24
+     },
+     "evals_fall_vs_M": 0.2890798426060995
+    },
+    "X200": {
+     "n_pass": 1267,
+     "n_right": 1260,
+     "evals": 1563116,
+     "candidates_refined": 2071,
+     "candidates_mc_ran": 1022,
+     "share_mc_ran": 0.49348140994688555,
+     "steps_mc_ran": 486,
+     "steps_missing": 0,
+     "paired_passed": {
+      "both": 1263,
+      "m_only": 0,
+      "arm_only": 4,
+      "neither": 12
+     },
+     "paired_right": {
+      "both": 1253,
+      "m_only": 1,
+      "arm_only": 7,
+      "neither": 18
+     },
+     "evals_fall_vs_M": 0.4804778185808957
+    }
+   }
+  },
+  "mid": {
+   "n_steps": 1611,
+   "arms": {
+    "M": {
+     "n_pass": 1596,
+     "n_right": 1595,
+     "evals": 12007352,
+     "candidates_refined": 3217,
+     "candidates_mc_ran": 3217,
+     "share_mc_ran": 1.0,
+     "steps_mc_ran": 1611,
+     "steps_missing": 0
+    },
+    "X60": {
+     "n_pass": 1596,
+     "n_right": 1595,
+     "evals": 10600545,
+     "candidates_refined": 3177,
+     "candidates_mc_ran": 2865,
+     "share_mc_ran": 0.9017941454202077,
+     "steps_mc_ran": 1310,
+     "steps_missing": 0,
+     "paired_passed": {
+      "both": 1596,
+      "m_only": 0,
+      "arm_only": 0,
+      "neither": 15
+     },
+     "paired_right": {
+      "both": 1595,
+      "m_only": 0,
+      "arm_only": 0,
+      "neither": 16
+     },
+     "evals_fall_vs_M": 0.11716213533175342
+    },
+    "X200": {
+     "n_pass": 1600,
+     "n_right": 1599,
+     "evals": 5643575,
+     "candidates_refined": 2683,
+     "candidates_mc_ran": 1588,
+     "share_mc_ran": 0.5918747670518076,
+     "steps_mc_ran": 771,
+     "steps_missing": 0,
+     "paired_passed": {
+      "both": 1596,
+      "m_only": 0,
+      "arm_only": 4,
+      "neither": 11
+     },
+     "paired_right": {
+      "both": 1595,
+      "m_only": 0,
+      "arm_only": 4,
+      "neither": 12
+     },
+     "evals_fall_vs_M": 0.5299900427671314
+    }
+   }
+  }
+ },
+ "plan_whatif": {
+  "note": "the plan's what-if count for X200 comes from a variant that stops when either end of a candidate reaches 0.95; the rule as defined (and run) tests the stop on the kept lower-cost end. Both counts and every step where they differ.",
+  "plan_counts": {
+   "pick": 2501991,
+   "mid": 5643374
+  },
+  "pick_evals_variant": 2501991,
+  "by_sample": {
+   "big": {
+    "evals_rule": 938875,
+    "evals_variant": 938875,
+    "n_pass_variant": 329,
+    "steps_differ": []
+   },
+   "grad": {
+    "evals_rule": 1563116,
+    "evals_variant": 1563116,
+    "n_pass_variant": 1267,
+    "steps_differ": []
+   },
+   "mid": {
+    "evals_rule": 5643575,
+    "evals_variant": 5643374,
+    "n_pass_variant": 1600,
+    "steps_differ": [
+     {
+      "replay_index": 442,
+      "step": 442,
+      "candidate": 0,
+      "cma_hit": 0.9475164011246485,
+      "cma_cost": 0.06939037946502724,
+      "cma_evals": 201,
+      "mc_hit": 0.9529953917050691,
+      "mc_cost": 0.07189203327919702,
+      "mc_evals": 5983,
+      "next_cma_evals": 201,
+      "next_cma_hit": 0.9792060491493384,
+      "evals_rule": 6405,
+      "evals_variant": 6204,
+      "passed_rule": true,
+      "passed_variant": true
+     }
+    ]
+   }
+  }
+ }
+}

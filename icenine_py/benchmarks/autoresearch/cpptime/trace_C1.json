@@ -1,0 +1,15 @@
+{
+ "records": 1921,
+ "refit": 393,
+ "refit_wrong": 393,
+ "accepted_wrong": 23,
+ "unchanged": 1921,
+ "distinct_record_voxels": 1921,
+ "seeds_in_log": 77,
+ "voxels_not_in_records": 79,
+ "wrong_among_voxels_not_in_records": 0,
+ "wrong_total": 416,
+ "wrong_near_another_grain_truth": 416,
+ "wrong_checked": 416,
+ "distinct_output_orientations": 80
+}

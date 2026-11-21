@@ -1,0 +1,36 @@
+{
+ "big": {
+  "run_evals_total": 2879705,
+  "table_before_pass": 2879705,
+  "table_total_with_pass": 4015342,
+  "table_pass": 1135637,
+  "pass_json_evals": 1135637,
+  "run_matches_table": true,
+  "seed_steps": 330,
+  "grid_fallbacks": 0,
+  "pass_total_matches": true
+ },
+ "grad": {
+  "run_evals_total": 8622191,
+  "table_before_pass": 8622191,
+  "table_total_with_pass": 12307994,
+  "table_pass": 3685803,
+  "pass_json_evals": 3685803,
+  "run_matches_table": true,
+  "seed_steps": 1334,
+  "grid_fallbacks": 11,
+  "pass_total_matches": true
+ },
+ "mid": {
+  "run_evals_total": 13034526,
+  "table_before_pass": 13034526,
+  "table_total_with_pass": 16082696,
+  "table_pass": 3048170,
+  "pass_json_evals": 3048170,
+  "run_matches_table": true,
+  "seed_steps": 1679,
+  "grid_fallbacks": 12,
+  "pass_total_matches": true
+ },
+ "mismatch": []
+}

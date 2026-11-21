@@ -1,0 +1,22 @@
+{
+ "S5": {
+  "rows": 1293,
+  "stored_steps": 1293,
+  "evals_replay": 5990794,
+  "evals_stored": 5990794,
+  "equal": 1293,
+  "grid_steps": 0,
+  "non_grid_steps": 1293,
+  "non_grid_equal": 1293
+ },
+ "D4": {
+  "rows": 1298,
+  "stored_steps": 1298,
+  "evals_replay": 3389254,
+  "evals_stored": 29222748,
+  "equal": 1222,
+  "grid_steps": 76,
+  "non_grid_steps": 1222,
+  "non_grid_equal": 1222
+ }
+}

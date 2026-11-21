@@ -1,0 +1,32 @@
+{
+ "sample": "mid",
+ "same_candidate": {
+  "matched_steps_with_fits": 1582,
+  "same_stop": 1582,
+  "same_taken_position": 1582,
+  "same_fits": 1582,
+  "all_same": true,
+  "differing_steps": []
+ },
+ "maps": {
+  "before": {
+   "voxels_differ": 127,
+   "max_mis_deg": 0.41880209752423997,
+   "median_mis_deg": 0.08354562167597415,
+   "max_err_not_both_wrong_deg": 0.3979109297834374,
+   "both_wrong": 0,
+   "one_wrong": 0,
+   "both_wrong_err_deg": []
+  },
+  "after": {
+   "voxels_differ": 173,
+   "max_mis_deg": 0.4586913937654346,
+   "median_mis_deg": 0.08227472304536343,
+   "max_err_not_both_wrong_deg": 0.25300373365807355,
+   "both_wrong": 0,
+   "one_wrong": 0,
+   "both_wrong_err_deg": []
+  }
+ },
+ "note": "maps: H against G (aligned draws), voxels whose stored orientation differs; error against the truth, symmetry-reduced; wrong = over 1 degree"
+}

@@ -1,0 +1,137 @@
+{
+ "per_sample": {
+  "grad": {
+   "n": 16,
+   "n_reseed": 15,
+   "n_cand_median": 46.0,
+   "near_truth_found": 16,
+   "rank0": 15,
+   "in_costed20": 16,
+   "in_refined5": 16,
+   "in_first100_not_costed20": 0,
+   "replay_all_match": true,
+   "r1_pass_seed_test": 0,
+   "r1_right": 13,
+   "r1_pass_and_right": 0,
+   "r1_evals": 73257,
+   "r3_pass_seed_test": 10,
+   "r3_right": 13,
+   "r3_pass_and_right": 10,
+   "r3_evals": 3349459,
+   "r3_level0_evals": 3299549,
+   "ladder_rung": {
+    "R1": 0,
+    "R3": 10,
+    "grid": 6
+   },
+   "ladder_evals": 5493001.0,
+   "grid_evals": 5518587,
+   "ladder_share_of_grid": 0.9953636682723314,
+   "right_grid": 15,
+   "right_ladder": 16,
+   "grid_right_ladder_wrong": [],
+   "grid_wrong_ladder_right": [
+    3494
+   ],
+   "verdict": {
+    "evals_ok": false,
+    "right_ok": true,
+    "passes": false
+   }
+  },
+  "mid": {
+   "n": 15,
+   "n_reseed": 14,
+   "n_cand_median": 47.0,
+   "near_truth_found": 15,
+   "rank0": 12,
+   "in_costed20": 15,
+   "in_refined5": 15,
+   "in_first100_not_costed20": 0,
+   "replay_all_match": true,
+   "r1_pass_seed_test": 0,
+   "r1_right": 10,
+   "r1_pass_and_right": 0,
+   "r1_evals": 93034,
+   "r3_pass_seed_test": 7,
+   "r3_right": 12,
+   "r3_pass_and_right": 7,
+   "r3_evals": 3069705,
+   "r3_level0_evals": 2990949,
+   "ladder_rung": {
+    "R1": 0,
+    "R3": 7,
+    "grid": 8
+   },
+   "ladder_evals": 5871143.0,
+   "grid_evals": 5087764,
+   "ladder_share_of_grid": 1.1539731402635813,
+   "right_grid": 13,
+   "right_ladder": 14,
+   "grid_right_ladder_wrong": [],
+   "grid_wrong_ladder_right": [
+    20251
+   ],
+   "verdict": {
+    "evals_ok": false,
+    "right_ok": true,
+    "passes": false
+   }
+  }
+ },
+ "pooled": {
+  "n": 31,
+  "n_reseed": 29,
+  "n_cand_median": 47.0,
+  "near_truth_found": 31,
+  "rank0": 27,
+  "in_costed20": 31,
+  "in_refined5": 31,
+  "in_first100_not_costed20": 0,
+  "replay_all_match": true,
+  "r1_pass_seed_test": 0,
+  "r1_right": 23,
+  "r1_pass_and_right": 0,
+  "r1_evals": 166291,
+  "r3_pass_seed_test": 17,
+  "r3_right": 25,
+  "r3_pass_and_right": 17,
+  "r3_evals": 6419164,
+  "r3_level0_evals": 6290498,
+  "ladder_rung": {
+   "R1": 0,
+   "R3": 17,
+   "grid": 14
+  },
+  "ladder_evals": 11364144.0,
+  "grid_evals": 10606351,
+  "ladder_share_of_grid": 1.0714470980641693,
+  "right_grid": 28,
+  "right_ladder": 30,
+  "grid_right_ladder_wrong": [],
+  "grid_wrong_ladder_right": [
+   3494,
+   20251
+  ],
+  "verdict": {
+   "evals_ok": false,
+   "right_ok": true,
+   "passes": false
+  }
+ },
+ "prediction2": {
+  "cases_with_candidate_in_first100_not_costed20": 0,
+  "n": 31,
+  "holds": false
+ },
+ "prediction3": {
+  "holds": false,
+  "verdict": {
+   "evals_ok": false,
+   "right_ok": true,
+   "passes": false
+  }
+ },
+ "note": "level 0 of the grid search alone is run through the library's own level loop (max_local_resolution 0, final refinement stubbed); a full grid search after a failed R3 pays level 0 again",
+ "timing_label": "contended (another agent on the machine); not a timing result"
+}

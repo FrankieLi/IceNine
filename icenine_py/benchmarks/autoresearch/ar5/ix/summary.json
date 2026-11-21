@@ -1,0 +1,1053 @@
+{
+ "exact": {
+  "mid": {
+   "sample": "mid",
+   "tag": "",
+   "n_voxels": 1626,
+   "tier1_identical": 1626,
+   "tier2_ok": 1626,
+   "n_differ": 0,
+   "differ": [],
+   "old_s": 962.9902094579996,
+   "new_s": 605.9635490839997,
+   "less_pct": 37.07479648987765,
+   "old_parts_s": {
+    "vote": 50.296124792999166,
+    "cluster": 783.1027047759983,
+    "refine": 123.17938972700209,
+    "merge": 3.782194338999691,
+    "total": 960.3604136349992
+   },
+   "new_parts_s": {
+    "vote": 49.999904661998755,
+    "cluster": 492.9665946229984,
+    "refine": 56.72091539200014,
+    "merge": 3.712048572999322,
+    "total": 603.3994632499966
+   },
+   "blocks": [
+    [
+     0,
+     36.147374583,
+     22.835702375000004
+    ],
+    [
+     100,
+     56.86069608299999,
+     36.35445712500001
+    ],
+    [
+     200,
+     59.225520125,
+     36.368304209
+    ],
+    [
+     300,
+     87.65301470899999,
+     51.26417708299999
+    ],
+    [
+     400,
+     108.80779029099995,
+     63.998126125
+    ],
+    [
+     500,
+     60.33711404100006,
+     41.20322687499993
+    ],
+    [
+     600,
+     48.27267266700005,
+     33.734787083000015
+    ],
+    [
+     700,
+     70.44298325,
+     44.64629200000002
+    ],
+    [
+     800,
+     74.71854120899991,
+     46.85193445800007
+    ],
+    [
+     900,
+     59.12084241699995,
+     36.71528320899995
+    ],
+    [
+     1000,
+     50.80413312499991,
+     32.56374391600002
+    ],
+    [
+     1100,
+     49.03711283400003,
+     31.077254291999907
+    ],
+    [
+     1200,
+     52.07444816600014,
+     32.769897834000176
+    ],
+    [
+     1300,
+     43.305796540999836,
+     28.771212624999862
+    ],
+    [
+     1400,
+     49.806819458999826,
+     30.853937624999844
+    ],
+    [
+     1500,
+     46.311384249999946,
+     29.439856792
+    ],
+    [
+     1600,
+     10.063965708000069,
+     6.515355457999931
+    ]
+   ],
+   "timing_label": "contended",
+   "quiet_start": false,
+   "quiet_end": false,
+   "preflight_start": {
+    "timestamp": "2026-11-19T17:47:37",
+    "host": "newt.local",
+    "loadavg": [
+     1.7451171875,
+     1.6162109375,
+     1.75732421875
+    ],
+    "cpu_count": 12,
+    "power": "ac",
+    "omp_num_threads": "1",
+    "mkl_num_threads": "1",
+    "torch_threads": 1,
+    "busy_processes": [
+     {
+      "pid": 5359,
+      "cpu": 100.0,
+      "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+     }
+    ]
+   },
+   "preflight_end": {
+    "timestamp": "2026-11-19T18:14:09",
+    "host": "newt.local",
+    "loadavg": [
+     2.30810546875,
+     2.2939453125,
+     2.18994140625
+    ],
+    "cpu_count": 12,
+    "power": "ac",
+    "omp_num_threads": "1",
+    "mkl_num_threads": "1",
+    "torch_threads": 1,
+    "busy_processes": [
+     {
+      "pid": 5359,
+      "cpu": 100.0,
+      "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+     }
+    ]
+   },
+   "wall_s": 1590.862706899643
+  },
+  "held": {
+   "sample": "held",
+   "tag": "",
+   "n_voxels": 3685,
+   "tier1_identical": 3685,
+   "tier2_ok": 3685,
+   "n_differ": 0,
+   "differ": [],
+   "old_s": 4036.414169167999,
+   "new_s": 2624.802214207001,
+   "less_pct": 34.97193042635575,
+   "old_parts_s": {
+    "vote": 215.60595146100627,
+    "cluster": 3421.505826503008,
+    "refine": 381.2254452540071,
+    "merge": 8.693200458004874,
+    "total": 4027.030423676026
+   },
+   "new_parts_s": {
+    "vote": 215.91616879400044,
+    "cluster": 2202.062799592,
+    "refine": 189.13316733399415,
+    "merge": 8.60487483699363,
+    "total": 2615.717010556988
+   },
+   "blocks": [
+    [
+     0,
+     45.758117042,
+     33.24157875
+    ],
+    [
+     100,
+     79.112096917,
+     52.852605374999996
+    ],
+    [
+     200,
+     101.70674120800001,
+     68.03964808400002
+    ],
+    [
+     300,
+     70.56648645900003,
+     56.19718999999998
+    ],
+    [
+     400,
+     76.47305870800005,
+     59.10054945799993
+    ],
+    [
+     500,
+     167.93887633400004,
+     99.07128058399996
+    ],
+    [
+     600,
+     87.84442979199991,
+     58.46273145800001
+    ],
+    [
+     700,
+     144.8324398750001,
+     98.3221819580001
+    ],
+    [
+     800,
+     91.40833320799993,
+     67.6947174999998
+    ],
+    [
+     900,
+     153.16570979199992,
+     97.94220287500002
+    ],
+    [
+     1000,
+     87.62345950000008,
+     60.251868750000085
+    ],
+    [
+     1100,
+     155.45076266600017,
+     101.7638051670001
+    ],
+    [
+     1200,
+     123.4890609590002,
+     81.5095671250001
+    ],
+    [
+     1300,
+     94.84778483299988,
+     66.37133258400036
+    ],
+    [
+     1400,
+     121.4313659999998,
+     78.80458895799984
+    ],
+    [
+     1500,
+     236.7457769589996,
+     141.1545460000002
+    ],
+    [
+     1600,
+     121.28132649999998,
+     84.85260629100003
+    ],
+    [
+     1700,
+     112.96951120799986,
+     74.23721966599987
+    ],
+    [
+     1800,
+     77.39665204099992,
+     55.90905783300013
+    ],
+    [
+     1900,
+     77.64280233299996,
+     57.454921958999876
+    ],
+    [
+     2000,
+     111.14505404200008,
+     67.51978716700023
+    ],
+    [
+     2100,
+     167.12258291700027,
+     93.93919858300023
+    ],
+    [
+     2200,
+     124.85429195799952,
+     75.93178508300025
+    ],
+    [
+     2300,
+     238.4276155409998,
+     130.57447520799997
+    ],
+    [
+     2400,
+     124.96381329199994,
+     73.88620962499954
+    ],
+    [
+     2500,
+     103.2332351670002,
+     64.34458654100035
+    ],
+    [
+     2600,
+     86.0030686250002,
+     61.527689040999576
+    ],
+    [
+     2700,
+     77.1062930829994,
+     55.63695737499984
+    ],
+    [
+     2800,
+     83.7373612499996,
+     52.14695499999925
+    ],
+    [
+     2900,
+     87.7266474170001,
+     57.939417333000165
+    ],
+    [
+     3000,
+     118.81917337499999,
+     75.95090529200024
+    ],
+    [
+     3100,
+     83.20760512500055,
+     56.41487416699965
+    ],
+    [
+     3200,
+     63.976655417000075,
+     44.60288670799946
+    ],
+    [
+     3300,
+     85.55809091599986,
+     56.39699700000074
+    ],
+    [
+     3400,
+     90.88404116699985,
+     59.68259654200028
+    ],
+    [
+     3500,
+     103.4289082919995,
+     65.29025066700069
+    ],
+    [
+     3600,
+     58.53493925000021,
+     39.78244249999989
+    ]
+   ],
+   "timing_label": "contended",
+   "quiet_start": false,
+   "quiet_end": false,
+   "preflight_start": {
+    "timestamp": "2026-11-19T18:14:12",
+    "host": "newt.local",
+    "loadavg": [
+     2.283203125,
+     2.2890625,
+     2.1884765625
+    ],
+    "cpu_count": 12,
+    "power": "ac",
+    "omp_num_threads": "1",
+    "mkl_num_threads": "1",
+    "torch_threads": 1,
+    "busy_processes": [
+     {
+      "pid": 5359,
+      "cpu": 98.8,
+      "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+     }
+    ]
+   },
+   "preflight_end": {
+    "timestamp": "2026-11-19T20:05:51",
+    "host": "newt.local",
+    "loadavg": [
+     3.2197265625,
+     3.0087890625,
+     2.72998046875
+    ],
+    "cpu_count": 12,
+    "power": "ac",
+    "omp_num_threads": "1",
+    "mkl_num_threads": "1",
+    "torch_threads": 1,
+    "busy_processes": [
+     {
+      "pid": 5359,
+      "cpu": 100.2,
+      "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+     }
+    ]
+   },
+   "wall_s": 6697.888150215149
+  },
+  "held3": {
+   "sample": "held3",
+   "tag": "untimed",
+   "n_voxels": 300,
+   "tier1_identical": 300,
+   "tier2_ok": 300,
+   "n_differ": 0,
+   "differ": [],
+   "old_s": 380.86848425,
+   "new_s": 241.209693416,
+   "less_pct": 36.66850805705645,
+   "old_parts_s": {
+    "vote": 19.351132753000797,
+    "cluster": 327.47691392299936,
+    "refine": 32.37428453899947,
+    "merge": 0.7107419200006007,
+    "total": 379.9130731350002
+   },
+   "new_parts_s": {
+    "vote": 19.24190467099953,
+    "cluster": 204.52602441500122,
+    "refine": 16.166555215998756,
+    "merge": 0.6960401700002876,
+    "total": 240.6305244719998
+   },
+   "blocks": [
+    [
+     0,
+     143.41047295799999,
+     90.21542687499999
+    ],
+    [
+     100,
+     119.223383958,
+     76.429787583
+    ],
+    [
+     200,
+     118.23462733399998,
+     74.564478958
+    ]
+   ],
+   "timing_label": "contended",
+   "quiet_start": false,
+   "quiet_end": false,
+   "preflight_start": {
+    "timestamp": "2026-11-19T16:29:09",
+    "host": "newt.local",
+    "loadavg": [
+     1.39453125,
+     2.0126953125,
+     2.20458984375
+    ],
+    "cpu_count": 12,
+    "power": "ac",
+    "omp_num_threads": "1",
+    "mkl_num_threads": "1",
+    "torch_threads": 1,
+    "busy_processes": [
+     {
+      "pid": 5359,
+      "cpu": 99.7,
+      "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+     }
+    ]
+   },
+   "preflight_end": {
+    "timestamp": "2026-11-19T16:40:08",
+    "host": "newt.local",
+    "loadavg": [
+     2.41552734375,
+     2.4072265625,
+     2.3359375
+    ],
+    "cpu_count": 12,
+    "power": "ac",
+    "omp_num_threads": "1",
+    "mkl_num_threads": "1",
+    "torch_threads": 1,
+    "busy_processes": [
+     {
+      "pid": 5359,
+      "cpu": 100.0,
+      "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+     },
+     {
+      "pid": 99982,
+      "cpu": 39.3,
+      "command": "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/157.0.8103.39/Helpers/Google Chrome Helper (Aperitif Renderer).app/Contents/MacOS/Google Chrome Helper (Aperitif Renderer)"
+     },
+     {
+      "pid": 99983,
+      "cpu": 37.9,
+      "command": "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/157.0.8103.39/Helpers/Google Chrome Helper (Aperitif Renderer).app/Contents/MacOS/Google Chrome Helper (Aperitif Renderer)"
+     }
+    ]
+   },
+   "wall_s": 658.1110467910767
+  },
+  "held4": {
+   "sample": "held4",
+   "tag": "untimed",
+   "n_voxels": 300,
+   "tier1_identical": 300,
+   "tier2_ok": 300,
+   "n_differ": 0,
+   "differ": [],
+   "old_s": 472.84990304199994,
+   "new_s": 290.76451070900004,
+   "less_pct": 38.508074372350364,
+   "old_parts_s": {
+    "vote": 20.901089466999586,
+    "cluster": 417.26857449800013,
+    "refine": 32.98141087499993,
+    "merge": 0.7044570830006975,
+    "total": 471.8555319230003
+   },
+   "new_parts_s": {
+    "vote": 21.059904166999587,
+    "cluster": 251.62738161300052,
+    "refine": 16.765258676000315,
+    "merge": 0.7030857499995875,
+    "total": 290.155630206
+   },
+   "blocks": [
+    [
+     0,
+     168.611351542,
+     107.016034542
+    ],
+    [
+     100,
+     191.620990792,
+     113.61264866700003
+    ],
+    [
+     200,
+     112.61756070799993,
+     70.1358275
+    ]
+   ],
+   "timing_label": "contended",
+   "quiet_start": false,
+   "quiet_end": false,
+   "preflight_start": {
+    "timestamp": "2026-11-19T16:40:12",
+    "host": "newt.local",
+    "loadavg": [
+     2.4619140625,
+     2.4169921875,
+     2.33935546875
+    ],
+    "cpu_count": 12,
+    "power": "ac",
+    "omp_num_threads": "1",
+    "mkl_num_threads": "1",
+    "torch_threads": 1,
+    "busy_processes": [
+     {
+      "pid": 5359,
+      "cpu": 100.0,
+      "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+     }
+    ]
+   },
+   "preflight_end": {
+    "timestamp": "2026-11-19T16:53:36",
+    "host": "newt.local",
+    "loadavg": [
+     2.20361328125,
+     2.279296875,
+     2.30322265625
+    ],
+    "cpu_count": 12,
+    "power": "ac",
+    "omp_num_threads": "1",
+    "mkl_num_threads": "1",
+    "torch_threads": 1,
+    "busy_processes": [
+     {
+      "pid": 5359,
+      "cpu": 99.7,
+      "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+     }
+    ]
+   },
+   "wall_s": 802.9191203117371
+  },
+  "held5": {
+   "sample": "held5",
+   "tag": "untimed",
+   "n_voxels": 300,
+   "tier1_identical": 300,
+   "tier2_ok": 300,
+   "n_differ": 0,
+   "differ": [],
+   "old_s": 465.50142512500014,
+   "new_s": 283.30171904200006,
+   "less_pct": 39.140525946633645,
+   "old_parts_s": {
+    "vote": 20.34092828499997,
+    "cluster": 410.92976217099954,
+    "refine": 32.55580591700107,
+    "merge": 0.7018130689996624,
+    "total": 464.52830944200025
+   },
+   "new_parts_s": {
+    "vote": 20.387000336999847,
+    "cluster": 245.15655349899964,
+    "refine": 16.464208078999945,
+    "merge": 0.6983626680000441,
+    "total": 282.70612458299945
+   },
+   "blocks": [
+    [
+     0,
+     131.76075175,
+     84.43829500000001
+    ],
+    [
+     100,
+     184.13894333300004,
+     111.681932125
+    ],
+    [
+     200,
+     149.6017300420001,
+     87.18149191700002
+    ]
+   ],
+   "timing_label": "contended",
+   "quiet_start": false,
+   "quiet_end": false,
+   "preflight_start": {
+    "timestamp": "2026-11-19T16:53:39",
+    "host": "newt.local",
+    "loadavg": [
+     2.18701171875,
+     2.2744140625,
+     2.30126953125
+    ],
+    "cpu_count": 12,
+    "power": "ac",
+    "omp_num_threads": "1",
+    "mkl_num_threads": "1",
+    "torch_threads": 1,
+    "busy_processes": [
+     {
+      "pid": 5359,
+      "cpu": 100.0,
+      "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+     }
+    ]
+   },
+   "preflight_end": {
+    "timestamp": "2026-11-19T17:06:47",
+    "host": "newt.local",
+    "loadavg": [
+     2.3994140625,
+     2.359375,
+     2.3330078125
+    ],
+    "cpu_count": 12,
+    "power": "ac",
+    "omp_num_threads": "1",
+    "mkl_num_threads": "1",
+    "torch_threads": 1,
+    "busy_processes": [
+     {
+      "pid": 5359,
+      "cpu": 99.1,
+      "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+     }
+    ]
+   },
+   "wall_s": 786.7462141513824
+  },
+  "held6": {
+   "sample": "held6",
+   "tag": "untimed",
+   "n_voxels": 300,
+   "tier1_identical": 300,
+   "tier2_ok": 300,
+   "n_differ": 0,
+   "differ": [],
+   "old_s": 393.30440866600003,
+   "new_s": 252.78513054200002,
+   "less_pct": 35.727867531566645,
+   "old_parts_s": {
+    "vote": 20.275928331999694,
+    "cluster": 338.57283187400105,
+    "refine": 32.75926316299947,
+    "merge": 0.6975913019999638,
+    "total": 392.30561467100017
+   },
+   "new_parts_s": {
+    "vote": 20.479925296000175,
+    "cluster": 214.45172653100056,
+    "refine": 16.54959901599989,
+    "merge": 0.6934185349999211,
+    "total": 252.17466937800054
+   },
+   "blocks": [
+    [
+     0,
+     130.828287458,
+     84.24443441700001
+    ],
+    [
+     100,
+     131.42170783300003,
+     86.32930845799996
+    ],
+    [
+     200,
+     131.05441337500002,
+     82.21138766700005
+    ]
+   ],
+   "timing_label": "contended",
+   "quiet_start": false,
+   "quiet_end": false,
+   "preflight_start": {
+    "timestamp": "2026-11-19T17:06:50",
+    "host": "newt.local",
+    "loadavg": [
+     2.3994140625,
+     2.359375,
+     2.3330078125
+    ],
+    "cpu_count": 12,
+    "power": "ac",
+    "omp_num_threads": "1",
+    "mkl_num_threads": "1",
+    "torch_threads": 1,
+    "busy_processes": [
+     {
+      "pid": 5359,
+      "cpu": 100.0,
+      "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+     }
+    ]
+   },
+   "preflight_end": {
+    "timestamp": "2026-11-19T17:18:17",
+    "host": "newt.local",
+    "loadavg": [
+     2.16650390625,
+     2.29150390625,
+     2.2822265625
+    ],
+    "cpu_count": 12,
+    "power": "ac",
+    "omp_num_threads": "1",
+    "mkl_num_threads": "1",
+    "torch_threads": 1,
+    "busy_processes": [
+     {
+      "pid": 5359,
+      "cpu": 100.5,
+      "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+     }
+    ]
+   },
+   "wall_s": 685.8754971027374
+  },
+  "grad": {
+   "sample": "grad",
+   "tag": "untimed",
+   "n_voxels": 300,
+   "tier1_identical": 300,
+   "tier2_ok": 300,
+   "n_differ": 0,
+   "differ": [],
+   "old_s": 134.95295,
+   "new_s": 93.369931959,
+   "less_pct": 30.812974478142195,
+   "old_parts_s": {
+    "vote": 11.656243504999935,
+    "cluster": 95.07528129100012,
+    "refine": 26.825089336000083,
+    "merge": 0.6589337849997285,
+    "total": 134.21554791699987
+   },
+   "new_parts_s": {
+    "vote": 11.754599503000236,
+    "cluster": 67.55639412699983,
+    "refine": 12.924156296000021,
+    "merge": 0.6595214559999647,
+    "total": 92.89467138200006
+   },
+   "blocks": [
+    [
+     0,
+     38.188782875,
+     26.902494750000002
+    ],
+    [
+     100,
+     53.336550125,
+     36.55880587499999
+    ],
+    [
+     200,
+     43.427617,
+     29.908631334000006
+    ]
+   ],
+   "timing_label": "contended",
+   "quiet_start": false,
+   "quiet_end": false,
+   "preflight_start": {
+    "timestamp": "2026-11-19T17:18:21",
+    "host": "newt.local",
+    "loadavg": [
+     2.07275390625,
+     2.27001953125,
+     2.2744140625
+    ],
+    "cpu_count": 12,
+    "power": "ac",
+    "omp_num_threads": "1",
+    "mkl_num_threads": "1",
+    "torch_threads": 1,
+    "busy_processes": [
+     {
+      "pid": 5359,
+      "cpu": 99.3,
+      "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+     }
+    ]
+   },
+   "preflight_end": {
+    "timestamp": "2026-11-19T17:22:36",
+    "host": "newt.local",
+    "loadavg": [
+     2.2060546875,
+     2.2568359375,
+     2.2568359375
+    ],
+    "cpu_count": 12,
+    "power": "ac",
+    "omp_num_threads": "1",
+    "mkl_num_threads": "1",
+    "torch_threads": 1,
+    "busy_processes": [
+     {
+      "pid": 5359,
+      "cpu": 100.0,
+      "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+     }
+    ]
+   },
+   "wall_s": 253.78644466400146
+  },
+  "big": {
+   "sample": "big",
+   "tag": "untimed",
+   "n_voxels": 300,
+   "tier1_identical": 300,
+   "tier2_ok": 300,
+   "n_differ": 0,
+   "differ": [],
+   "old_s": 147.373073792,
+   "new_s": 80.97615537500002,
+   "less_pct": 45.05362934257009,
+   "old_parts_s": {
+    "vote": 6.091675753000086,
+    "cluster": 122.69491015600025,
+    "refine": 17.485684587999874,
+    "merge": 0.7035825020000246,
+    "total": 146.97585299900024
+   },
+   "new_parts_s": {
+    "vote": 6.139154368999868,
+    "cluster": 66.33543632900003,
+    "refine": 7.498974129000189,
+    "merge": 0.7024973299997583,
+    "total": 80.67606215699985
+   },
+   "blocks": [
+    [
+     0,
+     61.85236279200001,
+     31.280476124999993
+    ],
+    [
+     100,
+     45.24206487500001,
+     25.810487709000014
+    ],
+    [
+     200,
+     40.278646124999995,
+     23.88519154100001
+    ]
+   ],
+   "timing_label": "contended",
+   "quiet_start": false,
+   "quiet_end": false,
+   "preflight_start": {
+    "timestamp": "2026-11-19T17:22:39",
+    "host": "newt.local",
+    "loadavg": [
+     2.2060546875,
+     2.2568359375,
+     2.2568359375
+    ],
+    "cpu_count": 12,
+    "power": "ac",
+    "omp_num_threads": "1",
+    "mkl_num_threads": "1",
+    "torch_threads": 1,
+    "busy_processes": [
+     {
+      "pid": 5359,
+      "cpu": 100.7,
+      "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+     }
+    ]
+   },
+   "preflight_end": {
+    "timestamp": "2026-11-19T17:26:46",
+    "host": "newt.local",
+    "loadavg": [
+     2.39501953125,
+     2.283203125,
+     2.25732421875
+    ],
+    "cpu_count": 12,
+    "power": "ac",
+    "omp_num_threads": "1",
+    "mkl_num_threads": "1",
+    "torch_threads": 1,
+    "busy_processes": [
+     {
+      "pid": 5359,
+      "cpu": 167.8,
+      "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+     }
+    ]
+   },
+   "wall_s": 246.55576086044312
+  }
+ },
+ "live": {
+  "old_mid": {
+   "sample": "mid",
+   "arm": "old",
+   "evals": 7383368,
+   "wall_s": 1674.4888970851898,
+   "index_s": 971.3094834530001,
+   "map_equal_stored": true,
+   "label": "contended"
+  },
+  "new_mid": {
+   "sample": "mid",
+   "arm": "new",
+   "evals": 7383368,
+   "wall_s": 1344.717171907425,
+   "index_s": 627.1136298360045,
+   "map_equal_stored": true,
+   "label": "contended"
+  },
+  "old_held": {
+   "sample": "held",
+   "arm": "old",
+   "evals": 17114589,
+   "wall_s": 5631.517442941666,
+   "index_s": 4045.853021575997,
+   "map_equal_stored": true,
+   "label": "contended"
+  },
+  "new_held": {
+   "sample": "held",
+   "arm": "new",
+   "evals": 17114589,
+   "wall_s": 4281.709481716156,
+   "index_s": 2668.3967374280182,
+   "map_equal_stored": true,
+   "label": "contended"
+  }
+ },
+ "w1": {
+  "old_s": 4999.404378625998,
+  "new_s": 3230.7657632910004,
+  "less_pct": 35.37698656456908,
+  "quiet": false,
+  "gate": "not judged: machine not quiet"
+ },
+ "w2": {
+  "rows": [
+   {
+    "sample": "mid",
+    "evals_old": 7383368,
+    "evals_new": 7383368,
+    "stored": 7383368,
+    "map_new_equals_stored": true,
+    "map_old_equals_stored": true,
+    "wall_old": 1674.4888970851898,
+    "wall_new": 1344.717171907425,
+    "less_pct": 19.693873500851744,
+    "index_old": 971.3094834530001,
+    "index_new": 627.1136298360045,
+    "label": "contended / contended",
+    "wall_minus_index_old": 703.1794136321897,
+    "wall_minus_index_new": 717.6035420714204
+   },
+   {
+    "sample": "held",
+    "evals_old": 17114589,
+    "evals_new": 17114589,
+    "stored": 17114589,
+    "map_new_equals_stored": true,
+    "map_old_equals_stored": true,
+    "wall_old": 5631.517442941666,
+    "wall_new": 4281.709481716156,
+    "less_pct": 23.96881435424316,
+    "index_old": 4045.853021575997,
+    "index_new": 2668.3967374280182,
+    "label": "contended / contended",
+    "wall_minus_index_old": 1585.6644213656687,
+    "wall_minus_index_new": 1613.3127442881378
+   }
+  ],
+  "pooled_less_pct": 22.989025853994814
+ },
+ "e1_totals": {
+  "mid_and_held": 5311,
+  "all": 7111,
+  "identical_all": 7111
+ }
+}

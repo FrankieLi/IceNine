@@ -1,0 +1,169 @@
+{
+ "rule": {
+  "g0": "prediction 1, exactly (mid)",
+  "g1": "prediction 2, exactly, with lost 0.95 ends at most 3% of the steps on every sample (by construction 0; any lost end is a bug and stops the step) and the index stage at least 10% fewer evaluations than J5D's on the held types and mid",
+  "g1_fewer_min": 0.1,
+  "g1_fewer_samples": [
+   "held5",
+   "held4",
+   "held3",
+   "held",
+   "held6",
+   "mid"
+  ],
+  "g1_lost_max": 0.03,
+  "g2": "live J5SDB on mid and held: at least 4% fewer evaluations than J5SD, broken minus fixed at most 3, median error at most 0.001 degree higher, grid searches at most 2 more than J5SD's, seed-test failures at most 10 more",
+  "g2_samples": [
+   "mid",
+   "held"
+  ],
+  "g2_fewer_min": 0.04,
+  "g2_broken_minus_fixed_max": 3,
+  "g2_median_error_higher_max_deg": 0.001,
+  "g2_grid_more_max": 2,
+  "g2_seed_test_more_max": 10,
+  "fails": "stop and report: no tuning (no change of the ball's constants or of the fallback), no held7"
+ },
+ "g0": true,
+ "g1": true,
+ "g2": {
+  "mid": {
+   "sample": "mid",
+   "j5sd_total": 7383368,
+   "j5sdb_total": 7219040,
+   "fewer": 0.022256509495395593,
+   "wrong_j5sd": 23,
+   "wrong_j5sdb": 19,
+   "wrong_j5sdb_wilson": [
+    0.0004951329640351543,
+    0.0012075556379781344
+   ],
+   "fixed": 4,
+   "broken": 0,
+   "broken_minus_fixed": -4,
+   "median_err_higher": -9.398657414822278e-05,
+   "grid_j5d": 2,
+   "grid_j5db": 3,
+   "grid_more": 1,
+   "seed_test_j5d": 12,
+   "seed_test_j5db": 13,
+   "seed_test_more": 1,
+   "checks": 0,
+   "pauses": 0,
+   "j5sd_total_matches_step22": true,
+   "ok_fewer": false,
+   "ok_broken": true,
+   "ok_median": true,
+   "ok_grid": true,
+   "ok_seed_test": true,
+   "ok_no_checks": true,
+   "ok": false,
+   "stages": {
+    "index": 2164870,
+    "rescue": 37037,
+    "polish": 18186,
+    "grid": 995892,
+    "bfs_neighbour": 1488949,
+    "bfs_revisit": 1698362,
+    "screen_pass": 99908,
+    "repair": 715836
+   },
+   "stages_j5sd": {
+    "index": 2644672,
+    "rescue": 32032,
+    "polish": 12856,
+    "grid": 665977,
+    "bfs_neighbour": 1488888,
+    "bfs_revisit": 1687138,
+    "screen_pass": 100032,
+    "repair": 751773
+   },
+   "ball": {
+    "ball_on": true,
+    "refinements": 1851,
+    "ends_floor": 1851,
+    "ends_cap": 0,
+    "proposals": 131816,
+    "gains": 4880,
+    "halvings": 11106,
+    "stage1_evals": 353637,
+    "stage2_evals": 133667,
+    "checks": 0,
+    "pauses": 0
+   }
+  }
+ },
+ "g2_scope": "mid only; the stop rule applied when g2 failed there",
+ "g2_ok": false,
+ "passed": false,
+ "information_only_D_20261119_N4": {
+  "label": "information only, run after the gate failed on mid (D-20261119-N4); cannot change the verdict",
+  "rows": {
+   "held": {
+    "sample": "held",
+    "j5sd_total": 17114589,
+    "j5sdb_total": 15643196,
+    "fewer": 0.0859730257033926,
+    "wrong_j5sd": 45,
+    "wrong_j5sdb": 45,
+    "wrong_j5sdb_wilson": [
+     0.0013691418781273772,
+     0.0024496179856132597
+    ],
+    "fixed": 7,
+    "broken": 7,
+    "broken_minus_fixed": 0,
+    "median_err_higher": -0.0002773300946605807,
+    "grid_j5d": 4,
+    "grid_j5db": 4,
+    "grid_more": 0,
+    "seed_test_j5d": 66,
+    "seed_test_j5db": 64,
+    "seed_test_more": -2,
+    "checks": 0,
+    "pauses": 0,
+    "j5sd_total_matches_step22": true,
+    "ok_fewer": true,
+    "ok_broken": true,
+    "ok_median": true,
+    "ok_grid": true,
+    "ok_seed_test": true,
+    "ok_no_checks": true,
+    "stages": {
+     "index": 7713687,
+     "rescue": 170170,
+     "polish": 43525,
+     "grid": 1387715,
+     "bfs_neighbour": 1480653,
+     "bfs_revisit": 3195302,
+     "screen_pass": 170862,
+     "repair": 1481282
+    },
+    "stages_j5sd": {
+     "index": 9129537,
+     "rescue": 172172,
+     "polish": 43525,
+     "grid": 1387715,
+     "bfs_neighbour": 1480653,
+     "bfs_revisit": 3206343,
+     "screen_pass": 170528,
+     "repair": 1524116
+    },
+    "ball": {
+     "ball_on": true,
+     "refinements": 6384,
+     "ends_floor": 6384,
+     "ends_cap": 0,
+     "proposals": 444816,
+     "gains": 14747,
+     "halvings": 38304,
+     "stage1_evals": 1215962,
+     "stage2_evals": 451200,
+     "checks": 0,
+     "pauses": 0
+    },
+    "info_only_bars_met": true
+   }
+  }
+ }
+}

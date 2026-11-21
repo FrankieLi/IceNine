@@ -1,0 +1,50 @@
+{
+ "mid": {
+  "total": 13004457,
+  "seed_evals": 5417024,
+  "traces": 1605,
+  "steps": 1607,
+  "e1_evals_sum": 5417024,
+  "before_pass": 9950736,
+  "pass_evals": 3053721,
+  "expected": {
+   "total": 13004457,
+   "seed_evals": 5417024,
+   "traces": 1605,
+   "steps": 1607
+  },
+  "ok": true
+ },
+ "grad": {
+  "total": 10196692,
+  "seed_evals": 1528284,
+  "traces": 991,
+  "steps": 1280,
+  "e1_evals_sum": 1528284,
+  "before_pass": 6517172,
+  "pass_evals": 3679520,
+  "expected": {
+   "total": 10196692,
+   "seed_evals": 1528284,
+   "traces": 991,
+   "steps": 1280
+  },
+  "ok": true
+ },
+ "big": {
+  "total": 3807747,
+  "seed_evals": 687902,
+  "traces": 153,
+  "steps": 317,
+  "e1_evals_sum": 687902,
+  "before_pass": 2672415,
+  "pass_evals": 1135332,
+  "expected": {
+   "total": 3807747,
+   "seed_evals": 687902,
+   "traces": 153,
+   "steps": 317
+  },
+  "ok": true
+ }
+}

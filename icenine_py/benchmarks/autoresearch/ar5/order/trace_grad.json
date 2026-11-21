@@ -1,0 +1,34 @@
+{
+ "sample": "grad",
+ "steps_A": 1278,
+ "steps_Y": 1270,
+ "matched": 1259,
+ "only_A": 19,
+ "only_Y": 11,
+ "taken_differs_matched": 5,
+ "differing_wrong": [
+  0,
+  0
+ ],
+ "wrong_ends_all": [
+  19,
+  19
+ ],
+ "wrong_ends_one_arm": [
+  0,
+  0
+ ],
+ "same_voxel_prefix": 458,
+ "first_taken_difference_index0": 456,
+ "first_taken_difference_step": 457,
+ "diff_before_voxels": 125,
+ "diff_after_voxels": 138,
+ "changed_regions": 11,
+ "largest_changed_region": 73,
+ "neighbour_radius": 0.009561365832821871,
+ "flips_fixed": 0,
+ "flips_broken": 0,
+ "flips_made_before": 0,
+ "flips_made_in_pass": 0,
+ "flips": []
+}

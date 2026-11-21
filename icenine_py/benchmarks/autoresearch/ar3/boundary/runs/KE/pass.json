@@ -1,0 +1,14 @@
+{
+  "map": "KE",
+  "tag": "",
+  "n_boundary_voxels": 22869,
+  "n_boundary_all": 22869,
+  "n_tries": 49555,
+  "evals": 3022855,
+  "score_evals": 24570,
+  "wall_tries_s": 325.28870916366577,
+  "wall_score_s": 1.2192490100860596,
+  "timing_label": "contended: timing preflight refused (cpptools at 96% CPU, Python at 92% CPU, Claude at 152% CPU); single run, one worker; 2 passes ran side by side",
+  "limit": 0,
+  "rng": "default_rng(0), one generator for the whole pass"
+}

@@ -1,0 +1,108 @@
+{
+ "S9": {
+  "name": "S5",
+  "n_voxels": 24570,
+  "n_processed": 24570,
+  "wall_total_s": 530.8770501613617,
+  "setup_s": 0.4403388500213623,
+  "timing_label": "contended: timing preflight refused (cpptools at 104% CPU, Python at 99% CPU, Python at 100% CPU); single run, one worker",
+  "stats": {
+   "n_seeds": 36,
+   "n_seed_rejected": 0,
+   "n_neighbor_fits": 24534,
+   "n_neighbor_accepted_first": 19046,
+   "n_revisit_capped": 0,
+   "n_restart_candidates": 0,
+   "n_unresolved": 0,
+   "n_evals_seed": 312435,
+   "wall_seed_s": 47.54662013053894,
+   "n_reseeds": 339,
+   "n_reseed_accepted": 339,
+   "n_reseed_rejected": 0,
+   "n_reseed_final_voxels": 0,
+   "n_evals_reseed": 2784978,
+   "wall_reseed_s": 326.5137605667114,
+   "wall_reseed_total_s": 347.36261343955994,
+   "n_retry_attempted_neighbor": 0,
+   "n_retry_accepted_neighbor": 0,
+   "n_evals_neighbor": 960109,
+   "wall_neighbor_s": 105.0095841884613,
+   "n_retry_attempted_revisit": 0,
+   "n_retry_accepted_revisit": 0,
+   "n_evals_revisit": 425526,
+   "wall_revisit_s": 45.894692182540894,
+   "n_retry_attempted_restart": 0,
+   "n_retry_accepted_restart": 0,
+   "n_evals_restart": 0,
+   "wall_restart_s": 0.0,
+   "n_revisit_attempted": 8065,
+   "n_revisit_accepted": 5149,
+   "n_revisit_rejected": 2916,
+   "n_restart_attempted": 0,
+   "n_restart_accepted": 0,
+   "n_restart_rejected": 0,
+   "index_runs": 375,
+   "index_evals": 3097413,
+   "index_s": 188.62314358499967,
+   "index_path_wall_s": 374.06038069725037,
+   "index_used": 375,
+   "index_evals_used": 3097413,
+   "n_voxels": 24570,
+   "wall_total_s": 530.5132300853729,
+   "index_pairing_s": 16.181838792
+  },
+  "keys": [],
+  "evals_total": 4483048,
+  "index_pairing_s": 16.181838792,
+  "s9": {
+   "run": "S9 = S8 + F1/F2",
+   "sample": "big",
+   "settings": {
+    "f1": 0.9,
+    "f2": null
+   },
+   "tau": 0.95,
+   "seed_steps": 375,
+   "stopped_early": 361,
+   "counters": {
+    "f1_tests": 32599,
+    "f1_kept": 11477,
+    "f1_kept_by_phase": {
+     "neighbor": 9715,
+     "revisit": 1762
+    },
+    "f1_tests_by_phase": {
+     "neighbor": 24534,
+     "revisit": 8065
+    },
+    "f2_runs": 0,
+    "f2_evals": 0,
+    "f2_replaced": 0,
+    "f2_would_pass": 0
+   },
+   "wall_s": 533.9591820240021,
+   "cap_min": 90
+  },
+  "e1": {
+   "steps": 375,
+   "stopped_early": 361,
+   "evals": 3097413,
+   "costing": 7500,
+   "refine_evals": 3089913
+  },
+  "pass": {
+   "map": "D4",
+   "tag": "S9",
+   "n_boundary_voxels": 11221,
+   "n_boundary_all": 11221,
+   "n_tries": 18874,
+   "evals": 1151314,
+   "score_evals": 24570,
+   "wall_tries_s": 128.576336145401,
+   "wall_score_s": 1.088021993637085,
+   "timing_label": "contended: timing preflight refused (cpptools at 99% CPU, Python at 99% CPU, Python at 99% CPU, Python at 100% CPU, Python at 99% CPU); single run, one worker",
+   "limit": 0,
+   "rng": "default_rng(0), one generator for the whole pass"
+  }
+ }
+}

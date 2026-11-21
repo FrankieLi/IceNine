@@ -1,0 +1,21 @@
+{
+ "sample": "mid",
+ "steps": 1626,
+ "ball_steps": 1453,
+ "fallback_steps": 173,
+ "ball_equal_step23": 1453,
+ "fallback_fits_equal": 173,
+ "fallback_stop_equal": 173,
+ "fallback_taken_equal": 173,
+ "fallback_evals_equal": 173,
+ "fallback_ball_equal_step23": 173,
+ "index_stage": 2099764,
+ "index_stage_plan": 2099764,
+ "lost_ends": 0,
+ "checks_in_ball_pass": 0,
+ "pauses_in_ball_pass": 0,
+ "first_stage_mismatch": 0,
+ "first_stage_checked": 717,
+ "g0_passes": true,
+ "stats_note": "steps with no candidates are not replayed; wall: contended; not a timing result"
+}

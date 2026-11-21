@@ -1,0 +1,31 @@
+{
+ "sample": "big",
+ "n_pairs": 49103,
+ "n_evaluations": 49103,
+ "library_calls_per_pair": 2,
+ "by_kind": {
+  "after": 24570,
+  "before": 1056,
+  "try_start": 18665,
+  "seed_end": 465,
+  "seed_cand": 660,
+  "turn_01": 1229,
+  "turn_03": 1229,
+  "turn_05": 1229
+ },
+ "n_right": 37196,
+ "n_seed_steps": 329,
+ "seed_replay_evals_and_hits_match": 329,
+ "seed_replay_mismatch": 0,
+ "sum_back": {
+  "n_pairs_checked": 49103,
+  "max_abs_pixel_overlap_diff_vs_fused": 6.0,
+  "max_abs_pixel_on_detector_diff_vs_fused": 6.0,
+  "max_abs_hit_ratio_diff_vs_fused": 0.003910400122073665,
+  "n_pairs_pixel_counts_differ_from_fused": 1258,
+  "max_abs_pixel_diff_vs_stage_d_aggregate": 0.0
+ },
+ "wall_seed_replay_s": 355.13789105415344,
+ "wall_pairs_s": 85.42781186103821,
+ "timing_label": "contended (another agent on the machine); not a timing result"
+}

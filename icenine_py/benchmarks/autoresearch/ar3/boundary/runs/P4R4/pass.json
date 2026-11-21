@@ -1,0 +1,14 @@
+{
+  "map": "P4R4",
+  "tag": "",
+  "n_boundary_voxels": 23109,
+  "n_boundary_all": 23109,
+  "n_tries": 60180,
+  "evals": 3670980,
+  "score_evals": 24570,
+  "wall_tries_s": 3085.3238608837128,
+  "wall_score_s": 1.2579669952392578,
+  "timing_label": "contended: timing preflight refused (cpptools at 196% CPU, spotlightknowledged at 100% CPU); single run, one worker; 6 passes ran side by side",
+  "limit": 0,
+  "rng": "default_rng(0), one generator for the whole pass"
+}

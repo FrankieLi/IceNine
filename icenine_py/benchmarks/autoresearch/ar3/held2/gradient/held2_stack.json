@@ -1,0 +1,20 @@
+{
+ "render_command": "uv run python scripts/phase_d/render_full.py --tag held2 --workers 1 --variants clean --mic <absolute path of benchmarks/autoresearch/ar3/held2/gradient/sample/gradient_truth.mic>",
+ "render_record": "scripts/phase_d/results/render_held2_nodrop.json",
+ "mic": "benchmarks/autoresearch/ar3/held2/gradient/sample/gradient_truth.mic",
+ "mic_sha256": "72b2d5291a16179a20eb1cdb39517d886fde7098bc3fdee0ca7b0ee321a9c60a",
+ "stack": "Examples/Example2.ManyGrains/ScatteringData_PhaseD/stacks/held2_clean.npy",
+ "stack_build": "write_binary_stack(ScatteringData_PhaseD/held2/clean, '500Grains.sim', 'd', 5, 180, 2, 2048, 2048, stacks/held2_clean.npy)",
+ "stack_built_now": true,
+ "stack_shape": [
+  360,
+  2048,
+  2048
+ ],
+ "stack_nonzero": 10922267,
+ "render_lit_clean_total": 10922267,
+ "render_spots_total": 179275,
+ "render_wall_s": 303.27381682395935,
+ "render_timing_label": "contended (1 workers; machine quiet at start: False)",
+ "stack_matches_render": true
+}

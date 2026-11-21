@@ -1,0 +1,41 @@
+{
+ "sample": "big",
+ "set": "pick",
+ "fits_in_set": 17428,
+ "rejected_fits": 4211,
+ "clusters": 155,
+ "seed_evals_clusters": 4322081,
+ "settings": {
+  "0.05": {
+   "f2_evals": 256871,
+   "rejected_pass": 782,
+   "clusters_vanish": 43,
+   "seed_evals_vanish": 685761,
+   "fixed": 0,
+   "broken": 0,
+   "both_wrong": 0,
+   "err_median_new": 25.761960354829352
+  },
+  "0.1": {
+   "f2_evals": 256871,
+   "rejected_pass": 974,
+   "clusters_vanish": 52,
+   "seed_evals_vanish": 855487,
+   "fixed": 0,
+   "broken": 0,
+   "both_wrong": 0,
+   "err_median_new": 25.712064743041992
+  },
+  "0.2": {
+   "f2_evals": 256871,
+   "rejected_pass": 1233,
+   "clusters_vanish": 49,
+   "seed_evals_vanish": 913607,
+   "fixed": 0,
+   "broken": 0,
+   "both_wrong": 0,
+   "err_median_new": 25.712064743041992
+  }
+ },
+ "err_median_stored_end": 25.712064743041992
+}

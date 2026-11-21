@@ -1,0 +1,13 @@
+{
+ "threshold": 0.8,
+ "n": 200,
+ "voxels_seed": 0,
+ "big_pass": 200,
+ "big_hit_median": 1.0,
+ "big_hit_min": 0.9564777327935222,
+ "gradient_pass": 200,
+ "gradient_hit_median": 1.0,
+ "gradient_hit_min": 0.9605734767025089,
+ "gradient_pass_all_voxels": 24570,
+ "n_gradient_all": 24570
+}

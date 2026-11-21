@@ -1,0 +1,18 @@
+{
+ "sample": "mid",
+ "off_steps": 1626,
+ "off_fits_equal": 1626,
+ "off_evals_equal": 1626,
+ "off_stop_equal": 1626,
+ "off_ok": true,
+ "on_steps": 1626,
+ "on_refinements": 1801,
+ "on_first_stage_compared": 1598,
+ "on_first_stage_equal": 1598,
+ "on_first_stage_unequal": 0,
+ "on_not_compared": 203,
+ "on_checks": 0,
+ "on_ok": true,
+ "g0_passes": true,
+ "note": "on_not_compared: refinements the stored J5D run did not make (a step whose end moved, so another candidate was refined); their first stage has no stored counterpart"
+}

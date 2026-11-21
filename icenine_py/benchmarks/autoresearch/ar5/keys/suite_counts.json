@@ -1,0 +1,13 @@
+{
+ "command": "uv run pytest tests/ --junitxml=junit.xml",
+ "commit": "3479b2a",
+ "pytest_count_line": "1724 passed, 47 skipped, 1 deselected, 1467 warnings",
+ "junit": {
+  "tests": 1771,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 47
+ },
+ "test_bfs_ar5_keys_cases": 68,
+ "timing_label": "contended: another long job ran on the machine; no time is a result"
+}

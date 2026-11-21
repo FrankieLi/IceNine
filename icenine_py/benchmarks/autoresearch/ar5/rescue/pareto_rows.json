@@ -1,0 +1,242 @@
+[
+ {
+  "sample": "held",
+  "arm": "A",
+  "order": "interleaved",
+  "boundary_pass": false,
+  "evals_total": 41324259,
+  "evals_per_voxel": 1681.9,
+  "wrong": 104,
+  "n": 24570,
+  "interval_pct": [
+   0.35,
+   0.51
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/rescue/stats_held.json"
+ },
+ {
+  "sample": "held",
+  "arm": "A",
+  "order": "interleaved",
+  "boundary_pass": true,
+  "evals_total": 46516396,
+  "evals_per_voxel": 1893.22,
+  "wrong": 73,
+  "n": 24570,
+  "interval_pct": [
+   0.24,
+   0.37
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/rescue/stats_held.json"
+ },
+ {
+  "sample": "held",
+  "arm": "G",
+  "order": "interleaved + rescue G1",
+  "boundary_pass": false,
+  "evals_total": 25573009,
+  "evals_per_voxel": 1040.82,
+  "wrong": 101,
+  "n": 24570,
+  "interval_pct": [
+   0.34,
+   0.5
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/rescue/stats_held.json"
+ },
+ {
+  "sample": "held",
+  "arm": "G",
+  "order": "interleaved + rescue G1",
+  "boundary_pass": true,
+  "evals_total": 30768867,
+  "evals_per_voxel": 1252.29,
+  "wrong": 69,
+  "n": 24570,
+  "interval_pct": [
+   0.22,
+   0.36
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/rescue/stats_held.json"
+ },
+ {
+  "sample": "mid",
+  "arm": "A",
+  "order": "interleaved",
+  "boundary_pass": false,
+  "evals_total": 12591873,
+  "evals_per_voxel": 512.49,
+  "wrong": 75,
+  "n": 24570,
+  "interval_pct": [
+   0.24,
+   0.38
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/rescue/stats_mid.json"
+ },
+ {
+  "sample": "mid",
+  "arm": "A",
+  "order": "interleaved",
+  "boundary_pass": true,
+  "evals_total": 15645472,
+  "evals_per_voxel": 636.77,
+  "wrong": 35,
+  "n": 24570,
+  "interval_pct": [
+   0.1,
+   0.2
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/rescue/stats_mid.json"
+ },
+ {
+  "sample": "mid",
+  "arm": "G",
+  "order": "interleaved + rescue G1",
+  "boundary_pass": false,
+  "evals_total": 9950736,
+  "evals_per_voxel": 405.0,
+  "wrong": 75,
+  "n": 24570,
+  "interval_pct": [
+   0.24,
+   0.38
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/rescue/stats_mid.json"
+ },
+ {
+  "sample": "mid",
+  "arm": "G",
+  "order": "interleaved + rescue G1",
+  "boundary_pass": true,
+  "evals_total": 13004457,
+  "evals_per_voxel": 529.28,
+  "wrong": 35,
+  "n": 24570,
+  "interval_pct": [
+   0.1,
+   0.2
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/rescue/stats_mid.json"
+ },
+ {
+  "sample": "grad",
+  "arm": "A",
+  "order": "interleaved",
+  "boundary_pass": false,
+  "evals_total": 8510501,
+  "evals_per_voxel": 346.38,
+  "wrong": 206,
+  "n": 24570,
+  "interval_pct": [
+   0.73,
+   0.96
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/rescue/stats_grad.json"
+ },
+ {
+  "sample": "grad",
+  "arm": "A",
+  "order": "interleaved",
+  "boundary_pass": true,
+  "evals_total": 12189777,
+  "evals_per_voxel": 496.12,
+  "wrong": 56,
+  "n": 24570,
+  "interval_pct": [
+   0.18,
+   0.3
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/rescue/stats_grad.json"
+ },
+ {
+  "sample": "grad",
+  "arm": "G",
+  "order": "interleaved + rescue G1",
+  "boundary_pass": false,
+  "evals_total": 6517172,
+  "evals_per_voxel": 265.25,
+  "wrong": 206,
+  "n": 24570,
+  "interval_pct": [
+   0.73,
+   0.96
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/rescue/stats_grad.json"
+ },
+ {
+  "sample": "grad",
+  "arm": "G",
+  "order": "interleaved + rescue G1",
+  "boundary_pass": true,
+  "evals_total": 10196692,
+  "evals_per_voxel": 415.01,
+  "wrong": 56,
+  "n": 24570,
+  "interval_pct": [
+   0.18,
+   0.3
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/rescue/stats_grad.json"
+ },
+ {
+  "sample": "big",
+  "arm": "A",
+  "order": "interleaved",
+  "boundary_pass": false,
+  "evals_total": 2672415,
+  "evals_per_voxel": 108.77,
+  "wrong": 74,
+  "n": 24570,
+  "interval_pct": [
+   0.24,
+   0.38
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/rescue/stats_big.json"
+ },
+ {
+  "sample": "big",
+  "arm": "A",
+  "order": "interleaved",
+  "boundary_pass": true,
+  "evals_total": 3807747,
+  "evals_per_voxel": 154.98,
+  "wrong": 21,
+  "n": 24570,
+  "interval_pct": [
+   0.06,
+   0.13
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/rescue/stats_big.json"
+ },
+ {
+  "sample": "big",
+  "arm": "G",
+  "order": "interleaved + rescue G1",
+  "boundary_pass": false,
+  "evals_total": 2672415,
+  "evals_per_voxel": 108.77,
+  "wrong": 74,
+  "n": 24570,
+  "interval_pct": [
+   0.24,
+   0.38
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/rescue/stats_big.json"
+ },
+ {
+  "sample": "big",
+  "arm": "G",
+  "order": "interleaved + rescue G1",
+  "boundary_pass": true,
+  "evals_total": 3807747,
+  "evals_per_voxel": 154.98,
+  "wrong": 21,
+  "n": 24570,
+  "interval_pct": [
+   0.06,
+   0.13
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/rescue/stats_big.json"
+ }
+]

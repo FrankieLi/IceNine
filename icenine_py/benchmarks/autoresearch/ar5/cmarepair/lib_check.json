@@ -1,0 +1,80 @@
+{
+ "name": "LibJ5C",
+ "sample": "mid",
+ "keys": [
+  "BFSNeighborCMAFirst 1",
+  "CMASigma0 0.05",
+  "CMANeighborMaxEvals 60",
+  "BoundaryPass 1",
+  "SeedIndexCandidates 20 5",
+  "SeedIndexStopHitRatio 0.95",
+  "BFSNeighborCMANoFallback 1",
+  "SeedIndexCMAFirst 200",
+  "SeedRescueCMA 0.25 1000",
+  "SeedIndexMCStallHit 500",
+  "BoundaryPassRepair 1"
+ ],
+ "n_processed": 24570,
+ "wall_total_s": 2019.9630208015442,
+ "setup_s": 0.4321568012237549,
+ "timing_label": "contended: timing preflight refused (Python at 100% CPU); single run, one worker",
+ "wall_label": "contended (other jobs on the machine); not a timing result",
+ "library_stats": {
+  "n_evals_boundary_pass": 3053111,
+  "n_evals_boundary_score": 17875,
+  "repair_flagged": 127,
+  "repair_fits": 592,
+  "repair_changed": 119,
+  "n_evals_boundary_repair": 71632
+ },
+ "n_boundary_voxels": 17875,
+ "n_pass_tries": 50051,
+ "n_repair_flagged": 127,
+ "n_repair_fits": 592,
+ "n_repair_evals": 71632,
+ "context_script_J5C_mid": {
+  "flagged": 142,
+  "fits": 635,
+  "evals": 76835
+ },
+ "check": {
+  "state": {
+   "max_abs_hit_diff": 0.0,
+   "max_abs_cost_diff": 0.0,
+   "n_hit_differs_over_1e9": 0,
+   "n_cost_differs_over_1e9": 0
+  },
+  "script_vs_library": {
+   "flagged": true,
+   "n_flagged": [
+    127,
+    127
+   ],
+   "fit_order": true,
+   "n_fits": [
+    592,
+    592
+   ],
+   "fit_evals": true,
+   "n_evals": [
+    71632,
+    71632
+   ],
+   "changed": true,
+   "n_changed": [
+    119,
+    119
+   ],
+   "final_map_bytes_equal": true,
+   "final_map_max_abs_diff": 0.0,
+   "fit_ends_bytes_equal": true,
+   "all_equal": true
+  },
+  "accuracy_library_run": {
+   "wrong_after_pass": 39,
+   "wrong_after_repair": 21,
+   "fixed": 18,
+   "broken": 0
+  }
+ }
+}

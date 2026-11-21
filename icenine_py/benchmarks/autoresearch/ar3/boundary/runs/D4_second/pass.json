@@ -1,0 +1,14 @@
+{
+  "map": "D4",
+  "tag": "second",
+  "n_boundary_voxels": 23192,
+  "n_boundary_all": 23192,
+  "n_tries": 60442,
+  "evals": 3686962,
+  "score_evals": 24570,
+  "wall_tries_s": 3022.86115193367,
+  "wall_score_s": 1.2220559120178223,
+  "timing_label": "contended: timing preflight refused (cpptools at 99% CPU, Python at 100% CPU, Python at 100% CPU); single run, one worker; 5 passes ran side by side",
+  "limit": 0,
+  "rng": "default_rng(0), one generator for the whole pass"
+}

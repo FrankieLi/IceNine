@@ -1,0 +1,29 @@
+{
+ "pick": "M",
+ "pick_commit": "e5f422fc327395bf8ffd329506655e170bad5e57",
+ "verdict_of_pick": null,
+ "arms": {
+  "C60": {
+   "a": false,
+   "b": false,
+   "c": true,
+   "evals_fall": 0.9627609817718344,
+   "passes": false
+  },
+  "C200": {
+   "a": false,
+   "b": false,
+   "c": true,
+   "evals_fall": 0.93626679720891,
+   "passes": false
+  },
+  "C0": {
+   "a": false,
+   "b": false,
+   "c": true,
+   "evals_fall": 0.9973166440027743,
+   "passes": false
+  }
+ },
+ "n_steps": 1611
+}

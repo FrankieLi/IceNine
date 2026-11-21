@@ -87,6 +87,47 @@ class SearchCandidate:
 LOCAL_OPTIMIZERS: Tuple[str, ...] = ("mc", "cma")
 
 
+def check_seed_rescue(sigma_deg: float, evals: int) -> None:
+    """SeedRescueCMA sigma evals: both 0 (off), or a finite sigma > 0 degrees and evals >= 2
+    (an integer). Raises ValueError otherwise."""
+    if sigma_deg == 0 and evals == 0:
+        return
+    if isinstance(evals, bool) or int(evals) != evals:
+        raise ValueError(f"SeedRescueCMA evals must be an integer, got {evals!r}")
+    if not (math.isfinite(sigma_deg) and sigma_deg > 0) or evals < 2:
+        raise ValueError(
+            "SeedRescueCMA needs both values 0 (off), or sigma > 0 degrees and evals >= 2, "
+            f"got {sigma_deg} {evals}"
+        )
+
+
+def check_seed_index_mc_stall_hit(k: Any) -> None:
+    """SeedIndexMCStallHit k: an integer >= 0 (0 = off). Raises ValueError otherwise."""
+    if isinstance(k, bool) or not isinstance(k, (int, np.integer)) or int(k) < 0:
+        raise ValueError(f"SeedIndexMCStallHit must be an integer >= 0 (0 = off), got {k!r}")
+
+
+def check_seed_index_mc_defer(v: Any) -> None:
+    """SeedIndexMCDefer: the integer 0 (off) or 1 (on). Raises ValueError otherwise."""
+    if isinstance(v, bool) or not isinstance(v, (int, np.integer)) or int(v) not in (0, 1):
+        raise ValueError(f"SeedIndexMCDefer must be 0 (off) or 1 (on), got {v!r}")
+
+
+RAY_INDEX_MAX_PAIRS_DEFAULT = 600_000  # ray_indexing.IndexParams.max_pairs: today's setting
+
+
+def check_ray_index_max_pairs(n: Any) -> None:
+    """RayIndexMaxPairs N: an integer >= 1 (default 600,000). Raises ValueError otherwise."""
+    if isinstance(n, bool) or not isinstance(n, (int, np.integer)) or int(n) < 1:
+        raise ValueError(f"RayIndexMaxPairs must be an integer >= 1, got {n!r}")
+
+
+def check_ray_index_fallback_full(v: Any) -> None:
+    """RayIndexFallbackFull: the integer 0 (off) or 1 (on). Raises ValueError otherwise."""
+    if isinstance(v, bool) or not isinstance(v, (int, np.integer)) or int(v) not in (0, 1):
+        raise ValueError(f"RayIndexFallbackFull must be 0 (off) or 1 (on), got {v!r}")
+
+
 @dataclass
 class SearchParameters:
     """
@@ -150,6 +191,112 @@ class SearchParameters:
     #   goes through the usual seed test; if there is no candidate or the test fails, the grid
     #   search runs as before.
     seed_by_indexing: bool = False
+    # AR3 step 10 (D-20261111-N8): opt-in keys of the indexed seed step and the boundary pass, all
+    #   off at their defaults (the library then does what it did before). Documented in
+    #   docs/autoresearch/findings_ar3_keys.md; no setting is recommended.
+    # bfs_neighbor_cma_first (BFSNeighborCMAFirst): each BFS neighbour and revisit fit runs a CMA
+    #   fit first (CMASigma0, CMANeighborMaxEvals); if its end cost is not below its start cost the
+    #   stock MC fit runs from the same start and the lower cost is kept (the CMA end on a tie).
+    #   Needs local_optimizer "mc". The seed path and the grid search are unchanged.
+    # seed_index_n_cost, seed_index_n_refine (SeedIndexCandidates n_cost n_refine): the indexed
+    #   seed step costs n_cost candidates and refines the n_refine cheapest (needs
+    #   seed_by_indexing).
+    # seed_index_stop_hit (SeedIndexStopHitRatio t, 0 = off): the seed step stops at the first
+    #   refinement whose end has hit ratio >= t (needs seed_by_indexing).
+    # boundary_pass (BoundaryPass): one boundary pass over the whole map before the .mic is written
+    #   (icenine/boundary_pass.py; its settings are constants of that module).
+    bfs_neighbor_cma_first: bool = False
+    seed_index_n_cost: int = 5
+    seed_index_n_refine: int = 2
+    seed_index_stop_hit: float = 0.0
+    boundary_pass: bool = False
+    # AR5 step 5 (D-20261111-N21): two opt-in keys, off at their defaults, for run S11 of
+    #   docs/autoresearch/findings_ar5_keys.md; no setting is recommended.
+    # seed_index_cma_first (SeedIndexCMAFirst n, 0 = off, else n >= 2): the mixed seed refinement.
+    #   Each indexed seed candidate gets a CMA fit first (first step CMASigma0, n evaluations);
+    #   its end is kept when its hit ratio reaches seed_index_stop_hit; if not, the stock MC
+    #   refinement runs from the same candidate and the end with the strictly lower cost is kept.
+    #   Needs seed_by_indexing and seed_index_stop_hit > 0.
+    # bfs_neighbor_cma_no_fallback (BFSNeighborCMANoFallback): the CMA end of a neighbour fit or
+    #   revisit is returned as it is; the MC fit does not run after it. Needs
+    #   bfs_neighbor_cma_first.
+    seed_index_cma_first: int = 0
+    bfs_neighbor_cma_no_fallback: bool = False
+    # boundary_pass_skip_hit (BoundaryPassSkipHitRatio h, AR5 step 7; 0 = off, in [0, 1]): in the
+    #   boundary pass a voxel whose own hit ratio (that of its end before the pass) is at least h
+    #   gets no try. Off by default and not recommended yet. Needs boundary_pass.
+    boundary_pass_skip_hit: float = 0.0
+    # boundary_pass_repair (BoundaryPassRepair, AR5 step 20; off by default): after the boundary
+    #   pass, each contested voxel (hit ratio under 0.95 of its neighbours' median and margin under
+    #   0.15) gets a 120-evaluation local CMA optimization from its own end and from each candidate
+    #   of the map after the pass, and keeps the best end (icenine/boundary_repair.py; its settings
+    #   are constants of that module). Needs boundary_pass.
+    boundary_pass_repair: bool = False
+    # boundary_pass_screen (BoundaryPassScreen, AR5 step 21; off by default): every boundary-pass
+    #   try has a budget of one evaluation (a screen try: the candidate's start is scored and is the
+    #   try's end; 2 evaluations with the final one) and the repair takes the wide flag: the
+    #   contested voxels plus the voxels whose hit ratio over the median hit ratio of their
+    #   neighbours is under 0.95 and that have a pass candidate more than 1 degree from the kept
+    #   end. Needs boundary_pass and boundary_pass_repair; refuses boundary_pass_skip_hit.
+    boundary_pass_screen: bool = False
+    # seed_rescue_sigma_deg, seed_rescue_evals (SeedRescueCMA sigma evals, AR5 step 9; both 0 =
+    #   off, else sigma > 0 degrees and evals >= 2): after an indexed seed step fails the seed test,
+    #   the kept end of each refined candidate is tried in order of cost (at most 5) with one CMA
+    #   local optimization (first step sigma, evals evaluations, a fresh default_rng(0) each); the
+    #   first end with hit ratio >= seed_index_stop_hit is taken; if none, the grid search runs as
+    #   before. Needs seed_by_indexing and seed_index_stop_hit > 0. Off by default; no setting is
+    #   recommended (MIGRATION_HISTORY.md, "Autoresearch AR5 step 9").
+    seed_rescue_sigma_deg: float = 0.0
+    seed_rescue_evals: int = 0
+    # seed_index_mc_stall_hit (SeedIndexMCStallHit k, AR5 step 12; 0 = off, else an integer
+    #   k >= 1): in the indexed seed step's MC refinement of a candidate (MC stage, variance stage
+    #   and final evaluation, one counter), after k strict-cost evaluations with no strict gain of
+    #   the best cost the hit ratio of the kept best (the first lowest-cost orientation) is
+    #   evaluated once (counted as one evaluation); at seed_index_stop_hit or more the refinement
+    #   ends there with that orientation and cost, else it goes on and checks again k evaluations
+    #   after the next strict gain. Rule PH(k) of scripts/autoresearch/ar5/stallhit_rules.py.
+    #   Needs seed_by_indexing and seed_index_stop_hit > 0. Off by default and not recommended as
+    #   a default (MIGRATION_HISTORY.md, "Autoresearch AR5 step 12"). k = 500 (rule PH(500)) is
+    #   tested: tests/test_ar5_high500_key.py, MIGRATION_HISTORY.md "Autoresearch AR5 step 16".
+    seed_index_mc_stall_hit: int = 0
+    # seed_index_mc_defer (SeedIndexMCDefer 0|1, AR5 step 22; 0 = off): needs
+    #   seed_index_mc_stall_hit >= 1. A seed-step MC refinement whose stall check goes on (the kept
+    #   best's hit ratio under seed_index_stop_hit) is PAUSED while the step has an untried
+    #   candidate (never the last one): its state and generator are kept, the next candidate is
+    #   tried, and the step stops at the first end at seed_index_stop_hit or more. If no later
+    #   candidate reaches it, the paused refinements are resumed in candidate order, exactly where
+    #   they stopped (no re-run), until one reaches it; else the lowest-cost end is taken, as
+    #   before. A paused refinement costs the evaluations made before its check plus the check;
+    #   a resumed one the same total as the uninterrupted refinement. Rule DEF of
+    #   scripts/autoresearch/ar5/defer_rules.py. Off by default (MIGRATION_HISTORY.md,
+    #   "Autoresearch AR5 step 22").
+    seed_index_mc_defer: int = 0
+    # ray_index_max_pairs (RayIndexMaxPairs N, AR5 step 28; default 600,000 = the indexer's
+    #   setting, nothing changes): the number of ray pairs the indexer keeps in a seed step (a
+    #   random subsample above it, ``default_rng(0)``). A smaller N makes the indexing cheaper
+    #   (50,000: about 4 times fewer pairs on the mid and held samples) and gives the fits other
+    #   starts.
+    #   Needs seed_by_indexing when it differs from the default.
+    # ray_index_fallback_full (RayIndexFallbackFull 0|1, AR5 step 28; 0 = off): rule PXF of
+    #   scripts/autoresearch/ar5/pxf_rules.py. A seed step that fails the seed test (no
+    #   candidate, or a hit ratio under min_acceleration_threshold) after an indexing that kept
+    #   a subsample (n_pairs >= ray_index_max_pairs) is run again, the whole step, with 600,000
+    #   pairs; that second step is the result (the rescue starts from its kept ends) and both
+    #   steps' evaluations count as the seed's. Needs seed_by_indexing and ray_index_max_pairs
+    #   below 600,000 (else the second step would be the same step). Off by default
+    #   (MIGRATION_HISTORY.md, "Autoresearch AR5 step 28").
+    ray_index_max_pairs: int = RAY_INDEX_MAX_PAIRS_DEFAULT
+    ray_index_fallback_full: int = 0
+    # paint_grains: opt-in (config key PaintGrains, default off; AR3 step 2). With the key on,
+    #   ``BFSReconstruction.reconstruct_sample`` runs ``grain_paint.paint_grains`` in place of the
+    #   BFS (seeds indexed, each grain flooded by single strict scores, each voxel painted with the
+    #   passing grain of lowest strict cost). Needs ``seed_by_indexing``; refused with
+    #   ``outward_search``. The BFS's revisits, restart pass and reseeding do not run.
+    #   Painting is a starting approximation: every painted voxel takes its grain entry's
+    #   orientation unfitted. That is exact only when a grain holds one orientation (as in the
+    #   simulated test sample). Grains with orientation gradients need a per-voxel refinement
+    #   after painting (not built).
+    paint_grains: bool = False
     # cpp_overlap_rule: opt-in (config key CppOverlapRule). The literal C++ CountQualifiedPeaks
     # overlap rule and the centroid projection of the pixel-radius screen (see VoxelCostFunction).
     # cpp_center_screen (not a config key, default True, applies to every rule): False is the
@@ -229,6 +376,30 @@ class SearchParameters:
             raise ValueError(
                 f"search_device must be 'cpu', 'mps' or 'cuda', got {self.search_device!r}"
             )
+        from .ray_indexing import SEED_TOP_K
+
+        if not 1 <= self.seed_index_n_refine <= self.seed_index_n_cost <= SEED_TOP_K:
+            raise ValueError(
+                "SeedIndexCandidates needs 1 <= n_refine <= n_cost <= "
+                f"{SEED_TOP_K}, got {self.seed_index_n_cost} {self.seed_index_n_refine}"
+            )
+        if not 0.0 <= self.seed_index_stop_hit <= 1.0:
+            raise ValueError(
+                f"seed_index_stop_hit must be in [0, 1], got {self.seed_index_stop_hit}"
+            )
+        if not 0.0 <= self.boundary_pass_skip_hit <= 1.0:
+            raise ValueError(
+                f"boundary_pass_skip_hit must be in [0, 1], got {self.boundary_pass_skip_hit}"
+            )
+        if self.seed_index_cma_first != 0 and self.seed_index_cma_first < 2:
+            raise ValueError(
+                f"seed_index_cma_first must be 0 (off) or >= 2, got {self.seed_index_cma_first}"
+            )
+        check_seed_rescue(self.seed_rescue_sigma_deg, self.seed_rescue_evals)
+        check_seed_index_mc_stall_hit(self.seed_index_mc_stall_hit)
+        check_seed_index_mc_defer(self.seed_index_mc_defer)
+        check_ray_index_max_pairs(self.ray_index_max_pairs)
+        check_ray_index_fallback_full(self.ray_index_fallback_full)
         from .candidate_dedup import DedupSpec
 
         DedupSpec.parse(self.candidate_dedup)  # raises ValueError on a malformed spec
@@ -264,6 +435,27 @@ class SearchParameters:
             bfs_reseed=bool(getattr(config, "bfs_reseed", False)),
             outward_search=bool(getattr(config, "outward_search", False)),
             seed_by_indexing=bool(getattr(config, "seed_by_indexing", False)),
+            bfs_neighbor_cma_first=bool(getattr(config, "bfs_neighbor_cma_first", False)),
+            seed_index_n_cost=int(getattr(config, "seed_index_n_cost", 5)),
+            seed_index_n_refine=int(getattr(config, "seed_index_n_refine", 2)),
+            seed_index_stop_hit=float(getattr(config, "seed_index_stop_hit", 0.0)),
+            boundary_pass=bool(getattr(config, "boundary_pass", False)),
+            seed_index_cma_first=int(getattr(config, "seed_index_cma_first", 0)),
+            bfs_neighbor_cma_no_fallback=bool(
+                getattr(config, "bfs_neighbor_cma_no_fallback", False)
+            ),
+            boundary_pass_skip_hit=float(getattr(config, "boundary_pass_skip_hit", 0.0)),
+            boundary_pass_repair=bool(getattr(config, "boundary_pass_repair", False)),
+            boundary_pass_screen=bool(getattr(config, "boundary_pass_screen", False)),
+            seed_rescue_sigma_deg=float(getattr(config, "seed_rescue_sigma_deg", 0.0)),
+            seed_rescue_evals=int(getattr(config, "seed_rescue_evals", 0)),
+            seed_index_mc_stall_hit=int(getattr(config, "seed_index_mc_stall_hit", 0)),
+            seed_index_mc_defer=int(getattr(config, "seed_index_mc_defer", 0)),
+            ray_index_max_pairs=int(
+                getattr(config, "ray_index_max_pairs", RAY_INDEX_MAX_PAIRS_DEFAULT)
+            ),
+            ray_index_fallback_full=int(getattr(config, "ray_index_fallback_full", 0)),
+            paint_grains=bool(getattr(config, "paint_grains", False)),
             cpp_overlap_rule=bool(getattr(config, "cpp_overlap_rule", False)),
             cpp_edge_rules=bool(getattr(config, "cpp_edge_rules", False)),
             cpp_omega_interp=bool(getattr(config, "cpp_omega_interp", False)),
@@ -294,6 +486,7 @@ class CMAResult(SearchCandidate):
 
     n_evals: int = 0  # cost evaluations used, the start included
     stop_reason: str = ""  # "max_evals", "converged_cost" or the cma package's stop key(s)
+    start_cost: Optional[float] = None  # cost of the start's own evaluation (the first one)
 
 
 # ---------------------------------------------------------------------------
@@ -1071,6 +1264,7 @@ class CMAOptimizer:
         best_info = self.cost_fn.evaluate(R0, self.voxel_vertices, self.phase_index)
         n += 1
         best_cost = float(best_info.cost)
+        start_cost = best_cost
         best_R = R0.copy()
         stop_reason = "max_evals"
 
@@ -1078,9 +1272,23 @@ class CMAOptimizer:
             return self.max_convergence_cost > 0 and best_cost < self.max_convergence_cost
 
         if converged():
-            return CMAResult(best_R, best_cost, best_info, n_evals=n, stop_reason="converged_cost")
+            return CMAResult(
+                best_R,
+                best_cost,
+                best_info,
+                n_evals=n,
+                stop_reason="converged_cost",
+                start_cost=start_cost,
+            )
         if n >= self.max_evals:
-            return CMAResult(best_R, best_cost, best_info, n_evals=n, stop_reason="max_evals")
+            return CMAResult(
+                best_R,
+                best_cost,
+                best_info,
+                n_evals=n,
+                stop_reason="max_evals",
+                start_cost=start_cost,
+            )
 
         opts: Dict[str, Any] = dict(
             # cma would reseed the global legacy numpy RNG from an integer seed; NaN skips that and
@@ -1122,7 +1330,9 @@ class CMAOptimizer:
                     done = True
         if stop_reason == "max_evals" and n < self.max_evals:
             stop_reason = "+".join(sorted(es.stop().keys())) or "cma_stop"
-        return CMAResult(best_R, best_cost, best_info, n_evals=n, stop_reason=stop_reason)
+        return CMAResult(
+            best_R, best_cost, best_info, n_evals=n, stop_reason=stop_reason, start_cost=start_cost
+        )
 
 
 # ---------------------------------------------------------------------------

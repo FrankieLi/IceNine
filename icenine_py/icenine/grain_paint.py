@@ -14,6 +14,10 @@ Terms (see ``docs/autoresearch/PLAN.md``, AR3):
   does not depend on them.
 * A voxel is **contested** when two or more grains pass on it, **unpainted** when none does.
 
+Painting is a starting approximation: every painted voxel takes its grain entry's orientation
+unfitted. That is exact only when a grain holds one orientation (as in the simulated test sample).
+Grains with orientation gradients need a per-voxel refinement after painting (not built).
+
 Two design choices of the loop (neither is in the plan's text; both matter once fits are accepted):
 
 * A voxel settled "by a fit" keeps its fit, even if a grain seeded later passes there with a lower
@@ -28,8 +32,9 @@ when its result is accepted and to ``index_rejected`` when not; the grid search'
 ``seed_grid`` when accepted and to ``grid_rejected`` when not.
 
 ``paint_grains`` is independent of the physics: it works through a ``PaintHooks`` object (a fake
-cost in the unit tests, ``ReconstructorHooks`` for a real run). It is a study module: nothing in
-the reconstructor uses it, and no config key switches it on.
+cost in the unit tests, ``ReconstructorHooks`` for a real run). The opt-in config key
+``PaintGrains`` (step 2) runs it through ``BFSReconstruction.reconstruct_sample``; with the key off
+nothing calls this module.
 """
 
 import time
@@ -288,6 +293,9 @@ class ReconstructorHooks:
         self._vertices = _get_voxel_vertices
         self._nb: Dict[int, List[int]] = {}
         self._vcache: Dict[int, Any] = {}
+        # study record (AR3 step 2): one row per seed path run, from ``SeedResult``
+        self.seed_records: List[Dict[str, Any]] = []
+        self.fit_records: List[Tuple[int, int]] = []  # (voxel, evaluations) per local fit
 
     def vertices(self, v: int) -> Any:
         if v not in self._vcache:
@@ -316,16 +324,33 @@ class ReconstructorHooks:
             rng=self.rng,
         )
         hit, _ = self.bfs._ratios(r.overlap_info)
-        return (
-            np.asarray(r.orientation, np.float64),
-            float(r.cost),
-            float(hit),
-            int(self.rec.last_local_optimization_evals),
-        )
+        n = int(self.rec.last_local_optimization_evals)
+        self.fit_records.append((int(v), n))
+        return np.asarray(r.orientation, np.float64), float(r.cost), float(hit), n
 
     def index_seed(self, v: int) -> Tuple[Optional[np.ndarray], float, float, int]:
         vox = self.mic.voxels[v]
         s = self.rec.index_seed(self.vertices(v), vox.phase)
+        self.seed_records.append(
+            dict(
+                voxel=int(v),
+                n_cand=int(s.n_cand),
+                evals=int(s.evals),
+                taken=int(s.taken),
+                strict_costs=[float(c) for c in s.strict_costs],
+                refined=[int(j) for j in s.refined],
+                finisher_costs=[float(c) for c in s.finisher_costs],
+                finisher_evals=[int(e) for e in s.finisher_evals],
+                orientation=None if s.orientation is None else np.asarray(s.orientation).tolist(),
+                candidate_taken=(
+                    None
+                    if s.candidates is None or s.taken < 0
+                    else np.asarray(s.candidates[s.taken]).tolist()
+                ),
+                finisher_R=[np.asarray(r).tolist() for r in s.finisher_R],
+                cost=float(s.cost) if s.orientation is not None else None,
+            )
+        )
         if s.orientation is None:
             return None, 1.0, 0.0, int(s.evals)
         info = self.rec.evaluate_overlap(s.orientation, self.vertices(v), vox.phase)

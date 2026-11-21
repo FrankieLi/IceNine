@@ -1,0 +1,19 @@
+{
+ "sample": "mid",
+ "expected": {
+  "fallback_evals": 4007241,
+  "total": 15645472,
+  "fallbacks": 12
+ },
+ "got": {
+  "fallback_evals": 4007241,
+  "total": 15645472,
+  "fallbacks": 12,
+  "failed_steps_in_log": 12,
+  "no_candidate_steps": 0
+ },
+ "reproduces": true,
+ "cases": 12,
+ "grid_end_cheaper_than_every_kept_end": 12,
+ "strict_evaluations": 12
+}

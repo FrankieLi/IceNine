@@ -1,0 +1,242 @@
+[
+ {
+  "sample": "held",
+  "arm": "A",
+  "order": "interleaved",
+  "boundary_pass": false,
+  "evals_total": 41324259,
+  "evals_per_voxel": 1681.9,
+  "wrong": 104,
+  "n": 24570,
+  "interval_pct": [
+   0.35,
+   0.51
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/order/stats_held.json"
+ },
+ {
+  "sample": "held",
+  "arm": "A",
+  "order": "interleaved",
+  "boundary_pass": true,
+  "evals_total": 46516396,
+  "evals_per_voxel": 1893.22,
+  "wrong": 73,
+  "n": 24570,
+  "interval_pct": [
+   0.24,
+   0.37
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/order/stats_held.json"
+ },
+ {
+  "sample": "held",
+  "arm": "Y",
+  "order": "sweep",
+  "boundary_pass": false,
+  "evals_total": 37759383,
+  "evals_per_voxel": 1536.81,
+  "wrong": 104,
+  "n": 24570,
+  "interval_pct": [
+   0.35,
+   0.51
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/order/stats_held.json"
+ },
+ {
+  "sample": "held",
+  "arm": "Y",
+  "order": "sweep",
+  "boundary_pass": true,
+  "evals_total": 42949629,
+  "evals_per_voxel": 1748.05,
+  "wrong": 78,
+  "n": 24570,
+  "interval_pct": [
+   0.25,
+   0.4
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/order/stats_held.json"
+ },
+ {
+  "sample": "mid",
+  "arm": "A",
+  "order": "interleaved",
+  "boundary_pass": false,
+  "evals_total": 12591873,
+  "evals_per_voxel": 512.49,
+  "wrong": 75,
+  "n": 24570,
+  "interval_pct": [
+   0.24,
+   0.38
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/order/stats_mid.json"
+ },
+ {
+  "sample": "mid",
+  "arm": "A",
+  "order": "interleaved",
+  "boundary_pass": true,
+  "evals_total": 15645472,
+  "evals_per_voxel": 636.77,
+  "wrong": 35,
+  "n": 24570,
+  "interval_pct": [
+   0.1,
+   0.2
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/order/stats_mid.json"
+ },
+ {
+  "sample": "mid",
+  "arm": "Y",
+  "order": "sweep",
+  "boundary_pass": false,
+  "evals_total": 10496428,
+  "evals_per_voxel": 427.21,
+  "wrong": 76,
+  "n": 24570,
+  "interval_pct": [
+   0.25,
+   0.39
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/order/stats_mid.json"
+ },
+ {
+  "sample": "mid",
+  "arm": "Y",
+  "order": "sweep",
+  "boundary_pass": true,
+  "evals_total": 13547038,
+  "evals_per_voxel": 551.36,
+  "wrong": 38,
+  "n": 24570,
+  "interval_pct": [
+   0.11,
+   0.21
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/order/stats_mid.json"
+ },
+ {
+  "sample": "grad",
+  "arm": "A",
+  "order": "interleaved",
+  "boundary_pass": false,
+  "evals_total": 8510501,
+  "evals_per_voxel": 346.38,
+  "wrong": 206,
+  "n": 24570,
+  "interval_pct": [
+   0.73,
+   0.96
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/order/stats_grad.json"
+ },
+ {
+  "sample": "grad",
+  "arm": "A",
+  "order": "interleaved",
+  "boundary_pass": true,
+  "evals_total": 12189777,
+  "evals_per_voxel": 496.12,
+  "wrong": 56,
+  "n": 24570,
+  "interval_pct": [
+   0.18,
+   0.3
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/order/stats_grad.json"
+ },
+ {
+  "sample": "grad",
+  "arm": "Y",
+  "order": "sweep",
+  "boundary_pass": false,
+  "evals_total": 8256739,
+  "evals_per_voxel": 336.05,
+  "wrong": 207,
+  "n": 24570,
+  "interval_pct": [
+   0.74,
+   0.96
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/order/stats_grad.json"
+ },
+ {
+  "sample": "grad",
+  "arm": "Y",
+  "order": "sweep",
+  "boundary_pass": true,
+  "evals_total": 11936076,
+  "evals_per_voxel": 485.8,
+  "wrong": 56,
+  "n": 24570,
+  "interval_pct": [
+   0.18,
+   0.3
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/order/stats_grad.json"
+ },
+ {
+  "sample": "big",
+  "arm": "A",
+  "order": "interleaved",
+  "boundary_pass": false,
+  "evals_total": 2672415,
+  "evals_per_voxel": 108.77,
+  "wrong": 74,
+  "n": 24570,
+  "interval_pct": [
+   0.24,
+   0.38
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/order/stats_big.json"
+ },
+ {
+  "sample": "big",
+  "arm": "A",
+  "order": "interleaved",
+  "boundary_pass": true,
+  "evals_total": 3807747,
+  "evals_per_voxel": 154.98,
+  "wrong": 21,
+  "n": 24570,
+  "interval_pct": [
+   0.06,
+   0.13
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/order/stats_big.json"
+ },
+ {
+  "sample": "big",
+  "arm": "Y",
+  "order": "sweep",
+  "boundary_pass": false,
+  "evals_total": 2266089,
+  "evals_per_voxel": 92.23,
+  "wrong": 72,
+  "n": 24570,
+  "interval_pct": [
+   0.23,
+   0.37
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/order/stats_big.json"
+ },
+ {
+  "sample": "big",
+  "arm": "Y",
+  "order": "sweep",
+  "boundary_pass": true,
+  "evals_total": 3404227,
+  "evals_per_voxel": 138.55,
+  "wrong": 18,
+  "n": 24570,
+  "interval_pct": [
+   0.05,
+   0.12
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/order/stats_big.json"
+ }
+]

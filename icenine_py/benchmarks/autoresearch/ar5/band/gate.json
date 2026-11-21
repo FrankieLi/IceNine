@@ -1,0 +1,458 @@
+{
+ "prediction1": {
+  "held": {
+   "sample": "held",
+   "counts": {
+    "sample": "held",
+    "expected": {
+     "total": 24457773,
+     "mc": 11381609
+    },
+    "got": {
+     "total": 24457773,
+     "mc": 11381609,
+     "steps": 3700,
+     "traces": 5443,
+     "mc_fits": 5443
+    },
+    "ok": true
+   },
+   "steps_expected": 2228,
+   "steps_recorded": 2228,
+   "refinements": 5443,
+   "steps_not_equal": 0,
+   "worst_abs_diff": 0.0,
+   "ok": true
+  },
+  "mid": {
+   "sample": "mid",
+   "counts": {
+    "sample": "mid",
+    "expected": {
+     "total": 11295158,
+     "mc": 3795130
+    },
+    "got": {
+     "total": 11295158,
+     "mc": 3795130,
+     "steps": 1607,
+     "traces": 1606,
+     "mc_fits": 1606
+    },
+    "ok": true
+   },
+   "steps_expected": 772,
+   "steps_recorded": 772,
+   "refinements": 1606,
+   "steps_not_equal": 0,
+   "worst_abs_diff": 0.0,
+   "ok": true
+  },
+  "grad": {
+   "sample": "grad",
+   "counts": {
+    "sample": "grad",
+    "expected": {
+     "total": 9175867,
+     "mc": 1078188
+    },
+    "got": {
+     "total": 9175867,
+     "mc": 1078188,
+     "steps": 1281,
+     "traces": 992,
+     "mc_fits": 992
+    },
+    "ok": true
+   },
+   "steps_expected": 479,
+   "steps_recorded": 479,
+   "refinements": 992,
+   "steps_not_equal": 0,
+   "worst_abs_diff": 0.0,
+   "ok": true
+  },
+  "big": {
+   "sample": "big",
+   "counts": {
+    "sample": "big",
+    "expected": {
+     "total": 3635256,
+     "mc": 424450
+    },
+    "got": {
+     "total": 3635256,
+     "mc": 424450,
+     "steps": 317,
+     "traces": 153,
+     "mc_fits": 153
+    },
+    "ok": true
+   },
+   "steps_expected": 99,
+   "steps_recorded": 99,
+   "refinements": 153,
+   "steps_not_equal": 0,
+   "worst_abs_diff": 0.0,
+   "ok": true
+  }
+ },
+ "forms": {
+  "PB1000": {
+   "held": {
+    "sample": "held",
+    "form": "PB1000",
+    "j_total_with_pass": 24457773,
+    "steps": 2228,
+    "stops_high": 823,
+    "stops_low": 1309,
+    "stops_none": 3311,
+    "checks_went_on": 1340,
+    "steps_moved": 313,
+    "delta_arith": 1400540,
+    "delta_live": -478192,
+    "changed": 126,
+    "broken": 2,
+    "fixed": 0,
+    "wrong_after": 2,
+    "grid_j": 4,
+    "grid_moved_j": 1,
+    "grid_moved_new": 4,
+    "failed_moved_j": 9,
+    "failed_moved_new": 36,
+    "rescued_new": 27,
+    "g2_accepted_new": 5,
+    "lost_095": 68,
+    "changed_wrong_j_right": [
+     376,
+     479
+    ],
+    "net_saving": 922348,
+    "net_saving_share": 0.03771185544979913,
+    "grid_new": 7
+   },
+   "mid": {
+    "sample": "mid",
+    "form": "PB1000",
+    "j_total_with_pass": 11295158,
+    "steps": 772,
+    "stops_high": 361,
+    "stops_low": 451,
+    "stops_none": 794,
+    "checks_went_on": 466,
+    "steps_moved": 58,
+    "delta_arith": 722269,
+    "delta_live": 141062,
+    "changed": 22,
+    "broken": 1,
+    "fixed": 0,
+    "wrong_after": 1,
+    "grid_j": 2,
+    "grid_moved_j": 0,
+    "grid_moved_new": 0,
+    "failed_moved_j": 3,
+    "failed_moved_new": 8,
+    "rescued_new": 5,
+    "g2_accepted_new": 3,
+    "lost_095": 5,
+    "changed_wrong_j_right": [
+     499
+    ],
+    "net_saving": 863331,
+    "net_saving_share": 0.0764337249642723,
+    "grid_new": 2
+   },
+   "grad": {
+    "sample": "grad",
+    "form": "PB1000",
+    "j_total_with_pass": 9175867,
+    "steps": 479,
+    "stops_high": 101,
+    "stops_low": 128,
+    "stops_none": 763,
+    "checks_went_on": 118,
+    "steps_moved": 6,
+    "delta_arith": 104779,
+    "delta_live": -5491,
+    "changed": 4,
+    "broken": 1,
+    "fixed": 0,
+    "wrong_after": 1,
+    "grid_j": 2,
+    "grid_moved_j": 0,
+    "grid_moved_new": 0,
+    "failed_moved_j": 0,
+    "failed_moved_new": 2,
+    "rescued_new": 1,
+    "g2_accepted_new": 1,
+    "lost_095": 2,
+    "changed_wrong_j_right": [
+     708
+    ],
+    "net_saving": 99288,
+    "net_saving_share": 0.010820557882977162,
+    "grid_new": 2
+   },
+   "big": {
+    "sample": "big",
+    "form": "PB1000",
+    "j_total_with_pass": 3635256,
+    "steps": 99,
+    "stops_high": 39,
+    "stops_low": 59,
+    "stops_none": 55,
+    "checks_went_on": 46,
+    "steps_moved": 4,
+    "delta_arith": 110833,
+    "delta_live": 4754,
+    "changed": 2,
+    "broken": 0,
+    "fixed": 0,
+    "wrong_after": 0,
+    "grid_j": 0,
+    "grid_moved_j": 0,
+    "grid_moved_new": 0,
+    "failed_moved_j": 0,
+    "failed_moved_new": 0,
+    "rescued_new": 0,
+    "g2_accepted_new": 0,
+    "lost_095": 1,
+    "changed_wrong_j_right": [],
+    "net_saving": 115587,
+    "net_saving_share": 0.03179611009513498,
+    "grid_new": 0
+   }
+  },
+  "PB500": {
+   "held": {
+    "sample": "held",
+    "form": "PB500",
+    "j_total_with_pass": 24457773,
+    "steps": 2228,
+    "stops_high": 873,
+    "stops_low": 2809,
+    "stops_none": 1761,
+    "checks_went_on": 1510,
+    "steps_moved": 660,
+    "delta_arith": 2018390,
+    "delta_live": -650269,
+    "changed": 294,
+    "broken": 4,
+    "fixed": 0,
+    "wrong_after": 4,
+    "grid_j": 4,
+    "grid_moved_j": 2,
+    "grid_moved_new": 9,
+    "failed_moved_j": 30,
+    "failed_moved_new": 111,
+    "rescued_new": 73,
+    "g2_accepted_new": 29,
+    "lost_095": 161,
+    "changed_wrong_j_right": [
+     376,
+     479,
+     2794,
+     3458
+    ],
+    "net_saving": 1368121,
+    "net_saving_share": 0.05593808561392732,
+    "grid_new": 11
+   },
+   "mid": {
+    "sample": "mid",
+    "form": "PB500",
+    "j_total_with_pass": 11295158,
+    "steps": 772,
+    "stops_high": 377,
+    "stops_low": 729,
+    "stops_none": 500,
+    "checks_went_on": 532,
+    "steps_moved": 133,
+    "delta_arith": 1009176,
+    "delta_live": 468830,
+    "changed": 53,
+    "broken": 2,
+    "fixed": 0,
+    "wrong_after": 2,
+    "grid_j": 2,
+    "grid_moved_j": 1,
+    "grid_moved_new": 1,
+    "failed_moved_j": 5,
+    "failed_moved_new": 13,
+    "rescued_new": 8,
+    "g2_accepted_new": 4,
+    "lost_095": 24,
+    "changed_wrong_j_right": [
+     499,
+     1143
+    ],
+    "net_saving": 1478006,
+    "net_saving_share": 0.13085306110813147,
+    "grid_new": 2
+   },
+   "grad": {
+    "sample": "grad",
+    "form": "PB500",
+    "j_total_with_pass": 9175867,
+    "steps": 479,
+    "stops_high": 126,
+    "stops_low": 487,
+    "stops_none": 379,
+    "checks_went_on": 203,
+    "steps_moved": 16,
+    "delta_arith": 288136,
+    "delta_live": 3682,
+    "changed": 9,
+    "broken": 1,
+    "fixed": 0,
+    "wrong_after": 1,
+    "grid_j": 2,
+    "grid_moved_j": 0,
+    "grid_moved_new": 0,
+    "failed_moved_j": 0,
+    "failed_moved_new": 6,
+    "rescued_new": 5,
+    "g2_accepted_new": 1,
+    "lost_095": 4,
+    "changed_wrong_j_right": [
+     708
+    ],
+    "net_saving": 291818,
+    "net_saving_share": 0.031802771334850426,
+    "grid_new": 2
+   },
+   "big": {
+    "sample": "big",
+    "form": "PB500",
+    "j_total_with_pass": 3635256,
+    "steps": 99,
+    "stops_high": 41,
+    "stops_low": 75,
+    "stops_none": 37,
+    "checks_went_on": 53,
+    "steps_moved": 7,
+    "delta_arith": 157720,
+    "delta_live": 16099,
+    "changed": 3,
+    "broken": 0,
+    "fixed": 0,
+    "wrong_after": 0,
+    "grid_j": 0,
+    "grid_moved_j": 0,
+    "grid_moved_new": 0,
+    "failed_moved_j": 0,
+    "failed_moved_new": 0,
+    "rescued_new": 0,
+    "g2_accepted_new": 0,
+    "lost_095": 2,
+    "changed_wrong_j_right": [],
+    "net_saving": 173819,
+    "net_saving_share": 0.04781478938484662,
+    "grid_new": 0
+   }
+  }
+ },
+ "verdict": {
+  "PB1000": {
+   "g1": false,
+   "g2": false,
+   "g3": false,
+   "g4": false,
+   "passes": false,
+   "summed_saving_mid_held": 1785679
+  },
+  "PB500": {
+   "g1": false,
+   "g2": false,
+   "g3": false,
+   "g4": false,
+   "passes": false,
+   "summed_saving_mid_held": 2846127
+  }
+ },
+ "bracketed": {
+  "500": {
+   "held": {
+    "n": 1173,
+    "low": 801,
+    "mid": 367,
+    "high": 5
+   },
+   "mid": {
+    "n": 312,
+    "low": 153,
+    "mid": 155,
+    "high": 4
+   },
+   "grad": {
+    "n": 37,
+    "low": 17,
+    "mid": 19,
+    "high": 1
+   },
+   "big": {
+    "n": 27,
+    "low": 7,
+    "mid": 20,
+    "high": 0
+   }
+  },
+  "1000": {
+   "held": {
+    "n": 651,
+    "low": 330,
+    "mid": 319,
+    "high": 2
+   },
+   "mid": {
+    "n": 193,
+    "low": 58,
+    "mid": 131,
+    "high": 4
+   },
+   "grad": {
+    "n": 19,
+    "low": 6,
+    "mid": 13,
+    "high": 0
+   },
+   "big": {
+    "n": 20,
+    "low": 4,
+    "mid": 16,
+    "high": 0
+   }
+  }
+ },
+ "chosen": "",
+ "rule": "Rule PB(k): in the seed step, the MC refinement of a candidate (MC then variance stage) has a stall check after k strict-cost evaluations with no strict gain of its best cost: the hit ratio of the running best (the first lowest-cost orientation) is evaluated once; at 0.95 or more or under 0.80 the refinement stops and the check is its final evaluation (counted); else it goes on (the check counted as one evaluation) and checks again k evaluations after the next gain. It replaces PH(3000). Forms PB(1000) and PB(500). CMA fits, the five candidates, the 0.95 stop, the seed test 0.80, rules G1 and G2b and the grid search are unchanged. Arm JB = arm J (step 14) with PB(k).",
+ "gate": {
+  "samples": [
+   "held",
+   "mid",
+   "grad",
+   "big"
+  ],
+  "g0": "prediction 1: every J refinement's evaluations and end cost to 1e-9, stored checks equal",
+  "g1": "no changed taken end is wrong where J's is right (wrong: over 1 degree, symmetry-reduced)",
+  "g2_grid_equal": [
+   "mid",
+   "grad",
+   "big"
+  ],
+  "g2_grid_extra_held": 1,
+  "g3_changed_max": {
+   "mid": 30,
+   "held": 80,
+   "grad": 5,
+   "big": 5
+  },
+  "g4_saving_min": 0.06,
+  "g4_samples": [
+   "mid",
+   "held"
+  ],
+  "choice": "both pass: the larger summed net saving on mid and held; a tie goes to PB1000",
+  "neither": "stop and report: no tuning, no third form, no whole layer"
+ }
+}

@@ -1,0 +1,17 @@
+{
+ "gate": "FAILED at g2; stopped as frozen (no tuning, no second pick, no whole layer)",
+ "g0_prediction_1": "met on all five samples: J5r's map before and after the pass, every integer count and the counted evaluations equal J5; fit counts equal the plan table (p1_J5r_<s>.json in the cache)",
+ "g1_admissible_rules": 12,
+ "pick": "S(0.3,both)",
+ "g2_net_saving_share_needed": {"held": 0.04, "mid": 0.04, "held3": 0.03, "grad": 0.03, "big": 0.01},
+ "g2_net_saving_share_got": {
+  "held3": 0.039751125210262264,
+  "held": 0.042070571458911694,
+  "mid": 0.03618180775982382,
+  "grad": 0.08741898358337151,
+  "big": 0.0319528647657003
+ },
+ "g2_met": {"held3": true, "held": true, "mid": false, "grad": true, "big": true},
+ "g3_exact_replay_on_mid": "not evaluated (g2 failed first; the live J5C run on mid was not made)",
+ "note": "The file is called gate_fail.json, not gate.json: fitskip_guard unlocks held4 when gate.json exists, and the gate failed. held4 was not built."
+}
