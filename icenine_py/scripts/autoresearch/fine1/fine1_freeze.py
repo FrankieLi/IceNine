@@ -50,6 +50,9 @@ ARM_TEXT = {
     + "; ".join(CF.J5S_KEYS),
     "CF": "CS with part 1's fixed C++ build, an extra labelled run (only if a fixed binary is "
     "given)",
+    "CSP": "CS with all cores as fitting workers (owner decision D-20261120-N6): the same binary "
+    "and the same config text as CS, mpirun -n 13 (one server, 12 clients); run alone, later",
+    "CFP": "CF with all cores as fitting workers (D-20261120-N6): as CSP with the corrected binary",
 }
 DECISION_RULES = [
     "If any arm's high projection passes 48 hours, stop and ask the owner before starting it.",
@@ -158,7 +161,12 @@ def write(cs_binary: str, refreeze_of: str = "", refreeze_note: str = "") -> Non
     if refreeze_of:
         old = json.loads(P.FROZEN.read_text())
         d["proposed_cs_binary"] = old["proposed_cs_binary"]
-        d["refreeze"] = dict(previous_freeze_commit=refreeze_of, note=refreeze_note)
+        hist = list(old.get("refreeze_history", []))
+        if "refreeze" in old:
+            hist.append(old["refreeze"])
+        hist.append(dict(previous_freeze_commit=refreeze_of, note=refreeze_note))
+        d["refreeze_history"] = hist
+        d["refreeze"] = hist[-1]
     P.FROZEN.write_text(json.dumps(d, indent=1) + "\n")
     print("wrote", P.FROZEN)
 

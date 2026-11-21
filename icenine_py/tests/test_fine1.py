@@ -361,6 +361,49 @@ def test_launcher_dry_run_reports_the_continue_flag(tmp_path: Path) -> None:
     assert out.returncode == 0 and "continue-contended on" in out.stdout
 
 
+def test_parallel_arms_use_the_cs_config_and_only_the_rank_count_differs() -> None:
+    assert {"CSP", "CFP"} <= set(CFG.CPP_ARMS) and {"CSP", "CFP"} <= set(CFG.ARMS)
+    assert CFG.MPI_RANKS == {"CS": 2, "CF": 2, "CSP": 13, "CFP": 13}
+    # the config text is a function of the grid and frames only: one text for all four C++ arms
+    assert CFG.cpp_config(Path("/x/g.mic"), FRAMES, "fine1_cpp") == CFG.cpp_config(
+        Path("/x/g.mic"), FRAMES, "fine1_cpp"
+    )
+    text = LAUNCH.read_text()
+    assert 'mpirun -n "$(ranks_of "$arm")"' in text and "mpirun -n 2" not in text
+
+
+def test_launcher_dry_run_of_the_parallel_arms_names_13_ranks_and_leaves_default_arms() -> None:
+    out = subprocess.run(
+        [
+            "bash",
+            str(LAUNCH),
+            "--stage",
+            "whole",
+            "--arms",
+            "CSP,CFP",
+            "--cap-h",
+            "CSP=6,CFP=5",
+            "--cpp-bin",
+            "/usr/bin/true",
+            "--cf-bin",
+            "/usr/bin/true",
+            "--dry-run",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert out.returncode == 0
+    assert out.stdout.count("mpirun -n 13") == 2 and "mpirun -n 2" not in out.stdout
+    assert "cap 21600 s" in out.stdout and "cap 18000 s" in out.stdout
+    dflt = subprocess.run(
+        ["bash", str(LAUNCH), "--stage", "slice", "--cpp-bin", "/usr/bin/true", "--dry-run"],
+        capture_output=True,
+        text=True,
+    )
+    assert "arms CS,J5S,PS " in dflt.stdout and "CSP" not in dflt.stdout.split("arms")[1][:20]
+    assert dflt.stdout.count("mpirun -n 2") == 1
+
+
 def test_launcher_syntax_and_argument_guards() -> None:
     assert subprocess.run(["bash", "-n", str(LAUNCH)]).returncode == 0
     bad = subprocess.run(["bash", str(LAUNCH), "--stage", "mid"], capture_output=True)

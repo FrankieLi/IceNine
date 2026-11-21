@@ -12,6 +12,8 @@ lines and makes the paths absolute). ``J5S`` adds the 12 library keys of AR5 ste
        for every seed, stock MC local optimization
   CS   the C++ config of ``PS`` (mode p, mpirun -n 2: one server, one fitting client)
   CF   as CS, run with a fixed C++ build (an extra labelled run)
+  CSP  as CS (same binary, same config text), mpirun -n 13: one server and 12 fitting clients
+  CFP  as CF (same binary, same config text), mpirun -n 13
   J5S  ``ar2/key_on_fused.config`` (SeedByIndexing 1) plus the 12 keys below
 """
 
@@ -31,9 +33,10 @@ BASE_PS = AR2 / "key_off_fused.config"
 BASE_J5S = AR2 / "key_on_fused.config"
 LIB_CHECK = ICE / "benchmarks" / "autoresearch" / "ar5" / "screen" / "lib_check.json"
 SIDE = "0.0046875"
-ARMS = ("CS", "J5S", "PS", "CF")  # the order the launchers run them
+ARMS = ("CS", "J5S", "PS", "CF", "CSP", "CFP")  # the order the launchers run them
 PYTHON_ARMS = ("J5S", "PS")
-CPP_ARMS = ("CS", "CF")
+CPP_ARMS = ("CS", "CF", "CSP", "CFP")
+MPI_RANKS = {"CS": 2, "CF": 2, "CSP": 13, "CFP": 13}  # server + fitting clients (CSP, CFP: 12)
 
 J5S_KEYS: List[str] = [
     "BFSNeighborCMAFirst 1",

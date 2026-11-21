@@ -14,6 +14,9 @@
 #   --arms CS,J5S,PS      order of the runs (default CS,J5S,PS, then CF if --cf-bin is given)
 #   --cpp-bin PATH        the C++ binary of arm CS (required for CS)
 #   --cf-bin PATH         the fixed C++ binary of arm CF (an extra labelled run; CF is added)
+#   --ranks N             MPI ranks of the parallel arms CSP and CFP (default 13 = one server and 12
+#                         fitting clients; CS and CF always use 2); CSP and CFP are run only when
+#                         named in --arms (CSP: the CS binary and config, CFP: the CF ones)
 #   --cap-h A=h,B=h       wall-clock cap per arm in hours (the plan: 1.5 x the arm's high
 #                         projection); required for --stage whole; slice default 1 h each
 #   --pause S             seconds of rest before each timed run (default 120)
@@ -43,7 +46,7 @@
 set -u
 cd "$(dirname "$0")/../../.." || exit 99   # icenine_py/
 
-STAGE=""; ARMS=""; CPP_BIN=""; CF_BIN=""; CAPS=""; PAUSE=120; ALLOW=0; RESUME=0; DRY=0; CONT=0; NOTQUIET=0
+STAGE=""; ARMS=""; CPP_BIN=""; CF_BIN=""; CAPS=""; RANKS=13; PAUSE=120; ALLOW=0; RESUME=0; DRY=0; CONT=0; NOTQUIET=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --stage) STAGE=$2; shift 2;;
@@ -52,6 +55,7 @@ while [ $# -gt 0 ]; do
     --cf-bin) CF_BIN=$2; shift 2;;
     --cap-h) CAPS=$2; shift 2;;
     --pause) PAUSE=$2; shift 2;;
+    --ranks) RANKS=$2; shift 2;;
     --allow-contended) ALLOW=1; shift;;
     --continue-contended) CONT=1; shift;;
     --resume) RESUME=1; shift;;
@@ -115,20 +119,23 @@ fi
 
 for arm in $(echo "$ARMS" | tr ',' ' '); do
   case "$arm" in
-    CS) BIN=$CPP_BIN;;
-    CF) BIN=$CF_BIN;;
+    CS|CSP) BIN=$CPP_BIN;;
+    CF|CFP) BIN=$CF_BIN;;
     *) BIN="";;
   esac
   case "$arm" in
-    CS|CF) [ -x "$BIN" ] || { say "arm $arm needs an executable binary ($BIN)"; exit 99; };;
+    CS|CSP|CF|CFP) [ -x "$BIN" ] || { say "arm $arm needs an executable binary ($BIN)"; exit 99; };;
   esac
-  [ "$arm" = CF ] && [ -z "$CF_BIN" ] && { say "arm CF needs --cf-bin"; exit 64; }
+  case "$arm" in CF|CFP) [ -z "$CF_BIN" ] && { say "arm $arm needs --cf-bin"; exit 64; };; esac
 done
+
+is_cpp() { case "$1" in CS|CSP|CF|CFP) return 0;; *) return 1;; esac; }
+ranks_of() { case "$1" in CSP|CFP) echo "$RANKS";; *) echo 2;; esac; }  # one server + clients
 
 run_arm() { # arm
   local arm=$1 R=$RUNS/$1 BIN="" cap pid spid rc q
   local -a CMD
-  case "$arm" in CS) BIN=$CPP_BIN;; CF) BIN=$CF_BIN;; esac
+  case "$arm" in CS|CSP) BIN=$CPP_BIN;; CF|CFP) BIN=$CF_BIN;; esac
   cap=$(cap_s "$arm") || exit 64
   if [ "$RESUME" = 1 ] && [ -f "$RUNS/$arm.done" ]; then
     say "arm $arm: marker exists, skipped ($(cat "$RUNS/$arm.done"))"; return 0
@@ -146,14 +153,14 @@ run_arm() { # arm
   local LOG=$LOGS/${STAGE}_${arm}.log
   local CFG=$(pwd)/$R/arm.config
   case "$arm" in
-    CS|CF)
+    CS|CSP|CF|CFP)
       uv run python $F1/fine1_config.py --arm "$arm" --grid $GRID --out "$CFG" > "$LOG" 2>&1 \
         || { say "arm $arm: config not written"; exit 99; };;
   esac
-  if [ "$arm" = CS ] || [ "$arm" = CF ]; then
+  if is_cpp "$arm"; then
     CMD=(uv run python $CT/guard.py --limit-s "$cap" --stall-s $STALL_S --cwd "$(pwd)/$R"
       --stderr "$(pwd)/$R/stderr.log" --watch 'ParallelReconLog_*.log' --
-      /usr/bin/time -p -o "$(pwd)/$R/time.txt" mpirun -n 2 "$BIN" p "$CFG")
+      /usr/bin/time -p -o "$(pwd)/$R/time.txt" mpirun -n "$(ranks_of "$arm")" "$BIN" p "$CFG")
   else
     CMD=(uv run python $CT/guard.py --limit-s "$cap" --stall-s $STALL_S
       --stderr "$(pwd)/$R/stderr.log" --watch "$(pwd)/$R/progress.jsonl" --
@@ -162,7 +169,7 @@ run_arm() { # arm
   fi
   say "arm $arm: cap ${cap} s, stall ${STALL_S} s; command: ${CMD[*]}"
   if [ "$DRY" = 1 ]; then
-    if [ "$arm" = CS ] || [ "$arm" = CF ]; then
+    if is_cpp "$arm"; then
       say "DRY: config written to $CFG; binary $BIN sha256 $(shasum -a 256 "$BIN" | cut -d' ' -f1)"
     else
       uv run python $F1/fine1_run_py.py --arm "$arm" --grid $GRID --out "$R" --dry-run >> "$LOG" 2>&1
@@ -203,7 +210,7 @@ run_arm() { # arm
     exit 2
   fi
   # file checks
-  if [ "$arm" = CS ] || [ "$arm" = CF ]; then
+  if is_cpp "$arm"; then
     if [ ! -s "$R/fine1_cpp.mic.LBFS" ] \
        || ! grep -q "Total Processing Time" "$R/ParallelReconLog_1.log" 2>/dev/null \
        || ! grep -q "Total Time elapsed" "$R/ParallelReconLog_0.log" 2>/dev/null \
