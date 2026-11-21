@@ -1,0 +1,108 @@
+{
+ "sample": "mid",
+ "libPXF_vs_PXFl": {
+  "before_pass": {
+   "map": {
+    "same_bytes": true,
+    "voxels_differ": 0,
+    "max_angle_deg": 0.0,
+    "voxels_over_0_001_deg": 0,
+    "voxels_over_1_deg": 0
+   },
+   "evals_total": {
+    "script": 6731510,
+    "library": 6731510
+   },
+   "counters_equal": true,
+   "counters_differ": {
+    "n_script_counters": 36,
+    "differ": {},
+    "only_in_library": {
+     "cma_not_fell": 4745,
+     "index_defer_pauses": 1263,
+     "index_defer_resumes": 506,
+     "index_defer_steps": 623,
+     "index_fb_full_evals_first": 72604,
+     "index_fb_full_passed": 6,
+     "index_fb_full_steps": 11,
+     "index_mixed_cands": 3031,
+     "index_mixed_cma_reached": 1134,
+     "index_mixed_mc_ran": 1897,
+     "index_pairs": 83466771,
+     "index_rescue_evals": 14014,
+     "index_rescue_runs": 5,
+     "index_rescue_tries": 14,
+     "index_rescued": 3,
+     "index_stallhit_checks": 1867,
+     "index_stallhit_evals_in_stopped": 344437,
+     "index_stallhit_refinements": 1897,
+     "index_stallhit_stops": 377,
+     "index_stallhit_went_on": 1490,
+     "index_stopped_early": 1540,
+     "index_votes": 43812056
+    }
+   },
+   "records": {
+    "n_a": 24570,
+    "n_b": 24570,
+    "n_differ": 0,
+    "first": []
+   },
+   "rescues": {
+    "script": 5,
+    "library": 5,
+    "rescued_script": 3,
+    "rescued_library": 3,
+    "equal": true
+   },
+   "stall": {
+    "refinements": {
+     "script": 1897,
+     "library": 1897
+    },
+    "first_differ": null,
+    "equal": true
+   },
+   "defer": {
+    "counts_script_library": {
+     "steps_with_pause": [
+      623,
+      623
+     ],
+     "pauses": [
+      1263,
+      1263
+     ],
+     "resumes": [
+      506,
+      506
+     ]
+    },
+    "equal": true
+   },
+   "fallbacks": {
+    "steps": {
+     "script": 1661,
+     "library": 1661
+    },
+    "fallbacks": {
+     "script": 11,
+     "library": 11
+    },
+    "passed_second": {
+     "script": 6,
+     "library": 6
+    },
+    "first_differ": null,
+    "equal": true
+   }
+  },
+  "equal_before_pass": true,
+  "in_run_pass_evals_library": 3072143
+ },
+ "reference": {
+  "phase_a_J5D_search_evals": 5997364,
+  "libPXF_evals_before_pass": 6731510,
+  "note": "J5D has rule G2b and aligned draws; the library has neither; not compared"
+ }
+}

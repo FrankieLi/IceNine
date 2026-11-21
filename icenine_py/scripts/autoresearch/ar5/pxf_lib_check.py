@@ -157,8 +157,9 @@ def main() -> None:
         and b["defer"]["equal"]
         and b["fallbacks"]["equal"]
     )
-    # for reference only: the phase A arm J5D (G2b, aligned draws) is not the comparison
-    j5d = json.loads((SCACHE / "J5D_mid" / "run.json").read_text())["stats"]
+    # for reference only: the phase A arm J5D (rule PXF with G2b, aligned draws; the live run) is
+    # not the comparison
+    j5d = json.loads((SCACHE / "live_pxf" / "J5D_mid" / "run.json").read_text())["stats"]
     res = dict(
         sample="mid",
         libPXF_vs_PXFl=dict(
@@ -174,6 +175,58 @@ def main() -> None:
         ),
     )
     (SD / "lib_check.json").write_text(json.dumps(res, indent=1, default=float) + "\n")
+    sys.path.insert(0, str(ICE / "scripts" / "common"))
+    import doc_tables as DT
+
+    def row(name: str, script: Any, library: Any, same: bool) -> str:
+        return f"| {name} | {script} | {library} | {'equal' if same else 'DIFFERENT'} |"
+
+    def same(pair: Any) -> bool:
+        return bool(pair[0] == pair[1])
+
+    fb, st, df = b["fallbacks"], b["stall"], b["defer"]["counts_script_library"]
+    lines = [
+        "| compared before the boundary pass | script arm PXFl | library, keys on | verdict |",
+        "|---|---|---|---|",
+        row("map (decompressed .mic bytes)", "-", "-", b["map"]["voxels_differ"] == 0),
+        row(
+            "evaluations",
+            f"{b['evals_total']['script']:,}",
+            f"{b['evals_total']['library']:,}",
+            b["evals_total"]["script"] == b["evals_total"]["library"],
+        ),
+        row("counters of the script run", b["counters_differ"]["n_script_counters"], "all", ok_c),
+        row(
+            "per-voxel records",
+            b["records"]["n_a"],
+            b["records"]["n_b"],
+            b["records"]["n_differ"] == 0,
+        ),
+        row("seed steps", fb["steps"]["script"], fb["steps"]["library"], fb["equal"]),
+        row("second tries", fb["fallbacks"]["script"], fb["fallbacks"]["library"], fb["equal"]),
+        row(
+            "second tries that passed",
+            fb["passed_second"]["script"],
+            fb["passed_second"]["library"],
+            fb["equal"],
+        ),
+        row(
+            "rescues (rescued)",
+            f"{b['rescues']['script']} ({b['rescues']['rescued_script']})",
+            f"{b['rescues']['library']} ({b['rescues']['rescued_library']})",
+            b["rescues"]["equal"],
+        ),
+        row(
+            "MC refinements with checks",
+            st["refinements"]["script"],
+            st["refinements"]["library"],
+            st["equal"],
+        ),
+        row("steps with a pause", *df["steps_with_pause"], same(df["steps_with_pause"])),
+        row("pauses", *df["pauses"], same(df["pauses"])),
+        row("resumes", *df["resumes"], same(df["resumes"])),
+    ]
+    DT.write_tables(SD / "lib_tables.md", {"pxf_lib": "\n".join(lines)})
     print("equal_before_pass:", equal)
     print(json.dumps(b["evals_total"]), json.dumps(b["fallbacks"]))
 
