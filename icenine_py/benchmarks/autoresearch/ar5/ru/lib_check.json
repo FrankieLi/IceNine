@@ -127,6 +127,17 @@
     "libru": 32,
     "libpxf": 31
    },
+   "wrong_wilson95": {
+    "libru": [
+     0.0009227426318731862,
+     0.0018379816010037767
+    ],
+    "libpxf": [
+     0.0008890352069823217,
+     0.0017903016696743583
+    ]
+   },
+   "median_error_subset": "all 24,570 voxels",
    "fixed": 10,
    "broken": 11,
    "both_wrong": 21,
@@ -660,6 +671,21 @@
   }
  },
  "in_run_pass_evals_library": 3064823,
+ "with_pass": {
+  "libru": 7786344,
+  "libpxf": 9803653,
+  "fewer_share": 0.20577115489501718,
+  "pass_evals": {
+   "libru": 3064823,
+   "libpxf": 3072143
+  }
+ },
+ "rul_vs_pxfl_seed_log": {
+  "first_success_row": 61,
+  "rows_compared": 61,
+  "equal_rows": 61,
+  "equal": true
+ },
  "walls_s": {
   "library_run": 898.4288518428802,
   "script_arm_RUl": 596.3489098548889,

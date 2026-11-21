@@ -271,7 +271,8 @@ def test_absent_and_written_zero_are_identical_and_leave_no_trace(
         assert all("reuse" not in e for e in bfs.index_log)
         runs.append(_fp(bfs, mic))
     assert runs[0] == runs[1]
-    # and equal to the run of a build that never had the key: only the key's own fields are new
+    # this compares key absent with key written 0 on the new code; identity with the build before
+    # the change rests on code inspection plus the full suite and its goldens, not on this test
     assert [e["voxel"] for e in runs[0]["log"]] == [0, 3]
 
 

@@ -14139,22 +14139,29 @@ arm and what it saves in library form. No default flip, no golden change, no new
   counter or field), tested identical (`tests/test_seed_reuse_known.py`, 29 tests; full suite 2,475
   passed, 48 skipped, 1 deselected, keys off, no golden change).
 - **Order.** The script arm `RUl` (`ru_hl.py`: step 28's `PXFl` plus the `RU` wrapper) ran first, with
-  the freeze agreeing and no library edit made: 596 s (contended: the timing preflight refused because
-  an editor language server used 99% CPU; kept in `ru/preflight_RUl.json`). Its first 61 seed steps
-  (before its first success) equal the stored `PXFl` steps. Then the library edit, then `LibRU`
-  (`ru_lib_run.py`: `LibPXF`'s keys plus `SeedReuseKnown 1`, with the boundary pass): 898 s
-  (contended, preflight refused, `ru/preflight_LibRU.json`).
+  the freeze agreeing and no library edit made: 596 s (contended: the timing preflight was refused,
+  1-min load above 1.5 with an editor language server at 99% CPU named busy; the counted run's own
+  preflight, 12:16:06, is `ru/preflight_RUl_run.json`; `ru/preflight_RUl.json` is the earlier
+  standalone one, 12:11, taken before a launch that failed on missing data). Its first 61 seed-log
+  rows (before its first success, row 61) equal the stored `PXFl` rows (`lib_check.json`,
+  `rul_vs_pxfl_seed_log`). Then the library edit, then `LibRU` (`ru_lib_run.py`: `LibPXF`'s keys plus
+  `SeedReuseKnown 1`, with the boundary pass): 898 s (contended, preflight refused on load,
+  `ru/preflight_LibRU.json`).
 - **L1 (equality before the boundary pass, `mid`): met on the first run.** Map bytes, 4,721,521
   evaluations, all 36 counters of the script run, all 24,570 records, 1,692 try rows (1,691 tried,
   1,379 successes), 313 PXF steps and 470 MC refinements with their checks are equal
-  (`ru/lib_check.json`, `lib_tables.md`).
+  (`ru/lib_check.json`, `lib_tables.md`). L1 shares the copied helpers and the library fit and cost
+  with `RUl`, so it shows placement, accounting and wiring, not that the helpers are correct (unit
+  tests cover those).
 - **L2 (library form against `LibPXF`): met.** Before the pass 4,721,521 against 6,731,510
   evaluations, 29.9% fewer (gate 10%, prediction 15% to 30%). After the pass: 32 against 31 wrong
-  voxels (over 1 degree from the truth), broken 11, fixed 10, both wrong 21, broken minus fixed +1
-  (gate at most 3); median error 0.028223 against 0.028710 degree (0.000488 lower; gate at most 0.001
-  higher). Try share 81.5% of 1,692 seed steps (prediction 75% to 88%), 455 second fits (217
+  voxels of 24,570 (over 1 degree from the truth; Wilson 95% 0.092% to 0.184% for 32 and 0.089% to
+  0.179% for 31), broken 11, fixed 10, both wrong 21, broken minus fixed +1 (gate at most 3); median
+  error over all 24,570 voxels 0.028223 against 0.028710 degree (0.000488 lower; gate at most 0.001
+  higher). With the pass the whole run costs 7,786,344 against 9,803,653 evaluations (20.6% fewer;
+  pass 3,064,823 against 3,072,143). Try share 81.5% of 1,692 seed steps (prediction 75% to 88%), 455 second fits (217
   succeeded), 263 evaluations per try, lowest accepted hit ratio 0.95009. One library-form sample,
-  in-sample, one run per arm; the boundary pass added 3,064,823 evaluations in the run.
+  in-sample, one run per arm.
 - **Against phase A's stored rows.** The seed steps come in the same voxel order for the first 58
   rows, but the rows (costs of the same starts) are equal for 1 row only and starts, success flags
   agree for 4. Consistent with phase A's arm having `G2b` and aligned draws, which the library lacks

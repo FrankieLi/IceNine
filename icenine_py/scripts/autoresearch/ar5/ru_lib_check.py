@@ -166,6 +166,11 @@ def accuracy_vs_libpxf(lib_mic: Path, base_mic: Path) -> Dict[str, Any]:
     return dict(
         wrong_threshold_deg=float(G.WRONG),
         wrong=dict(libru=int(wl.sum()), libpxf=int(wb.sum())),
+        wrong_wilson95=dict(
+            libru=[float(x) for x in ST.wilson(int(wl.sum()), n)],
+            libpxf=[float(x) for x in ST.wilson(int(wb.sum()), n)],
+        ),
+        median_error_subset="all 24,570 voxels",
         fixed=int(fixed),
         broken=int(broken),
         both_wrong=int((wl & wb).sum()),
@@ -222,6 +227,28 @@ def prefix_vs_phase_a(index_log: List[Dict[str, Any]]) -> Dict[str, Any]:
         "lacks (starts of the same voxels have other orientations, hence other costs); that "
         "cause is not tested",
     )
+
+
+def seed_log_prefix(rul: Path, pxfl: Path) -> Dict[str, Any]:
+    """Stop-rule check: ``RUl``'s seed-log rows before its first successful try equal the stored
+    ``PXFl``'s rows (seconds left out)."""
+    a, b = RLC.read_gz(rul / "seed_log.json.gz"), RLC.read_gz(pxfl / "seed_log.json.gz")
+    rows = RLC.read_gz(rul / "ru_rows.json.gz")["rows"]
+    k = next(i for i, r in enumerate(rows) if r["success"])
+
+    def clean(o: Any) -> Any:
+        if isinstance(o, dict):
+            return {x: clean(v) for x, v in o.items() if not (x.endswith("_s") or x == "s")}
+        if isinstance(o, list):
+            return [clean(v) for v in o]
+        return o
+
+    n = 0
+    for x, y in zip(a[:k], b[:k]):
+        if clean(x) != clean(y):
+            break
+        n += 1
+    return dict(first_success_row=k, rows_compared=k, equal_rows=n, equal=bool(n == k))
 
 
 def script_hashes() -> Dict[str, Any]:
@@ -321,6 +348,17 @@ def main() -> None:
         prefix_vs_phase_a=prefix_vs_phase_a(ilog),
         scripts_sha256=script_hashes(),
         in_run_pass_evals_library=int(run_lib["evals_total_with_pass"]) - lib_evals,
+        with_pass=dict(
+            libru=int(run_lib["evals_total_with_pass"]),
+            libpxf=int(pxf["evals_total_with_pass"]),
+            fewer_share=1.0
+            - int(run_lib["evals_total_with_pass"]) / int(pxf["evals_total_with_pass"]),
+            pass_evals=dict(
+                libru=int(run_lib["evals_total_with_pass"]) - lib_evals,
+                libpxf=int(pxf["evals_total_with_pass"]) - base_evals,
+            ),
+        ),
+        rul_vs_pxfl_seed_log=seed_log_prefix(hl, OLD_CACHE_PXF / "PXFl_mid"),
         walls_s=dict(
             library_run=float(run_lib["wall_total_s"]),
             script_arm_RUl=float(json.loads((hl / "run.json").read_text())["wall_total_s"]),

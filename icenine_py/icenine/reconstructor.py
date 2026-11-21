@@ -2914,6 +2914,7 @@ class BFSReconstruction:
         from . import ray_indexing as RI
 
         mic = self.setup.sample.get_mic()
+        assert mic is not None
         geo = getattr(self, "_reuse_geo", None)
         if geo is None or geo[0] is not mic:  # built once per sample, only with the key on
             from scipy.spatial import cKDTree
