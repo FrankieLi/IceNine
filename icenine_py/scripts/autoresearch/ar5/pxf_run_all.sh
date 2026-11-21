@@ -48,7 +48,7 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-case "$stage" in pilot|live|build|clean) ;; *) echo "--stage pilot|live|build|clean is required" >&2; exit 2 ;; esac
+case "$stage" in pilot|live|build|clean|pxf7) ;; *) echo "--stage pilot|live|build|clean|pxf7 is required" >&2; exit 2 ;; esac
 case "$cache" in /*) ;; *) cache="$here/$cache" ;; esac
 case "$cache" in *held2*|*fine7*) echo "held2 / fine7 are not used by this step" >&2; exit 2 ;; esac
 logs="$cache/logs"
@@ -65,10 +65,10 @@ refuse() {
   if [ "$dry" = "0" ]; then mkdir -p "$logs"; echo "exit=2 reason=refused: $1" > "$logs/pxf_run_all.refused.$(date +%s)"; fi
   exit 2
 }
-if [ "$stage" = "build" ] || [ "$stage" = "clean" ]; then
+if [ "$stage" = "build" ] || [ "$stage" = "clean" ] || [ "$stage" = "pxf7" ]; then
   [ -e "$logs/gate_passed" ] || refuse "logs/gate_passed does not exist (c1, c2, c3 not judged and passed)"
 fi
-if [ "$stage" = "clean" ]; then
+if [ "$stage" = "clean" ] || [ "$stage" = "pxf7" ]; then
   [ -e "$here/benchmarks/autoresearch/ar5/pxf/held7_frozen.json" ] || refuse "held7_frozen.json does not exist"
   if [ -z "$(git log -1 --format=%H -- benchmarks/autoresearch/ar5/pxf/held7_frozen.json)" ]; then refuse "held7_frozen.json is not committed"; fi
   if [ -n "$(git status --porcelain -- benchmarks/autoresearch/ar5/pxf/held7_frozen.json)" ]; then refuse "held7_frozen.json differs from its commit"; fi
@@ -117,7 +117,8 @@ run_stages() { # run_stages <arm pxf|old|none> <sample> <cache dir> <job> [smoke
 timed_job() { # timed_job <arm pxf|old> <sample> <cache dir> <job> [smoke]
   a="$1"; s="$2"; c="$3"; job="$4"; smoke="${5:-0}"
   [ -e "$logs/$job.done" ] && { echo "refusing: $logs/$job.done exists" >&2; return 2; }
-  for p in "$c/J5D_$s" "$c/passes_$s" "$c/j5sd/J5S_$s"; do
+  # S8's boundary pass shares passes_<s>/ (D4_S8, after_S8.npy): only this arm's own folders count
+  for p in "$c/J5D_$s" "$c/passes_$s/D4_J5D" "$c/j5sd/J5S_$s"; do
     [ -e "$p" ] && { echo "refusing: $p exists" >&2; return 2; }
   done
   mkdir -p "$c" "$c/j5sd"
@@ -165,6 +166,8 @@ if [ "$dry" = "1" ]; then
            echo "  new J5SD held7: PXF_ARM=pxf defer_run.py ; high500_pass.py ; screen_run.py   (cache $cache/live_pxf)"
            echo "  plain J5SD held7: PXF_ARM=old defer_run.py ; high500_pass.py ; screen_run.py   (cache $cache/live_old)"
            echo "  then logs/bf_runs.done" ;;
+    pxf7) echo "  new J5SD held7 only: PXF_ARM=pxf defer_run.py ; high500_pass.py ; screen_run.py   (cache $cache/live_pxf)"
+          echo "  then logs/bf_runs.done once S8, new and plain J5SD all have done files" ;;
   esac
   exit 0
 fi
@@ -193,6 +196,17 @@ case "$stage" in
     s8_job || fail=1
     timed_job pxf held7 "$cache/live_pxf" "live_pxf_held7" || fail=1
     timed_job old held7 "$cache/live_old" "live_old_held7" || fail=1  # reported, not a gate
+    for j in S8_held7 live_pxf_held7 live_old_held7; do
+      d="$(cat "$logs/$j.done" 2>/dev/null)"
+      case "$d" in "run=0 pass=0"*) ;; *) fail=1 ;; esac
+    done
+    {
+      echo "exit=$fail"
+      date +%Y-%m-%dT%H:%M:%S%z
+      for j in S8_held7 live_pxf_held7 live_old_held7; do echo "$j $(cat "$logs/$j.done" 2>/dev/null || echo none)"; done
+    } > "$logs/bf_runs.done.tmp" && mv "$logs/bf_runs.done.tmp" "$logs/bf_runs.done" ;;
+  pxf7)  # the new J5SD alone (the first clean stage refused it: S8's pass folder already existed)
+    timed_job pxf held7 "$cache/live_pxf" "live_pxf_held7" || fail=1
     for j in S8_held7 live_pxf_held7 live_old_held7; do
       d="$(cat "$logs/$j.done" 2>/dev/null)"
       case "$d" in "run=0 pass=0"*) ;; *) fail=1 ;; esac

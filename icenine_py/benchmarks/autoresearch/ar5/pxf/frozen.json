@@ -35,7 +35,7 @@
   "t2": "whole run: pooled wall of the new J5SD runs at least 25% lower than step 27's old runs (8,219 s), judged with any load; preflight verdicts and sampled load reported",
   "h1": "house rule on held7 (a non-exact change): new J5SD against S8, at least 20% fewer evaluations, broken minus fixed at most 5, median error at most 0.005 degree higher; wall seconds of both reported"
  },
- "frozen_at": "2026-11-20T10:22:25-0800",
+ "frozen_at": "2026-11-20T16:16:04-0800",
  "note": "no live run was made by the tracked scripts before this file was committed; the sizing (stored rows of step 27's mid and held runs, 11 voxels indexed with both settings) was made before; nothing of held2, fine7 or held7 is used or read",
  "files": {
   "scripts/autoresearch/ar5/band_guard.py": "07fe65a528e8cf6d66d952b0bf34209b1d051f7e7338802a128324e950ebdfa8",
@@ -154,7 +154,7 @@
   "scripts/autoresearch/ar5/pxf_common.py": "256a7522806b1629bfff4179d16db3a437e171cec91595e4f62c7de75de9b2b6",
   "scripts/autoresearch/ar5/pxf_launch.py": "1844bb33b7a8712d56db383e135cf7d5306126a7d10a6f8220352064b5a23daa",
   "scripts/autoresearch/ar5/pxf_rules.py": "77e0b35734a456fe4e75650cfe24337c36cf18b235a61537366ff0fb558d5b01",
-  "scripts/autoresearch/ar5/pxf_run_all.sh": "121d44f34658030b99a90847679ed4b6c58fe1bd3c40edcb4cf1b8466bd09f7f",
+  "scripts/autoresearch/ar5/pxf_run_all.sh": "50583e6fda899da336284897269d522be89e75176e58b85df52cbc8fa2e4d3bb",
   "tests/test_ar5_pxf.py": "3e8c43e987e52d9d3f805758d2eb920f1394c70064dc6ddc29ea6069617cd634"
  },
  "library": {
