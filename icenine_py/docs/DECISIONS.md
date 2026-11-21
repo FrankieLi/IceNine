@@ -2336,3 +2336,14 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   against LibPXF, key refused without the PXF keys. It runs after the J5S layer run ends and
   before stock Python (PS) starts, one run at a time. Where: icenine_py/docs/autoresearch/PLAN.md,
   section AR5 step 29 phase B.
+
+### D-20261121-N2 · D-20261121-N2 · AR5 step 30 phase A: field start for BFS neighbour fits (rule FS)
+- 2026-11-21, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. After PXF and RU, BFS neighbour fits hold 47% of
+  evaluations and 56% to 73% of them are rejected, mostly from same-grain starts 0.25 to 2 degrees
+  off. Step 30 phase A (task ar5af) starts each BFS fit from a local linear orientation field of
+  accepted voxels within 3 triangle sides, at no evaluation; gates f1, f2, h1, h2 and a 10-minute
+  opening probe are frozen in PLAN. Ilium's whole-grain fit was assessed and not chosen (113
+  evaluations per voxel against 61). Runs start only when the stock Python layer run (PS) has
+  ended: one IceNine job at a time (owner, 21 Nov). Where: icenine_py/docs/autoresearch/PLAN.md,
+  section AR5 step 30.
