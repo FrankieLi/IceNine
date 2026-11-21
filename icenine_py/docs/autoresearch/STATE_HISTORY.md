@@ -1352,4 +1352,29 @@ review `20261120-0805-review-ar5aa.md`. Results: `benchmarks/autoresearch/ar5/px
 - The extra grid searches are not lost candidates. The cause was not tested in step 27.
 - held7 not built. No key. No library change. Suite: 2382 passed, 48 skipped, 1 deselected.
 - Step 28 (task `ar5ab`, rule PXF: 50,000 pairs first, the full sample again when the seed test
-  fails; D-20261120-N2) has started. It uses up held7.
+  fails; D-20261120-N2) followed. It uses up held7.
+
+### AR5 step 28 (rule PXF; task `ar5ab`), merged at 66e61aa8 on 2026-11-20
+
+Decisions D-20261120-N2 (plan) and D-20261120-N3 (phase B approved). Reports in the main
+`.claude/reports/`: `20261120-0826-ar5ab.md` and review `20261120-1740-review-ar5ab.md`.
+Results: `benchmarks/autoresearch/ar5/pxf/`.
+
+- Idea: seed step indexes use 50,000 ray pairs. If the seed test fails after a subsampled
+  indexing, index again with 600,000 pairs and repeat the whole seed step.
+- All frozen gates met (reviewed, recomputed, 0 differences): c1 pairs 72.0% fewer. c2
+  evaluations 4.47% fewer on mid plus held (23,402,740 against 24,497,957). c3 met on both.
+  t2 pooled wall 44.7% lower (8,219 s to 4,545 s). h1 on held7 met.
+- Caution on c2: it rests on 4 fewer grid searches. Without grid evaluations PXF is +1.18%.
+- Caution on t2: contended (load 2.3 to 2.5) and unpaired, the runs come from different sessions.
+- Clean sample held7 (24,570 voxels), all contended. S8: 77,783,446 evaluations, 96 wrong. New
+  J5SD: 20,075,769, 42 wrong, 6 grid searches, 3,791 s. Plain J5SD: 21,788,476, 55 wrong, 12 grid
+  searches, 9,181 s. This is one sample with route effects. It is not proof of an accuracy gain.
+- mid and held are in-sample. held7 is now disclosed (used).
+- Disclosed: S8 log tail read once (3 lines, no result); two premature `bf_runs.done` windows;
+  run order on held7 was S8, plain, new because a guard bug forced it (fixed, no rule change).
+- Review fixes applied (81b369ab): held7 copied to the main checkout, render records committed,
+  freeze history file, new-vs-plain numbers in `summary.json`, contended and unpaired labels.
+- No library change in phase A. Suite: 2396 passed, 45 skipped, 1 deselected.
+- Phase B (opt-in keys `RayIndexMaxPairs` and `RayIndexFallbackFull`, task `ar5ac`) is approved
+  by D-20261120-N3 and has started.
