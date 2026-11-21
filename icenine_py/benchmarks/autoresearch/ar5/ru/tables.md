@@ -8,7 +8,7 @@
 <!-- /table:ru_gates -->
 
 <!-- table:ru_held8_arms -->
-| arm | evals | wrong | median error (deg) | wall s | label |
+| arm | evals | wrong | median error (deg) | wall s (contended, unpaired; PXF started on battery) | label |
 |---|---|---|---|---|---|
 | S8 | 58,102,056 | 49 | 0.02756 | 8390 | contended |
 | PXF J5SD | 16,226,609 | 26 | 0.02267 | 2980 | contended |
@@ -36,7 +36,7 @@
 <!-- /table:ru_live_evals -->
 
 <!-- table:ru_live_tries -->
-| sample | seed steps | ended by a try | Wilson 95% | first fit / second fit | failed tries | try evals | indexing calls | try s | indexing s |
+| sample | seed steps | ended by a try | Wilson 95% | first fit / second fit | failed tries | try evals | indexing calls | try s (contended) | indexing s (contended) |
 |---|---|---|---|---|---|---|---|---|---|
 | mid | 1,719 | 1,403 (81.6%) | 79.7% to 83.4% | 1208 / 195 | 315 | 447,703 | 321 | 37 | 78 |
 | held | 3,736 | 2,721 (72.8%) | 71.4% to 74.2% | 2122 / 599 | 1014 | 1,081,713 | 1,059 | 90 | 296 |

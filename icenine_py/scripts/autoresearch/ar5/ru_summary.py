@@ -64,8 +64,8 @@ def tables(live: Any, h8: Any) -> Dict[str, str]:
                     "failed tries": c["failed_tries"],
                     "try evals": f"{c['try_evals']:,}",
                     "indexing calls": f"{c['index_calls']:,}",
-                    "try s": f"{c['try_seconds']:.0f}",
-                    "indexing s": f"{c['index_seconds']:.0f}",
+                    "try s (contended)": f"{c['try_seconds']:.0f}",
+                    "indexing s (contended)": f"{c['index_seconds']:.0f}",
                 }
             )
             wl.append(
@@ -120,7 +120,7 @@ def tables(live: Any, h8: Any) -> Dict[str, str]:
                 "evals": f"{t[k]:,}",
                 "wrong": h8["wrong"][k]["n"],
                 "median error (deg)": f"{h8['median_err_deg'][k]:.5f}",
-                "wall s": h8["job"][k]["wall_s"],
+                "wall s (contended, unpaired; PXF started on battery)": h8["job"][k]["wall_s"],
                 "label": h8["job"][k]["label"],
             }
             for a, k in (("S8", "s8"), ("PXF J5SD", "pxf"), ("RU J5SD", "ru"))
@@ -209,7 +209,7 @@ def plot(live: Any, h8: Any) -> Optional[Path]:
     a1.set_xticks(x)
     a1.set_xticklabels(labels, fontsize=8)
     a1.set_ylabel("wall seconds (contended)")
-    a1.set_title("Wall per run, whole J5SD (contended; held8 S8: no split)")
+    a1.set_title("Wall per run, whole J5SD (contended; held8 PXF started on battery)", fontsize=9)
     a1.legend(fontsize=8)
     names = list(live["rows"])
     br = [live["rows"][s]["new_vs_old"] for s in names]
