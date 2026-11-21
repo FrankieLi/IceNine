@@ -2318,3 +2318,12 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   (arm PS, projected 33.7 to 51.0 h, cap 76.5 h), which may exceed the 48 h ask-first limit.
   Order: AR5 step 29 (about 9 h) runs first, then the layer runs, one run at a time. Recorded by
   Newt Agent. Where: icenine_py/docs/autoresearch/STATE.md; SP/owner_task_20261116.md.
+
+### D-20261120-N6 · D-20261120-N6 · Owner: parallel C++ IceNine may use all cores when nothing else runs
+- 2026-11-20, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by the owner in the session on 2026-11-20: parallel C++ IceNine may run with as many
+  workers as there are cores, provided nothing else is running. Newt Agent's plan under it (yours
+  to overrule): after AR5 step 29 ends, rerun the stock C++ and the corrected C++ on the finer
+  98,280-voxel layer with all cores (newt has 12 cores, 8 performance), each alone on the machine,
+  as new arms beside the one-worker arms (which stay as recorded); then the Python runs of
+  D-20261120-N5. Recorded by Newt Agent. Where: icenine_py/docs/autoresearch/STATE.md.
