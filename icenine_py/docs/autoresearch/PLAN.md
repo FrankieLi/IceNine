@@ -6394,6 +6394,117 @@ rejected; reseeds that fit only their own voxel; `n_seeds`, `top_k`; C++; realis
 
 Approved: D-20261120-N4, phase A, after task `ar5ac` merges; phase B needs a new decision.
 
+### AR5 step 29 phase B: the reuse rule as an opt-in library key
+
+Task `ar5ae` (proposed). Starts from `feature/eval-reduction` after phase A's merge (75af46bb).
+Needs a new recorded decision. Runs start only when the machine is free of the current long run.
+
+**Why.** Rule `RU` met every phase A gate (28.9% fewer evaluations on `mid` and `held`, in-sample;
+on `held8` 32.8% fewer than `PXF`, 9 fixed, 9 broken). A key lets configs use it without scripts.
+
+**What was read.** PLAN steps 28, 29; reports and reviews of `ar5ac`, `ar5ad`; `ru_rules.py`,
+`ru_launch.py`, `pxf_hl.py`, `pxf_lib_run.py`, `ar3/seed_pick.py`; the four library files of step
+28 and its tests. Stored rows only (`ru_steps_mid`, three `seed_log` files, `pxf/lib_check.json`).
+
+**Terms.** **Try**: phase A's step (cost the 8 nearest accepted orientations, one or two CMA fits
+of 200 evaluations, first step 0.5 degree). **Library form**: the library alone, keys in the
+config. **Aligned draws**, **`G2b`**: script-only pieces of `J5D` (step 22) the library lacks.
+
+**Library changes:** `SeedReuseKnown 0|1` (default 0) in `config_file.py` and `SearchParameters`
+(`check_seed_reuse_known`, as step 28). Pure helpers copied from `ru_rules` (nearest accepted
+voxels, second start) into `ray_indexing.py`, beside `misorientation_deg` and `SeedResult`; no new
+module. In `reconstructor.py`: refusals in `check_bfs_keys`, and one guarded block at the top of
+`BFSReconstruction._index_seed`, before the first indexing. Constants stay as frozen (8 starts,
+0.5 degree, 200 evaluations, 0.5 degree apart, accept at 0.95); none becomes a key. Key 0: the
+block is skipped (no tree, counter or log field): off is bit-identical, no golden change.
+
+**Where, and why there.** `_index_seed` holds the voxel, its record and the run's voxel states,
+which the try needs (accepted = state `FITTED`). Phase A wrapped the call inside the first
+indexing step. With step 28's keys that call can run twice (the full-sample second step), so the
+library block sits before the first step: one try per seed step, as in phase A. On success it
+returns at once with the fit's own overlap info (review suggestion; no uncounted re-evaluation).
+On failure it adds the try's evaluations and seconds to the step, as phase A did. The 8 costs and
+both fits count in `n_evals_seed`. Shared counters keep phase A's accounting (`index_runs` and
+`index_used` include steps ended by a try), so they can be compared one to one; new counters
+`reuse_*` and a `reuse` field per `index_log` entry say which steps a try ended.
+
+**Refused** (`ValueError` naming the key, as step 28): `SeedReuseKnown 1` without `SeedByIndexing`;
+without `RayIndexFallbackFull 1` (so `RayIndexMaxPairs` under 600,000: the rule was gated only on
+top of `PXF`); with `PaintGrains 1` (the paint path calls `index_seed` directly); with
+`use_hybrid_optimizer` or a `LocalOptimizer` other than `mc` (as `SeedRescueCMA`; the gated arms
+ran `mc`). A value other than 0 or 1 raises at parse time and in `SearchParameters`.
+
+**What can be equal.** Reading line: per comparison, what is compared with the library run on
+`mid`, and whether exact equality is possible.
+
+| compared with | what | exact? |
+|---|---|---|
+| new script arm `RUl` (`PXFl` plus the `RU` wrapper) | map, evaluations, counters, try rows | yes, gated |
+| stored `LibPXF` (same keys, `SeedReuseKnown` off) | evaluations, grid searches, wrong voxels | no, gated as L2 |
+| phase A `ru_steps_mid` (1,719 rows, 1,403 successes) | try or not, starts, evaluations, hit | prefix only |
+
+Phase A's arm has `G2b`, aligned draws, the screen pass and the repair. The library has none of
+these, so its map and totals cannot equal phase A's. The stored seed logs show where the draws
+part: `PXFl` and step 28's `J5D` agree for the first 58 seed steps on `mid` (phase A's `RU` and
+step 28's `J5D`, 60). So the library rows can match `ru_steps_mid` for about the first 58 rows
+only. That prefix length is reported, with the try share (phase A 81.6%), second fits (441),
+evaluations per try and the lowest accepted hit ratio. None of these is a gate (route effects).
+
+**Runs, one at a time, `mid` only, Q-max 8 as in phase A.** (1) `RUl`: `ru_hl.py` (`pxf_hl.py`
+plus `ru_rules.make_index_seed`), through `ru_common`, BEFORE any library edit (`ru/frozen.json`
+still agrees: nothing in `icenine/`, `pyproject.toml` or `uv.lock` has changed since 8a2f7e32).
+About 0.25 hours. (2) `LibRU`: `ru_lib_run.py`, `LibPXF`'s keys plus `SeedReuseKnown 1`, with the
+boundary pass; about 0.35 hours. Walls are contended labels, not gates; preflights kept.
+
+**Pass criteria, fixed now.**
+- L1 (equality): `LibRU` before the pass equals `RUl`: map bytes, total evaluations, every shared
+  counter, all 24,570 records, and every try row (voxel, tried, starts, costs, each fit's
+  evaluations and hit ratio, success, second). Seconds are not compared.
+- L2 (library form): `LibRU` before the pass at least 10% fewer evaluations than `LibPXF`
+  (6,731,510). After the pass, against `LibPXF`'s map: broken minus fixed at most 3, median error
+  at most 0.001 degree higher (truth read only to score).
+- Predictions: L2 15% to 30% fewer; try share 75% to 88%; broken minus fixed -3 to +3.
+
+**Stop rule:** A test fails. The freeze refuses `RUl`, or the library was edited before it ran.
+`RUl`'s rows before its first success differ from stored `PXFl`. A try accepts an end under 0.95,
+or a start that is not `FITTED`. L1 fails: report the first differing voxel and stop; no fix and
+rerun without review. A run passes 1 hour. `held2` opened or listed; `fine7` or fine1 results
+read. A criterion is never changed after a run.
+
+**Tests** (`tests/test_seed_reuse_known.py`, tests first): defaults off and the key parses; bad
+values raise; each refused combination says why; absent and `SeedReuseKnown 0` give identical
+fingerprints (map, stats, `index_log`) on a small BFS fixture, with no `reuse_*` counter; the
+helpers equal `ru_rules` on scripted cases (8 nearest, ties by index, rejected voxels left out,
+second start over 0.5 degree); a success skips indexing and returns the fit end; a failure runs
+the `PXF` step unchanged with the try added; the try runs once when the full-sample step repeats;
+the fit's overlap hit equals a fresh `evaluate_overlap`; a small real-reconstructor case (review
+suggestion); a hexagonal fixture runs. Then the full suite once, keys off, no golden change.
+
+**Docs.** Findings text to `.claude/reports/<stamp>-ar5ae-findings_ar5_ru.md` (agents cannot write
+into `docs/`); MIGRATION_HISTORY; README `SeedReuseKnown` row (phase A as SCRIPT arm, then L2).
+
+**Files.** `icenine/{config_file,orientation_search,ray_indexing,reconstructor}.py`;
+`tests/test_seed_reuse_known.py`; `scripts/autoresearch/ar5/ru_{hl,lib_run,lib_check}.py`;
+`ar5/ru/lib_check.json`, `lib_tables.md` (with sha256 of every script `RUl` imports).
+
+**Costs.** `ru_hl.py` 0.5 h; `RUl` 0.25 h; library and tests 2 h; suite 0.25 h; `LibRU` 0.35 h;
+check and docs 1 h. In all about 4.5 hours, one run at a time.
+
+**Known limits.** One library-form sample, in-sample; no `held` or `held8` run in library form.
+The library lacks `G2b`, aligned draws, the screen pass and the repair, so phase A's savings are
+the script arm's. Requiring `PXF` narrows the key. `index_runs` counts try successes. Copper only.
+
+**Not in this step.** The key without `PXF`; constants as keys; library runs on `held`, `held8`;
+default on; `G2b` or aligned draws in the library; the findings page; C++; realistic images; seeds.
+
+**Choices made.**
+- Block before the first indexing, not inside it: it keeps one try per seed step with `PXF` on.
+- Equality to a new script arm, as step 28: the only arm the library can equal exactly.
+- Phase A's counter accounting kept: a one-to-one check, no mapping to get wrong.
+- Requiring `RayIndexFallbackFull 1`: the only gated setting; a later step can relax it.
+
+Approved: D-20261121-N1 (task `ar5ae`); runs wait for the long layer run to end.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
