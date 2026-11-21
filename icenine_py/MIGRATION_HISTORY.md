@@ -14118,3 +14118,60 @@ step 28's `PXF` seed step runs unchanged. Frozen in `benchmarks/autoresearch/ar5
 - **Limits.** `mid`, `held` in-sample; `held8` one sample; walls contended and unpaired; the old arm
   is stored (built on the library before step 28's keys; its off path is claimed bit-identical);
   copper only. Phase B (key `SeedReuseKnown`) needs a new decision.
+
+## Autoresearch AR5 step 29, phase B: rule `RU` as the opt-in key `SeedReuseKnown` (2026-11-21, task ar5ae, D-20261121-N1)
+
+Phase A ran rule `RU` in the script layer (try the orientations of the 8 nearest accepted voxels with
+a 200-evaluation CMA fit, first step 0.5 degree, before a seed step is indexed). Phase B puts it in
+the library as one key, `SeedReuseKnown 0|1` (default 0), and checks that the library equals a script
+arm and what it saves in library form. No default flip, no golden change, no new dependency.
+
+- **Library.** `config_file.py` and `SearchParameters` (`check_seed_reuse_known`); helpers
+  `nearest_accepted` and `second_start` and the five constants (`REUSE_*`, as frozen, none a key) in
+  `ray_indexing.py`; refusals in `check_bfs_keys` (needs `SeedByIndexing 1` and `RayIndexFallbackFull
+  1`, so `RayIndexMaxPairs` below 600,000; refuses `PaintGrains 1`, the hybrid optimizer and a
+  `LocalOptimizer` other than `mc`); `BFSReconstruction._reuse_try` and one guarded block at the top
+  of `_index_seed`, before the first indexing (so the full-sample second step of step 28 does not
+  repeat the try). A success returns the fit end with the fit's own overlap (no extra evaluation) and
+  indexes nothing; a failure runs the PXF step unchanged and adds the try's evaluations to it. Counters
+  `reuse_*` and a `reuse` row per `index_log` entry exist only with the key on; `index_runs` and
+  `index_used` include steps ended by a try, as in phase A. Key 0: the block is skipped (no tree,
+  counter or field), tested identical (`tests/test_seed_reuse_known.py`, 29 tests; full suite 2,475
+  passed, 48 skipped, 1 deselected, keys off, no golden change).
+- **Order.** The script arm `RUl` (`ru_hl.py`: step 28's `PXFl` plus the `RU` wrapper) ran first, with
+  the freeze agreeing and no library edit made: 596 s (contended: the timing preflight was refused,
+  1-min load above 1.5 with an editor language server at 99% CPU named busy; the counted run's own
+  preflight, 12:16:06, is `ru/preflight_RUl_run.json`; `ru/preflight_RUl.json` is the earlier
+  standalone one, 12:11, taken before a launch that failed on missing data). Its first 61 seed-log
+  rows (before its first success, row 61) equal the stored `PXFl` rows (`lib_check.json`,
+  `rul_vs_pxfl_seed_log`). Then the library edit, then `LibRU` (`ru_lib_run.py`: `LibPXF`'s keys plus
+  `SeedReuseKnown 1`, with the boundary pass): 898 s (contended, preflight refused on load,
+  `ru/preflight_LibRU.json`).
+- **L1 (equality before the boundary pass, `mid`): met on the first run.** Map bytes, 4,721,521
+  evaluations, all 36 counters of the script run, all 24,570 records, 1,692 try rows (1,691 tried,
+  1,379 successes), 313 PXF steps and 470 MC refinements with their checks are equal
+  (`ru/lib_check.json`, `lib_tables.md`). L1 shares the copied helpers and the library fit and cost
+  with `RUl`, so it shows placement, accounting and wiring, not that the helpers are correct (unit
+  tests cover those).
+- **L2 (library form against `LibPXF`): met.** Before the pass 4,721,521 against 6,731,510
+  evaluations, 29.9% fewer (gate 10%, prediction 15% to 30%). After the pass: 32 against 31 wrong
+  voxels of 24,570 (over 1 degree from the truth; Wilson 95% 0.092% to 0.184% for 32 and 0.089% to
+  0.179% for 31), broken 11, fixed 10, both wrong 21, broken minus fixed +1 (gate at most 3); median
+  error over all 24,570 voxels 0.028223 against 0.028710 degree (0.000488 lower; gate at most 0.001
+  higher). With the pass the whole run costs 7,786,344 against 9,803,653 evaluations (20.6% fewer;
+  pass 3,064,823 against 3,072,143). Try share 81.5% of 1,692 seed steps (prediction 75% to 88%), 455 second fits (217
+  succeeded), 263 evaluations per try, lowest accepted hit ratio 0.95009. One library-form sample,
+  in-sample, one run per arm.
+- **Against phase A's stored rows.** The seed steps come in the same voxel order for the first 58
+  rows, but the rows (costs of the same starts) are equal for 1 row only and starts, success flags
+  agree for 4. Consistent with phase A's arm having `G2b` and aligned draws, which the library lacks
+  (the same voxels then hold other orientations); that cause is not tested. Not a gate.
+- **Deviations and notes.** The `mid` truth and grid `.mic` files were missing in the main checkout;
+  they were copied (untracked) into the worktree from another worktree (sha256 equal to the freeze
+  record, 3767c827...). The worktree `.venv` had no dev extra, and a first pytest run did not see the
+  new field (consistent with pytest coming from another environment; not checked);
+  `uv sync --extra dev --locked` was run in the worktree before the tests. Preflight JSON shortened a home path to `~` (the pre-commit check refuses
+  absolute home paths). Walls are contended and not comparable between arms.
+- **Limits.** One library-form sample, in-sample; no `held` or `held8` library run; the library lacks
+  `G2b`, aligned draws, the screen pass and the repair, so phase A's savings are the script arm's;
+  requiring `PXF` narrows the key; copper only. The findings text is in `.claude/reports/`, not `docs/`.

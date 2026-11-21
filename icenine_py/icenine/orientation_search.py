@@ -128,6 +128,12 @@ def check_ray_index_fallback_full(v: Any) -> None:
         raise ValueError(f"RayIndexFallbackFull must be 0 (off) or 1 (on), got {v!r}")
 
 
+def check_seed_reuse_known(v: Any) -> None:
+    """SeedReuseKnown: the integer 0 (off) or 1 (on). Raises ValueError otherwise."""
+    if isinstance(v, bool) or not isinstance(v, (int, np.integer)) or int(v) not in (0, 1):
+        raise ValueError(f"SeedReuseKnown must be 0 (off) or 1 (on), got {v!r}")
+
+
 @dataclass
 class SearchParameters:
     """
@@ -287,6 +293,17 @@ class SearchParameters:
     #   (MIGRATION_HISTORY.md, "Autoresearch AR5 step 28").
     ray_index_max_pairs: int = RAY_INDEX_MAX_PAIRS_DEFAULT
     ray_index_fallback_full: int = 0
+    # seed_reuse_known (SeedReuseKnown 0|1, AR5 step 29; 0 = off): rule RU of
+    #   scripts/autoresearch/ar5/ru_rules.py. Before a seed step (seed or reseed) the BFS costs
+    #   the orientations of the 8 nearest voxels accepted so far (state FITTED), runs one CMA fit
+    #   (first step 0.5 degree, 200 evaluations) from the lowest-cost one and, if it ends under
+    #   0.95 hit ratio, a second from the lowest-cost start over 0.5 degree from the first. A fit
+    #   that ends at 0.95 or more is the seed result and nothing is indexed; otherwise the seed
+    #   step runs unchanged and the try's evaluations are added to it. The constants are not keys.
+    #   Needs seed_by_indexing and ray_index_fallback_full (the setting the rule was gated on),
+    #   the mc local optimizer, no hybrid optimizer and no paint_grains. Off by default
+    #   (MIGRATION_HISTORY.md, "Autoresearch AR5 step 29").
+    seed_reuse_known: int = 0
     # paint_grains: opt-in (config key PaintGrains, default off; AR3 step 2). With the key on,
     #   ``BFSReconstruction.reconstruct_sample`` runs ``grain_paint.paint_grains`` in place of the
     #   BFS (seeds indexed, each grain flooded by single strict scores, each voxel painted with the
@@ -400,6 +417,7 @@ class SearchParameters:
         check_seed_index_mc_defer(self.seed_index_mc_defer)
         check_ray_index_max_pairs(self.ray_index_max_pairs)
         check_ray_index_fallback_full(self.ray_index_fallback_full)
+        check_seed_reuse_known(self.seed_reuse_known)
         from .candidate_dedup import DedupSpec
 
         DedupSpec.parse(self.candidate_dedup)  # raises ValueError on a malformed spec
@@ -455,6 +473,7 @@ class SearchParameters:
                 getattr(config, "ray_index_max_pairs", RAY_INDEX_MAX_PAIRS_DEFAULT)
             ),
             ray_index_fallback_full=int(getattr(config, "ray_index_fallback_full", 0)),
+            seed_reuse_known=int(getattr(config, "seed_reuse_known", 0)),
             paint_grains=bool(getattr(config, "paint_grains", False)),
             cpp_overlap_rule=bool(getattr(config, "cpp_overlap_rule", False)),
             cpp_edge_rules=bool(getattr(config, "cpp_edge_rules", False)),

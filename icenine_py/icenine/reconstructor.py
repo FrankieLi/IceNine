@@ -202,6 +202,23 @@ def check_bfs_keys(params: Any) -> None:
                 "SeedIndexMCDefer needs SeedIndexMCStallHit k >= 1 (it pauses a refinement at "
                 "its stall check; with no check there is nothing to pause)"
             )
+    if int(getattr(params, "seed_reuse_known", 0)) > 0:  # AR5 step 29, rule RU
+        if not getattr(params, "seed_by_indexing", False):
+            raise ValueError(
+                "SeedReuseKnown needs SeedByIndexing 1 (it acts before the indexed seed step)"
+            )
+        if getattr(params, "paint_grains", False):  # grain_paint calls index_seed directly
+            raise ValueError("SeedReuseKnown cannot be combined with PaintGrains 1")
+        if int(getattr(params, "ray_index_fallback_full", 0)) <= 0:
+            raise ValueError(
+                "SeedReuseKnown needs RayIndexFallbackFull 1 (with RayIndexMaxPairs below "
+                f"{RAY_INDEX_MAX_PAIRS_DEFAULT:,}): the rule was gated only on top of the "
+                "PXF seed step"
+            )
+        if getattr(params, "use_hybrid_optimizer", False):
+            raise ValueError("SeedReuseKnown cannot be combined with use_hybrid_optimizer")
+        if getattr(params, "local_optimizer", "mc") != "mc":
+            raise ValueError("SeedReuseKnown needs LocalOptimizer mc (the gated arms ran mc)")
     max_pairs = int(getattr(params, "ray_index_max_pairs", RAY_INDEX_MAX_PAIRS_DEFAULT))
     fallback_full = int(getattr(params, "ray_index_fallback_full", 0)) > 0
     if max_pairs != RAY_INDEX_MAX_PAIRS_DEFAULT or fallback_full:  # AR5 step 28
@@ -2880,6 +2897,95 @@ class BFSReconstruction:
         """Add to a counter that exists only when its key is on (SeedByIndexing, OutwardSearch)."""
         self.stats[key] = self.stats.get(key, 0) + value
 
+    def _reuse_try(
+        self, voxel_idx: int, vertices: torch.Tensor, phase: int
+    ) -> Tuple[Optional[Tuple[np.ndarray, float, Any]], Dict[str, Any]]:
+        """Rule ``RU`` (``SeedReuseKnown 1``, AR5 step 29) before a seed step at voxel
+        ``voxel_idx``: the strict cost (one evaluation each) of the orientations of the 8 nearest
+        voxels accepted so far (state ``FITTED``; ties by voxel index), then one CMA fit (first
+        step 0.5 degree, 200 evaluations, a fresh ``default_rng(0)``) from the lowest-cost one and,
+        if that ends under 0.95 hit ratio, one from the lowest-cost start more than 0.5 degree from
+        the first. Returns ((end orientation, end cost, end overlap info) of the first fit that
+        ends at hit ratio 0.95 or more, else None) and the row: ``tried``, ``starts`` (voxel ids),
+        ``costs``, ``fits`` (start voxel, evaluations, hit, cost, seconds, second), ``evals``
+        (costs plus fits; the final overlap evaluation of a fit is in the fit's count),
+        ``success``, ``second``. No start (no accepted voxel): ``tried`` is False and nothing is
+        evaluated."""
+        from . import ray_indexing as RI
+
+        mic = self.setup.sample.get_mic()
+        assert mic is not None
+        geo = getattr(self, "_reuse_geo", None)
+        if geo is None or geo[0] is not mic:  # built once per sample, only with the key on
+            from scipy.spatial import cKDTree
+
+            pos = np.asarray(mic.positions.numpy(), np.float64)
+            geo = (mic, pos, cKDTree(pos))
+            self._reuse_geo = geo
+        _, pos, tree = geo
+        voxels = mic.voxels
+        near = RI.nearest_accepted(
+            tree,
+            pos,
+            int(voxel_idx),
+            lambda j: voxels[j].reconstruction_id == ReconstructionState.FITTED,
+        )
+        row: Dict[str, Any] = dict(
+            tried=False,
+            starts=[int(j) for j in near],
+            costs=[],
+            fits=[],
+            evals=0,
+            success=False,
+            second=False,
+        )
+        if not near:
+            return None, row
+        row["tried"] = True
+        rc = self.reconstructor
+        _, crystal, _, strict_cf = rc._index_context(phase)
+        R = [np.asarray(voxels[j].orientation, np.float64) for j in near]
+        costs = [float(strict_cf.evaluate(r, vertices, phase).cost) for r in R]
+        row["costs"] = costs
+        row["evals"] = len(R)
+        order = [int(j) for j in np.argsort(np.asarray(costs), kind="stable")]
+
+        def mis(a: np.ndarray, b: np.ndarray) -> float:
+            return float(RI.misorientation_deg(a[None], b[None], crystal.sym)[0])
+
+        sec = RI.second_start(order, R, mis)
+        seq = [(order[0], False)] + ([(sec, True)] if sec is not None else [])
+        for j, is_second in seq:
+            t0 = time.perf_counter()
+            r = rc.local_optimization(
+                voxel_vertices=vertices,
+                phase_index=phase,
+                initial_orientation=R[j],
+                rng=np.random.default_rng(0),
+                cma_sigma0_deg=RI.REUSE_SIGMA0_DEG,
+                cma_max_evals=RI.REUSE_MAX_EVALS,
+                optimizer="cma",
+            )
+            dt = time.perf_counter() - t0
+            ev = int(rc.last_local_optimization_evals)
+            hit = float(self._ratios(r.overlap_info)[0])
+            row["evals"] += ev
+            row["fits"].append(
+                dict(
+                    start=int(near[j]),
+                    evals=ev,
+                    hit=hit,
+                    cost=float(r.cost),
+                    s=float(dt),
+                    second=is_second,
+                )
+            )
+            row["second"] = is_second
+            if hit >= RI.REUSE_ACCEPT:
+                row["success"] = True
+                return (np.asarray(r.orientation, np.float64), float(r.cost), r.overlap_info), row
+        return None, row
+
     def _index_seed(
         self, voxel: Any, vertices: torch.Tensor, rec: BFSVoxelRecord, reseed: bool
     ) -> Optional[Tuple[SearchCandidate, OverlapInfo, float]]:
@@ -2925,11 +3031,35 @@ class BFSReconstruction:
             steps.append((r, logs))
             return r
 
-        res = run_step(kw)
+        reuse_end: Optional[Tuple[np.ndarray, float, Any]] = None
+        reuse_row: Optional[Dict[str, Any]] = None
+        if int(getattr(sp, "seed_reuse_known", 0)) > 0:  # SeedReuseKnown (rule RU): once per
+            # seed step, before the first indexing (a repeated full-sample step does not repeat it)
+            t_try = time.perf_counter()
+            reuse_end, reuse_row = self._reuse_try(rec.voxel_idx, vertices, voxel.phase)
+            reuse_row.update(voxel=int(rec.voxel_idx), try_s=time.perf_counter() - t_try)
         first_step: Optional[Dict[str, Any]] = None
-        if full_on and int(res.n_pairs) >= max_pairs:  # RayIndexFallbackFull (rule PXF): the
-            # indexing kept a subsample; if the step fails the seed test it is run again, whole,
-            # with the full sample (the hit ratio of the first step is not an evaluation)
+        if reuse_end is not None:  # a fit of the try ended at the accepted hit ratio: no indexing
+            assert reuse_row is not None
+            from .ray_indexing import SeedResult
+
+            res = SeedResult(
+                orientation=reuse_end[0],
+                cost=reuse_end[1],
+                taken=-1,
+                n_cand=0,
+                n_att=0,
+                evals=int(reuse_row["evals"]),
+                index_s=0.0,
+                total_s=float(reuse_row["try_s"]),
+            )
+            steps.append((res, []))  # no indexer call and no stall log
+        else:
+            res = run_step(kw)
+        if reuse_end is None and full_on and int(res.n_pairs) >= max_pairs:
+            # RayIndexFallbackFull (rule PXF): the indexing kept a subsample; if the step fails
+            # the seed test it is run again, whole, with the full sample (the hit ratio of the
+            # first step is not an evaluation)
             hit1: Optional[float] = None
             if res.orientation is not None:
                 info1 = self.reconstructor.evaluate_overlap(res.orientation, vertices, voxel.phase)
@@ -2950,6 +3080,12 @@ class BFSReconstruction:
                     index_s=res1.index_s + res.index_s,
                     total_s=res1.total_s + res.total_s,
                 )
+        if reuse_row is not None and reuse_end is None and reuse_row["tried"]:
+            res = dataclasses.replace(  # a failed try's costs and fits count as the seed's
+                res,
+                evals=res.evals + int(reuse_row["evals"]),
+                total_s=res.total_s + float(reuse_row["try_s"]),
+            )
         dt = time.time() - t0  # includes the one-time pairing on the first call
         rec.n_evals += res.evals
         rec.wall_s += dt
@@ -2985,6 +3121,16 @@ class BFSReconstruction:
                 self._count("index_fb_full_passed", 0)  # raised below when the second step passes
             self._count("index_pairs", sum(int(r.n_pairs) for r, _ in steps))
             self._count("index_votes", sum(int(r.n_votes) for r, _ in steps))
+        if reuse_row is not None:  # SeedReuseKnown: the try's row and counters (key on only)
+            entry["reuse"] = reuse_row
+            tried = bool(reuse_row["tried"])
+            self._count("reuse_steps")
+            self._count("reuse_tried", int(tried))
+            self._count("reuse_success", int(reuse_end is not None))
+            self._count("reuse_second_fits", sum(1 for f in reuse_row["fits"] if f["second"]))
+            self._count("reuse_evals", int(reuse_row["evals"]))
+            self._count("reuse_evals_wasted", 0 if reuse_end is not None else reuse_row["evals"])
+            self._count("reuse_s", float(reuse_row["try_s"]))
         if stop_hit > 0:
             entry["stopped_at"] = int(res.stopped_at)
             self._count("index_stopped_early", 1 if res.stopped_at >= 0 else 0)
@@ -3026,7 +3172,10 @@ class BFSReconstruction:
             print(f"    Seed voxel {rec.voxel_idx}: no index candidate: grid search", flush=True)
             return None
         result = SearchCandidate(orientation=res.orientation, cost=float(res.cost))
-        info = self.reconstructor.evaluate_overlap(result.orientation, vertices, voxel.phase)
+        if reuse_end is not None:  # the fit's own overlap (no further evaluation)
+            info = reuse_end[2]
+        else:
+            info = self.reconstructor.evaluate_overlap(result.orientation, vertices, voxel.phase)
         hit, _ = self._ratios(info)
         entry["hit_ratio"] = float(hit)
         if hit < self.setup.config.min_acceleration_threshold:
