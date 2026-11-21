@@ -110,8 +110,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - A choice: whether the documentation recommends the two `S11` keys (N21) and the skip key of
   step 7 (N6; `held` is not a clean test for it). All are off; none is recommended now.
 - Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N25,
-  D-20261112-N1 to N10, D-20261113-N1 to N10, D-20261114-N1 to N3. N15 adds `held` (new seed);
-  N17, N18: run caps of 480 minutes.
+  D-20261112-N1 to N10, D-20261113-N1 to N10, D-20261114-N1 to N3 (N15: `held`; N17, N18: caps).
 
 ## Bookkeeping
 - Next decision ID: D-20261121-N3 (first of a day is N1).
