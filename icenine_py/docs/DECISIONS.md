@@ -2310,3 +2310,11 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   route effects not sized). Gates r1 to r3 on mid and held against the stored PXF runs; clean test
   on a new sample held8 (h1 against S8, h2 against PXF J5SD), built only after r1 to r3 pass. A
   key (phase B) needs a new decision. Where: icenine_py/docs/autoresearch/PLAN.md AR5 step 29.
+
+### D-20261120-N5 · D-20261120-N5 · Owner: finer-layer Python runs may go ahead; order set
+- 2026-11-20, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by the owner in the session on 2026-11-20 (question card). On the finer 98,280-voxel
+  layer: rerun the current-recipe run (arm J5S) with a 6 h cap, then start the stock Python run
+  (arm PS, projected 33.7 to 51.0 h, cap 76.5 h), which may exceed the 48 h ask-first limit.
+  Order: AR5 step 29 (about 9 h) runs first, then the layer runs, one run at a time. Recorded by
+  Newt Agent. Where: icenine_py/docs/autoresearch/STATE.md; SP/owner_task_20261116.md.
