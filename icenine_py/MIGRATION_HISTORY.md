@@ -13996,8 +13996,10 @@ opt-in keys; the numbers of phase A are in `benchmarks/autoresearch/ar5/pxf/` (`
   checked in `reconstructor.check_bfs_keys`: both need `SeedByIndexing 1` (a changed count or the
   fallback without it is refused with a message that names the key; `RayIndexMaxPairs` written at its
   default is not a change); `RayIndexFallbackFull 1` needs `RayIndexMaxPairs` below 600,000, since with
-  600,000 or more in the first step the second step would be the same step (refused). A count above
-  600,000 alone is accepted. Decision made here, not in the plan: those are the two error cases.
+  600,000 or more in the first step the second step would be the same step (refused). Both keys are
+  also refused with `PaintGrains 1` (review fix: `grain_paint` calls `index_seed` without the count, so
+  they would be silently ignored). A count above 600,000 alone is accepted. Decision made here, not in
+  the plan: these are the error cases.
 - **Library change (all behind the keys).** `ray_indexing.SeedResult` gains `n_pairs` and `n_votes` (set
   from the indexer's result; 0 for a stand-in that has none). `AdaptiveVoxelReconstructor.index_seed`
   takes `max_pairs` (0 = the shared `IndexParams` untouched; else a copy with that count).
@@ -14011,7 +14013,7 @@ opt-in keys; the numbers of phase A are in `benchmarks/autoresearch/ar5/pxf/` (`
   `ray_index` in each `index_log` entry (key on only; `first` holds the repeated step's evaluations,
   hit ratio, pairs, votes and indexing seconds). The stall-check logs, `mixed` lists and the pause and
   resume counters of both steps are kept, in step order.
-- **Tests.** `tests/test_ray_index_max_pairs.py`, 39 tests, written before the library change and
+- **Tests.** `tests/test_ray_index_max_pairs.py`, 40 tests (39 at the first commit; the review added the PaintGrains refusal and a CMA-first and defer counter test), written before the library change and
   committed with it: parsing and bad values; the refused combinations; `index_seed`'s keyword wiring
   (the shared `IndexParams` is never changed); the pair counts on `SeedResult`; the BFS with the keys
   absent and written at their defaults identical (no `max_pairs` sent, no new counter or log field);
@@ -14024,7 +14026,7 @@ opt-in keys; the numbers of phase A are in `benchmarks/autoresearch/ar5/pxf/` (`
   (`pxf_freeze.py`) pins the library files as of phase A and now refuses by design; the library-run
   scripts do not go through it (`pxf_lib_run.py`, `pxf_lib_check.py`), and the script arm `PXFl` ran
   before the library change, under the freeze.
-- **Key-off:** the full suite with no golden change: 2,432 passed, 48 skipped, 1 deselected, 0 failed
+- **Key-off:** the full suite with no golden change: 2,433 passed (2,432 before the review fixes), 48 skipped, 1 deselected, 0 failed
   (`uv run pytest tests/` from `icenine_py/`, the worktree's own environment, 13 minutes). The 39
   tests of this phase and phase A's 11 are in the count (step 22's was 2,333).
 - **Key on, library run on `mid`:** a REPLACED check, as in step 22. The plan asked for a library run
@@ -14037,10 +14039,21 @@ opt-in keys; the numbers of phase A are in `benchmarks/autoresearch/ar5/pxf/` (`
   rescued), all 1,897 MC refinements with their checks, the pauses and resumes (623 steps with a
   pause, 1,263 pauses, 506 resumes), and the second tries: 1,661 seed steps, 11 second tries, 6 passed,
   with the same pair counts, votes and evaluations step by step. Equality with the phase A `J5D` itself
-  (5,997,364 search evaluations on `mid`; the library run 6,731,510) is not shown and not expected.
+  is not shown and not expected.
   Results: `benchmarks/autoresearch/ar5/pxf/lib_check.json`, `lib_tables.md`. Library wall 1,390 s and
-  script arm 1,095 s are contended (other jobs on the machine), not timings; the library run includes
-  the boundary pass (3,072,143 evaluations).
+  script arm 1,095 s are contended (other jobs on the machine), not timings (both in `lib_check.json`,
+  `walls_s`); the library run includes the boundary pass (3,072,143 evaluations), without the screen
+  pass or wide repair, so its whole-run total (9,803,653) cannot be compared with `J5SD`'s 6,822,192.
+- **Library form (`lib_check.json`, `library_form`; no accuracy measured).** Against the same library
+  run without the two keys (step 22's `LibJ5D`, a stored run of another session; same `mid` hash,
+  deterministic code): 7,253,826 to 6,731,510 evaluations, 7.20% fewer, and grid searches 4 to 2. The
+  fallback stage (rescue plus grid) falls from 1,361,954 to 674,447 evaluations. Without that stage the
+  key-on run costs 2.80% MORE (6,057,063 against 5,891,872): the whole saving rests on 2 fewer grid
+  searches, as in phase A (+1.18% without them). Gap to the phase A script arm `J5D` (5,997,364 search
+  evaluations on `mid`): 734,146, of which 663,807 is in the fallback stage (674,447 in `PXFl` with 2
+  grid searches, against 10,640 in `J5D` with 0; `G2b` polished 1). Consistent with `G2b` avoiding the
+  two grid searches; that cause is not tested. A grid search costs about 346,900 evaluations
+  (693,701 for 2 on `held`, `pxf/summary.json`).
 - **Data rebuilt.** The mid sample's truth, grid, frames and stack are not in the main checkout (they
   were links into earlier worktrees); they were rebuilt with the stored builders (`start_make_mid.py`,
   `render_full.py --tag mid`, `start_stack_note.py --build`). The truth `.mic` hash and the stack's

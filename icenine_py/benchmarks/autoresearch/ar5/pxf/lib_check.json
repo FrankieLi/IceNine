@@ -104,5 +104,39 @@
   "phase_a_J5D_search_evals": 5997364,
   "libPXF_evals_before_pass": 6731510,
   "note": "J5D has rule G2b and aligned draws; the library has neither; not compared"
+ },
+ "library_form": {
+  "key_off_run": "LibJ5D of step 22 (stored; same keys without RayIndexMaxPairs and RayIndexFallbackFull)",
+  "key_off_evals_before_pass": 7253826,
+  "key_on_evals_before_pass": 6731510,
+  "fewer_share": 0.0720055871205072,
+  "grid_searches": {
+   "key_off": 4,
+   "key_on": 2,
+   "phase_a_J5D": 0
+  },
+  "fallback_stage_evals": {
+   "key_off": 1361954,
+   "key_on": 674447,
+   "phase_a_J5D": 10640
+  },
+  "without_fallback_stage": {
+   "key_off": 5891872,
+   "key_on": 6057063,
+   "key_on_more_share": 0.02803709924451847
+  },
+  "gap_to_phase_a_J5D": {
+   "total": 734146,
+   "in_fallback_stage": 663807,
+   "phase_a_J5D_search_evals": 5997364,
+   "note": "consistent with G2b avoiding the grid searches; that cause is not tested"
+  },
+  "screen_pass_run_in_library": "no (BoundaryPass 1 without screen pass or repair)",
+  "accuracy_measured": "no"
+ },
+ "walls_s": {
+  "library_run": 1389.8809230327606,
+  "script_arm_PXFl": 1095.1915891170502,
+  "label": "contended (other jobs on the machine); not timings"
  }
 }

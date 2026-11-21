@@ -174,6 +174,49 @@ def main() -> None:
             note="J5D has rule G2b and aligned draws; the library has neither; not compared",
         ),
     )
+    # library form (as step 22's lib_check.json library_form): key on against the same library run
+    # without the two keys (step 22's LibJ5D, stored; same mid hash; deterministic), and the gap to
+    # the phase A arm J5D. "Fallback stage" = rescue + grid evaluations (script count: the script
+    # arm's index_fallback_grid_evals holds the rescue; J5D: rescue + polish + grid, polish.json).
+    d22 = json.loads((SD.parent / "defer" / "lib_check.json").read_text())["library_form"]
+    pol = json.loads((SCACHE / "live_pxf" / "J5D_mid" / "polish.json").read_text())
+    lib_total = int(run_lib["evals_total_before_pass"])
+    key_off_total = int(d22["libJ5D_evals_before_pass"])
+    fb_on = int(st_hl["index_fallback_grid_evals"])
+    fb_off = int(d22["j5dl_fallback_evals"])
+    fb_j5d = int(pol["rescue_evals"] + pol["polish_evals"] + pol["grid_evals"])
+    j5d_search = int(RLC.evals_total(j5d))
+    res["library_form"] = dict(
+        key_off_run="LibJ5D of step 22 (stored; same keys without RayIndexMaxPairs and "
+        "RayIndexFallbackFull)",
+        key_off_evals_before_pass=key_off_total,
+        key_on_evals_before_pass=lib_total,
+        fewer_share=1.0 - lib_total / key_off_total,
+        grid_searches=dict(
+            key_off=int(d22["grid_searches"]["j5dl"]),
+            key_on=int(json.loads((hl / "rescue.json").read_text())["grid_fallbacks_left"]),
+            phase_a_J5D=int(pol["grid_fallbacks_left"]),
+        ),
+        fallback_stage_evals=dict(key_off=fb_off, key_on=fb_on, phase_a_J5D=fb_j5d),
+        without_fallback_stage=dict(
+            key_off=key_off_total - fb_off,
+            key_on=lib_total - fb_on,
+            key_on_more_share=(lib_total - fb_on) / (key_off_total - fb_off) - 1.0,
+        ),
+        gap_to_phase_a_J5D=dict(
+            total=lib_total - j5d_search,
+            in_fallback_stage=fb_on - fb_j5d,
+            phase_a_J5D_search_evals=j5d_search,
+            note="consistent with G2b avoiding the grid searches; that cause is not tested",
+        ),
+        screen_pass_run_in_library="no (BoundaryPass 1 without screen pass or repair)",
+        accuracy_measured="no",
+    )
+    res["walls_s"] = dict(
+        library_run=float(run_lib["wall_total_s"]),
+        script_arm_PXFl=float(json.loads((hl / "run.json").read_text())["wall_total_s"]),
+        label="contended (other jobs on the machine); not timings",
+    )
     (SD / "lib_check.json").write_text(json.dumps(res, indent=1, default=float) + "\n")
     sys.path.insert(0, str(ICE / "scripts" / "common"))
     import doc_tables as DT

@@ -100,6 +100,14 @@ def test_refused_combinations_say_why(monkeypatch: pytest.MonkeyPatch) -> None:
         _bfs_with(monkeypatch, dict(BASE, ray_index_fallback_full=1, ray_index_max_pairs=FULL))
     with pytest.raises(ValueError, match="RayIndexFallbackFull needs RayIndexMaxPairs below"):
         _bfs_with(monkeypatch, dict(BASE, ray_index_fallback_full=1, ray_index_max_pairs=FULL + 1))
+    # the paint path calls index_seed without max_pairs, so the keys would be ignored: refused
+    # (no other seed key here, so no older refusal can stand in for this one)
+    paint = dict(seed_by_indexing=True, paint_grains=True)
+    _bfs_with(monkeypatch, paint)  # valid without the new keys
+    for kw in (dict(ray_index_max_pairs=50_000), dict(ray_index_max_pairs=50_000,
+               ray_index_fallback_full=1)):  # fmt: skip
+        with pytest.raises(ValueError, match="RayIndexMaxPairs and RayIndexFallbackFull cannot"):
+            _bfs_with(monkeypatch, dict(paint, **kw))
     # valid: the defaults without SeedByIndexing, a small count alone, both on
     _bfs_with(monkeypatch, dict(ray_index_max_pairs=FULL, ray_index_fallback_full=0))
     _bfs_with(monkeypatch, SMALL)
@@ -202,7 +210,37 @@ def _bfs(monkeypatch: pytest.MonkeyPatch, params: Dict[str, Any], rescue: bool =
     PxfFake.calls, PxfFake.available = [], fake.get("available", 700_000)
     PxfFake.good_from, PxfFake.no_cand_below = fake.get("good_from", FULL), fake.get("no_cand", 0)
     extra = RESCUE if rescue else {}
-    return _run((0.0, 0.0, 0.0), monkeypatch, fake=PxfFake, **params, **extra)
+    return _run((0.0, 0.0, 0.0), monkeypatch, fake=fake.get("cls", PxfFake), **params, **extra)
+
+
+class MixedFake(PxfFake):
+    """``PxfFake`` whose steps also leave the mixed list (SeedIndexCMAFirst) and the pause lists
+    (SeedIndexMCDefer) of their position: step 1 has one MC run, step 2 none; step 1 paused one
+    refinement, step 2 two; each resumed one."""
+
+    def index_seed(self, voxel_vertices: Any, phase_index: int, **kw: Any) -> RI.SeedResult:
+        out = super().index_seed(voxel_vertices, phase_index, **kw)
+        k = len(PxfFake.calls)
+        out.mixed = [dict(cma_hit=0.1 * k, mc_ran=k == 1), dict(cma_hit=0.9, mc_ran=False)]
+        out.paused, out.resumed = ([0] if k == 1 else [0, 1]), [0]
+        return out
+
+
+def test_cma_first_and_defer_counters_cover_both_steps(monkeypatch: pytest.MonkeyPatch) -> None:
+    on = dict(PXF, seed_index_cma_first=200, seed_index_mc_stall_hit=500, seed_index_mc_defer=1)
+    bfs, _ = _bfs(monkeypatch, on, cls=MixedFake)
+    assert _pairs() == [50_000, FULL]
+    e = _seed0(bfs)
+    assert [m["cma_hit"] for m in e["mixed"]] == [pytest.approx(0.1), 0.9, pytest.approx(0.2), 0.9]
+    s = bfs.stats
+    assert s["index_mixed_cands"] == 4 and s["index_mixed_mc_ran"] == 1
+    assert s["index_mixed_cma_reached"] == 3
+    assert s["index_defer_steps"] == 2 and s["index_defer_pauses"] == 3
+    assert s["index_defer_resumes"] == 2
+    assert e["defer"] == dict(paused=[0, 1], resumed=[0])  # the entry holds the last step's lists
+    # one step (no repeat): the counters are the stock one-step values
+    bfs1, _ = _bfs(monkeypatch, on, cls=MixedFake, good_from=50_000)
+    assert bfs1.stats["index_mixed_cands"] == 2 and bfs1.stats["index_defer_pauses"] == 1
 
 
 def _pairs() -> List[int]:

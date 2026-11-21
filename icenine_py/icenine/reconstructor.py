@@ -211,6 +211,10 @@ def check_bfs_keys(params: Any) -> None:
                 f"{what} needs SeedByIndexing 1 (it acts on the indexed seed step; the default "
                 f"RayIndexMaxPairs is {RAY_INDEX_MAX_PAIRS_DEFAULT:,})"
             )
+        if getattr(params, "paint_grains", False):  # grain_paint calls index_seed without them
+            raise ValueError(
+                "RayIndexMaxPairs and RayIndexFallbackFull cannot be combined with PaintGrains 1"
+            )
         if fallback_full and max_pairs >= RAY_INDEX_MAX_PAIRS_DEFAULT:
             raise ValueError(
                 "RayIndexFallbackFull needs RayIndexMaxPairs below "
@@ -1900,8 +1904,6 @@ class AdaptiveVoxelReconstructor:
         ``max_pairs`` > 0 (RayIndexMaxPairs, AR5 step 28): the indexer keeps that many ray pairs
         (a random subsample above it) in place of the stored 600,000; 0 leaves the shared
         ``IndexParams`` untouched (a copy carries the change, never the shared object)."""
-        import dataclasses
-
         from . import ray_indexing as RI
 
         if cma_first_evals and (cma_first_evals < 2 or stop_hit <= 0):
