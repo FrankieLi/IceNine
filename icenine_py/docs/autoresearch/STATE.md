@@ -39,7 +39,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    NOW: (a) v61 live (20 Nov 18:25). (c) restart distance and C++ config done (20261116-*).
    (b) OWNER TASK part 1: both C++ changes reviewed (a7e220e7; C5 56 wrong); fixed2 sub-grid test
    PASSED (2 passed, 261 s). Part 2 `fine1`: projection (c501c238, re-freeze 2943a5e6), hours:
-   Whole layer: CS 91,206 s, CF 71,996 s done; then (N6) C++ all cores, (N5) J5S 6 h cap, PS; after step 29.
+   Whole layer: CS 91,206 s, CF 71,996 s done. After step 29: C++ all cores (N6), J5S 6 h, PS (N5).
 
 ## Running jobs
 - Step 14 key WAITS (held2). Steps 15 to 21 merged (caches: `J5r` `agent-aeba15b7c3850b007`,
