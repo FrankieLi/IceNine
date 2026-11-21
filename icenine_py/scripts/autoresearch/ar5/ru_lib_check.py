@@ -25,7 +25,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List
 
 HERE = Path(__file__).resolve().parent
 ICE = HERE.parents[2]
@@ -200,15 +200,27 @@ def prefix_vs_phase_a(index_log: List[Dict[str, Any]]) -> Dict[str, Any]:
     p = SCACHE / "live_ru" / "ru_steps_mid.json.gz"
     a = RLC.read_gz(p)["rows"]
     lib = lib_try_rows(index_log)
-    n = 0
-    for x, y in zip(a, lib):
-        if row_key_script(x) != row_key_script(y):
-            break
-        n += 1
+
+    def prefix(same: Callable[[Dict[str, Any], Dict[str, Any]], bool]) -> int:
+        n = 0
+        for x, y in zip(a, lib):
+            if not same(x, y):
+                break
+            n += 1
+        return n
+
     return dict(
         phase_a_rows=len(a),
         phase_a_successes=sum(1 for r in a if r["success"]),
-        equal_prefix_rows=n,
+        equal_prefix_rows=prefix(lambda x, y: row_key_script(x) == row_key_script(y)),
+        same_voxel_order_prefix=prefix(lambda x, y: x["voxel"] == y["voxel"]),
+        same_voxel_starts_success_prefix=prefix(
+            lambda x, y: (x["voxel"], x["tried"], x["starts"], x["success"])
+            == (y["voxel"], y["tried"], y["starts"], y["success"])
+        ),
+        note="consistent with phase A's arm having G2b and aligned draws, which the library "
+        "lacks (starts of the same voxels have other orientations, hence other costs); that "
+        "cause is not tested",
     )
 
 

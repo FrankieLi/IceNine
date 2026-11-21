@@ -1,0 +1,176 @@
+{
+ "sample": "mid",
+ "L1_equal_before_pass": true,
+ "L1_detail": {
+  "map": {
+   "same_bytes": true,
+   "voxels_differ": 0,
+   "max_angle_deg": 0.0,
+   "voxels_over_0_001_deg": 0,
+   "voxels_over_1_deg": 0
+  },
+  "evals_total": {
+   "script": 4721521,
+   "library": 4721521
+  },
+  "counters_equal": true,
+  "counters_differ": {
+   "n_script_counters": 36,
+   "differ": {},
+   "only_in_library": {
+    "cma_not_fell": 4728,
+    "index_defer_pauses": 313,
+    "index_defer_resumes": 199,
+    "index_defer_steps": 128,
+    "index_fb_full_evals_first": 34570,
+    "index_fb_full_passed": 2,
+    "index_fb_full_steps": 5,
+    "index_mixed_cands": 669,
+    "index_mixed_cma_reached": 199,
+    "index_mixed_mc_ran": 470,
+    "index_pairs": 15919109,
+    "index_rescue_evals": 8008,
+    "index_rescue_runs": 3,
+    "index_rescue_tries": 8,
+    "index_rescued": 2,
+    "index_stallhit_checks": 446,
+    "index_stallhit_evals_in_stopped": 54748,
+    "index_stallhit_refinements": 470,
+    "index_stallhit_stops": 61,
+    "index_stallhit_went_on": 385,
+    "index_stopped_early": 264,
+    "index_votes": 7987705,
+    "reuse_evals": 444874,
+    "reuse_evals_wasted": 113046,
+    "reuse_second_fits": 455,
+    "reuse_steps": 1692,
+    "reuse_success": 1379,
+    "reuse_tried": 1691
+   }
+  },
+  "records": {
+   "n_a": 24570,
+   "n_b": 24570,
+   "n_differ": 0,
+   "first": []
+  },
+  "rescues": {
+   "script": 3,
+   "library": 3,
+   "equal": true
+  },
+  "stall": {
+   "refinements": {
+    "script": 470,
+    "library": 470
+   },
+   "first_differ": null,
+   "equal": true
+  },
+  "defer": {
+   "counts_script_library": {
+    "steps_with_pause": [
+     128,
+     128
+    ],
+    "pauses": [
+     313,
+     313
+    ],
+    "resumes": [
+     199,
+     199
+    ]
+   },
+   "equal": true
+  },
+  "pxf_steps": {
+   "steps": {
+    "script": 313,
+    "library": 313
+   },
+   "fallbacks": {
+    "script": 5,
+    "library": 5
+   },
+   "first_differ": null,
+   "equal": true
+  },
+  "tries": {
+   "rows": {
+    "script": 1692,
+    "library": 1692
+   },
+   "tried": {
+    "script": 1691,
+    "library": 1691
+   },
+   "success": {
+    "script": 1379,
+    "library": 1379
+   },
+   "first_differ": null,
+   "first_differ_voxel": null,
+   "equal": true
+  }
+ },
+ "L2": {
+  "evals_before_pass": {
+   "libru": 4721521,
+   "libpxf": 6731510,
+   "fewer_share": 0.2985940747321181
+  },
+  "evals_ok": true,
+  "accuracy_after_pass": {
+   "wrong_threshold_deg": 1.0,
+   "wrong": {
+    "libru": 32,
+    "libpxf": 31
+   },
+   "fixed": 10,
+   "broken": 11,
+   "both_wrong": 21,
+   "broken_minus_fixed": 1,
+   "median_error_deg": {
+    "libru": 0.02822264161607068,
+    "libpxf": 0.028710299767446643
+   },
+   "median_higher_deg": -0.0004876581513759623,
+   "n_voxels": 24570
+  },
+  "net_ok": true,
+  "median_ok": true,
+  "ok": true
+ },
+ "tries": {
+  "seed_steps": 1692,
+  "tried": 1691,
+  "success": 1379,
+  "success_share_of_steps": 0.8150118203309693,
+  "second_fits": 455,
+  "second_fits_succeeded": 217,
+  "evals_per_try": 263.08338261383795,
+  "evals_in_failed_tries": 113046,
+  "lowest_accepted_hit": 0.9500907441016334
+ },
+ "prefix_vs_phase_a": {
+  "phase_a_rows": 1719,
+  "phase_a_successes": 1403,
+  "equal_prefix_rows": 1,
+  "same_voxel_order_prefix": 58,
+  "same_voxel_starts_success_prefix": 4,
+  "note": "consistent with phase A's arm having G2b and aligned draws, which the library lacks (starts of the same voxels have other orientations, hence other costs); that cause is not tested"
+ },
+ "in_run_pass_evals_library": 3064823,
+ "walls_s": {
+  "library_run": 898.4288518428802,
+  "script_arm_RUl": 596.3489098548889,
+  "libpxf_run": 1389.8809230327606,
+  "label": "contended (other jobs on the machine); not timings"
+ },
+ "predictions": {
+  "L2_fewer": "15% to 30%",
+  "try_share": "75% to 88%",
+  "broken_minus_fixed": "-3 to +3"
+ }
+}
