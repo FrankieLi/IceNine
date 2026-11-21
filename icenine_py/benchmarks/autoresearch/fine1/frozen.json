@@ -26,7 +26,9 @@
   "PS": "stock Python: grid search for every seed, stock MC local optimization (ar2/key_off_fused.config: BFSRevisitRefit 1, BFSReseed 1, FusedCost 1)",
   "CS": "stock C++: mode p, mpirun -n 2 (one server, one fitting client), the PS config through cpptime/make_config.py",
   "J5S": "latest recipe, from library keys: ar2/key_on_fused.config plus BFSNeighborCMAFirst 1; CMASigma0 0.05; CMANeighborMaxEvals 60; BoundaryPass 1; SeedIndexCandidates 20 5; SeedIndexStopHitRatio 0.95; BFSNeighborCMANoFallback 1; SeedIndexCMAFirst 200; SeedRescueCMA 0.25 1000; SeedIndexMCStallHit 500; BoundaryPassRepair 1; BoundaryPassScreen 1",
-  "CF": "CS with part 1's fixed C++ build, an extra labelled run (only if a fixed binary is given)"
+  "CF": "CS with part 1's fixed C++ build, an extra labelled run (only if a fixed binary is given)",
+  "CSP": "CS with all cores as fitting workers (owner decision D-20261120-N6): the same binary and the same config text as CS, mpirun -n 13 (one server, 12 clients); run alone, later",
+  "CFP": "CF with all cores as fitting workers (D-20261120-N6): as CSP with the corrected binary"
  },
  "arm_order": [
   "CS",
@@ -432,11 +434,11 @@
  "scripts": {
   "scripts/autoresearch/fine1/cpp_split_check.cpp": "b065b148a5d03bc32d327407f592f6a9d78b8c31b90f6ba25b1a7eec193de702",
   "scripts/autoresearch/fine1/fine1_check_inputs.py": "5c65aa8e35b9db3f62952cbdff6740d601a46368168d177e6d869a40475d95ef",
-  "scripts/autoresearch/fine1/fine1_config.py": "fc4e8c97c736fc3053d912aa28ccf5b95029f6648886f76f25b9ec9de75fa852",
+  "scripts/autoresearch/fine1/fine1_config.py": "05c7995330a59cf951e843c9f3c1551570d45aa6b33b785a10e34f14a72f9088",
   "scripts/autoresearch/fine1/fine1_cpp_split_check.py": "dd118121f0ce252b9a22a3edcd94a05775cc615a5d066b417541cce81b96018e",
-  "scripts/autoresearch/fine1/fine1_freeze.py": "e6cc25dced0623c26eb006b2bdb1dca169a0f67b6f1720edc43bf89f8865dba6",
+  "scripts/autoresearch/fine1/fine1_freeze.py": "603f5bf33499357c92435cf3b6bcc86a3fb31e7e07ca18a979d80ec9f58c0bde",
   "scripts/autoresearch/fine1/fine1_gradient_check.py": "36c137e10ac0b10fb3a3e9461b6f10a5a239f005cdcca374333d58221212b93a",
-  "scripts/autoresearch/fine1/fine1_launch.sh": "698d0b33706998bfc31f37f5a6e9dbe23ddddda27f34b0df1f4c5547dbc5f04e",
+  "scripts/autoresearch/fine1/fine1_launch.sh": "83953ffb442ac3356990ed1aa27ea9e90ce297f2f254c76fa8e91cfdb43e0c27",
   "scripts/autoresearch/fine1/fine1_launch_slice.sh": "f3584cb7f249fdcd8d4aa235bb4a3602033623c2a6bbf29dc85112e9b0efc4e1",
   "scripts/autoresearch/fine1/fine1_launch_whole.sh": "a9a4b3dd601b14b1ddb952037c45ec6f7fe6098520a2724d5a109728701d630e",
   "scripts/autoresearch/fine1/fine1_lib.py": "1b543365664d04e21b148e979688af37f03de794c54ce168d45da7b3871fa392",
@@ -499,10 +501,20 @@
   "icenine/symmetry.py": "8d843f35885041175b13966934539ba8061dbe5795a23a7f8573631104f09dd1",
   "icenine/toy_orientation_model.py": "cc14dc5efa5361b7f43f81cd8827046874b746f377f195a9e24e9a8b003e83d7"
  },
- "frozen_at": "2026-11-17T01:08:13-0800",
+ "frozen_at": "2026-11-20T21:29:53-0800",
  "note": "no method (PS, CS, J5S, CF) was run on fine7 or its slice, and no log or map of fine7 exists, before this file was committed",
+ "refreeze_history": [
+  {
+   "previous_freeze_commit": "ac76bdd6",
+   "note": "Phase B added fine1_projection.py, the launcher flag --continue-contended (default unchanged) and fine1_freeze.py's --outputs check now looks at runs/whole only (the slice runs predate this freeze by design). No arm, config, grid, truth, image or library file changed: every data hash and the library hashes equal the first freeze. The slices (CS, J5S, PS, CF) ran under the first freeze; no whole-layer output exists."
+  },
+  {
+   "previous_freeze_commit": "2943a5e6",
+   "note": "Amendment by owner decision D-20261120-N6: new arms CSP and CFP (CS and CF with mpirun -n 13, same binary and same config text; run alone later) added to fine1_config.py, fine1_launch.sh and the freeze. No existing arm, config, cap or gate changed; CS and CF markers and times untouched; data and library hashes equal the earlier freezes; no whole-layer output exists."
+  }
+ ],
  "refreeze": {
-  "previous_freeze_commit": "ac76bdd6",
-  "note": "Phase B added fine1_projection.py, the launcher flag --continue-contended (default unchanged) and fine1_freeze.py's --outputs check now looks at runs/whole only (the slice runs predate this freeze by design). No arm, config, grid, truth, image or library file changed: every data hash and the library hashes equal the first freeze. The slices (CS, J5S, PS, CF) ran under the first freeze; no whole-layer output exists."
+  "previous_freeze_commit": "2943a5e6",
+  "note": "Amendment by owner decision D-20261120-N6: new arms CSP and CFP (CS and CF with mpirun -n 13, same binary and same config text; run alone later) added to fine1_config.py, fine1_launch.sh and the freeze. No existing arm, config, cap or gate changed; CS and CF markers and times untouched; data and library hashes equal the earlier freezes; no whole-layer output exists."
  }
 }
