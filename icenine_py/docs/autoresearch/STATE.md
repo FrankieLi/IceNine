@@ -36,7 +36,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    Not a speed comparison (C++ 416 of 2,000 wrong, Python 24; explained by the 16 Nov check).
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
    goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. 16 pages wait (+ar5v, cppchk).
-   NOW: (a) v60 live, v61 in work. (c) restart distance and C++ config done (20261116-*).
+   NOW: (a) v61 live (20 Nov 18:25). (c) restart distance and C++ config done (20261116-*).
    (b) OWNER TASK part 1: both C++ changes reviewed (a7e220e7; C5 56 wrong); fixed2 sub-grid test
    PASSED (2 passed, 261 s). Part 2 `fine1`: projection (c501c238, re-freeze 2943a5e6), hours:
    Whole layer: CS 91,206 s, CF 71,996 s done; J5S HIT 1.3 h CAP (ASK OWNER: rerun?); PS: ASK OWNER.
@@ -46,7 +46,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v60 live.
   Step 22 (`ar5v`; cache in `agent-aba6e1bdb95dff72a`): MERGED 566eea3f, key `SeedIndexMCDefer`.
   Steps 24 to 27 MERGED, no key. Step 28 MERGED 66e61aa8, all gates met (N3); held7 disclosed.
-  Step 28 phase B keys (`ar5ac`): a2ce49fff826b9a52 runs. Page v61: builder ac22535314851f2bd.
+  Step 28 phase B keys (`ar5ac`): a2ce49fff826b9a52 runs. v61 live.
   Step 29 planner ae17c1c4313ca0877 (reuse), draft `SP/plan_step29_draft.md`.
 
 ## Queue
