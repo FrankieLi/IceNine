@@ -46,7 +46,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v60 live.
   Step 22 (`ar5v`; cache in `agent-aba6e1bdb95dff72a`): MERGED 566eea3f, key `SeedIndexMCDefer`.
   Steps 24 to 27 MERGED, no key. Step 28 MERGED 66e61aa8, all gates met (N3); held7 disclosed.
-  Step 28 phase B keys (`ar5ac`): a2ce49fff826b9a52 runs. v61 live.
+  Step 28 keys (`ar5ac`): handed back 19:10 (2432 passed key-off); review a15c1d6a163e6b29a runs.
   Step 29 (`ar5ad`, rule RU, reuse) in PLAN, approved N4; implementer starts after `ar5ac` merges.
 
 ## Queue
