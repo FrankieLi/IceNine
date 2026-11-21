@@ -6243,6 +6243,157 @@ generator (no stored rows to size it); skipping grid searches that end rejected 
 Approved: D-20261120-N2, phase A, plus plain `J5SD` on `held7` (reported, not a gate).
 Phase B needs a new decision.
 
+### AR5 step 29: try known orientations with a longer fit before a seed step, index only after
+
+Task `ar5ad`. Starts from `feature/eval-reduction` after step 28's phase B merge (task `ar5ac`);
+step 28's scripts are reused. Reads step 28's run cache in the main checkout (`ar5/pxf/cache`),
+read only. Phase A only after a recorded decision; a key (phase B) needs a second one.
+
+**Why.** After rule `PXF`, seed steps still hold most of the cost: with rescue, polish and grid,
+41% of `J5SD`'s evaluations on `mid` and 61% on `held`, and about 30% of the wall in indexing
+(contended). Yet about 89% of seed steps end within 1 degree of an orientation accepted earlier
+nearby. The BFS neighbour fit (CMA, 60 evaluations, first step 0.05 degree) fails there. A fit
+with a wider first step succeeds in most such voxels, and then no indexing or seed step is needed.
+
+**What was read and run.** PLAN steps 26 to 28; step 28's report and review; shmem on steps 27,
+28, AR3 step 8; `reconstructor.py` (`index_seed`, `local_optimization`, `_index_seed`). Stored rows
+of step 28's `PXF` runs (`mid`, `held`): logs, `e1_log`, `pxf_steps`, `polish_log`,
+`before_J5D.npy`, `summary.json`. Scratch `s29_rows.py` (stored rows) and `s29_probe.py`: an
+offline replay on 398 (`mid`) and 399 (`held`) stored seed steps, fixed stride, one thread, 2.19
+million evaluations, about 5 minutes with set-up, contended (load 2.4 to 5.1). Truth read only to
+score the probe. No run; nothing of `held2`, `fine7`.
+
+**Terms.** **Seed step**: index, cost 20 candidates, refine the best 5 (CMA, then MC under 0.95),
+with `PXF`'s second try. **Seed-stage evaluations**: the seed step's plus rescue, polish and grid
+search. **Known start**: the orientation of a voxel accepted earlier in the run (seed test passed
+or fitted in the BFS, not rejected since). **Try**: costing known starts and fitting from them.
+**Success**: a try whose end has hit ratio 0.95 or more. **Evaluation**, **contended**: step 26.
+
+**Seed steps after PXF.** Reading line: per sample, seed steps; seed-stage evaluations (share of
+`J5SD`); indexing seconds (share of job wall, contended); steps that fit only their own voxel;
+steps with a known start within 1 degree of the answer among the 8 nearest accepted voxels.
+
+| sample | seed steps | seed-stage evals | indexing s | own voxel only | known within 1 deg |
+|---|---|---|---|---|---|
+| mid | 1,667 | 2,796,999 (41.0%) | 441 (29.8%) | 54.0% | 89.4% |
+| held | 3,669 | 10,147,984 (61.2%) | 902 (29.4%) | 63.7% | 88.4% |
+
+The median seed step costs 221 evaluations on `mid` (20 costs and one CMA fit) and 994 on `held`.
+Steps over 1,000 evaluations hold 86.7% and 92.7% of the step evaluations. A success at a cheap
+step saves the indexing only; at a costly step it saves evaluations as well.
+
+**The probe.** Reading line: per fit from the lowest-cost of the 8 known starts, evaluations per
+try (8 costs plus the fit), share of sampled steps that succeed, and projected change of `J5SD`'s
+evaluations and job wall (contended) if each success replaces indexing and seed step and each
+failure adds its try. Projection: the sample's covered shares of step evaluations and indexing
+seconds times the run totals; wall adds 0.077 ms per saved evaluation, minus the tries' seconds.
+
+| fit from best start | evals/try | success mid / held | evals mid / held | wall mid / held |
+|---|---|---|---|---|
+| BFS neighbour fit: 60, 0.05 deg | 69 | 23.6% / 12.8% | -1.7% / -3.0% | -7.6% / -3.8% |
+| seed step's fit: 200, 0.05 deg | 209 | 34.9% / 22.1% | -2.6% / -3.2% | -11.3% / -7.2% |
+| 200, 0.25 deg | 209 | 65.8% / 53.9% | -18.2% / -19.7% | -26.4% / -21.6% |
+| 200, 0.5 deg | 209 | 68.3% / 57.4% | -16.5% / -22.8% | -26.7% / -23.9% |
+| 200, 1 deg | 209 | 64.6% / 53.9% | -15.8% / -22.9% | -25.3% / -22.0% |
+| 400, 0.5 deg | 409 | 69.6% / 60.7% | -11.7% / -21.3% | -25.7% / -24.6% |
+| 1,000, 0.25 deg | 1,009 | 65.8% / 54.6% | +1.3% / -3.0% | -20.3% / -15.8% |
+| 200, 0.5 deg, 2nd start | 265 / 287 | 80.7% / 70.7% | -26.0% / -29.2% | -33.7% / -31.2% |
+
+Last row (if the first fit fails, a second from the best start over 0.5 degree from the first),
+Wilson 95%: 76.5% to 84.2% (`mid`), 66.0% to 74.9% (`held`). 1,000 evaluations succeed no more
+often than 200: consistent with a trap near the start, not a short budget (AR3 step 8's class A;
+untested). Success falls with the nearest known angle: 90.8% and 82.9% within 0.5 degree, 69.0%
+and 62.7% from 0.5 to 1, 0% and 2.4% over 2 (a grain with no accepted voxel yet).
+Successes have a median error of 0.0084 and 0.0071 degree, against 0.0102 and 0.0084 for the
+stored seed step at the same voxels; none is wrong. A 200-evaluation fit takes 16 ms (median,
+contended); an indexing takes 0.25 s. Failure cost: about 408 evaluations and 35 ms.
+
+**The rule, frozen now.** Rule `RU`. (1) Before every seed step (seed or reseed) at voxel v, take
+the voxels accepted so far in the run (seed test passed or fitted in the BFS, not rejected since)
+and keep the 8 nearest to v by centre distance (ties by voxel index; any distance; fewer if fewer
+exist; none: go to (4)). (2) Take the strict cost of each one's orientation at v (one evaluation
+each). From the lowest-cost one, run one CMA local optimization: first step 0.5 degree, 200
+evaluations, a fresh `default_rng(0)`. If the end's hit ratio (one overlap evaluation, not counted,
+as in the library) is 0.95 or more, the end is the seed result. Then there is no indexing and no
+seed step, and the BFS goes on as after a passing seed step. (3) Else, run the same fit from the
+lowest-cost start more than 0.5 degree from the first (if any), with the same acceptance. (4) Else
+the `PXF` seed step runs unchanged. All try evaluations count as the seed's. Nothing else changes.
+No truth, no threshold read from data after this freeze, nothing crystal-specific (misorientation
+under the sample's symmetry group; any group works). Script layer only: a wrapper of
+`BFSReconstruction._index_seed` on top of `PXF`'s.
+
+**Samples.** Gates: `mid`, `held` (in-sample; first step and second start chosen on the probe).
+Old arm: step 28's `PXF` runs (stored, not rerun). Clean test: `held8` (generator seed 8 of the
+held family, built as `held7`, only after r1 to r3 pass; nothing of it exists). Disclosed: `big`,
+`grad`, `mid`, `held`, `held3` to `held7`. `held2` not opened or listed; `fine7` not read.
+
+**Gates, fixed now.** Counts first; they do not depend on machine load.
+- r1 (evaluations): new `J5SD` (`PXF` and `RU`) at least 15% fewer than the stored `PXF` runs
+  (6,822,192 + 16,580,548 = 23,402,740), summed.
+- r2 (accuracy, against stored `PXF`, 16 and 40 wrong; per sample): broken minus fixed at most 3;
+  median error at most 0.001 degree higher; seed steps reaching the grid search at most 2 more.
+- r3 (wall): pooled wall of the new runs at least 15% lower than step 28's `PXF` runs (4,545 s),
+  judged at any load and labelled contended; preflight verdicts and sampled load reported.
+- h1, house rule on `held8`: new `J5SD` against `S8`, at least 20% fewer evaluations, broken minus
+  fixed at most 5, median error at most 0.005 degree higher.
+- h2, on `held8` against the baseline: new against `PXF` `J5SD`, at least 10% fewer evaluations,
+  broken minus fixed at most 5, median error at most 0.001 degree higher. Walls of all three arms
+  reported, contended.
+
+**Predictions, before any run.** Seed steps ended by a try: `mid` 72% to 85%, `held` 62% to 76%.
+r1: 18% to 32% fewer (centre 28%). r2: broken minus fixed -3 to +3; grid searches `mid` 0 to 1,
+`held` 0 to 3. r3: 22% to 38% lower. h1 passes. h2: 15% to 30% fewer.
+
+**Costs.** Tests and wrapper 1.5 hours; new `J5SD` on `mid`, `held` 1 hour; `held8`: build 1, `S8`
+3.3, `PXF` `J5SD` 1.1, new `J5SD` 0.8 hours. In all 8.5 to 9 hours, one run at a time.
+
+**Stop rules.** A test fails. A try accepts an end under 0.95, or uses a voxel not accepted at that
+moment (checked from the log). An index call at a voxel that a try accepted. r1, r2 or r3 fails:
+no `held8`. `held2` opened or listed, `fine7` read, `held8` built before the gates pass. A gate is
+never loosened after a run; every refused preflight is kept.
+
+**Validity checks.** Logged per seed step: try or not, start voxels, costs, each fit's evaluations,
+hit ratio, seconds, success; indexing calls, pairs, seconds (calls = steps - successes + second
+tries). One thread; same `SmoothCost` and rays as step 28. No truth read before scoring.
+
+**Known limits.** In-sample choice. The probe keeps the stored run's order and accepted set; a live
+run changes routes (successes lie within 0.5 degree of the stored answer in all but one voxel).
+Rescue and grid voxels are too few in the probe to size (3 sampled, 1 grid; 1 succeeded). A known
+start is only a start: grains have orientation gradients, so the fit must still travel 0.2 to 1
+degree. Walls contended; copper only (the rule is generic).
+
+**Phase A.** 1. Commit `ru/frozen.json` (rule, gates, predictions, hashes). 2. Tests first,
+`tests/test_ar5_ru.py`: no try when nothing is accepted; the 8 nearest by distance, ties by index;
+rejected voxels left out; the second start more than 0.5 degree from the first; a success skips
+indexing and returns the fit's end; a failure runs the `PXF` step unchanged (equal to a direct
+`PXF` step); evaluations counted; hexagonal fixture runs. 3. New `J5SD` on `mid`, then `held`;
+score r1 to r3. 4. Build `held8`; `S8`, `PXF` `J5SD`, new `J5SD`, one at a time; h1, h2. Plot first
+(wall per sample, `PXF` and `RU`, with indexing, tries and other evaluations stacked; beside it
+broken and fixed), then the tables.
+
+**Phase B (key).** Opt-in `SeedReuseKnown 1` (default 0; constants as frozen), valid with
+`SeedByIndexing`, in `check_bfs_keys`; key-off suite, no golden change; `findings_ar5_ru.md`,
+history, README. **Files:** `ru_*.py` (reusing `pxf_launch`, `pxf_score`, `pxf_build_held7` for
+`held8`), `tests/test_ar5_ru.py`, `ar5/ru/` (under 3 MB). Library: phase A none.
+
+**Not in this step.** A longer BFS neighbour fit everywhere (24,412 fits on `mid`; at 200 each,
+about 3.4 million more); a distance cap; more starts or fits; skipping grid searches that end
+rejected; reseeds that fit only their own voxel; `n_seeds`, `top_k`; C++; realistic images; seeds.
+
+**Choices made.**
+- This idea: the largest pot left after `PXF`, and generic. Projected 26% to 29% fewer evaluations
+  and 31% to 34% less wall (contended). Weak side: in-sample choice from 797 steps; route effects
+  and grid-search voxels unsized.
+- First step 0.5 degree and a second start: the second start adds 12 to 13 points of success. The
+  first fit alone projects 16.5% and 22.8% fewer evaluations. 400 or 1,000 evaluations cost more
+  for little more success. 0.25 degree is close; 0.5 was better on `held`.
+- Accept at 0.95, not the seed test's 0.80: a reused end must match a strong seed step. Voxels
+  between 0.80 and 0.95 still get the full seed step.
+- Runner-up from the same rows: skipping grid searches that end rejected. Only 2 grid searches are
+  left on `held` (714,371 evaluations, 4.3%) and none on `mid`, so it is far smaller.
+
+Approved: D-20261120-N4, phase A, after task `ar5ac` merges; phase B needs a new decision.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
