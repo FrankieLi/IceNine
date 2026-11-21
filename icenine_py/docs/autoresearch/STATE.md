@@ -39,15 +39,15 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    NOW: (a) v61 live (20 Nov 18:25). (c) restart distance and C++ config done (20261116-*).
    (b) OWNER TASK part 1: both C++ changes reviewed (a7e220e7; C5 56 wrong); fixed2 sub-grid test
    PASSED (2 passed, 261 s). Part 2 `fine1`: projection (c501c238, re-freeze 2943a5e6), hours:
-   Whole layer: CS 91,206 s, CF 71,996 s done; J5S HIT 1.3 h CAP (ASK OWNER: rerun?); PS: ASK OWNER.
+   Whole layer: CS 91,206 s, CF 71,996 s done; J5S (6 h cap) then PS: OWNER OK (N5), AFTER step 29.
 
 ## Running jobs
 - Step 14 key WAITS (held2). Steps 15 to 21 merged (caches: `J5r` `agent-aeba15b7c3850b007`,
   step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v60 live.
   Step 22 (`ar5v`; cache in `agent-aba6e1bdb95dff72a`): MERGED 566eea3f, key `SeedIndexMCDefer`.
   Steps 24 to 27 MERGED, no key. Step 28 MERGED 66e61aa8, all gates met (N3); held7 disclosed.
-  Step 28 keys (`ar5ac`): handed back 19:10 (2432 passed key-off); review a15c1d6a163e6b29a runs.
-  Step 29 (`ar5ad`, rule RU, reuse) in PLAN, approved N4; implementer starts after `ar5ac` merges.
+  Step 28 keys (`ar5ac`) MERGED fa31ffac (2433 passed); worktree `agent-a2ce49fff826b9a52` kept.
+  Step 29 (`ar5ad`, rule RU): implementer a561945bcc20317e1 runs since 19:55 20 Nov (about 9 h).
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
@@ -113,7 +113,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   Step 5's result files add about 50 MB to git; say so if you want them pruned.
 
 ## Bookkeeping
-- Next decision ID: D-20261120-N5 (first of a day is N1).
+- Next decision ID: D-20261120-N6 (first of a day is N1).
 - Wake-up job: session cron id 24092880, every 3 hours at :53, created 2026-11-16, expires
   2026-11-23. Create it again on or after 2026-11-22 and write the new id and date here.
 - Ilium: AR6 closed 20 Nov on `origin/feature/grain-opt` (read at c3245818, SUMMARY.md); and
