@@ -39,7 +39,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    NOW: (a) v61 live (20 Nov 18:25). (c) restart distance and C++ config done (20261116-*).
    (b) OWNER TASK part 1: both C++ changes reviewed (a7e220e7; C5 56 wrong); fixed2 sub-grid test
    PASSED (2 passed, 261 s). Part 2 `fine1`: projection (c501c238, re-freeze 2943a5e6), hours:
-   Whole layer: CS 91,206 s, CF 71,996 s done; J5S (6 h cap) then PS: OWNER OK (N5), AFTER step 29.
+   Whole layer: CS 91,206 s, CF 71,996 s done; then (N6) C++ all cores, (N5) J5S 6 h cap, PS; after step 29.
 
 ## Running jobs
 - Step 14 key WAITS (held2). Steps 15 to 21 merged (caches: `J5r` `agent-aeba15b7c3850b007`,
@@ -113,7 +113,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   Step 5's result files add about 50 MB to git; say so if you want them pruned.
 
 ## Bookkeeping
-- Next decision ID: D-20261120-N6 (first of a day is N1).
+- Next decision ID: D-20261120-N7 (first of a day is N1).
 - Wake-up job: session cron id 24092880, every 3 hours at :53, created 2026-11-16, expires
   2026-11-23. Create it again on or after 2026-11-22 and write the new id and date here.
 - Ilium: AR6 closed 20 Nov on `origin/feature/grain-opt` (read at c3245818, SUMMARY.md); and
