@@ -2297,3 +2297,16 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   golden change, a key-on library run equal to the script arm, findings text, history, README.
   held7 is now disclosed. No merge to develop. Where: icenine_py/docs/autoresearch/PLAN.md AR5
   step 28; .claude/reports/20261120-0826-ar5ab.md; .claude/reports/20261120-1740-review-ar5ab.md.
+
+### D-20261120-N4 · D-20261120-N4 · AR5 step 29 (rule RU: try known nearby orientations with a longer fit before indexing) approved, phase A
+- 2026-11-20, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. AR5 step 29 phase A is approved as task ar5ad, to
+  start after task ar5ac (step 28 keys) merges, one run at a time. Rule RU, frozen in the plan:
+  before a seed step, cost the 8 nearest accepted orientations, run a 200-evaluation CMA fit with
+  a 0.5 degree first step from the best, then a second fit from the best start over 0.5 degree
+  away; accept at hit ratio 0.95; otherwise the PXF seed step runs unchanged. Sizing probe (797
+  stored seed steps of mid and held, in-sample, 2.19 million evaluations): success 80.7% and
+  70.7%; projected 26% to 29% fewer evaluations and 31% to 34% less wall (contended projection;
+  route effects not sized). Gates r1 to r3 on mid and held against the stored PXF runs; clean test
+  on a new sample held8 (h1 against S8, h2 against PXF J5SD), built only after r1 to r3 pass. A
+  key (phase B) needs a new decision. Where: icenine_py/docs/autoresearch/PLAN.md AR5 step 29.
