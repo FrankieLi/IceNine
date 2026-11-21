@@ -287,7 +287,7 @@ def plot(live: Any, h1: Any) -> None:
         ax[0].set_xticks(xs)
         ax[0].set_xticklabels(labels, fontsize=8)
         ax[0].set_ylabel("minutes of wall (preflight verdicts in the table)")
-        ax[0].set_title("Whole J5SD run: old, PX (50,000), PXF (50,000, then 600,000)")
+        ax[0].set_title("Whole J5SD run: old, PX (50,000), PXF (then 600,000)")
         ax[0].legend()
         k = 0.0
         ticks, names = [], []
@@ -314,7 +314,7 @@ def plot(live: Any, h1: Any) -> None:
         ax[1].set_xticks(ticks)
         ax[1].set_xticklabels(names, fontsize=8)
         ax[1].set_ylabel("voxels or searches")
-        ax[1].set_title("Grid searches, and paired by voxel (PXF against the baseline)")
+        ax[1].set_title("Grid searches; paired by voxel (mid, held in-sample)")
         ax[1].legend(fontsize=8)
     fig.tight_layout()
     fig.savefig(RD / "pxf_wall.png", dpi=110)

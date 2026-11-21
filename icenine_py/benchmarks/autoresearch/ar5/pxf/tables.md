@@ -6,8 +6,16 @@
 | c3 mid | broken minus fixed -7, median error change +0.00010 deg, grid searches -2 | at most 3; at most 0.001 deg; at most 2 more | met |
 | c3 held | broken minus fixed -5, median error change -0.00020 deg, grid searches -2 | at most 3; at most 0.001 deg; at most 2 more | met |
 | t2 | pooled wall 44.7% lower (8219 s to 4545 s; preflight verdicts in the wall table) | at least 25% lower | met |
-| h1 | held7 not built or not run |  | not evaluated |
+| h1 | held7: 74.2% fewer evaluations than S8, broken minus fixed -54, median error change -0.00545 deg | at least 20% fewer; at most 5; at most 0.005 deg | met |
 <!-- /table:pxf_gates -->
+
+<!-- table:pxf_h1 -->
+| arm | evaluations | fewer than S8 | wrong voxels | fixed vs S8 | broken vs S8 | median error change vs S8 (deg) | grid searches | wall s | preflight verdict | mean load |
+|---|---|---|---|---|---|---|---|---|---|---|
+| S8 | 77783446 |  | 96 |  |  |  |  | 11953 | contended | 2.4 |
+| new J5SD (PXF) | 20075769 | 74.2% | 42 | 65 | 11 | -0.00545 | 6 | 3791 | contended | 2.4 |
+| plain J5SD | 21788476 | 72.0% | 55 | 50 | 9 | -0.00523 | 12 | 9181 | contended | 2.4 |
+<!-- /table:pxf_h1 -->
 
 <!-- table:pxf_live -->
 | sample | evaluations, stored | evaluations, PXF | PXF vs stored | wrong, stored | wrong, PXF | fixed | broken | median error change (deg) | grid searches, stored | grid searches, PXF |
