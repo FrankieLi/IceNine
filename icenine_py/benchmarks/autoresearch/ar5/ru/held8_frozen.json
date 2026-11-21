@@ -1,0 +1,18 @@
+{
+ "sample": "held8",
+ "generator_seed": 8,
+ "n_voxels": 24570,
+ "n_grains": 250,
+ "stack_matches_render": true,
+ "counts_from": "the end of ru_build_held8.py (exit 0)",
+ "sha256": {
+  "sample/gradient_grid.mic": "044ea68cc3898b65a9b8b531ffecee4eed244a0381061be4c7ac99026bbfe714",
+  "sample/gradient_truth.mic": "b260a457c7e064722a2490d6060b9c3848bb00d27675a56b01bb0366c4381564",
+  "sample/grainmap.npy": "a362a9d31d9ab496b8061d618623f50c071832a8f412c938cb3873d248880b5b",
+  "sample/sample.json": "3586bc0df6fa89c2e29c6605e5b834652a86f9fae2723c75994b40360c66d6b0",
+  "held8_stack.json": "801f9c49982832f559121ffd5e4e29a5e1f646d4de954390ef0e0a600bc83401",
+  "stacks/held8_clean.npy": "2fc11dfcd75c9881c1694e1590cb94628279ce1230c0ac700bb4778425c02e73"
+ },
+ "frozen_at": "2026-11-20T21:12:02-0800",
+ "note": "written before S8, the PXF J5SD or the new J5SD ran on held8; no truth, orientation or map of held8 was analysed"
+}
