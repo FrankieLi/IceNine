@@ -47,8 +47,8 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   Step 22 (`ar5v`; cache in `agent-aba6e1bdb95dff72a`): MERGED 566eea3f, key `SeedIndexMCDefer`.
   Steps 24 to 27 MERGED, no key. Step 28 + keys MERGED (66e61aa8, fa31ffac); held7 disclosed.
   Step 29 (`ar5ad`, rule RU) MERGED 75af46bb (2449 passed), all gates met; worktree kept.
-  `fine1` CSP (C++, 13 ranks) done: 10,267 s contended. CFP runs since 07:09 21 Nov, cap 5.5 h;
-  check: `ps -eo etime,command | grep "[m]pirun"`. Then CFP, J5S 6 h, PS, one at a time.
+  `fine1` C++ 13 ranks, contended: CSP 10,267 s, CFP 10,213 s. J5S runs since 10:02 21 Nov,
+  cap 6 h; check: `ps -eo etime,command | grep "[f]ine1_run_py"`. Then PS (cap 76.5 h).
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
