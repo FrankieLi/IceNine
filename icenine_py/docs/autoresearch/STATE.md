@@ -47,7 +47,8 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   Step 22 (`ar5v`; cache in `agent-aba6e1bdb95dff72a`): MERGED 566eea3f, key `SeedIndexMCDefer`.
   Steps 24 to 27 MERGED, no key. Step 28 + keys MERGED (66e61aa8, fa31ffac); held7 disclosed.
   Step 29 (`ar5ad`, rule RU) MERGED 75af46bb (2449 passed), all gates met; worktree kept.
-  `fine1` all-core C++ arm CSP launched 01:38 21 Nov (cap 6.5 h); then CFP, J5S 6 h, PS.
+  `fine1` arm CSP (C++, 13 ranks) runs since 01:45 21 Nov, contended (cpptools), cap 6.5 h;
+  check: `ps -eo etime,command | grep "[m]pirun"`. Then CFP, J5S 6 h, PS, one at a time.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
@@ -110,7 +111,6 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N25,
   D-20261112-N1 to N10, D-20261113-N1 to N10, D-20261114-N1 to N3. N15 adds `held` (new seed);
   N17, N18: run caps of 480 minutes. The gradient levels of step 7's sample are my choice.
-  Step 5's result files add about 50 MB to git; say so if you want them pruned.
 
 ## Bookkeeping
 - Next decision ID: D-20261121-N1 (first of a day is N1).
