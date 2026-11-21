@@ -46,9 +46,9 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`). Step 22 (`ar5v`; cache
   in `agent-aba6e1bdb95dff72a`): MERGED, key `SeedIndexMCDefer`. Steps 24 to 27 MERGED, no key.
   Step 28 + keys MERGED (66e61aa8, fa31ffac). Step 29 MERGED 75af46bb; held7, held8 disclosed.
-  `fine1` C++ 13 ranks, contended: CSP 10,267 s, CFP 10,213 s. J5S runs since 10:02 21 Nov,
-  cap 6 h; check: `ps -eo etime,command | grep "[f]ine1_run_py"`. When it ends: step 29 phase B
-  (`ar5ae`, N1; brief in scratchpad `brief_ar5ae.md`; about 4.5 h), then PS (cap 76.5 h).
+  `fine1` contended: CSP 10,267 s, CFP 10,213 s (13 ranks); J5S 7,566 s (one worker). PS next.
+  Step 29 phase B (`ar5ae`, N1): implementer aa6ea4820caf180fb runs since 12:10 21 Nov, about
+  4.5 h. After its merge: launch PS (cap 76.5 h), then score the layer (agent a22702f36dfefa989).
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
