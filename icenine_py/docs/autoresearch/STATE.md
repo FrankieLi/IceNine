@@ -116,5 +116,5 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - Next decision ID: D-20261120-N5 (first of a day is N1).
 - Wake-up job: session cron id 24092880, every 3 hours at :53, created 2026-11-16, expires
   2026-11-23. Create it again on or after 2026-11-22 and write the new id and date here.
-- Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
-  mailbox in `docs/ROADMAP.md`. Its plan approvals are the owner's; so is a "finisher" rename.
+- Ilium: AR6 closed 20 Nov on `origin/feature/grain-opt` (read at c3245818, SUMMARY.md); and
+  Track S at 347a8a4. OWNER FLAG 20 Nov: I printed 2 held2 rows from tracked pareto_rows files.
