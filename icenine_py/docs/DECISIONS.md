@@ -2327,3 +2327,12 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   98,280-voxel layer with all cores (newt has 12 cores, 8 performance), each alone on the machine,
   as new arms beside the one-worker arms (which stay as recorded); then the Python runs of
   D-20261120-N5. Recorded by Newt Agent. Where: icenine_py/docs/autoresearch/STATE.md.
+
+### D-20261121-N1 · D-20261121-N1 · AR5 step 29 phase B: opt-in key SeedReuseKnown
+- 2026-11-21, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Step 29 phase A met all gates and was reviewed, so
+  the reuse rule becomes an opt-in library key SeedReuseKnown (default 0), as drafted in PLAN 'AR5
+  step 29 phase B' (task ar5ae): equality to a new script arm RUl on mid, library-form gate L2
+  against LibPXF, key refused without the PXF keys. It runs after the J5S layer run ends and
+  before stock Python (PS) starts, one run at a time. Where: icenine_py/docs/autoresearch/PLAN.md,
+  section AR5 step 29 phase B.
