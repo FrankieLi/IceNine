@@ -6505,6 +6505,157 @@ default on; `G2b` or aligned draws in the library; the findings page; C++; reali
 
 Approved: D-20261121-N1 (task `ar5ae`); runs wait for the long layer run to end.
 
+### AR5 step 30: start each BFS neighbour fit from a local orientation field of accepted voxels
+
+Task `ar5af` (proposed). Starts from `feature/eval-reduction` after step 29 phase B (70fe192d).
+Reads step 29's run cache in the main checkout (`ar5/ru/cache`), read only. Phase A only after a
+recorded decision; a key (phase B) needs a second one. Runs wait until the long timing run ends.
+
+**Why.** After rules `PXF` and `RU`, the BFS neighbour fits are the largest pot: 47.4% of the
+16,648,743 evaluations on `mid` and `held`. Each fit costs 61 evaluations, but 56.5% (`mid`) and
+72.9% (`held`) of fits are rejected, so a voxel costs 130.5 and 190.6 evaluations of BFS fits.
+Most rejected fits start in the right grain, 0.25 to 2 degrees from the answer: `held` grains
+spread 0 to 4 degrees, and a fit with first step 0.05 degree cannot travel that far. A start
+predicted from the orientations of several accepted voxels nearby lies much closer, at no cost.
+
+**What was read and run.** PLAN steps 17, 18, 28, 29, 29 phase B; report `ar5ad` and review;
+MIGRATION_HISTORY steps 17, 18; `reconstructor.py` (`_expand`, `_insert_seed`); Ilium's
+`SUMMARY.md` and `findings.md` (GO2 to GO2c) by `git show origin/feature/grain-opt`. Stored rows
+only: `run.json`, `polish.json`, `ru_steps_*`, `repair.json`, `before_J5D.npy` of the `RU` runs
+(`mid`, `held`, `held8`); step 17's recording `J5r` (`mid`, `held`; one row per BFS fit: start,
+end, running best cost, acceptance), untracked cache of worktree `agent-aeba15b7c3850b007`.
+Scratch `s30_*.py`, one thread, no evaluation, no truth. Nothing of `held2`, `fine7`, fine1.
+
+**Terms.** **BFS fit**: the per-voxel local optimization from an inherited orientation (CMA, 60
+evaluations, first step 0.05 degree, plus the start's cost). A **first fit** is a voxel's first
+one; a **revisit** fits a rejected voxel again from a newly accepted neighbour. **Rejected**: end
+hit ratio not over 0.9 times the expansion's best. **Same-grain start**: under 2 degrees from the
+voxel's answer in the stored `RU` map; **other-grain**: 5 or more. **Side**: triangle side length.
+
+**Where the evaluations go.** Reading line: per sample, evaluations of the stored `RU` run (`J5SD`
+with the pass) by part, with the share of the total; nothing else is counted.
+
+| sample | total | seed tries | seed steps, rescue, polish, grid | BFS first fits | revisits | screen and repair |
+|---|---|---|---|---|---|---|
+| mid | 5,177,331 | 447,703 (8.6%) | 731,095 (14.1%) | 1,489,254 (28.8%) | 1,717,150 (33.2%) | 792,129 (15.3%) |
+| held | 11,471,412 | 1,081,713 (9.4%) | 4,152,408 (36.2%) | 1,480,287 (12.9%) | 3,202,134 (27.9%) | 1,554,870 (13.6%) |
+| held8 | 10,905,900 | 1,024,404 (9.4%) | 4,014,348 (36.8%) | 1,480,775 (13.6%) | 3,042,314 (27.9%) | 1,344,059 (12.3%) |
+
+BFS fits 52,564, 76,761, 74,149; rejected 29,713, 55,927, 53,111 (31.4% of pooled `mid` and `held`
+evaluations). `held`'s seed steps after a failed try cost 3,350 each (1,015 steps).
+
+**Why the fits are rejected.** Reading line: on the `J5r` rows (an older arm, same BFS fit),
+rejected fits by start class; median start error against the `RU` map with the parent's
+orientation and with the field start; share of starts under 0.25 degree; accepted fits likewise.
+
+| sample | rejected | same-grain | other-grain | same-grain median, parent / field | under 0.25, parent / field | accepted under 0.25, parent / field |
+|---|---|---|---|---|---|---|
+| mid | 29,075 | 16,760 | 12,285 | 0.686 / 0.100 | 2.2% / 72.5% | 75.9% / 98.1% |
+| held | 56,051 | 32,937 | 21,734 | 0.790 / 0.142 | 2.5% / 57.6% | 76.8% / 97.5% |
+
+The parent's orientation is right (nearly all within 0.25 degree of its answer); the voxel lies
+0.25 to 2 degrees away. From parent starts the fit is accepted at 94.5% and 88.9% of starts 0.1 to
+0.25 degree off, 51.5% and 38.0% at 0.25 to 0.5, 12.5% and 6.6% at 0.5 to 1. These rates applied
+to the field starts convert about 12,822 and 19,742 rejected fits: 782,131 and 1,204,258
+evaluations, 15.1% and 10.5% of the `RU` totals, 11.9% pooled (radius 2 or 2.5 sides: 9.2%, 10.6%).
+For 0.6% of accepted fits the field start is worse than the parent's by over 0.1 degree.
+
+**Ilium's grain field, assessed.** 113 evaluations per voxel at its "100" setting (GO2; at "50",
+63, with 20 voxels over 0.1 degree against 18 for a 61-evaluation per-voxel fit). A BFS fit costs
+61. The field needs a painted start and grain groups, so it cannot make the first answer; over
+24,570 voxels (2.8 million) it costs more than the repair it could replace; it is weak on strongly
+deformed grains (`held` spreads reach 4 degrees). The waste is the rejected fits, not the price of
+a fit. This step borrows its idea, pooling neighbours into a smooth field, only for the start.
+
+**The rule, frozen now.** Rule `FS`. (1) Before every BFS fit (first fit or revisit) at voxel v,
+whose inherited start is R_p, take the voxels FITTED at that moment (seeds included) whose centres
+lie within 3 sides of v's centre (v excluded). (2) For each, take its symmetry equivalent nearest
+to R_p and the rotation vector w of R_p^T R_j; keep it if |w| is under 3 degrees. (3) If at least 3
+are kept and the matrix of rows (1, x_j / side), x_j the in-layer offset of j's centre from v's,
+has full rank (3), fit w = a + G x by plain least squares, and start the fit from R_p exp(a). (4)
+Else start from R_p. The fit, its evaluations, generators, acceptance, push rule and the
+propagated orientation are unchanged; the prediction costs no evaluation. No truth, nothing read
+from data after this freeze, nothing crystal-specific (any symmetry group). Script layer only: a
+wrapper of `BFSReconstruction._local_fit`, outside the aligned-draws wrapper.
+
+**Samples.** Gates: `mid`, `held` (in-sample; the radius was chosen on them). Old arm: step 29's
+`RU` runs (stored, not rerun). Clean test: `held9` (generator seed 9 of the held family, built as
+`held8`, only after f1 and f2 pass; nothing of it exists). Disclosed: `big`, `grad`, `mid`,
+`held`, `held3` to `held8`. `held2` not opened or listed; `fine7` and fine1 not read.
+
+**Gates, fixed now.** Counts first; they do not depend on machine load.
+- f1 (evaluations): new `J5SD` (`PXF`, `RU`, `FS`) at least 6% fewer than the stored `RU` runs
+  (5,177,331 + 11,471,412 = 16,648,743), summed.
+- f2 (accuracy, against stored `RU`, 15 and 39 wrong; per sample): broken minus fixed at most 3;
+  median error at most 0.001 degree higher; seed steps reaching the grid search at most 2 more.
+- h1, house rule on `held9`: new `J5SD` against `S8`, at least 20% fewer evaluations, broken minus
+  fixed at most 5, median error at most 0.005 degree higher.
+- h2, on `held9` against `RU` `J5SD`: at least 5% fewer evaluations, broken minus fixed at most 5,
+  median error at most 0.001 degree higher. Walls of all three arms reported, contended.
+
+**Predictions, before any run.** Probe: 60% to 85% (`mid`) and 45% to 70% (`held`) of sampled
+same-grain rejected fits accepted from the field start. Rejected BFS fits: `mid` 12,000 to 20,000
+(from 29,713), `held` 28,000 to 42,000 (from 55,927). f1: 8% to 18% fewer (centre 12%). Seed steps:
+0% to 25% fewer (unsized). f2: broken minus fixed -3 to +3; median error -0.002 to +0.0003 degree.
+h1 passes. h2: 6% to 16% fewer. Field seconds under 2% of job wall.
+
+**Costs.** `J5r` copy 0.1 hours; tests, wrapper 1.5; probe 0.2; `mid`, `held` 0.9; `held9`: build 1,
+`S8` 2.3 to 3.3, `RU` 0.6, new 0.5; scoring, plot, docs 1. In all 8 to 9 hours, one run at a time.
+
+**Stop rules.** A test fails. The probe misses p1, p2 or p3: stop and report, no live run, no
+retuning. A BFS fit with other than 61 evaluations; a start built from a voxel not FITTED at that
+moment (from the log); totals that do not reconcile (`run.json` plus `repair.json`). A `mid` or
+`held` run passes 1.5 hours. f1 or f2 fails: no `held9`. `held2` opened or listed, `fine7` or fine1
+read, `held9` built before the gates pass. No gate loosened after a run; refused preflights kept.
+
+**Validity checks.** Logged per BFS fit: voxel, kind, parent, points kept, start used, angle to the
+parent's, evaluations, end hit ratio, accepted, field ms. Predictions equal BFS fits. `RU`, `PXF`
+frozen. One thread; same `SmoothCost`, rays, Q-max 8 as step 29. Truth read only to score.
+
+**Known limits.** No evaluation was possible while the machine is busy. The sizing uses step 17's
+`J5r` rows (arm `J5`, an older route), the `RU` map as the answer, and a model in which acceptance
+depends only on start error. So phase A opens with a 10-minute probe on stored `J5r` rows: 300
+same-grain rejected and 300 accepted fits per sample (fixed stride), each refitted from its field
+start with the stock BFS fit, judged with the stored best; about 73,000 evaluations, one thread.
+It must confirm: p1, at least 45% (`mid`) and 35% (`held`) of the rejected fits accepted (the f1
+margin needs about these); p2, at most 3% of the accepted fits rejected; p3, their median end
+error at most 0.001 degree above the stored ends. Else the stop rule applies. The radius is an
+in-sample choice. The generated grains have linear gradients, the case a linear field fits best;
+real grains bend, and only the 3-side radius keeps the fit local (AR6's `rand`, `corr3` untested).
+Route effects are unsized; other-grain rejections (about 40%) untouched; 2D layers; copper only.
+
+**Phase A.** 0. Copy `J5r_{mid,held}.jsonl.gz` into `ar5/fs/cache`, checking sha256 against step
+17's `manifest.json`. 1. Commit `fs/frozen.json` (rule, constants, gates, predictions, probe
+criteria, hashes). 2. Tests first, `tests/test_ar5_fs.py`: no FITTED neighbour, under 3 kept or
+rank 2 give the parent start; a voxel not FITTED is never used; neighbours over 3 degrees are left
+out; a symmetry equivalent enters as its nearest one (cubic and hexagonal fixtures); an exactly
+linear field is reproduced to 1e-9; the fit gets the predicted start and equals an unwrapped fit
+from it; the prediction counts no evaluation; acceptance, push rule, `RU` and `PXF` unchanged.
+3. The probe. 4. New `J5SD` on `mid`, then `held`; score f1, f2. 5. Build `held9`; `S8`, `RU`
+`J5SD`, new `J5SD`, one at a time; h1, h2. Plot first (evaluations per run stacked: tries, seed
+steps, accepted BFS fits, rejected BFS fits, passes; beside it broken and fixed), then tables.
+
+**Phase B (key), a later decision.** Opt-in `BFSFieldStart 1` (default 0, constants frozen); one
+guarded block in `_expand` before `_local_fit`; key off bit-identical; equality with a new script
+arm on `mid`. **Files:** `fs_*.py` (reusing `ru_launch`, `ru_score`, `ru_build_held8` for
+`held9`), `tests/test_ar5_fs.py`, `ar5/fs/` (under 3 MB). Library: phase A none.
+
+**Not in this step.** Ilium's grain field; skips by start hit ratio (steps 17, 18); a second fit
+after a rejected field-start fit; the field start as a ninth `RU` start; other-grain rejections;
+weights, curved fields, other radii; the 0.9 acceptance; revisit caps; C++; realistic images; seeds.
+
+**Choices made.**
+- This idea: the largest pot, generic, zero evaluations per prediction, the fit itself unchanged
+  (accepted starts 0.103 to 0.033 degree median on `mid`). Projected 11.9% fewer evaluations
+  pooled. Weak side: a proxy sizing, linear gradients by construction.
+- Not a skip: steps 17, 18 stopped at 3.6% to 5.7% and broke voxels; a start-cost revisit gate
+  would wrongly skip 2,611 of 8,840 accepted revisits (`mid`). Not an early stop: a 15-evaluation
+  stall stop changes the end of 47% of accepted fits on `mid` (the running best improves late).
+- Radius 3 sides (best of 2, 2.5, 3 on both samples), 3 points; 3 degrees keeps other grains out.
+- Runner-up: `held`'s seed steps after a failed try (36.2% with rescue, grid); see steps 22 to 25.
+
+Approved: D-20261121-N2, phase A (task `ar5af`); starts when the stock Python layer run ends.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
