@@ -1418,3 +1418,31 @@ Decision D-20261120-N4. Reports in the main `.claude/reports/`: `20261120-1937-a
 - Phase B (key `SeedReuseKnown`) needs a new decision. Not decided.
 - The all-core C++ run (arm CSP) on the finer layer was launched 01:38 on 21 Nov under
   D-20261120-N6. CFP, the J5S 6-hour rerun and PS follow, one at a time.
+
+### AR5 step 29 phase B (task `ar5ae`, key `SeedReuseKnown`), merged at 70fe192d on 2026-11-21
+
+Decision D-20261121-N1. Reports in the main `.claude/reports/`: `20261121-1009-ar5ae.md` and
+review `20261121-1320-review-ar5ae.md` (Opus, approve; nine wording and record fixes applied in
+234264c7). Findings text waiting for the owner to place: `20261121-1310-ar5ae-findings_ar5_ru.md`.
+
+- Opt-in library key `SeedReuseKnown`, default 0. Refused without `SeedByIndexing` and
+  `RayIndexFallbackFull 1`, with `PaintGrains 1`, and with a hybrid or non-`mc` optimizer.
+- Shared Track E/S files changed: `icenine/orientation_search.py` and `icenine/reconstructor.py`.
+  With the key off the result is bit-identical.
+- On mid (in-sample, copper only) the library form equals the script arm RUl exactly: map,
+  4,721,521 evaluations, 36 counters, 24,570 records, 1,692 try rows. The reviewer notes the
+  check is partly circular (shared helper code). It proves wiring and accounting.
+- Against LibPXF: 29.9% fewer evaluations before the boundary pass (4,721,521 against
+  6,731,510). 20.6% fewer with the pass (7,786,344 against 9,803,653).
+- Wrong voxels: 32 against 31 (11 broken, 10 fixed).
+- Suite: 2475 passed, 48 skipped, 1 deselected.
+
+### Finer layer fine1 (98,280 voxels): wall-clock so far, 2026-11-21
+
+All times are contended.
+
+- Stock C++ on all cores (13 MPI ranks): 10,267 s. Fixed C++ on all cores: 10,213 s.
+- Current-recipe Python J5S on one worker: 7,566 s, inside its 6 h cap.
+- Earlier one-worker C++: 91,206 s (stock), 71,996 s (fixed).
+- Stock Python (PS) started 13:36 with a 76.5 h cap. Accuracy and evaluation counts are
+  unread until PS ends.
