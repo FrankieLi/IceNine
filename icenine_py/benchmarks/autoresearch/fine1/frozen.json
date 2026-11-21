@@ -436,7 +436,7 @@
   "scripts/autoresearch/fine1/fine1_check_inputs.py": "5c65aa8e35b9db3f62952cbdff6740d601a46368168d177e6d869a40475d95ef",
   "scripts/autoresearch/fine1/fine1_config.py": "05c7995330a59cf951e843c9f3c1551570d45aa6b33b785a10e34f14a72f9088",
   "scripts/autoresearch/fine1/fine1_cpp_split_check.py": "dd118121f0ce252b9a22a3edcd94a05775cc615a5d066b417541cce81b96018e",
-  "scripts/autoresearch/fine1/fine1_freeze.py": "603f5bf33499357c92435cf3b6bcc86a3fb31e7e07ca18a979d80ec9f58c0bde",
+  "scripts/autoresearch/fine1/fine1_freeze.py": "ff895c2c20063dcb9f54c59e9a6928f67807ee44bdc77de86e880fc2ebf9a60e",
   "scripts/autoresearch/fine1/fine1_gradient_check.py": "36c137e10ac0b10fb3a3e9461b6f10a5a239f005cdcca374333d58221212b93a",
   "scripts/autoresearch/fine1/fine1_launch.sh": "83953ffb442ac3356990ed1aa27ea9e90ce297f2f254c76fa8e91cfdb43e0c27",
   "scripts/autoresearch/fine1/fine1_launch_slice.sh": "f3584cb7f249fdcd8d4aa235bb4a3602033623c2a6bbf29dc85112e9b0efc4e1",
@@ -501,7 +501,7 @@
   "icenine/symmetry.py": "8d843f35885041175b13966934539ba8061dbe5795a23a7f8573631104f09dd1",
   "icenine/toy_orientation_model.py": "cc14dc5efa5361b7f43f81cd8827046874b746f377f195a9e24e9a8b003e83d7"
  },
- "frozen_at": "2026-11-20T21:29:53-0800",
+ "frozen_at": "2026-11-20T21:30:34-0800",
  "note": "no method (PS, CS, J5S, CF) was run on fine7 or its slice, and no log or map of fine7 exists, before this file was committed",
  "refreeze_history": [
   {
@@ -511,10 +511,18 @@
   {
    "previous_freeze_commit": "2943a5e6",
    "note": "Amendment by owner decision D-20261120-N6: new arms CSP and CFP (CS and CF with mpirun -n 13, same binary and same config text; run alone later) added to fine1_config.py, fine1_launch.sh and the freeze. No existing arm, config, cap or gate changed; CS and CF markers and times untouched; data and library hashes equal the earlier freezes; no whole-layer output exists."
+  },
+  {
+   "previous_freeze_commit": "2943a5e6",
+   "note": "Amendment by owner decision D-20261120-N6: new arms CSP and CFP (CS and CF with mpirun -n 13, same binary and same config text; run alone later) added to fine1_config.py, fine1_launch.sh and the freeze. No existing arm, config, cap or gate changed; CS and CF markers and times untouched; data and library hashes equal the earlier freezes; no whole-layer output exists."
+  },
+  {
+   "previous_freeze_commit": "19947d29",
+   "note": "Only fine1_freeze.py changed: the --outputs check compares outputs with the first freeze commit, so outputs of arms run under an earlier freeze (whole-layer J5S, started before the CSP/CFP amendment) are not flagged. No arm, config, cap, gate, data or library change."
   }
  ],
  "refreeze": {
-  "previous_freeze_commit": "2943a5e6",
-  "note": "Amendment by owner decision D-20261120-N6: new arms CSP and CFP (CS and CF with mpirun -n 13, same binary and same config text; run alone later) added to fine1_config.py, fine1_launch.sh and the freeze. No existing arm, config, cap or gate changed; CS and CF markers and times untouched; data and library hashes equal the earlier freezes; no whole-layer output exists."
+  "previous_freeze_commit": "19947d29",
+  "note": "Only fine1_freeze.py changed: the --outputs check compares outputs with the first freeze commit, so outputs of arms run under an earlier freeze (whole-layer J5S, started before the CSP/CFP amendment) are not flagged. No arm, config, cap, gate, data or library change."
  }
 }
