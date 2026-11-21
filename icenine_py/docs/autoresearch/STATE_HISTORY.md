@@ -1378,3 +1378,22 @@ Results: `benchmarks/autoresearch/ar5/pxf/`.
 - No library change in phase A. Suite: 2396 passed, 45 skipped, 1 deselected.
 - Phase B (opt-in keys `RayIndexMaxPairs` and `RayIndexFallbackFull`, task `ar5ac`) is approved
   by D-20261120-N3 and has started.
+
+### AR5 step 28 phase B (task `ar5ac`), merged at fa31ffac on 2026-11-20
+
+Decision D-20261120-N3 (approved). Reports in the main `.claude/reports/`: `20261120-1900-ar5ac.md`
+and review `20261120-1915-review-ar5ac.md`. Results: `benchmarks/autoresearch/ar5/pxf/lib_check.json`.
+
+- Two opt-in keys, both off by default: `RayIndexMaxPairs` and `RayIndexFallbackFull`. They are
+  refused without `SeedByIndexing` and with `PaintGrains 1`.
+- Library form on mid before the boundary pass: 7.20% fewer evaluations than keys off (7,253,826
+  to 6,731,510). Grid searches go from 4 to 2. Without the fallback stage it is +2.80%.
+- The phase A numbers (4.47% fewer evaluations, wall 44.7% lower, contended) belong to the script
+  arm. That arm has extra stages the library lacks.
+- Keys off, nothing changes. No golden change. Suite: 2433 passed, 48 skipped, 1 deselected.
+- The findings text waits for the owner to place:
+  `.claude/reports/20261120-1900-ar5ac-findings_ar5_pxf.md`.
+- Step 29 (task `ar5ad`, rule RU: try the 8 nearest accepted orientations with a 200-evaluation
+  fit before indexing) is approved by D-20261120-N4 and has started.
+- D-20261120-N5: finer-layer runs (current recipe with a 6 h cap, then stock Python) go ahead
+  after step 29.
