@@ -47,7 +47,7 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`); v60 live.
   Step 22 (`ar5v`; cache in `agent-aba6e1bdb95dff72a`): MERGED 566eea3f, key `SeedIndexMCDefer`.
   Steps 24 to 27 MERGED, no key (27: 87c1f49a, failed c2 and c3; wall -44.9% contended).
-  Step 28 (`ar5ab`, N2 of 20 Nov, 50,000 pairs + full-sample fallback): a0dbff575086a81c2 runs.
+  Step 28 (`ar5ab`): handed back 17:30 20 Nov, all gates met (claimed); review a2dab429dc8d193f8 runs.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
