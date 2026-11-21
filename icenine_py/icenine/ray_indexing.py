@@ -745,6 +745,10 @@ class SeedResult:
     # a stall check that went on, and of those of them that were resumed; [] otherwise
     paused: List[int] = field(default_factory=list)
     resumed: List[int] = field(default_factory=list)
+    # ray pairs kept by the indexing (after any subsample) and votes cast (AR5 step 28; 0 for a
+    # stand-in indexer that does not report them)
+    n_pairs: int = 0
+    n_votes: int = 0
 
 
 def mixed_refinement_deferred(
@@ -909,7 +913,13 @@ def seed_by_indexing(
     res, att = index_voxel(sc, voxel_vertices, crystal, p, top_k)
     index_s = time.perf_counter() - t0
     out = SeedResult(
-        n_cand=len(res.R), n_att=int(len(att)), index_s=index_s, total_s=index_s, candidates=res.R
+        n_cand=len(res.R),
+        n_att=int(len(att)),
+        index_s=index_s,
+        total_s=index_s,
+        candidates=res.R,
+        n_pairs=int(getattr(res, "n_pairs", 0)),
+        n_votes=int(getattr(res, "n_votes", 0)),
     )
     if len(res.R) == 0:
         return out

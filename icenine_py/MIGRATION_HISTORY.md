@@ -13980,3 +13980,87 @@ from step 22's worktree. The pilot's preflight JSON and `cache_pilot` were delet
 after the runs (text only). A pilot with `--smoke 40` was started and stopped after 9 minutes
 (`defer_run --smoke` does not shorten the run); the wrapper's exit logging was checked on a failing
 call instead. Not tested: why `held` had more grid searches; a quiet repeat of t1 or t2.
+
+## Autoresearch AR5 step 28, phase B: the opt-in keys `RayIndexMaxPairs` and `RayIndexFallbackFull` (2026-11-20, task ar5ac, D-20261120-N3)
+
+Phase A (task `ar5ab`, merged as 66e61aa8) ran rule `PXF` in the script layer: a seed step indexes with
+50,000 ray pairs; if the seed test fails and that indexing kept a subsample, the voxel is indexed
+again with 600,000 pairs and the whole seed step runs again, the second step being the result (its
+kept ends go to the rescue, both steps' evaluations count). Phase B puts the rule in the library as two
+opt-in keys; the numbers of phase A are in `benchmarks/autoresearch/ar5/pxf/` (`summary.json`,
+`tables.md`) and in the findings text `findings_ar5_pxf.md`.
+
+- **Keys.** `RayIndexMaxPairs N` (integer >= 1; default 600,000 = today's setting) and
+  `RayIndexFallbackFull 0|1` (default 0). Parsed in `config_file.py`, value-checked in
+  `orientation_search.py` (`check_ray_index_max_pairs`, `check_ray_index_fallback_full`), combinations
+  checked in `reconstructor.check_bfs_keys`: both need `SeedByIndexing 1` (a changed count or the
+  fallback without it is refused with a message that names the key; `RayIndexMaxPairs` written at its
+  default is not a change); `RayIndexFallbackFull 1` needs `RayIndexMaxPairs` below 600,000, since with
+  600,000 or more in the first step the second step would be the same step (refused). Both keys are
+  also refused with `PaintGrains 1` (review fix: `grain_paint` calls `index_seed` without the count, so
+  they would be silently ignored). A count above 600,000 alone is accepted. Decision made here, not in
+  the plan: these are the error cases.
+- **Library change (all behind the keys).** `ray_indexing.SeedResult` gains `n_pairs` and `n_votes` (set
+  from the indexer's result; 0 for a stand-in that has none). `AdaptiveVoxelReconstructor.index_seed`
+  takes `max_pairs` (0 = the shared `IndexParams` untouched; else a copy with that count).
+  `BFSReconstruction._index_seed` sends `max_pairs` only when it differs from the default; with
+  `RayIndexFallbackFull` it tests the first step (an `evaluate_overlap` that is not counted, as the
+  script wrapper's `hit_of`), and on a failed test after `n_pairs >= N` runs `index_seed` again with
+  600,000 and hands on the second step with `evals`, `index_s` and `total_s` summed. Subsample is
+  detected as `n_pairs >= N`, as the frozen rule (a voxel with exactly N pairs repeats an identical step
+  and its evaluations are counted). Adds `stats['index_pairs']`, `['index_votes']` (both steps),
+  `['index_fb_full_steps']`, `['index_fb_full_passed']`, `['index_fb_full_evals_first']` and
+  `ray_index` in each `index_log` entry (key on only; `first` holds the repeated step's evaluations,
+  hit ratio, pairs, votes and indexing seconds). The stall-check logs, `mixed` lists and the pause and
+  resume counters of both steps are kept, in step order.
+- **Tests.** `tests/test_ray_index_max_pairs.py`, 40 tests (39 at the first commit; the review added the PaintGrains refusal and a CMA-first and defer counter test), written before the library change and
+  committed with it: parsing and bad values; the refused combinations; `index_seed`'s keyword wiring
+  (the shared `IndexParams` is never changed); the pair counts on `SeedResult`; the BFS with the keys
+  absent and written at their defaults identical (no `max_pairs` sent, no new counter or log field);
+  a small count alone sends it and never repeats; the fallback repeats the whole step (both steps'
+  evaluations, `taken` of the second, counters); no repeat when the first step passes, when it kept
+  every pair (30,000 of 50,000), and a repeat when it kept exactly N, or found no candidate; the
+  rescue starts from the SECOND step's kept ends; stall logs in step order; the library path equals
+  the script wrapper's step (`pxf_rules.run_pxf_step`) on six scripted cases (indexer calls, step
+  handed on, evaluations, pairs); a hexagonal fixture through the real indexer. This step's freeze
+  (`pxf_freeze.py`) pins the library files as of phase A and now refuses by design; the library-run
+  scripts do not go through it (`pxf_lib_run.py`, `pxf_lib_check.py`), and the script arm `PXFl` ran
+  before the library change, under the freeze.
+- **Key-off:** the full suite with no golden change: 2,433 passed (2,432 before the review fixes), 48 skipped, 1 deselected, 0 failed
+  (`uv run pytest tests/` from `icenine_py/`, the worktree's own environment, 13 minutes). The 39
+  tests of this phase and phase A's 11 are in the count (step 22's was 2,333).
+- **Key on, library run on `mid`:** a REPLACED check, as in step 22. The plan asked for a library run
+  equal to the phase A script arm; that arm (`J5D` of the live `PXF` run) has rule `G2b` and aligned
+  draws, which the library does not have. The check is `LibPXF` (the keys of step 22's `LibJ5D`,
+  `SeedIndexMCDefer 1`, plus `RayIndexMaxPairs 50000` and `RayIndexFallbackFull 1`) against a new
+  script arm `PXFl` (step 22's `J5Dl`, with rule `PXF`: the library's own draws, no `G2b`;
+  `pxf_hl.py`), before the boundary pass, on the first run (no tuning): the same map bytes, 6,731,510
+  evaluations on both, all 36 counters of the script run, all 24,570 records, the 5 rescues (3
+  rescued), all 1,897 MC refinements with their checks, the pauses and resumes (623 steps with a
+  pause, 1,263 pauses, 506 resumes), and the second tries: 1,661 seed steps, 11 second tries, 6 passed,
+  with the same pair counts, votes and evaluations step by step. Equality with the phase A `J5D` itself
+  is not shown and not expected.
+  Results: `benchmarks/autoresearch/ar5/pxf/lib_check.json`, `lib_tables.md`. Library wall 1,390 s and
+  script arm 1,095 s are contended (other jobs on the machine), not timings (both in `lib_check.json`,
+  `walls_s`); the library run includes the boundary pass (3,072,143 evaluations), without the screen
+  pass or wide repair, so its whole-run total (9,803,653) cannot be compared with `J5SD`'s 6,822,192.
+- **Library form (`lib_check.json`, `library_form`; no accuracy measured).** Against the same library
+  run without the two keys (step 22's `LibJ5D`, a stored run of another session; same `mid` hash,
+  deterministic code): 7,253,826 to 6,731,510 evaluations, 7.20% fewer, and grid searches 4 to 2. The
+  fallback stage (rescue plus grid) falls from 1,361,954 to 674,447 evaluations. Without that stage the
+  key-on run costs 2.80% MORE (6,057,063 against 5,891,872): the whole saving rests on 2 fewer grid
+  searches, as in phase A (+1.18% without them). Gap to the phase A script arm `J5D` (5,997,364 search
+  evaluations on `mid`): 734,146, of which 663,807 is in the fallback stage (674,447 in `PXFl` with 2
+  grid searches, against 10,640 in `J5D` with 0; `G2b` polished 1). Consistent with `G2b` avoiding the
+  two grid searches; that cause is not tested. A grid search costs about 346,900 evaluations
+  (693,701 for 2 on `held`, `pxf/summary.json`).
+- **Data rebuilt.** The mid sample's truth, grid, frames and stack are not in the main checkout (they
+  were links into earlier worktrees); they were rebuilt with the stored builders (`start_make_mid.py`,
+  `render_full.py --tag mid`, `start_stack_note.py --build`). The truth `.mic` hash and the stack's
+  non-zero count match the stored records (3767c827...; 9,053,073). The frames and stack went into the
+  main checkout's gitignored `ScatteringData_PhaseD/` through a link from the worktree; the `.mic`
+  files stay untracked in the worktree.
+- **Not done / limits.** No accuracy or timing measurement in library form (the library run is a
+  correctness check, equal to the script arm, which has no truth read); no library run on `held` or
+  `held7`; the phase A limits stand (in-sample `mid` and `held`, `held7` one sample, contended unpaired
+  walls, the evaluation saving rests on fewer grid searches, copper only).

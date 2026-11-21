@@ -10,6 +10,7 @@ C++ Reference:
     Src/ReconstructionSetup.h       — Setup and data loading
 """
 
+import dataclasses
 import math
 import threading
 import time
@@ -33,6 +34,7 @@ from .forward_simulation import ForwardSimulation
 from .mic_file import MicFile, ReconstructionState
 from .orientation_search import (
     LOCAL_OPTIMIZERS,
+    RAY_INDEX_MAX_PAIRS_DEFAULT,
     CMAOptimizer,
     MCOptimizer,
     RiemannianAdamOptimizer,
@@ -199,6 +201,26 @@ def check_bfs_keys(params: Any) -> None:
             raise ValueError(
                 "SeedIndexMCDefer needs SeedIndexMCStallHit k >= 1 (it pauses a refinement at "
                 "its stall check; with no check there is nothing to pause)"
+            )
+    max_pairs = int(getattr(params, "ray_index_max_pairs", RAY_INDEX_MAX_PAIRS_DEFAULT))
+    fallback_full = int(getattr(params, "ray_index_fallback_full", 0)) > 0
+    if max_pairs != RAY_INDEX_MAX_PAIRS_DEFAULT or fallback_full:  # AR5 step 28
+        if not getattr(params, "seed_by_indexing", False):
+            what = "RayIndexFallbackFull" if fallback_full else "RayIndexMaxPairs"
+            raise ValueError(
+                f"{what} needs SeedByIndexing 1 (it acts on the indexed seed step; the default "
+                f"RayIndexMaxPairs is {RAY_INDEX_MAX_PAIRS_DEFAULT:,})"
+            )
+        if getattr(params, "paint_grains", False):  # grain_paint calls index_seed without them
+            raise ValueError(
+                "RayIndexMaxPairs and RayIndexFallbackFull cannot be combined with PaintGrains 1"
+            )
+        if fallback_full and max_pairs >= RAY_INDEX_MAX_PAIRS_DEFAULT:
+            raise ValueError(
+                "RayIndexFallbackFull needs RayIndexMaxPairs below "
+                f"{RAY_INDEX_MAX_PAIRS_DEFAULT:,} (got {max_pairs:,}): the second step uses "
+                f"{RAY_INDEX_MAX_PAIRS_DEFAULT:,} pairs, so with that many or more in the first "
+                "it would repeat the same step"
             )
     if cma_first:
         if getattr(params, "local_optimizer", "mc") != "mc":
@@ -1856,6 +1878,7 @@ class AdaptiveVoxelReconstructor:
         cma_sigma0_deg: float = 0.2,
         mc_stall_hit: int = 0,
         mc_defer: bool = False,
+        max_pairs: int = 0,
     ) -> Any:
         """SeedByIndexing (opt-in): the voxel's seed search from its observed rays
         (``ray_indexing.seed_by_indexing``): strict cost on the first ``n_cost`` candidates, the
@@ -1877,7 +1900,10 @@ class AdaptiveVoxelReconstructor:
         check goes on is paused (``SeedMCRun``: its state and generator kept) while the step has
         an untried candidate, and resumed in candidate order only if no later candidate reaches
         ``stop_hit`` (``ray_indexing.seed_by_indexing`` with ``defer``; the last candidate is
-        never paused). ``SeedResult.paused`` / ``resumed`` list the positions."""
+        never paused). ``SeedResult.paused`` / ``resumed`` list the positions.
+        ``max_pairs`` > 0 (RayIndexMaxPairs, AR5 step 28): the indexer keeps that many ray pairs
+        (a random subsample above it) in place of the stored 600,000; 0 leaves the shared
+        ``IndexParams`` untouched (a copy carries the change, never the shared object)."""
         from . import ray_indexing as RI
 
         if cma_first_evals and (cma_first_evals < 2 or stop_hit <= 0):
@@ -1889,6 +1915,8 @@ class AdaptiveVoxelReconstructor:
                 "mc_defer needs mc_stall_hit >= 1 (it defers a refinement at its check)"
             )
         sc, crystal, params, strict_cf = self._index_context(phase_index)
+        if max_pairs > 0:
+            params = dataclasses.replace(params, max_pairs=int(max_pairs))
 
         def strict(R: np.ndarray) -> float:
             return float(
@@ -2882,7 +2910,46 @@ class BFSReconstruction:
         defer_on = bool(int(getattr(sp, "seed_index_mc_defer", 0)))
         if defer_on:  # SeedIndexMCDefer (opt-in; needs the stall check)
             kw["mc_defer"] = True
-        res = self.reconstructor.index_seed(vertices, voxel.phase, **kw)
+        max_pairs = int(getattr(sp, "ray_index_max_pairs", RAY_INDEX_MAX_PAIRS_DEFAULT))
+        full_on = int(getattr(sp, "ray_index_fallback_full", 0)) > 0
+        pairs_on = max_pairs != RAY_INDEX_MAX_PAIRS_DEFAULT or full_on
+        if max_pairs != RAY_INDEX_MAX_PAIRS_DEFAULT:  # RayIndexMaxPairs (opt-in)
+            kw["max_pairs"] = max_pairs
+        steps: List[Tuple[Any, List[Dict[str, Any]]]] = []  # (result, stall logs) of each step
+
+        def run_step(step_kw: Dict[str, Any]) -> Any:
+            r = self.reconstructor.index_seed(vertices, voxel.phase, **step_kw)
+            logs = []
+            if stall_k:  # this step's stall-check logs, before a second step resets them
+                logs = [dict(x) for x in getattr(self.reconstructor, "last_seed_stall_hit", [])]
+            steps.append((r, logs))
+            return r
+
+        res = run_step(kw)
+        first_step: Optional[Dict[str, Any]] = None
+        if full_on and int(res.n_pairs) >= max_pairs:  # RayIndexFallbackFull (rule PXF): the
+            # indexing kept a subsample; if the step fails the seed test it is run again, whole,
+            # with the full sample (the hit ratio of the first step is not an evaluation)
+            hit1: Optional[float] = None
+            if res.orientation is not None:
+                info1 = self.reconstructor.evaluate_overlap(res.orientation, vertices, voxel.phase)
+                hit1 = float(self._ratios(info1)[0])
+            if hit1 is None or hit1 < self.setup.config.min_acceleration_threshold:
+                first_step = dict(
+                    evals=int(res.evals),
+                    hit=hit1,
+                    n_pairs=int(res.n_pairs),
+                    n_votes=int(res.n_votes),
+                    index_s=float(res.index_s),
+                )
+                res1 = res
+                res = run_step(dict(kw, max_pairs=RAY_INDEX_MAX_PAIRS_DEFAULT))
+                res = dataclasses.replace(  # both steps count as the seed's
+                    res,
+                    evals=res1.evals + res.evals,
+                    index_s=res1.index_s + res.index_s,
+                    total_s=res1.total_s + res.total_s,
+                )
         dt = time.time() - t0  # includes the one-time pairing on the first call
         rec.n_evals += res.evals
         rec.wall_s += dt
@@ -2904,18 +2971,33 @@ class BFSReconstruction:
             hit_ratio=None,
             used=False,
         )
+        if pairs_on:  # RayIndexMaxPairs / RayIndexFallbackFull: the pairs of the step that counts
+            entry["ray_index"] = dict(
+                max_pairs=max_pairs,
+                n_pairs=int(res.n_pairs),
+                n_votes=int(res.n_votes),
+                fallback_full=first_step is not None,
+            )
+            if first_step is not None:  # the repeated first step (its evaluations are in ``evals``)
+                entry["ray_index"]["first"] = first_step
+                self._count("index_fb_full_steps")
+                self._count("index_fb_full_evals_first", first_step["evals"])
+                self._count("index_fb_full_passed", 0)  # raised below when the second step passes
+            self._count("index_pairs", sum(int(r.n_pairs) for r, _ in steps))
+            self._count("index_votes", sum(int(r.n_votes) for r, _ in steps))
         if stop_hit > 0:
             entry["stopped_at"] = int(res.stopped_at)
             self._count("index_stopped_early", 1 if res.stopped_at >= 0 else 0)
         if (
             cma_first
         ):  # SeedIndexCMAFirst: per candidate, did the CMA end reach the ratio, did MC run
-            entry["mixed"] = [dict(m) for m in res.mixed]
-            self._count("index_mixed_cands", len(res.mixed))
-            self._count("index_mixed_cma_reached", sum(1 for m in res.mixed if not m["mc_ran"]))
-            self._count("index_mixed_mc_ran", sum(1 for m in res.mixed if m["mc_ran"]))
+            mixed = [dict(m) for r, _ in steps for m in r.mixed]  # both steps with the fallback
+            entry["mixed"] = mixed
+            self._count("index_mixed_cands", len(mixed))
+            self._count("index_mixed_cma_reached", sum(1 for m in mixed if not m["mc_ran"]))
+            self._count("index_mixed_mc_ran", sum(1 for m in mixed if m["mc_ran"]))
         if stall_k:  # SeedIndexMCStallHit: per MC refinement, its stall checks and evaluations
-            logs = [dict(x) for x in getattr(self.reconstructor, "last_seed_stall_hit", [])]
+            logs = [x for _, step_logs in steps for x in step_logs]  # first step's, then second's
             entry["stall_hit"] = logs
             self._count("index_stallhit_refinements", len(logs))
             self._count("index_stallhit_checks", sum(len(x["checks"]) for x in logs))
@@ -2928,9 +3010,10 @@ class BFSReconstruction:
             entry["defer"] = dict(
                 paused=[int(p) for p in res.paused], resumed=[int(p) for p in res.resumed]
             )
-            self._count("index_defer_steps", 1 if res.paused else 0)
-            self._count("index_defer_pauses", len(res.paused))
-            self._count("index_defer_resumes", len(res.resumed))
+            for r, _ in steps:  # both steps with the fallback (``entry`` has the last one's lists)
+                self._count("index_defer_steps", 1 if r.paused else 0)
+                self._count("index_defer_pauses", len(r.paused))
+                self._count("index_defer_resumes", len(r.resumed))
         self.index_log.append(entry)
         self._count("index_runs")
         self._count("index_evals", res.evals)
@@ -2963,6 +3046,8 @@ class BFSReconstruction:
         entry["used"] = True
         self._count("index_used")
         self._count("index_evals_used", res.evals)
+        if first_step is not None:
+            self._count("index_fb_full_passed")
         return result, info, dt
 
     def _rescue_seed(
