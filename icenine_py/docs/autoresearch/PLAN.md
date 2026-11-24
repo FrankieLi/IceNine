@@ -6656,6 +6656,147 @@ weights, curved fields, other radii; the 0.9 acceptance; revisit caps; C++; real
 
 Approved: D-20261121-N2, phase A (task `ar5af`); starts when the stock Python layer run ends.
 
+### Owner task of 24 Nov: textured finer layer (task `tex1`)
+
+Task `tex1`. Owner task of 2026-11-24 (words and follow-up: scratchpad `owner_task_20261124.md`).
+Starts from `feature/eval-reduction` after `fine1` (d149258a). A measurement on a new held-out
+sample: no method is changed or tuned. Two arms only: stock C++ in parallel, and the recipe.
+
+**Why.** So far grains had one orientation or a mild linear gradient (`fine7`: 41 sharp, 209 with
+spread 0.2 to 4 degrees, edge step at most 0.45). Now: voxel-to-voxel noise and strong gradients.
+
+**What was read.** `fine1/` scripts, PLAN section, report, review; PLAN steps 22, 28, 29, 29 B;
+`gradient_sample.py`, `boundary_pass.py`, `boundary_repair.py`, `reconstructor.py`; three
+`lib_check.json`; C++ `ReconstructionStrategies.*`, `BreadthFirstReconstructor.h`; `git diff
+develop f47bf032 -- Src`; skill `mic-maps`; the regroup page.
+
+**Terms.** `R_g`: the one orientation drawn per grain. **Edge** / **touching pair**: two voxels of
+a grain sharing an edge / an edge or a corner. **Class**: sharp, noise only, gradient only, both.
+**Wrong**: over 1 degree from the voxel's own truth (cubic); no output is wrong, listed apart.
+**Trivial answer**: `R_g` for every voxel of the grain.
+
+**Sample `tex24`, generator seed 24** (a new sample, not an extra seed for a comparison). Grid:
+`fine7_grid.mic` (98,280 voxels, side 0.0046875 mm; sha256 checked against `fine1/frozen.json`).
+Grains as `fine1_make_sample.py`, its helpers imported unchanged: 250 Voronoi cells, connected
+pieces, `R_g` from `grains.py`, redrawn if under 5 degrees from a neighbour grain (`fine7`: 250
+grains, 38 to 1,111 voxels, median 358, mean 393). fine1's level and cap step is replaced by:
+- Classes: 50 noise grains (20%) by `default_rng([24, 1])`, 125 gradient grains (50%) by
+  `default_rng([24, 2])`, drawn independently. Expected 25 both, 25 noise only, 100 gradient only,
+  100 sharp (exact counts reported). If the pieces are not 250, use 20% and 50% of the count.
+- Gradient field, `u = (x - c) / rho` (`c` centroid, `rho` RMS distance of the grain's centres):
+  rotation vector `r(u) = s_g (M1 u + 0.25 M2 (q(u) - mean q))`, `q = (ux^2, ux uy, uy^2)`, `M1`
+  3x2 and `M2` 3x3 standard normal: linear plus mild curvature, smooth by construction. Strength
+  `t_g` uniform on [0.1, 0.5] degree; `s_g` set (iterated as fine1's cap, never above) so the
+  largest edge-pair misorientation of the grain equals `t_g`. `R = exp(r) R_g`.
+- Noise: per voxel an independent rotation vector uniform in the 1-degree ball, `R = exp(n_v)
+  exp(r) R_g` (`r = 0` off gradient grains): noise parts of any two voxels within 2 degrees.
+- Size (fine7's grain 0: 357 voxels, edge step 0.32, spread 4.0): at 0.5 per edge step a typical
+  grain spans about 6 degrees centre to edge, 12 across; the largest about 10 from its centre.
+  Corner pairs reach about twice the edge step. A grain's edge can come near its neighbour's
+  orientation (the 5-degree rule holds for `R_g` only): not prevented; measured below.
+
+**Check script `tex1_sample_check.py`, a hard gate before the freeze**, on the `.mic` read back:
+sharp voxels equal `R_g` (to the file's Euler rounding); noise angle to the smooth field at most 1;
+edge pairs at most 0.5 in gradient-only grains. Reports per class grains, voxels, edge- and
+touching-pair max, median, p99; per gradient grain `t_g` and spread; per grain boundary the least
+misorientation across it (counts under 5, 2, 1 degree). Fails: stop. All go to `sample.json`.
+
+**Images.** As `fine7`: `render_full.py --tag tex24 --variants clean --mic <truth>` (Python
+forward simulator, pixel-exact against C++; Q-max 8), then the stack. It simulates each voxel's own
+orientation (`fine7`, also per-voxel: 397 s on 2 workers). Estimate 7 to 15 min, 4 workers, alone.
+
+**Arm `CSP`, stock C++, 12 fitting workers** (`mpirun -n 13`, mode `p`), fine1's `CSP` config
+(`fine1_config.cpp_config`) with grid and images changed and `SampleRadius 2.0` (was 0.50; Python
+configs too, which ignore it). Why 2.0: `RestrictedStratifiedGrid::Pop` (`.tmpl.cpp:160-185`,
+the queue of `LazyBFSServer`) skips a voxel with `|centre - SampleCenter| >= SampleRadius`, and
+`RefreshSampleCenter` (`:199-224`) moves the centre to the confidence-weighted centroid of solved
+voxels, which lies inside the grid's hexagon (circumradius 0.6 mm): every voxel is within 1.2 mm
+of it, so 2.0 skips none. Its only other use, the re-scan test (shift over R/50), changes seed
+order, not coverage. Binary `cppchk/cache/IceNine_unfixed_f47bf032`, fine1's `CSP` binary:
+develop's C++ plus prints only (64 lines, 3 files; trace off unless `ICENINE_TRACE_VOXEL`; one
+count line per client). Evaluations: sum of the 12 `[cost evaluations] client N` lines, copied to
+a tracked file at once (fine1 lost its logs). The plain develop binary prints no count in mode `p`
+(only `SerialReconstruction.h:105-119` prints it): with it, evaluations are reported missing.
+Expected: `CSP` took 10,267 s on `fine7` covering 87,869 voxels; here 3 to 6 hours.
+
+**Arm `RCP`, the recipe of 24 Nov, library form, one worker.** fine1's `J5S` 12 keys plus
+`SeedIndexMCDefer 1` (step 22), `RayIndexMaxPairs 50000`, `RayIndexFallbackFull 1` (step 28),
+`SeedReuseKnown 1` (step 29). Each key equals its script arm on `mid` (`J5Dl`, `PXFl`, `RUl`:
+maps byte-equal); `check_bfs_keys` accepts all 16. Not phase A's script
+arm: `ru_common`'s freeze refuses since phase B changed the library (`ru_lib_run.py`), and its
+aligned draws and `G2b` are script-only. Gap: the 16 never ran together (`LibRU`: plain pass;
+`J5S`: no four keys); the slice pilot is the first run. Constants made for near-sharp grains:
+- BFS neighbour fit: CMA, 60 evaluations, first step 0.05 degree, no fallback, accept if hit /
+  best > 0.9. Noise grains start 1 to 2 degrees off: many rejects, so revisits and reseeds.
+- `RU`: 8 nearest accepted voxels, first step 0.5 degree, accept at 0.95. Step 29's probe: success
+  91% within 0.5 degree, 69% at 0.5 to 1, 0% over 2. Noise grains will fall through to `PXF` steps.
+- Boundary pass (`BOUNDARY_THRESHOLD_DEG` 0.5, neighbours within 2 sides) and repair (`WIDE_DEG`
+  1.0, 121 evaluations per start): nearly every noise voxel and steep-gradient voxel becomes a
+  boundary voxel and "wide". Predicted largest extra cost.
+Expected: `J5S` took 7,557 s, 32.6 M evaluations on `fine7`; here 2.5 to 8 hours.
+
+**Scoring** (`tex1_score.py`, from `fine1_score.py`). Per voxel, misorientation to its own truth.
+Overall and per class, on all voxels and on common voxels: wrong (Wilson 95%), no output, median
+and p90 error, evaluations, wall (one source, `time -p`). The 1-degree rule finds gross errors
+only: in noise grains the trivial answer is never wrong (at most 1 degree off). So per class also:
+median error of the trivial answer, the share of voxels closer to the truth than it, and per
+gradient grain the recovered spread against the true one. Paired by voxel: both wrong, only one.
+
+**Outputs, for each arm, the owner's list** (PNG, SVG, data; the main session publishes the page).
+Plots first, after a truth orientation map: (1) orientation map.
+(2) Misorientation map against the truth, scale 0 to 2 degrees (over 2 saturated), truth grain
+boundaries drawn on top. (3) Misorientation distribution: log-x histogram, 0.001 to 63 degrees,
+the 1-degree line marked, all voxels and the four classes, the trivial answer dashed. Maps reuse
+`plot_mic.py` / `mic_maps_report.py` (skill `mic-maps`) with two opt-in flags added to
+`plot_mic.py`: `--boundaries <grainmap.npz>` (edges between truth grains) and `--mis-max <deg>`;
+defaults unchanged (a test checks byte-equal output). Then the regroup page's Chart A (evaluations,
+log, against wrong voxels) and Chart B (wall seconds, linear, hatched = 12 workers) with the two
+`tex24` points, rows in the page's format (`charts_tex24.json`); `fine7` points only greyed and
+labelled as another sample. Then the per-class table (`doc_tables`, markers).
+
+**Predictions, before any run.** Sample: spreads median 3 to 5, largest 8 to 12 degrees; 5% to 20%
+of grain boundaries under 5 degrees somewhere. `CSP`: no output 0; wrong 4% to 8% sharp, 5% to 15%
+gradient and noise. `RCP`: wrong 0.3% to 1% sharp, 0.5% to 3% gradient, 1% to 8% noise; noise
+median error 0.3 to 0.8 degree, closer than the trivial answer in 50% to 80% of noise voxels and
+over 95% of gradient voxels; 40 M to 120 M evaluations, over half in seed steps and repair.
+
+**What would change the roadmap.** `RCP` worse than `CSP` on a class; or `RCP` over 3 times
+`J5S`'s evaluations per voxel: then a step on texture-aware pass, repair and neighbour constants
+(relative to local scatter) moves up. Neither arm beats the trivial answer in noise grains: report
+grain mean plus spread for such grains, not per-voxel noise. No change on this sample itself.
+
+**Machine.** One IceNine job at a time, nothing heavy beside it. Order: build, gate, render, stack,
+freeze; `RCP` slice pilot (2,000 central voxels, fine1's rule; exit code, counts, seconds only);
+whole `CSP`, then whole `RCP`; score. fine1's launcher (`--allow-contended --continue-contended`,
+guard, `--resume`, `--dry-run`, markers); caps `CSP` 9 h, `RCP` 16 h; walls contended.
+**Process limit exception:** the `CSP` run uses 13 MPI ranks on 12 cores, above
+`icenine.maxHeavyProcs` 6, under the owner rule of 2026-11-20/21 (one IceNine job alone on all
+cores); labelled oversubscribed (cpptools holds a core). All else stays within 6.
+
+**Stop rule:** stop and report if the sample gate fails, if a run starts before `tex1/frozen.json`
+is committed, if any map or log of `tex24` is read before both end markers exist (slice counts and
+seconds excepted), if a run hits its cap or its log stalls 30 minutes, if `CSP` leaves any voxel
+without output (report, no rerun), or if `held2` is opened or listed or a `pareto_rows.json` read.
+
+**Library changes:** none; C++ not changed. Script change: two opt-in flags in `plot_mic.py`.
+**Files.** `scripts/autoresearch/tex1/` (paths, make_sample, sample_check, config, freeze, launch,
+run_py, score, plot; copied from fine1), `tests/test_tex1.py`, `benchmarks/autoresearch/tex1/`
+(under 3 MB). Findings text to `.claude/reports/`. **Costs.** Scripts, tests 3 h; sample to freeze
+1 h; pilot 0.3 h; `CSP` 3 to 6 h; `RCP` 2.5 to 8 h; scoring, plots 1.5 h: 11 to 20 hours, serial.
+
+**Not in this step.** Tuning; other arms (stock Python, one-worker or fixed C++, step 30);
+realistic images; other Q-max; a `fine7` rerun; extra seeds; `held2`.
+
+**Choices made.**
+- New grains (seed 24), not `fine7`'s map: nobody has seen them (`fine7` is disclosed).
+- Gradient cap on edge pairs (fine1's measure), the strongest field the words allow; on touching
+  pairs every gradient would be about half as steep. Owner may choose.
+- Noise at full strength in every noise grain. In "both" grains a neighbour pair can reach 2.5
+  degrees (2 noise plus 0.5 gradient), the one place the owner's 2 is exceeded; else 0.75 there.
+- C++ binary with the count line, as fine1's `CSP`, so evaluations exist; the main session decides.
+
+Approved: owner task of 2026-11-24, details settled under D-20261124-N1 (C++ binary with the count line as fine1 CSP; gradient cap on edge pairs; 2.5 degrees allowed in grains with both).
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing
