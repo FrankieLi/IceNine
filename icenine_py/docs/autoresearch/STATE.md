@@ -23,10 +23,9 @@ Read this file first after any restart or wake. It holds only what is true now a
 
 ## Next action
 Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a task branch first.
-0. tex1: when `CSP.done` exists, launch RCP from `<worktree>/icenine_py`: `nohup caffeinate -i
-   bash scripts/autoresearch/tex1/tex1_launch_whole.sh --arms RCP --cap-h RCP=16
-   --allow-contended --continue-contended --resume > /dev/null 2>&1 &` plus a background
-   waiter on `RCP.done`; then scoring agent (tex1_score.py, tex1_plot.py), review, merge, page.
+0. tex1: whole `RCP` running (see Owner task); when `RCP.done` exists: scoring agent in the
+   worktree (tex1_score.py, tex1_plot.py, report, findings text to .claude/reports), Opus
+   review, fixes, merge (set branch parent first), owner page with the owner's outputs.
 1. AR5 step 4 (`ar5d`; N16, N18, N20, N23): `S11v2` on `held` 37.4% fewer evaluations than `S8`,
    69 wrong; fix 3 done (fac79f9). BLOCKED on fix 1 (the page; writes refused): the owner places
    it or allows it. Then: sync check, commit, fix 2, merge, close.
@@ -48,10 +47,11 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   `tex24`: 101 sharp, 24 noise only, 99 gradient only, 26 both; gradient spread median 3.56,
   max 10.26 degrees. RCP slice pilot 2,000 voxels: 6,018,761 evals, 613 s (contended); scaled
   ~296 M evals, 8.4 h for the layer (plan said 40 to 120 M); ~9x J5S per voxel on fine7.
-  RUNNING: whole `CSP` (stock C++, 13 ranks, alone) since 24 Nov 01:34, cap 9 h. Check: `ls
-  <worktree>/icenine_py/benchmarks/autoresearch/tex1/cache/runs/whole/` for `CSP.done`; `pgrep
-  -f tex1_launch_whole.sh`. Do NOT read tex24 maps or logs before both end markers exist.
-  NEXT: RCP, scoring agent, review, merge, page (owner outputs: maps, misorientation, regroup A/B).
+  DONE: whole `CSP` (stock C++, 13 ranks) ended 24 Nov 10:31 by itself (guard exit 0, `CSP.done`,
+  map present): wall 32,058 s, contended, oversubscribed (median load 15.9); 3.1x `fine7` 10,267 s.
+  RUNNING: whole `RCP` (recipe, one worker) since 24 Nov 10:33, cap 16 h (ends by 02:33 on 25 Nov),
+  pilot 8.4 h. Check `ls <worktree>/icenine_py/benchmarks/autoresearch/tex1/cache/runs/whole/` for
+  `RCP.done`; `pgrep -f tex1_launch_whole.sh`. No tex24 maps or logs before both end markers.
   Spec: scratchpad `owner_task_20261124.md`. Regroup page claude.ai/artifact/9phjGZjDQLgtd4nUTwgsoh
   (v1); every other thread WAITS for the owner; step 30 (`ar5af`) HELD. One IceNine job at a time.
 ## Queue
