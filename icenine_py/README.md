@@ -990,8 +990,11 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   layer `fine7`, score; all runs contended): new scripts `fine1_projection.py`, `fine1_score.py`,
   `fine1_plot.py`, launcher flag `--continue-contended`, arms `CSP` and `CFP` (13 MPI ranks);
   results `benchmarks/autoresearch/fine1/` (`score.json`, `score_tables.md`, `projection.json`,
-  two charts, `pareto_panel_fine7.json`). On clean `fine7`: `J5S` 561 wrong voxels in 2.1 h and
-  32.6 M evaluations, `PS` 714 in 50.9 h and 2.83 G; the C++ arms leave an edge band without output.
+  two charts, `pareto_panel_fine7.json`, `cost_evaluation_lines.txt`). On clean `fine7`, counted on
+  the 85,676 voxels every arm has an output for: `J5S` 453 wrong in 2.1 h and 32.6 M evaluations,
+  `PS` 616 in 50.9 h and 2.83 G, C++ 2,734 to 4,681. The C++ arms leave about 10,000 edge voxels
+  without output because our config sets `SampleRadius 0.50` on a grid reaching 0.6 mm (Python
+  ignores that key). `CSP` and `CFP` ran 13 MPI ranks on 12 cores (oversubscribed).
   MIGRATION_HISTORY, "Autoresearch `fine1`, phases B to D".
 
 See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and

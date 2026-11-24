@@ -343,6 +343,46 @@ def test_launcher_has_a_flag_to_go_on_after_a_not_quiet_arm() -> None:
     assert "exit 5" in text
 
 
+import os  # noqa: E402
+import shutil  # noqa: E402
+
+# a dry run of the launcher writes only here (never into the real runs/ or logs/ of the cache)
+DRY_REL = "benchmarks/autoresearch/fine1/cache/dry_pytest"
+DRY_ENV = dict(os.environ, FINE1_DRY_DIR=DRY_REL)
+
+
+@pytest.fixture(autouse=True)
+def _dry_dir_removed() -> object:
+    yield
+    shutil.rmtree(ICE / DRY_REL, ignore_errors=True)
+
+
+def test_launcher_dry_run_leaves_the_real_logs_and_runs_alone() -> None:
+    real = PP.LOGS
+    before = (
+        {p.name: (p.stat().st_size, p.stat().st_mtime) for p in real.glob("*")}
+        if real.is_dir()
+        else {}
+    )
+    runs_before = sorted(p.name for p in (PP.RUNS / "whole").glob("*")) if PP.RUNS.is_dir() else []
+    out = subprocess.run(
+        ["bash", str(LAUNCH), "--stage", "whole", "--arms", "PS", "--cap-h", "PS=1", "--dry-run"],
+        capture_output=True,
+        text=True,
+        env=DRY_ENV,
+    )
+    assert out.returncode == 0
+    assert (ICE / DRY_REL / "logs").is_dir()  # the dry run's own logs
+    after = (
+        {p.name: (p.stat().st_size, p.stat().st_mtime) for p in real.glob("*")}
+        if real.is_dir()
+        else {}
+    )
+    assert after == before  # no real log was touched
+    runs_after = sorted(p.name for p in (PP.RUNS / "whole").glob("*")) if PP.RUNS.is_dir() else []
+    assert runs_after == runs_before
+
+
 def test_launcher_dry_run_reports_the_continue_flag(tmp_path: Path) -> None:
     out = subprocess.run(
         [
@@ -357,6 +397,7 @@ def test_launcher_dry_run_reports_the_continue_flag(tmp_path: Path) -> None:
         ],
         capture_output=True,
         text=True,
+        env=DRY_ENV,
     )
     assert out.returncode == 0 and "continue-contended on" in out.stdout
 
@@ -391,6 +432,7 @@ def test_launcher_dry_run_of_the_parallel_arms_names_13_ranks_and_leaves_default
         ],
         capture_output=True,
         text=True,
+        env=DRY_ENV,
     )
     assert out.returncode == 0
     assert out.stdout.count("mpirun -n 13") == 2 and "mpirun -n 2" not in out.stdout
@@ -399,6 +441,7 @@ def test_launcher_dry_run_of_the_parallel_arms_names_13_ranks_and_leaves_default
         ["bash", str(LAUNCH), "--stage", "slice", "--cpp-bin", "/usr/bin/true", "--dry-run"],
         capture_output=True,
         text=True,
+        env=DRY_ENV,
     )
     assert "arms CS,J5S,PS " in dflt.stdout and "CSP" not in dflt.stdout.split("arms")[1][:20]
     assert dflt.stdout.count("mpirun -n 2") == 1
@@ -416,6 +459,35 @@ def test_score_matches_output_voxels_to_grid_rows_by_position_and_direction() ->
         SC.match(np.array([[0.2, 0.0]]), np.array([1]), g_xy, g_dir)  # too far from every row
     with pytest.raises(AssertionError):  # two output voxels on one row
         SC.match(np.array([[0.0, 0.0], [0.0, 0.0]]), np.array([1, 1]), g_xy, g_dir)
+
+
+def test_pair_stats_count_only_the_voxels_both_maps_have() -> None:
+    import fine1_score as SC
+
+    d = np.array([0.0, 0.0004, 0.2, 3.0])  # four shared voxels
+    wa = np.array([False, False, True, True])
+    wb = np.array([False, True, True, False])
+    s = SC.pair_stats(d, wa, wb)
+    assert s["n_shared"] == 4 and s["n_same_1e3deg"] == 2
+    assert s["n_differ_over_0p05"] == 2 and s["n_differ_over_1"] == 1
+    assert (s["wrong_both"], s["wrong_only_a"], s["wrong_only_b"], s["wrong_neither"]) == (
+        1,
+        1,
+        1,
+        1,
+    )
+
+
+def test_cost_evaluation_record_sums_to_the_scored_totals() -> None:
+    import fine1_score as SC
+
+    for arm, n, total in (
+        ("CS", 1, 1670595806),
+        ("CF", 1, 1362495605),
+        ("CSP", 12, 1380035950),
+        ("CFP", 12, 1370501354),
+    ):
+        assert SC.eval_lines(arm) == (total, n)
 
 
 def test_launcher_syntax_and_argument_guards() -> None:

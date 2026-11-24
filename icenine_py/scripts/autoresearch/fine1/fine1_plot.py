@@ -2,13 +2,13 @@
 
   uv run python scripts/autoresearch/fine1/fine1_plot.py
 
-Reads ``benchmarks/autoresearch/fine1/score.json`` (``fine1_score.py``) and the launcher's
-``whole_<arm>.time`` files. Writes in ``benchmarks/autoresearch/fine1/``:
-``fine7_cost_accuracy.png`` (evaluations against wrong voxels, Wilson 95% bars, wall time and
-workers in each label), ``fine7_wall_time.png`` (wall seconds and CPU seconds per arm, the worker
-count marked, so one worker and twelve fitting workers do not look alike) and
-``pareto_panel_fine7.json`` (the rows of the panel ``fine7_98280`` for the review page's
-cost-against-accuracy chart; the page itself is not edited here).
+Reads ``benchmarks/autoresearch/fine1/score.json`` (``fine1_score.py``). Writes in
+``benchmarks/autoresearch/fine1/``: ``fine7_cost_accuracy.png`` (evaluations against wrong voxels;
+the main points count the 85,676 voxels every arm has an output for, with Wilson 95% bars; the
+light points count all 98,280 voxels, where the C++ arms' voxels without output count as wrong),
+``fine7_wall_time.png`` (wall hours and CPU hours per arm on a linear axis, the worker count and
+the 13 ranks on 12 cores marked) and ``pareto_panel_fine7.json`` (the rows of the panel
+``fine7_98280`` for the review page; the page itself is not edited here).
 """
 
 import json
@@ -25,20 +25,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import fine1_paths as P  # noqa: E402
 
 NAMES = {
-    "CS": "stock C++, 1 worker (CS)",
-    "CF": "corrected C++, 1 worker (CF)",
-    "CSP": "stock C++, 12 workers (CSP)",
-    "CFP": "corrected C++, 12 workers (CFP)",
-    "J5S": "Python, latest recipe (J5S)",
-    "PS": "Python, stock (PS)",
-}
-OFFS = {
-    "CS": (12, 8, "left"),
-    "CSP": (-12, 16, "right"),
-    "CFP": (-12, 2, "right"),
-    "CF": (-12, -14, "right"),
-    "J5S": (10, 6, "left"),
-    "PS": (10, 6, "left"),
+    "CS": "stock C++",
+    "CF": "corrected C++",
+    "CSP": "stock C++",
+    "CFP": "corrected C++",
+    "J5S": "Python, latest recipe",
+    "PS": "Python, stock + 3 Python-only keys",
 }
 COL = {
     "CS": "#c0392b",
@@ -48,60 +40,75 @@ COL = {
     "J5S": "#1f77b4",
     "PS": "#555555",
 }
+# label offsets (points) on the cost chart: (dx, dy, ha)
+OFFS = {
+    "CS": (12, 10, "left"),
+    "CSP": (-12, 12, "right"),
+    "CFP": (-12, -12, "right"),
+    "CF": (12, -14, "left"),
+    "J5S": (10, 8, "left"),
+    "PS": (10, 8, "left"),
+}
 
 
-def cpu_seconds(arm: str) -> float:
-    t: Dict[str, float] = {}
-    for ln in (P.LOGS / f"whole_{arm}.time").read_text().splitlines():
-        p = ln.split()
-        if len(p) == 2:
-            t[p[0]] = float(p[1])
-    return t["user"] + t["sys"]
+def tag(arm: str, d: Dict[str, Any]) -> str:
+    w = "1 worker" if d["workers"] == 1 else "12 workers, 13 ranks on 12 cores"
+    return f"{arm} ({NAMES[arm]}, {w}), {d['wall_s'] / 3600:.1f} h wall"
 
 
 def main() -> int:
     s: Dict[str, Any] = json.loads((P.BENCH / "score.json").read_text())["arms"]
-    fig, ax = plt.subplots(figsize=(9, 5.6))
+    n_c = next(iter(s.values()))["common_n"]
+    fig, ax = plt.subplots(figsize=(10, 6))
     for arm, d in s.items():
+        par = d["workers"] > 1
+        # light points: all voxels (no output counts as wrong)
         lo, hi = d["wilson95"]
-        n = d["n_voxels"]
-        y = d["n_wrong"]
+        n, y = d["n_voxels"], d["n_wrong"]
         ax.errorbar(
             d["evals_all"],
             y,
             yerr=[[y - lo * n], [hi * n - y]],
-            fmt="o" if d["workers"] == 1 else "s",
+            fmt="s" if par else "o",
             color=COL[arm],
-            mfc=COL[arm] if d["workers"] == 1 else "white",
-            ms=8,
-            capsize=3,
+            mfc="white",
+            alpha=0.45,
+            ms=7,
+            capsize=2,
         )
-        plural = "s" if d["workers"] > 1 else ""
-        lab = f"{arm}: {d['wall_s'] / 3600:.1f} h wall, {d['workers']} worker{plural}"
-        dx, dy, ha = OFFS[arm]
-        ax.annotate(
-            lab, (d["evals_all"], y), textcoords="offset points", xytext=(dx, dy), ha=ha, fontsize=8
-        )
+        # main points: the common voxels
         cy = d["common_wrong"]
         clo, chi = d["common_wilson95"]
         ax.errorbar(
             d["evals_all"],
             cy,
-            yerr=[[cy - clo * d["common_n"]], [chi * d["common_n"] - cy]],
-            fmt="x",
+            yerr=[[cy - clo * n_c], [chi * n_c - cy]],
+            fmt="s" if par else "o",
             color=COL[arm],
-            ms=6,
-            capsize=2,
-            alpha=0.7,
+            mfc="white" if par else COL[arm],
+            ms=9,
+            capsize=3,
+            mew=2,
+        )
+        dx, dy, ha = OFFS[arm]
+        ax.annotate(
+            tag(arm, d),
+            (d["evals_all"], cy),
+            textcoords="offset points",
+            xytext=(dx, dy),
+            ha=ha,
+            fontsize=8,
         )
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_xlabel("cost evaluations (all, log scale)")
-    ax.set_ylabel("wrong voxels (over 1 degree; log scale), of 98,280")
+    ax.set_ylabel(f"wrong voxels (over 1 degree, log scale), of {n_c:,} common voxels")
     ax.set_title(
-        "Whole fine layer (98,280 voxels, clean images): evaluations against wrong voxels\n"
-        "filled = 1 worker, open square = 12 workers; round = all voxels (no output = wrong),\n"
-        "cross = the 85,676 voxels every arm has an output for; all runs contended",
+        f"Whole fine layer, clean images. MAIN points: wrong voxels among the {n_c:,} voxels "
+        "every arm has an output for.\nLight points: all 98,280 voxels, where the C++ arms' "
+        "~10,000 voxels without output (our SampleRadius 0.50 set-up) count as wrong.\n"
+        "Round = 1 worker; open square = 12 workers (13 MPI ranks on 12 cores, oversubscribed). "
+        "All runs contended.",
         fontsize=8,
     )
     ax.grid(alpha=0.3, which="both")
@@ -110,64 +117,65 @@ def main() -> int:
     fig.savefig(P.BENCH / "fine7_cost_accuracy.png", dpi=140)
     plt.close(fig)
 
-    fig, ax = plt.subplots(figsize=(9, 4.6))
+    fig, ax = plt.subplots(figsize=(10, 4.8))
     arms = list(s)
-    ypos = range(len(arms))
+    ypos = list(range(len(arms)))
     wall = [s[a]["wall_s"] / 3600 for a in arms]
-    cpu = [cpu_seconds(a) / 3600 for a in arms]
-    ax.barh([y + 0.2 for y in ypos], wall, height=0.38, color=[COL[a] for a in arms], label="wall")
+    cpu = json.loads((P.BENCH / "score.json").read_text())["derived"]
+    cpu_h = [cpu[a]["cpu_h"] for a in arms]
+    ax.barh(
+        [y + 0.2 for y in ypos],
+        wall,
+        height=0.38,
+        color=[COL[a] for a in arms],
+        hatch=["" if s[a]["workers"] == 1 else "xx" for a in arms],
+        edgecolor="black",
+        label="wall hours",
+    )
     ax.barh(
         [y - 0.2 for y in ypos],
-        cpu,
+        cpu_h,
         height=0.38,
         color=[COL[a] for a in arms],
         alpha=0.35,
-        hatch="//",
-        label="CPU (user + system, all cores)",
+        label="CPU hours (user + system, all cores)",
     )
-    for y, a, w, c in zip(ypos, arms, wall, cpu):
-        ax.text(
-            w,
-            y + 0.2,
-            f" {w:.1f} h wall, {s[a]['workers']} fitting worker"
-            f"{'s' if s[a]['workers'] > 1 else ''}",
-            va="center",
-            fontsize=8,
+    for y, a, w, c in zip(ypos, arms, wall, cpu_h):
+        extra = (
+            "" if s[a]["workers"] == 1 else " (12 workers, 13 ranks on 12 cores: oversubscribed)"
         )
+        ax.text(w, y + 0.2, f" {w:.1f} h wall{extra}", va="center", fontsize=8)
         ax.text(c, y - 0.2, f" {c:.1f} h CPU", va="center", fontsize=8)
-    ax.set_yticks(list(ypos))
-    ax.set_yticklabels([NAMES[a] for a in arms], fontsize=8)
+    ax.set_yticks(ypos)
+    ax.set_yticklabels([f"{a}: {NAMES[a]}" for a in arms], fontsize=8)
     ax.invert_yaxis()
-    ax.set_xscale("log")
-    ax.set_xlabel("hours (log scale); every run contended (a cpptools process on one core)")
-    ax.set_title("Wall-clock time and CPU time per arm, whole fine layer", fontsize=9)
+    ax.set_xlabel("hours (linear axis); every run contended (a cpptools process on one core)")
+    ax.set_title(
+        "Wall-clock and CPU time per arm, whole fine layer (hatched = 12 fitting workers)",
+        fontsize=9,
+    )
+    ax.set_xlim(0, 80)
     ax.legend(fontsize=8, loc="center right")
-    ax.set_xlim(1, 1500)
     fig.tight_layout()
     fig.savefig(P.BENCH / "fine7_wall_time.png", dpi=140)
     plt.close(fig)
 
     rows = [
         dict(
-            method=NAMES[a],
+            method=f"{NAMES[a]} ({a})",
             arm=a,
             evaluations=d["evals_all"],
-            wrong=d["n_wrong"],
-            wilson95_wrong=[d["wilson95"][0] * d["n_voxels"], d["wilson95"][1] * d["n_voxels"]],
             wrong_on_common_85676=d["common_wrong"],
+            wilson95_common=[d["common_wilson95"][0] * n_c, d["common_wilson95"][1] * n_c],
+            wrong_all_98280=d["n_wrong"],
             wall_s=d["wall_s"],
             workers=d["workers"],
-            label="contended",
+            label="contended" + ("; 13 ranks on 12 cores" if d["workers"] > 1 else ""),
         )
         for a, d in s.items()
     ]
-    (P.BENCH / "pareto_panel_fine7.json").write_text(
-        json.dumps(
-            dict(id="fine7_98280", title="Whole fine layer (98,280 voxels), clean", rows=rows),
-            indent=1,
-        )
-        + "\n"
-    )
+    panel = dict(id="fine7_98280", title="Whole fine layer (98,280 voxels), clean", rows=rows)
+    (P.BENCH / "pareto_panel_fine7.json").write_text(json.dumps(panel, indent=1) + "\n")
     print("wrote charts and panel rows")
     return 0
 

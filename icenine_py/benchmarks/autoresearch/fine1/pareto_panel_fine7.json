@@ -3,86 +3,86 @@
  "title": "Whole fine layer (98,280 voxels), clean",
  "rows": [
   {
-   "method": "stock C++, 1 worker (CS)",
+   "method": "stock C++ (CS)",
    "arm": "CS",
    "evaluations": 1670595806,
-   "wrong": 15604,
-   "wilson95_wrong": [
-    15380.75199955669,
-    15829.869629706118
-   ],
    "wrong_on_common_85676": 4681,
+   "wilson95_common": [
+    4552.31835057874,
+    4813.103316139184
+   ],
+   "wrong_all_98280": 15604,
    "wall_s": 91206.32,
    "workers": 1,
    "label": "contended"
   },
   {
-   "method": "corrected C++, 1 worker (CF)",
+   "method": "corrected C++ (CF)",
    "arm": "CF",
    "evaluations": 1362495605,
-   "wrong": 12777,
-   "wilson95_wrong": [
-    12571.773693751884,
-    12985.068932228663
-   ],
    "wrong_on_common_85676": 2734,
+   "wilson95_common": [
+    2634.9489683544093,
+    2836.647292411786
+   ],
+   "wrong_all_98280": 12777,
    "wall_s": 71995.62,
    "workers": 1,
    "label": "contended"
   },
   {
-   "method": "stock C++, 12 workers (CSP)",
+   "method": "stock C++ (CSP)",
    "arm": "CSP",
    "evaluations": 1380035950,
-   "wrong": 14914,
-   "wilson95_wrong": [
-    14694.88552336425,
-    15135.790045670487
-   ],
    "wrong_on_common_85676": 4416,
+   "wilson95_common": [
+    4290.867088379456,
+    4544.578341781094
+   ],
+   "wrong_all_98280": 14914,
    "wall_s": 10266.57,
    "workers": 12,
-   "label": "contended"
+   "label": "contended; 13 ranks on 12 cores"
   },
   {
-   "method": "corrected C++, 12 workers (CFP)",
+   "method": "corrected C++ (CFP)",
    "arm": "CFP",
    "evaluations": 1370501354,
-   "wrong": 13920,
-   "wilson95_wrong": [
-    13707.13105309583,
-    14135.622220479914
-   ],
    "wrong_on_common_85676": 3241,
+   "wilson95_common": [
+    3133.311928335352,
+    3352.2388680330655
+   ],
+   "wrong_all_98280": 13920,
    "wall_s": 10212.92,
    "workers": 12,
-   "label": "contended"
+   "label": "contended; 13 ranks on 12 cores"
   },
   {
    "method": "Python, latest recipe (J5S)",
    "arm": "J5S",
    "evaluations": 32579814,
-   "wrong": 561,
-   "wilson95_wrong": [
-    516.5700010090499,
-    609.2275934553487
-   ],
    "wrong_on_common_85676": 453,
-   "wall_s": 7557.293211221695,
+   "wilson95_common": [
+    413.25214463572905,
+    496.5486610837808
+   ],
+   "wrong_all_98280": 561,
+   "wall_s": 7566.17,
    "workers": 1,
    "label": "contended"
   },
   {
-   "method": "Python, stock (PS)",
+   "method": "Python, stock + 3 Python-only keys (PS)",
    "arm": "PS",
    "evaluations": 2832907439,
-   "wrong": 714,
-   "wilson95_wrong": [
-    663.6773819273548,
-    768.108251978921
-   ],
    "wrong_on_common_85676": 616,
-   "wall_s": 183303.39166903496,
+   "wilson95_common": [
+    569.3864995142413,
+    666.3996894462198
+   ],
+   "wrong_all_98280": 714,
+   "wall_s": 183312.19,
    "workers": 1,
    "label": "contended"
   }

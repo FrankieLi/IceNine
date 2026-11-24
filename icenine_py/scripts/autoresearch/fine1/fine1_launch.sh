@@ -82,8 +82,14 @@ QUIET=scripts/autoresearch/item14/quiet.py
 C=benchmarks/autoresearch/fine1/cache
 LIMIT=$(cat $CT/r4_limit.txt)
 RUNS=$C/runs/$STAGE
-[ "$DRY" = 1 ] && RUNS=$C/dry/$STAGE
 LOGS=$C/logs
+if [ "$DRY" = 1 ]; then
+  # a dry run writes only under its own folder (a path relative to icenine_py/, default
+  # <cache>/dry; FINE1_DRY_DIR overrides it): never into the real runs/ or logs/
+  D=${FINE1_DRY_DIR:-$C/dry}
+  RUNS=$D/$STAGE
+  LOGS=$D/logs
+fi
 mkdir -p "$RUNS" "$LOGS"
 MAIN=$LOGS/launch_${STAGE}$([ "$DRY" = 1 ] && echo _dry).log
 T0=$(date +%s)
