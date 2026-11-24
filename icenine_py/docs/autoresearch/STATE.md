@@ -46,8 +46,9 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`). Step 22 (`ar5v`; cache
   in `agent-aba6e1bdb95dff72a`): MERGED. Steps 24 to 28 MERGED. Step 29 MERGED 75af46bb, its key
   `SeedReuseKnown` 70fe192d (2475 passed; findings text waits); held7, held8 disclosed.
-  `fine1` contended: CSP 10,267 s, CFP 10,213 s (13 ranks); J5S 7,566 s. PS runs since 13:36
-  21 Nov, cap 76.5 h; check: `ps -eo etime,command | grep "[f]ine1_run_py"`. Then score, then
+  `fine1` all six arms ended (contended): CS 91,206 s, CF 71,996 s, CSP 10,267 s, CFP 10,213 s,
+  J5S 7,566 s, PS 183,312 s. Agent a22702f36dfefa989 scores since 16:32 23 Nov. Then review, then
+
   REGROUP with the owner on all threads (owner, 21 Nov): page of every open thread; HOLD step 30
   (`ar5af`, N2 approved, `brief_ar5af.md` in scratchpad) until then. One IceNine job at a time.
 
