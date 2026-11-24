@@ -23,37 +23,37 @@ Read this file first after any restart or wake. It holds only what is true now a
 
 ## Next action
 Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a task branch first.
-0. Wait for the tex1 phase A hand-back, then verify_handback and launch CSP.
+0. tex1: when `CSP.done` exists, launch RCP from `<worktree>/icenine_py`: `nohup caffeinate -i
+   bash scripts/autoresearch/tex1/tex1_launch_whole.sh --arms RCP --cap-h RCP=16
+   --allow-contended --continue-contended --resume > /dev/null 2>&1 &` plus a background
+   waiter on `RCP.done`; then scoring agent (tex1_score.py, tex1_plot.py), review, merge, page.
 1. AR5 step 4 (`ar5d`; N16, N18, N20, N23): `S11v2` on `held` 37.4% fewer evaluations than `S8`,
    69 wrong; fix 3 done (fac79f9). BLOCKED on fix 1 (the page; writes refused): the owner places
    it or allows it. Then: sync check, commit, fix 2, merge, close.
 2. AR5 step 6 (`ar5f`; N3): fixed, waits. Steps 9 to 12 merged (step 12 key off, fe3d277;
    page waits). Step 13 (`ar5m`): BLOCKED FOR THE OWNER (Queue).
-3. Items 14 + 3 (`item14`): MERGED 8f8ca20 (smooth key fails R3; not recommended). C++ time
-   (`cpptime`): MERGED 003cc5d (C1 1,236.87 s, C2 1,231.87 s; not a speed comparison: C++ 416
-   of 2,000 wrong, Python 24). 16 pages wait (+ar5v, cppchk); drafts in `.claude/reports/`
-   (`20261114-item14-findings_page_draft-v2.md`, `20261114-cpptime-findings_cpp_time-v2.md`).
-   Done: v61 live (20 Nov), restart distance, C++ config; OWNER TASK part 1 reviewed (a7e220e7;
-   C5 56 wrong), fixed2 sub-grid test passed. Part 2 `fine1` hours: CS 91,206 s, CF 71,996 s.
+3. Items 14 + 3 (`item14`) MERGED 8f8ca20 (smooth key fails R3); C++ time (`cpptime`) MERGED
+   003cc5d (C++ 416 of 2,000 wrong, Python 24). 16 pages wait (+ar5v, cppchk); drafts in
+   `.claude/reports/` (`20261114-item14-*-v2.md`, `20261114-cpptime-*-v2.md`). OWNER TASK
+   part 1 reviewed (a7e220e7; C5 56 wrong); part 2 `fine1` hours: CS 91,206 s, CF 71,996 s.
 
 ## Running jobs
-- Step 14 key WAITS (held2). Steps 15 to 21 merged (caches: `J5r` `agent-aeba15b7c3850b007`,
-  step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`). Step 22 (`ar5v`; cache
-  in `agent-aba6e1bdb95dff72a`): MERGED. Steps 24 to 28 MERGED. Step 29 MERGED 75af46bb, its key
-  `SeedReuseKnown` 70fe192d (2475 passed; findings text waits); held7, held8 disclosed.
-  `fine1` MERGED d149258a (2515 passed): fine7 common voxels 85,676: J5S 32.6M evals, 453
-  wrong, 7,557 s; PS 2,833M, 616, 183,303 s; C++ 2,734 to 4,681 wrong (edge band: our config).
-  Owner task of 24 Nov, task `tex1` (textured finer layer, sample `tex24`: 250 grains, 20% voxel
-  noise up to 2 degrees, 50% smooth gradient up to 0.5 degree a voxel; arms stock C++ parallel
-  `CSP`, recipe `RCP`); PLAN "Owner task of 24 Nov", D-20261124-N1 (9f888b0a). Phase A
-  implementer (sonnet, own worktree, branch feature/eval-reduction-tex1) RUNNING since 24 Nov
-  ~01:10: scripts, sample, images, freeze, slice pilot, then hands back. NEXT: main session
-  launches whole `CSP` (alone, all cores), then whole `RCP`, one at a time with waiters, then
-  scoring agent, review, merge, page with the owner's outputs (orientation maps, misorientation
-  maps with grain boundaries, misorientation distributions, regroup charts A and B). Spec and
-  outputs: scratchpad `owner_task_20261124.md`. Regroup page
-  https://claude.ai/artifact/9phjGZjDQLgtd4nUTwgsoh (v1); every other thread WAITS for the
-  owner; step 30 (`ar5af`) HELD. One IceNine job at a time.
+- Step 14 key WAITS (held2). Steps 15 to 29 MERGED (step 29 75af46bb, key 70fe192d; findings
+  text waits; held7, held8 disclosed). `fine1` MERGED d149258a: fine7 common voxels 85,676:
+  J5S 32.6M evals, 453 wrong, 7,557 s; PS 2,833M, 616, 183,303 s; C++ 2,734 to 4,681 wrong.
+  Owner task of 24 Nov, task `tex1` (textured finer layer, sample `tex24`; arms stock C++
+  `CSP`, recipe `RCP`); PLAN "Owner task of 24 Nov", D-20261124-N1. Phase A DONE: branch
+  feature/eval-reduction-tex1 at 706bb9ee, worktree `.claude/worktrees/agent-a13d57a0b15cfd37a`,
+  report `.claude/reports/20261124-0101-tex1.md` there (hand-back check: one format flag only).
+  `tex24`: 101 sharp, 24 noise only, 99 gradient only, 26 both; gradient spread median 3.56,
+  max 10.26 degrees. RCP slice pilot 2,000 voxels: 6,018,761 evals, 613 s (contended); scaled
+  ~296 M evals, 8.4 h for the layer (plan said 40 to 120 M); ~9x J5S per voxel on fine7.
+  RUNNING: whole `CSP` (stock C++, 13 ranks, alone) since 24 Nov 01:34, cap 9 h. Check: `ls
+  <worktree>/icenine_py/benchmarks/autoresearch/tex1/cache/runs/whole/` for `CSP.done`; `pgrep
+  -f tex1_launch_whole.sh`. Do NOT read tex24 maps or logs before both end markers exist.
+  NEXT: RCP, scoring agent, review, merge, page (owner outputs: maps, misorientation, regroup A/B).
+  Spec: scratchpad `owner_task_20261124.md`. Regroup page claude.ai/artifact/9phjGZjDQLgtd4nUTwgsoh
+  (v1); every other thread WAITS for the owner; step 30 (`ar5af`) HELD. One IceNine job at a time.
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
 7, 18, 22, 23, AR0 to AR2, AR3 1 to 11, AR5 1 to 3, 5, 7 to 12, AR4 1): `STATE_HISTORY.md`.
