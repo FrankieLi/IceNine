@@ -23,23 +23,18 @@ Read this file first after any restart or wake. It holds only what is true now a
 
 ## Next action
 Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a task branch first.
+0. Wait for the tex1 phase A hand-back, then verify_handback and launch CSP.
 1. AR5 step 4 (`ar5d`; N16, N18, N20, N23): `S11v2` on `held` 37.4% fewer evaluations than `S8`,
-   69 wrong; approved with three fixes; fix 3 done (fac79f9). BLOCKED on fix 1 (the page; agent
-   writes refused): the owner places it or allows it. Then: sync check, commit, fix 2, merge, close.
-2. AR5 step 6 (`ar5f`; N3): fixed, waits. Steps 9 to 12: merged (10, 11 failed studies, no key).
-   Step 12 (key `SeedIndexMCStallHit`, off): merged at fe3d277; page waits. Step 13 (`ar5m`):
-   BLOCKED FOR THE OWNER (Queue).
-3. Items 14 + 3 (`item14`): MERGED at 8f8ca20 (smooth key fails rule R3; not recommended). Page
-   waits: `.claude/reports/20261114-item14-findings_page_draft-v2.md` goes to
-   `icenine_py/docs/autoresearch/findings_item14.md`.
-   C++ time (`cpptime`): MERGED at 003cc5d (C1 1,236.87 s, C2 1,231.87 s, two busy processes).
-   Not a speed comparison (C++ 416 of 2,000 wrong, Python 24; explained by the 16 Nov check).
-   Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
-   goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. 16 pages wait (+ar5v, cppchk).
-   NOW: (a) v61 live (20 Nov 18:25). (c) restart distance and C++ config done (20261116-*).
-   (b) OWNER TASK part 1: both C++ changes reviewed (a7e220e7; C5 56 wrong); fixed2 sub-grid test
-   PASSED (2 passed, 261 s). Part 2 `fine1`: projection (c501c238, re-freeze 2943a5e6), hours:
-   Whole layer: CS 91,206 s, CF 71,996 s done. After step 29: C++ all cores (N6), J5S 6 h, PS (N5).
+   69 wrong; fix 3 done (fac79f9). BLOCKED on fix 1 (the page; writes refused): the owner places
+   it or allows it. Then: sync check, commit, fix 2, merge, close.
+2. AR5 step 6 (`ar5f`; N3): fixed, waits. Steps 9 to 12 merged (step 12 key off, fe3d277;
+   page waits). Step 13 (`ar5m`): BLOCKED FOR THE OWNER (Queue).
+3. Items 14 + 3 (`item14`): MERGED 8f8ca20 (smooth key fails R3; not recommended). C++ time
+   (`cpptime`): MERGED 003cc5d (C1 1,236.87 s, C2 1,231.87 s; not a speed comparison: C++ 416
+   of 2,000 wrong, Python 24). 16 pages wait (+ar5v, cppchk); drafts in `.claude/reports/`
+   (`20261114-item14-findings_page_draft-v2.md`, `20261114-cpptime-findings_cpp_time-v2.md`).
+   Done: v61 live (20 Nov), restart distance, C++ config; OWNER TASK part 1 reviewed (a7e220e7;
+   C5 56 wrong), fixed2 sub-grid test passed. Part 2 `fine1` hours: CS 91,206 s, CF 71,996 s.
 
 ## Running jobs
 - Step 14 key WAITS (held2). Steps 15 to 21 merged (caches: `J5r` `agent-aeba15b7c3850b007`,
@@ -48,9 +43,17 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   `SeedReuseKnown` 70fe192d (2475 passed; findings text waits); held7, held8 disclosed.
   `fine1` MERGED d149258a (2515 passed): fine7 common voxels 85,676: J5S 32.6M evals, 453
   wrong, 7,557 s; PS 2,833M, 616, 183,303 s; C++ 2,734 to 4,681 wrong (edge band: our config).
-  NOTHING RUNS. Regroup page https://claude.ai/artifact/9phjGZjDQLgtd4nUTwgsoh (v1); WAIT for
-  the owner on all threads (owner, 21 Nov; wake-ups answer in one line until then); HOLD step 30
-  (`ar5af`, N2 approved, `brief_ar5af.md` in scratchpad) until then. One IceNine job at a time.
+  Owner task of 24 Nov, task `tex1` (textured finer layer, sample `tex24`: 250 grains, 20% voxel
+  noise up to 2 degrees, 50% smooth gradient up to 0.5 degree a voxel; arms stock C++ parallel
+  `CSP`, recipe `RCP`); PLAN "Owner task of 24 Nov", D-20261124-N1 (9f888b0a). Phase A
+  implementer (sonnet, own worktree, branch feature/eval-reduction-tex1) RUNNING since 24 Nov
+  ~01:10: scripts, sample, images, freeze, slice pilot, then hands back. NEXT: main session
+  launches whole `CSP` (alone, all cores), then whole `RCP`, one at a time with waiters, then
+  scoring agent, review, merge, page with the owner's outputs (orientation maps, misorientation
+  maps with grain boundaries, misorientation distributions, regroup charts A and B). Spec and
+  outputs: scratchpad `owner_task_20261124.md`. Regroup page
+  https://claude.ai/artifact/9phjGZjDQLgtd4nUTwgsoh (v1); every other thread WAITS for the
+  owner; step 30 (`ar5af`) HELD. One IceNine job at a time.
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
 7, 18, 22, 23, AR0 to AR2, AR3 1 to 11, AR5 1 to 3, 5, 7 to 12, AR4 1): `STATE_HISTORY.md`.
@@ -83,14 +86,12 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - `agent-af8961874e131bda2` (AR3 step 11): sample `held`, image stack, baseline cache.
 - AR5 step 4: `agent-a814d0121e137b01c` (caches on `held`), `agent-a8a1ac8e80f8913cf`. Step 5:
   `agent-afc3f195cb4fffb30`. Item 14: `agent-a012b8f461d1630a1`. (C++ time: no worktree left.)
-- Step 12: `agent-a0ffe667a1a6ee068` (`held2`, `ar5/stallhit/cache`), `agent-ab6f021fc3d6bed02`
-  (`mid`). Step 1: `agent-a68538c58665829a1` (detached at 29e9b56): `ar5/cache/` and links.
+- Step 12: `agent-a0ffe667a1a6ee068` (`held2`), `agent-ab6f021fc3d6bed02` (`mid`). Step 1:
+  `agent-a68538c58665829a1` (detached at 29e9b56): `ar5/cache/` and links.
 - Step 10: `agent-a9920a0aeaf5d1276` (`ar5/cut/`), `agent-a6c7c67b4a03d1843` (`ar3/keys/cache/`),
   `agent-a3145f902bf0a61fb` (two reruns). Step 11: `agent-a69be86211b6c2797` (`ar5/patience/`).
-- Step 8: `agent-abdf64302f4022c0a` (`ar5/order/cache`, MC traces; step 9 links it),
-  `agent-a635b2f904279bdc9` (`ar3/reseed/cache/`). Step 9: `agent-a9c88b610fb10e1b6`
-  (`ar3/start/cache/`, image stack and samples of `mid`).
-- Older (steps 3 to 7: moved to `STATE_HISTORY.md`, "Worktrees kept, steps 3 to 7"): `grep` it.
+- Step 8: `agent-abdf64302f4022c0a` (`ar5/order/cache`), `agent-a635b2f904279bdc9`
+  (`ar3/reseed/cache/`). Step 9: `agent-a9c88b610fb10e1b6` (`ar3/start/cache/`, `mid` images).
 
 ## For the owner (open items only; details by `grep` in `STATE_HISTORY.md`, "For the owner")
 
@@ -101,19 +102,18 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - A choice: which seed step the documentation of the keys recommends (step 10 added the keys,
   recommends none). Mine: `S8` settings (`SeedIndexCandidates 20 5`, `SeedIndexStopHitRatio
   0.95`): cheapest on all three samples, wrong counts not worse.
-- Item 12: apply and commit `docs/autoresearch/item12_owner.patch` (commands in the history
-  file). Agents cannot: it needs your `ALLOW_CLAUDE_CONFIG=1`.
-- Three questions that block nothing (gradient shapes, your settings, voxels per grain).
+- Item 12: apply and commit `docs/autoresearch/item12_owner.patch` (needs your
+  `ALLOW_CLAUDE_CONFIG=1`). Three questions block nothing (gradients, settings, voxels per grain).
 - A note: C++ parallel mode keeps the higher confidence for a voxel that two clients fit; that
   rule did harm in the Python test of step 5. A reading of the source, not a test.
-- A choice: try test `P2 m=2` as an opt-in key (no gain lost; cuts 17% to 39% of the pass).
-- A choice: whether the documentation recommends the two `S11` keys (N21) and the skip key of
-  step 7 (N6; `held` is not a clean test for it). All are off; none is recommended now.
+- Choices: `P2 m=2` as an opt-in key (cuts 17% to 39% of the pass); whether the docs recommend
+  the two `S11` keys (N21) and the skip key of step 7 (N6). All off; none recommended now.
 - Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N25,
   D-20261112-N1 to N10, D-20261113-N1 to N10, D-20261114-N1 to N3 (N15: `held`; N17, N18: caps).
 
 ## Bookkeeping
-- Next decision ID: D-20261121-N3 (first of a day is N1).
+- Next decision ID: D-20261124-N2 (first of a day is N1).
+- Standing owner rule 24 Nov: owner requests go to subagents. Ilium shmem skill: PR #44 (open).
 - Wake-up job: session cron id 7b627cd5, every 3 hours at :53, created 2026-11-22, expires
   2026-11-29. Create it again on or after 2026-11-28 and write the new id and date here.
 - Ilium: AR6 closed 20 Nov on `origin/feature/grain-opt` (read at c3245818, SUMMARY.md); and
