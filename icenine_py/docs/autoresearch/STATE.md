@@ -48,7 +48,6 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
   `SeedReuseKnown` 70fe192d (2475 passed; findings text waits); held7, held8 disclosed.
   `fine1` all six arms ended (contended): CS 91,206 s, CF 71,996 s, CSP 10,267 s, CFP 10,213 s,
   J5S 7,566 s, PS 183,312 s. Agent a22702f36dfefa989 scores since 16:32 23 Nov. Then review, then
-
   REGROUP with the owner on all threads (owner, 21 Nov): page of every open thread; HOLD step 30
   (`ar5af`, N2 approved, `brief_ar5af.md` in scratchpad) until then. One IceNine job at a time.
 
