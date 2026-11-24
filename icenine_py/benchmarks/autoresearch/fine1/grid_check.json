@@ -1,0 +1,34 @@
+{
+ "n_parent": 24570,
+ "n_child": 98280,
+ "count_is_4x": true,
+ "area_parent_mm2": 0.9350790895451817,
+ "area_child_mm2": 0.9350790895451796,
+ "area_rel_diff": 2.255877358795192e-15,
+ "children_inside_parent": true,
+ "ok": true,
+ "python_reader_n": 98280,
+ "python_reader_sides_mm": [
+  0.0046875
+ ],
+ "python_reader_all_generation_7": true,
+ "file_vs_arrays_max_abs_mm": 2.452087410897974e-08,
+ "file_direction_codes_equal": true,
+ "cpp_port_all_parents": {
+  "n_parents": 24570,
+  "max_abs_diff_mm": 2.9802322387695312e-08,
+  "n_direction_mismatch": 0,
+  "tolerance_mm": 1e-06
+ },
+ "cpp_generation_rule": {
+  "min_side_length": 0.0046875,
+  "generation_found_for_header_side": 7,
+  "generation_of_rows": 7,
+  "nothing_split_again": true,
+  "generation_found_for_source_grid": 6,
+  "float_type": "32-bit (XDM++/libXDM/Types.h)"
+ },
+ "n_voxels_expected": 98280,
+ "sha256_source_grid": "d83ebb3049e6b6563728716826c209edab73d31deeeb9f8b3daa64ac9e78b97f",
+ "sha256_grid": "3816e2a9f0e41c7a2ac2949002665e716888251a844e85d369643865a0b09daf"
+}

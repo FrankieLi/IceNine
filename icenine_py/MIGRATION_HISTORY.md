@@ -14175,3 +14175,202 @@ arm and what it saves in library form. No default flip, no golden change, no new
 - **Limits.** One library-form sample, in-sample; no `held` or `held8` library run; the library lacks
   `G2b`, aligned draws, the screen pass and the repair, so phase A's savings are the script arm's;
   requiring `PXF` narrows the key; copper only. The findings text is in `.claude/reports/`, not `docs/`.
+## Autoresearch `fine1`, phase A: a whole layer one generation finer, sample built and frozen (2026-11-16, task fine1)
+
+Owner task of 16 Nov, part 2 (D-20261116-N3, N5). A measurement on a new sample: no method is
+changed or tuned. Phase A builds the sample and the launchers; no method ran on `fine7` or its slice.
+Library changes: none.
+
+- **Grid.** `fine1_make_grid.py` splits each of the 24,570 triangles of
+  `rand_500grains_1mm_neworient_s0_grid.mic` into four as C++ does: 98,280 voxels of generation 7,
+  side 0.0046875 mm, the same area (relative difference 2e-15), every child inside its parent.
+  The grid equals C++'s own `SetMinimumResolution` (`cpp_split_check.cpp` links the stock build's
+  `ReconstructionStrategies.cpp.o`, reads the generation-6 grid and writes the result): 98,280 rows,
+  directions and generations equal, positions within 5.1e-7 mm (consistent with the 6-digit text
+  output of the C++ writer; the grid is written with 9 decimals). Fed the generation-7 grid, C++
+  returns it unchanged (nothing is split again): the generation rule gives 7 for `MinSideLength`
+  0.0046875 with 32-bit floats.
+- **Sample `fine7`.** Generator seed 7 (a new sample, not an extra seed for a comparison), 250
+  Voronoi cells, 250 connected grains (38 to 1,111 voxels, median 358), one orientation redrawn for
+  the 5-degree rule, levels 0 / 0.2 / 0.5 / 1 / 2 / 4 degrees on 41 / 28 / 44 / 49 / 39 / 49 grains.
+  The gradient cap (`fine1_lib.capped_gradient_orientations`, 0.45 degree) scaled 5 grains (all of
+  level 4: drawn largest steps 0.45 to 1.15 degrees; kept spreads 1.56 to 3.98 degrees); the crude
+  estimate of the plan was 2.
+- **Gradient gate, passed.** From the written truth: 139,346 neighbour pairs inside grains (edge
+  sharing), maximum 0.4501 degree (32 pairs between 0.45 and 0.5, all in capped grains: the
+  difference is the Euler precision of the written file), median 0.0282, 90th 0.184, 99th 0.329,
+  99.9th 0.4499; largest grain spread 4.000 degrees, median 1.000. `gradient_tables.md` has the
+  histogram and the 250-grain table.
+- **Images.** `render_full.py --tag fine7 --workers 2 --variants clean`: 397 s, contended (two
+  workers; the machine was busy), 12,054,858 lit pixels; the stack equals all 360 frames; C++ and
+  Python read the same inputs (`inputs_check.json`: the config differences are the three Python-only
+  keys, the output name and the save interval; `score_cpp.py` matching is unique at the fine side).
+- **Freeze.** `benchmarks/autoresearch/fine1/frozen.json` committed before any run (hashes of grid,
+  truth, slice grid, stack, 360 frames, the scripts and the library). The slice is the 2,000 rows
+  nearest the centre by left vertex.
+- **Launchers (written, not run).** `fine1_launch.sh` (stages `slice` and `whole`, wrappers
+  `fine1_launch_slice.sh` and `fine1_launch_whole.sh`): arms `CS`, `J5S`, `PS` (and `CF` with a
+  fixed binary) strictly one after another, `--dry-run`, `--resume`, logs and `<arm>.done`
+  markers, preflight and quiet verdict, guard at the cap and at a 30-minute log stall. The Python
+  run script was tried on a 30-voxel piece of the coarse pilot (not `fine7`) for both arms.
+- Not done in phase A: the slice and whole-layer runs, the projection (phases B and C, below).
+
+## Autoresearch `fine1`, phases B to D: slice projection, six whole-layer runs and their score (2026-11-23, task fine1)
+
+What was done. Phase B ran the four slice arms (2,000 voxels) and projected the whole layer
+(`fine1_projection.py`, counts and seconds only). Phase C ran six arms on the whole fine layer
+`fine7` (98,280 voxels, clean images, Q-max 8), one after another: `CS` (stock C++, one fitting
+worker), `CF` (the corrected C++ build, one worker), `CSP` and `CFP` (the same two binaries and the
+same config, `mpirun -n 13`: one server and 12 fitting workers; added by owner decision
+D-20261120-N6), `J5S` (latest recipe, from library keys) and `PS` (stock Python with its three
+Python-only BFS keys `BFSRevisitRefit`, `BFSReseed`, `FusedCost`). Phase D (`fine1_score.py`,
+`fine1_plot.py`) scored them after all six end markers existed. `fine7` is a new clean sample that
+was not used to design `J5S` or any other arm. No arm was changed after the slices. Every run is
+labelled contended: the quiet check failed for all six (a `cpptools` process held one core), so the
+times are not clean timings. `CSP` and `CFP` ran 13 MPI ranks on a 12-core machine (8 performance
+cores, 4 efficiency cores) with `cpptools` running: they were oversubscribed. Library changes: none.
+
+Charts first. `benchmarks/autoresearch/fine1/fine7_cost_accuracy.png` shows evaluations against
+wrong voxels: the main points count the 85,676 voxels every arm has an output for (Wilson bars),
+the light points count all 98,280 voxels; round points are one worker, open squares are 12 workers.
+`benchmarks/autoresearch/fine1/fine7_wall_time.png` shows wall hours and CPU hours per arm on a
+linear axis, with the 12-worker arms hatched. The rows of the new panel `fine7_98280` are in
+`pareto_panel_fine7.json` (the review page itself was not edited: a read of its rows file was
+refused, no workaround tried).
+
+**Why the C++ arms are compared on the common voxels.** The C++ arms leave about 10,000 voxels
+without output (`CS` 10,845, `CF` 9,926, `CSP` 10,411, `CFP` 10,590), at 0.47 to 0.60 mm from the
+origin. This is a set-up error of our own C++ config, not C++ failing. The config sets
+`SampleRadius 0.50`; the `fine7` grid is a hexagon that reaches 0.60 mm. C++ skips every voxel
+whose centre is not inside the sample radius (`Src/ReconstructionStrategies.h:296-301`,
+`Src/ReconstructionStrategies.tmpl.cpp:160-185`), and moves the centre to the centroid of the
+solved voxels as the run goes (`RefreshSampleCenter`, `.tmpl.cpp:199-224`, called at
+`Src/BreadthFirstReconstructor.tmpl.cpp:418`), so some voxels inside 0.5 mm of the origin are
+also left out. Python parses the key (`icenine/config_file.py:453`) but never uses it, so it
+reconstructs every voxel. The slice (all within 0.08 mm of the centre) could not show this. The
+fair comparison is therefore on the 85,676 voxels every arm has an output for. The counts of
+all 98,280 voxels follow the frozen rule (no output counts as wrong) and are unfair to C++.
+
+Reading line: wrong voxels (more than 1 degree from the truth, cubic symmetry) among the 85,676
+voxels every arm has an output for. Evaluations are cost evaluations (C++: client-side counts of
+the `cpptrace` build, summed over clients; Python: all evaluations including the boundary pass,
+re-score and repair). Wall is `/usr/bin/time -p` real for every arm, contended.
+
+<!-- table:fine1_whole_common -->
+| arm | workers | common_wrong | share | evals | wall_s | wall_h |
+|---|---|---|---|---|---|---|
+| CS | 1 worker | 4,681 | 5.464% (5.313, 5.618) | 1,670,595,806 | 91,206 | 25.3 |
+| CF | 1 worker | 2,734 | 3.191% (3.075, 3.311) | 1,362,495,605 | 71,996 | 20.0 |
+| CSP | 12 workers, 13 ranks on 12 cores | 4,416 | 5.154% (5.008, 5.304) | 1,380,035,950 | 10,267 | 2.9 |
+| CFP | 12 workers, 13 ranks on 12 cores | 3,241 | 3.783% (3.657, 3.913) | 1,370,501,354 | 10,213 | 2.8 |
+| J5S | 1 worker | 453 | 0.529% (0.482, 0.580) | 32,579,814 | 7,566 | 2.1 |
+| PS | 1 worker | 616 | 0.719% (0.665, 0.778) | 2,832,907,439 | 183,312 | 50.9 |
+<!-- /table:fine1_whole_common -->
+
+Reading line: the same arms on all 98,280 voxels, as the frozen rule counts them (a voxel with no
+output is wrong). The median error is over the voxels that have an output.
+
+<!-- table:fine1_whole_all -->
+| arm | wrong | no_output | wrong_with_output | share | median |
+|---|---|---|---|---|---|
+| CS | 15,604 | 10,845 | 4,759 | 15.877% (15.650, 16.107) | 0.0852 |
+| CF | 12,777 | 9,926 | 2,851 | 13.001% (12.792, 13.212) | 0.0753 |
+| CSP | 14,914 | 10,411 | 4,503 | 15.175% (14.952, 15.401) | 0.0687 |
+| CFP | 13,920 | 10,590 | 3,330 | 14.164% (13.947, 14.383) | 0.0708 |
+| J5S | 561 | 0 | 561 | 0.571% (0.526, 0.620) | 0.0295 |
+| PS | 714 | 0 | 714 | 0.726% (0.675, 0.782) | 0.0617 |
+<!-- /table:fine1_whole_all -->
+
+- **Python arms.** On the common voxels `J5S` has 453 wrong and `PS` 616 (on all voxels 561 and
+  714); the intervals do not overlap. Paired by voxel on all voxels (`PS` first): wrong in both 266,
+  only `PS` 448, only `J5S` 295. This is one clean sample, one layer.
+- **Evaluations and time.** `PS` used 86.95 times the evaluations of `J5S` and 24.23 times the
+  wall time (one worker each, both contended). Quote the two together: the evaluation count of
+  `J5S` leaves out the ray-indexing work and the hit-ratio evaluations of `SeedIndexStopHitRatio`,
+  so the evaluation ratio overstates the work ratio. The C++ counter adds one per overlap
+  calculation on the clients; Python adds one per strict evaluation (same nominal unit).
+  The totals of `CSP` and `CFP` are complete sums of 12 client lines each; only their
+  global-search counts from logs (749 and 748) are lower bounds, because only 2 of the 12 client
+  log files exist (cause not checked).
+- **Covered-voxel gap, C++ against Python.** On the common voxels C++ has 3 to 5% wrong and the
+  Python arms 0.5 to 0.7%. The scoring treats every arm alike (same truth, same operators, same
+  1 degree threshold, no confidence filter), and the configs are equal apart from the three
+  Python-only keys of `PS`. Diagnostics (from the review's independent scripts, not committed): almost every wrong voxel in every arm carries the
+  orientation of a truth voxel within 0.03 mm (`CS` 4,679 of 4,681), at an error over 5
+  degrees, i.e. another grain's orientation; the C++ wrong rate is flat in radius (4.7% to 6.3%
+  per ring), so it is not an edge effect; on the 2,000-voxel slice `CS` 105, `CF` 47, `PS` 15,
+  `J5S` 4 wrong; on part 1's pilot (another sample) `CS` 416, `CF` 56, Python 24 of 2,000. The
+  order `CS` > `CF` > Python agrees. Candidate causes, both untested: the refit and merge issues
+  of part 1 (`CF` removes part of them) and the Python-only revisit and reseed keys of `PS`.
+
+Reading line: one worker against 12 workers on 13 ranks, hours (`/usr/bin/time -p` user plus
+system for CPU), all contended. `cores` is CPU hours over wall hours.
+
+<!-- table:fine1_whole_cpu -->
+| arm | wall_h | cpu_h | cores | evals_m |
+|---|---|---|---|---|
+| CS | 25.3 | 50.6 | 2.0 | 1,670.6 |
+| CF | 20.0 | 40.0 | 2.0 | 1,362.5 |
+| CSP | 2.9 | 31.3 | 11.0 | 1,380.0 |
+| CFP | 2.8 | 31.1 | 11.0 | 1,370.5 |
+| J5S | 2.1 | 2.1 | 1.0 | 32.6 |
+| PS | 50.9 | 50.9 | 1.0 | 2,832.9 |
+<!-- /table:fine1_whole_cpu -->
+
+- **One worker against 12.** The wall time falls 8.88 times for `CS` to `CSP` and 7.05 times for `CF`
+  to `CFP`. These ran 13 ranks on 12 cores (8 performance, 4 efficiency) beside `cpptools` (load
+  median 16.4, maximum 21.9), so the speed-ups are under oversubscription. The parallel runs also
+  used fewer CPU hours (50.6 h against 31.3 h; 40.0 h against 31.1 h). The one-worker C++ runs
+  used about two cores; this is consistent with the server rank waiting in MPI (untested).
+- **A parallel run is not the same map.** The tables count only voxels both maps have. Reading
+  line: map against map; `same` is within 1e-3 degree; wrong splits are for the voxels both maps
+  have (`only_a` is wrong only in the first map).
+
+<!-- table:fine1_whole_pairs -->
+| pair | shared | same | over_005 | over_1 | median | both | only_a | only_b |
+|---|---|---|---|---|---|---|---|---|
+| CS vs CSP | 86,816 | 49 | 48,838 | 3,910 | 0.063 | 2,670 | 2,048 | 1,775 |
+| CF vs CFP | 86,237 | 50 | 44,874 | 2,903 | 0.055 | 1,588 | 1,168 | 1,683 |
+| CS vs CF | 86,367 | 2,083 | 43,522 | 3,858 | 0.051 | 1,832 | 2,875 | 927 |
+| CS vs PS | 87,435 | 5 | 66,041 | 4,609 | 0.101 | 392 | 4,367 | 231 |
+| CS vs J5S | 87,435 | 2 | 61,393 | 4,610 | 0.088 | 309 | 4,450 | 155 |
+| PS vs J5S | 98,280 | 23 | 61,855 | 744 | 0.069 | 266 | 448 | 295 |
+| CSP vs CFP | 87,073 | 4,158 | 43,727 | 3,788 | 0.051 | 2,007 | 2,463 | 1,278 |
+<!-- /table:fine1_whole_pairs -->
+
+  The median difference between the parallel and the one-worker map (0.063 degree) is of the size
+  of the fit error itself (0.07 to 0.085 degree), and equal to the difference between the two
+  binaries (0.051). Evaluations differ too (`CSP` 1.21 times fewer than `CS`). With 12 clients the
+  server hands out voxels as results return, so the work order differs; each client process also
+  has its own random stream. Both are consistent with these differences; the cause was not isolated.
+- **The slice projection against the whole layer.** Reading line: hours, projected from the
+  2,000-voxel slice (low and high) against the measured wall time.
+
+<!-- table:fine1_projection_vs_measured -->
+| arm | low | high | measured |
+|---|---|---|---|
+| CS | 22.7 | 34.9 | 25.3 |
+| CF | 18.2 | 27.6 | 20.0 |
+| PS | 33.7 | 51.0 | 50.9 |
+| J5S | 0.6 | 0.8 | 2.1 |
+<!-- /table:fine1_projection_vs_measured -->
+
+  `J5S` took 2.6 to 3.5 times the projection (3,369 global searches against 781 to 1,228
+  projected); the slice's few grains made the global-search count poorly known, as the plan said.
+- **Runs.** `J5S`'s first attempt hit its 1.3 h cap (marker kept, folder moved aside) and was rerun
+  with a 6 h cap (D-20261120-N5); the first `PS` slice hit its 1 h cap and was rerun (D-20261116-N6).
+  `PS` ran with a 76.5 h cap, owner-approved though its high projection was over 48 h.
+- **Freeze.** `frozen.json` was amended three times (history in the file). The launcher's freeze
+  check passed at every launch. After merging `feature/eval-reduction` back (new opt-in library
+  keys, default off) the check fails on four library files; the runs did not use them.
+- **Recovered log lines.** A test of the launcher's dry run overwrote the logs
+  `whole_CSP.log`, `whole_CFP.log` and `freeze_check_whole.log` on 2026-11-23 16:36 (and
+  `slice_CS.log` on 2026-11-20). The 24 client count lines of `CSP` and `CFP` were recovered from the
+  output of a shell command run on 2026-11-23 16:32 (kept in shmem) and are committed in
+  `benchmarks/autoresearch/fine1/cost_evaluation_lines.txt`; their sums equal the totals above. The
+  dry run now writes only under its own folder and the test checks that the real logs are untouched.
+- **Owner decisions.** (1) Rerun the C++ arms with a `SampleRadius` that covers the grid (0.7 or
+  more), at least `CSP` and `CFP` (about 3 h each with all cores), or accept the common-voxel
+  comparison. (2) Should Python honour `SampleRadius`, or should the docs say it ignores the key?
+  (3) Keep calling `PS` "stock Python" although it carries three Python-only BFS keys.
+  Results: `score.json`, `score_tables.md`, `projection.json`.

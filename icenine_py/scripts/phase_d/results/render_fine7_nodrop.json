@@ -1,0 +1,42 @@
+{
+  "tag": "fine7",
+  "sample_seed": 0,
+  "noise_seed": 12345,
+  "noise_variant": "nodrop",
+  "noise_params": {
+    "p_miss": 0.0,
+    "p_flip": 0.05,
+    "p_hot": 0.05,
+    "p_blob": 0.1,
+    "window": 32
+  },
+  "n_voxels": 98280,
+  "workers": 2,
+  "timing_label": "contended (2 workers; machine quiet at start: False)",
+  "wall_s": 396.8202979564667,
+  "worker_peak_rss_gb_max": 2.883534848,
+  "worker_peak_rss_gb_sum": 5.744361472,
+  "worker_t_setup_s_max": 1.9870171546936035,
+  "worker_t_sim_s_max": 343.8514349460602,
+  "worker_t_write_noise_s_max": 49.540037870407104,
+  "n_frames": 360,
+  "lit_clean_per_frame_median": 33551.0,
+  "lit_clean_per_frame_min_max": [
+    25752,
+    45223
+  ],
+  "lit_real_total": 11952743,
+  "lit_clean_total": 12054858,
+  "max_q": "config (8)",
+  "lit_clean_fraction_of_pixels": 0.007983616987864177,
+  "spot_px_pooled_median": 24.0,
+  "spot_px_pooled_p95": 324.0,
+  "spot_px_max": 2848,
+  "spot_px_n_gt_2000": 5,
+  "spots_total": 155339,
+  "missed_total": 0,
+  "hot_total": 6644,
+  "blob_total": 15658,
+  "output_dir": "icenine_py/benchmarks/autoresearch/fine1/cache/images/fine7",
+  "realistic_dir": "realistic_nodrop"
+}
