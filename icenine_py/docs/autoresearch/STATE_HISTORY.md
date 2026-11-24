@@ -1446,3 +1446,29 @@ All times are contended.
 - Earlier one-worker C++: 91,206 s (stock), 71,996 s (fixed).
 - Stock Python (PS) started 13:36 with a 76.5 h cap. Accuracy and evaluation counts are
   unread until PS ends.
+
+### Finer layer fine1 (98,280 voxels): whole-layer results merged, 2026-11-23
+
+All six whole-layer runs ended. Scored, reviewed by Opus (request changes; every number
+reproduced; eleven fixes applied in fd79e2eb), merged at d149258a. Suite: 2515 passed, 45
+skipped, 1 deselected. Reports: `20261123-1640-fine1-whole.md`, `20261123-1700-review-fine1.md`.
+Findings text waiting for the owner: `20261123-1640-fine1-findings_fine1.md`.
+
+Fair counts on the 85,676 voxels every run covers (all walls contended). Reading line: fewer
+wrong voxels and fewer evaluations are better.
+
+| Run | Workers | Wrong | Wall (s) |
+|---|---|---|---|
+| J5S (16 Nov recipe) | 1 | 453 | 7,557 |
+| Stock Python PS | 1 | 616 | 183,303 |
+| Stock C++ | 1 | 4,681 | 91,206 |
+| Fixed C++ | 1 | 2,734 | 71,996 |
+| Stock C++ | 12 | 4,416 | 10,267 |
+| Fixed C++ | 12 | 3,241 | 10,213 |
+
+- Evaluations: J5S 32,579,814; stock Python PS 2,832,907,439.
+- The C++ runs skipped an edge band of about 10,000 voxels. The cause is our config
+  (SampleRadius 0.50 mm against a grid reaching 0.60 mm). Python ignores the key.
+- Why C++ is several times worse on covered voxels is not established.
+- A regroup agenda page was published for the owner. The owner asked on 21 Nov to regroup on
+  all threads. AR5 step 30 (approved D-20261121-N2) is held; nothing runs.
