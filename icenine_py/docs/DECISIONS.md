@@ -2347,3 +2347,17 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   evaluations per voxel against 61). Runs start only when the stock Python layer run (PS) has
   ended: one IceNine job at a time (owner, 21 Nov). Where: icenine_py/docs/autoresearch/PLAN.md,
   section AR5 step 30.
+
+### D-20261124-N1 · D-20261124-N1 · Owner task of 24 Nov: textured finer layer (tex1), details
+- 2026-11-24, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1, to carry out the owner's task of 2026-11-24 (250
+  grains on the 98,280-voxel grid; 20% of grains with voxel noise up to 2 degrees, 50% with a
+  smooth gradient up to 0.5 degree between voxels; arms: stock C++ in parallel and the recipe;
+  outputs: orientation maps, misorientation maps with grain boundaries, misorientation
+  distributions, then the regroup charts). Details settled: sample tex24, seed 24; noise and
+  gradient grains drawn independently, so about 25 grains carry both and a neighbour pair there
+  can reach 2.5 degrees; the 0.5 degree cap is measured on edge-sharing voxel pairs; the C++ arm
+  uses the develop source plus count prints only (f47bf032, as fine1 CSP) with SampleRadius 2.0 so
+  no voxel is skipped; the recipe arm is the library form with 16 keys (J5S plus stall-defer, PXF,
+  RU), never run together before, so a slice pilot goes first; nothing is tuned. One IceNine job
+  at a time. Where: icenine_py/docs/autoresearch/PLAN.md, section Owner task of 24 Nov.
