@@ -986,6 +986,13 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   `fine1_freeze.py`), tests `tests/test_fine1.py`, records `benchmarks/autoresearch/fine1/`
   (`frozen.json`; truth, images, stack and run outputs in the gitignored `cache/`). No library
   change. MIGRATION_HISTORY, "Autoresearch fine1, phase A".
+- Autoresearch `fine1`, phases B to D (slice projection, six whole-layer runs on the 98,280-voxel
+  layer `fine7`, score; all runs contended): new scripts `fine1_projection.py`, `fine1_score.py`,
+  `fine1_plot.py`, launcher flag `--continue-contended`, arms `CSP` and `CFP` (13 MPI ranks);
+  results `benchmarks/autoresearch/fine1/` (`score.json`, `score_tables.md`, `projection.json`,
+  two charts, `pareto_panel_fine7.json`). On clean `fine7`: `J5S` 561 wrong voxels in 2.1 h and
+  32.6 M evaluations, `PS` 714 in 50.9 h and 2.83 G; the C++ arms leave an edge band without output.
+  MIGRATION_HISTORY, "Autoresearch `fine1`, phases B to D".
 
 See [`docs/orientation_nn_design.md`](docs/orientation_nn_design.md) for the status and
 current results of this work, and [MIGRATION_HISTORY.md](MIGRATION_HISTORY.md) ("Toy

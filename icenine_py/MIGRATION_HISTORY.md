@@ -14213,4 +14213,79 @@ Library changes: none.
   fixed binary) strictly one after another, `--dry-run`, `--resume`, logs and `<arm>.done`
   markers, preflight and quiet verdict, guard at the cap and at a 30-minute log stall. The Python
   run script was tried on a 30-voxel piece of the coarse pilot (not `fine7`) for both arms.
-- Not done: the slice and whole-layer runs, the projection (phases B and C).
+- Not done in phase A: the slice and whole-layer runs, the projection (phases B and C, below).
+
+## Autoresearch `fine1`, phases B to D: slice projection, six whole-layer runs and their score (2026-11-23, task fine1)
+
+What was done. Phase B ran the four slice arms (2,000 voxels) and projected the whole layer
+(`fine1_projection.py`, counts and seconds only). Phase C ran six arms on the whole fine layer
+`fine7` (98,280 voxels, clean images, Q-max 8), one after another: `CS` (stock C++, one fitting
+worker), `CF` (the corrected C++ build, one worker), `CSP` and `CFP` (the same two binaries and the
+same config, `mpirun -n 13`: one server and 12 fitting workers; added by owner decision
+D-20261120-N6), `J5S` (latest recipe, from library keys) and `PS` (stock Python). Phase D
+(`fine1_score.py`, `fine1_plot.py`) scored them after all six end markers existed. `fine7` is a
+new clean sample that was not used to design `J5S` or any other arm. No arm was changed after the
+slices. Every run is labelled contended: the quiet check failed for all six (a `cpptools` process
+held one core), so the times are not clean timings. Library changes: none.
+
+Reading line: one row per arm on the whole layer. Wrong means more than 1 degree from the truth
+(cubic symmetry); a voxel with no output counts as wrong. Evaluations are cost evaluations (C++:
+the client-side count printed by the `cpptrace` build, summed over clients; Python: all
+evaluations including the boundary pass and repair).
+
+| arm | workers | evaluations | wrong | share wrong (95% Wilson) | no output | median error (deg) | wall (s) |
+|---|---|---|---|---|---|---|---|
+| CS | 1 | 1,670,595,806 | 15,604 | 15.877% (15.650, 16.107) | 10,845 | 0.0852 | 91,206 |
+| CF | 1 | 1,362,495,605 | 12,777 | 13.001% (12.792, 13.212) | 9,926 | 0.0753 | 71,996 |
+| CSP | 12 | 1,380,035,950 | 14,914 | 15.175% (14.952, 15.401) | 10,411 | 0.0687 | 10,267 |
+| CFP | 12 | 1,370,501,354 | 13,920 | 14.164% (13.947, 14.383) | 10,590 | 0.0708 | 10,213 |
+| J5S | 1 | 32,579,814 | 561 | 0.571% (0.526, 0.620) | 0 | 0.0295 | 7,557 |
+| PS | 1 | 2,832,907,439 | 714 | 0.726% (0.675, 0.782) | 0 | 0.0617 | 183,303 |
+
+- **The C++ arms leave out an edge band.** The C++ output has 87,435 voxels (`CS`) to 88,354
+  (`CF`) of the 98,280; the voxels without output lie at a distance of 0.47 to 0.60 mm from the
+  centre. This is consistent with C++ reconstructing only inside the config's `SampleRadius` 0.50
+  (untested: the C++ rule was not read for this page). Python reconstructs every voxel. So the
+  "no output" voxels dominate the C++ rows above. On the 85,676 voxels every arm has an output
+  for: `CS` 4,681 wrong (5.464%), `CF` 2,734 (3.191%), `CSP` 4,416 (5.154%), `CFP` 3,241 (3.783%),
+  `J5S` 453 (0.529%), `PS` 616 (0.719%).
+- **Python arms.** `J5S` has 561 wrong voxels and `PS` 714; the intervals do not overlap. Paired
+  by voxel (`PS` first): wrong in both 266, only `PS` 448, only `J5S` 295. `J5S` used 32.6 M
+  evaluations against 2.83 G for `PS` (about 87 times fewer) and 7,557 s against 183,303 s (one
+  worker each, contended).
+- **One worker against 12.** `CSP` took 10,267 s against 91,206 s for `CS` (8.9 times shorter);
+  `CFP` 10,213 s against 71,996 s for `CF` (7.0 times). The CPU time (user plus system) was 50.6 h
+  for `CS` and 31.3 h for `CSP`; `CS` used about two cores although it has one fitting worker (the
+  server rank and the cost threads; the cause was not tested).
+- **A parallel run is not the same map.** `CSP` against `CS` (85k voxels both have): 29 voxels have
+  the same orientation to 1e-6 degree; 60,302 differ by more than 0.05 degree and 15,374 by more
+  than 1 degree; wrong in both 12,561, only `CS` 3,043, only `CSP` 2,353. `CFP` against `CF`: 27
+  identical, 56,917 over 0.05 degree, 14,946 over 1 degree; both 10,215, only `CF` 2,562, only
+  `CFP` 3,705. The evaluation count also moved (`CSP` 1.38 G against `CS` 1.67 G, 17% fewer;
+  `CFP` 1.37 G against `CF` 1.36 G). The work order differs with 12 clients (the server hands out
+  voxels as results return); that is consistent with these differences, the cause was not isolated.
+  Only two of the 12 client logs exist for `CSP` and `CFP`, so their global-search counts from logs
+  (749 and 748) are lower bounds.
+- **The slice projection against the whole layer.** Reading line: hours, projected from the
+  2,000-voxel slice (low and high) against the measured wall time.
+
+  | arm | projected low (h) | projected high (h) | measured (h) |
+  |---|---|---|---|
+  | CS | 22.7 | 34.9 | 25.3 |
+  | CF | 18.2 | 27.6 | 20.0 |
+  | PS | 33.7 | 51.0 | 50.9 |
+  | J5S | 0.6 | 0.8 | 2.1 |
+
+  `J5S` took 2.6 to 3.5 times the projection (3,369 global searches against 781 to 1,228 projected);
+  the slice's few grains made the global-search count poorly known, as the plan said.
+- **Runs.** `J5S`'s first attempt hit its 1.3 h cap (marker kept, folder moved aside) and was rerun
+  with a 6 h cap (D-20261120-N5); the first `PS` slice hit its 1 h cap and was rerun (D-20261116-N6).
+  `PS` ran with a 76.5 h cap, owner-approved though its high projection was over 48 h.
+- **Freeze.** `frozen.json` was amended three times (history in the file): the projection step, the
+  `CSP` and `CFP` arms, and the outputs check. The launcher's freeze check passed at every launch.
+  After merging `feature/eval-reduction` back (new opt-in library keys, default off) the check
+  fails on four library files; the runs did not use them.
+- Charts: `benchmarks/autoresearch/fine1/fine7_cost_accuracy.png` and `fine7_wall_time.png`; the
+  rows of the new panel `fine7_98280` are in `pareto_panel_fine7.json` (the review page itself was
+  not edited: a read of its rows file was refused, no workaround tried). Results: `score.json`,
+  `score_tables.md`, `projection.json`.

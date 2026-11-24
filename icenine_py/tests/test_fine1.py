@@ -404,6 +404,20 @@ def test_launcher_dry_run_of_the_parallel_arms_names_13_ranks_and_leaves_default
     assert dflt.stdout.count("mpirun -n 2") == 1
 
 
+def test_score_matches_output_voxels_to_grid_rows_by_position_and_direction() -> None:
+    import fine1_score as SC
+
+    g_xy = np.array([[0.0, 0.0], [0.0, 0.0001], [0.5, 0.0]])
+    g_dir = np.array([1, 2, 1])
+    # output in another order; a down voxel at (0, 0.0001) must not match the up voxel at (0, 0)
+    idx = SC.match(np.array([[0.5, 0.0], [0.0, 0.0001]]), np.array([1, 2]), g_xy, g_dir)
+    assert idx.tolist() == [2, 1]
+    with pytest.raises(AssertionError):
+        SC.match(np.array([[0.2, 0.0]]), np.array([1]), g_xy, g_dir)  # too far from every row
+    with pytest.raises(AssertionError):  # two output voxels on one row
+        SC.match(np.array([[0.0, 0.0], [0.0, 0.0]]), np.array([1, 1]), g_xy, g_dir)
+
+
 def test_launcher_syntax_and_argument_guards() -> None:
     assert subprocess.run(["bash", "-n", str(LAUNCH)]).returncode == 0
     bad = subprocess.run(["bash", str(LAUNCH), "--stage", "mid"], capture_output=True)
