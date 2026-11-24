@@ -443,7 +443,7 @@
   "scripts/autoresearch/tex1/tex1_lib.py": "a098e11f76a30553fdb147afed55c0f7d1f437085a87b4a5bb06ed66969ff062",
   "scripts/autoresearch/tex1/tex1_make_sample.py": "f314b387f2df6b0460749b67b4dfa9e6798c645825e7958a3f0877f7a9bc512e",
   "scripts/autoresearch/tex1/tex1_paths.py": "7ecdd3bbbe01dbaaeb6fae5e0d4b68daffd3f532c364f36c56a8676be1868b86",
-  "scripts/autoresearch/tex1/tex1_plot.py": "0085c55ecc2cf49a13bb401c00b70737cc5216f4814a7ec7d08e70a9cb10b350",
+  "scripts/autoresearch/tex1/tex1_plot.py": "e4deac7ba6579195dcd3118ba9361fe06b3cd93c636ba08f3549769567028785",
   "scripts/autoresearch/tex1/tex1_run_py.py": "5995794a3d5ea6a5a6d674743618578dbe4c89e4498baa2b32605e4bfe8d52c3",
   "scripts/autoresearch/tex1/tex1_sample_check.py": "6249d998102510f80a574385d95439a9c95cafe8801cbc0c4c1351a76d5330cc",
   "scripts/autoresearch/tex1/tex1_score.py": "51d2b7022750afe790828dd25fded20346d7cbfd74d3f407fde0d07cc793fac1",
@@ -506,6 +506,6 @@
   "icenine/symmetry.py": "8d843f35885041175b13966934539ba8061dbe5795a23a7f8573631104f09dd1",
   "icenine/toy_orientation_model.py": "cc14dc5efa5361b7f43f81cd8827046874b746f377f195a9e24e9a8b003e83d7"
  },
- "frozen_at": "2026-11-24T01:18:06-0800",
+ "frozen_at": "2026-11-24T01:33:48-0800",
  "note": "no method (CSP, RCP) was run on tex24, and no log or map of tex24 exists, before this file was committed; the RCP slice pilot runs after it"
 }

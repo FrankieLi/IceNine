@@ -986,6 +986,14 @@ Derivations that underpin ongoing work, written in Markdown with LaTeX math
   `fine1_freeze.py`), tests `tests/test_fine1.py`, records `benchmarks/autoresearch/fine1/`
   (`frozen.json`; truth, images, stack and run outputs in the gitignored `cache/`). No library
   change. MIGRATION_HISTORY, "Autoresearch fine1, phase A".
+- Autoresearch `tex1`, phase A (a textured finer layer; D-20261124-N1): scripts
+  `scripts/autoresearch/tex1/` (`tex1_lib.py` noise and gradient field, `tex1_make_sample.py` sample
+  `tex24` seed 24, `tex1_sample_check.py` the hard gate, `tex1_stack.py`, `tex1_config.py` configs of
+  arms `CSP` (stock C++, 13 ranks, `SampleRadius 2.0`) and `RCP` (the 16-key recipe),
+  `tex1_run_py.py`, `tex1_launch.sh` with `_slice` and `_whole`, `tex1_freeze.py`, `tex1_score.py`,
+  `tex1_plot.py`), `plot_mic.py` flags `--boundaries` and `--mis-max` (opt-in), tests
+  `tests/test_tex1.py`, records `benchmarks/autoresearch/tex1/`. No library change.
+  MIGRATION_HISTORY, "Autoresearch tex1, phase A".
 - Autoresearch `fine1`, phases B to D (slice projection, six whole-layer runs on the 98,280-voxel
   layer `fine7`, score; all runs contended): new scripts `fine1_projection.py`, `fine1_score.py`,
   `fine1_plot.py`, launcher flag `--continue-contended`, arms `CSP` and `CFP` (13 MPI ranks);

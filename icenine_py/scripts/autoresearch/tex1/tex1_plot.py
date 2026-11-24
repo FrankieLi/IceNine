@@ -71,12 +71,14 @@ def distribution_figure(
 ) -> None:
     """Five panels (all voxels, sharp, noise, gradient, both): histogram of the arm's error over
     the voxels with output (solid) and of the trivial answer over the same voxels (dashed)."""
-    fig, axes = plt.subplots(1, 5, figsize=(19, 3.8), sharey=True)
+    fig, axes = plt.subplots(1, 5, figsize=(19, 3.8))
     centres = np.sqrt(BINS[:-1] * BINS[1:])
     n_miss = int((~has).sum())
     for ax, name in zip(axes, ("all",) + F.CLASS_NAMES):
         sel = has if name == "all" else has & (vox_class == F.CLASS_NAMES.index(name))
-        ax.plot(centres, histogram_fractions(err[sel]), color=COL[arm], lw=1.6, label=arm)
+        h_arm = histogram_fractions(err[sel])
+        ax.plot(centres, h_arm, color=COL[arm], lw=1.6, label=arm)
+        ax.set_ylim(0.0, max(float(h_arm.max()), 0.02) * 1.5)  # the trivial spike may leave it
         ax.plot(
             centres,
             histogram_fractions(triv[sel]),
@@ -91,7 +93,8 @@ def distribution_figure(
         ax.set_title(f"{name}: {int(sel.sum()):,} voxels", fontsize=9)
         ax.set_xlabel("misorientation to the voxel's own truth (deg, log)")
         ax.grid(alpha=0.3, which="both")
-    axes[0].set_ylabel("share of voxels per bin")
+    for ax in axes:
+        ax.set_ylabel("share of voxels per bin", fontsize=8)
     axes[0].legend(fontsize=8)
     fig.suptitle(
         f"{arm} ({NAMES[arm]}): distribution of the error; dotted line = 1 degree; "

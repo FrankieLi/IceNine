@@ -14374,3 +14374,26 @@ system for CPU), all contended. `cores` is CPU hours over wall hours.
   comparison. (2) Should Python honour `SampleRadius`, or should the docs say it ignores the key?
   (3) Keep calling `PS` "stock Python" although it carries three Python-only BFS keys.
   Results: `score.json`, `score_tables.md`, `projection.json`.
+
+## Autoresearch `tex1`, phase A: a textured finer layer, sample built, frozen, slice pilot (2026-11-24, task tex1)
+
+Owner task of 24 Nov (D-20261124-N1). A measurement on a new sample: two arms only (stock C++ in
+parallel `CSP`, the recipe `RCP`), nothing tuned. Library changes: none; C++ not changed. One script
+change: `scripts/plot_mic.py` got two opt-in flags, `--boundaries <grainmap.npz>` and `--mis-max
+<deg>` (default output byte-equal to the old script on a 300-voxel test; a test checks it).
+
+- **Sample `tex24`** (generator seed 24, `fine7`'s grid, sha256 checked against `fine1/frozen.json`;
+  `tex1_make_sample.py`, `tex1_lib.py`): 250 grains (46 to 1,705 voxels, median 349.5), 50 noise
+  grains (rotation vector uniform in a 1-degree ball per voxel) and 125 gradient grains (smooth
+  field, largest edge-pair step `t_g` uniform on [0.1, 0.5) degree), drawn independently: sharp 101,
+  noise only 24, gradient only 99, both 26 grains. Gate `tex1_sample_check.py` passed (tolerance
+  5e-4 degree, the `.mic` Euler rounding); numbers in `benchmarks/autoresearch/tex1/sample/
+  sample_tables.md`. Gradient spreads median 3.56, largest 10.26 degrees; 1 of 700 grain
+  boundaries has a touching voxel pair under 5 degrees (least 3.49).
+- **Images and stack.** `render_full.py --tag tex24 --variants clean`, 4 workers, 224 s contended;
+  the stack equals all 360 frames (`stack_check.json`).
+- **Freeze.** `benchmarks/autoresearch/tex1/frozen.json` committed before any run; the launcher
+  (`tex1_launch.sh`, wrappers `_slice` and `_whole`), `tex1_run_py.py`, `tex1_score.py`,
+  `tex1_plot.py` written; score and plots rehearsed on synthetic maps only.
+- **Slice pilot** (`RCP`, 2,000 central voxels, all 16 keys together accepted): see the report for
+  counts and seconds. The whole `CSP` and `RCP` runs and the scoring are later phases.
