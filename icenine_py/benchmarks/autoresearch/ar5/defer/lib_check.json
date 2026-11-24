@@ -1,0 +1,98 @@
+{
+ "sample": "mid",
+ "libJ5D_vs_J5Dl": {
+  "before_pass": {
+   "map": {
+    "same_bytes": true,
+    "voxels_differ": 0,
+    "max_angle_deg": 0.0,
+    "voxels_over_0_001_deg": 0,
+    "voxels_over_1_deg": 0
+   },
+   "evals_total": {
+    "script": 7253826,
+    "library": 7253826
+   },
+   "counters_equal": true,
+   "counters_differ": {
+    "n_script_counters": 36,
+    "differ": {},
+    "only_in_library": {
+     "cma_not_fell": 4645,
+     "index_defer_pauses": 1128,
+     "index_defer_resumes": 505,
+     "index_defer_steps": 569,
+     "index_mixed_cands": 2881,
+     "index_mixed_cma_reached": 1140,
+     "index_mixed_mc_ran": 1741,
+     "index_rescue_evals": 31031,
+     "index_rescue_runs": 11,
+     "index_rescue_tries": 31,
+     "index_rescued": 7,
+     "index_stallhit_checks": 1717,
+     "index_stallhit_evals_in_stopped": 304941,
+     "index_stallhit_refinements": 1741,
+     "index_stallhit_stops": 370,
+     "index_stallhit_went_on": 1347,
+     "index_stopped_early": 1525
+    }
+   },
+   "records": {
+    "n_a": 24570,
+    "n_b": 24570,
+    "n_differ": 0,
+    "first": []
+   },
+   "rescues": {
+    "script": 11,
+    "library": 11,
+    "rescued_script": 7,
+    "rescued_library": 7,
+    "equal": true
+   },
+   "stall": {
+    "refinements": {
+     "script": 1741,
+     "library": 1741
+    },
+    "first_differ": null,
+    "equal": true
+   },
+   "defer": {
+    "counts_script_library": {
+     "steps_with_pause": [
+      569,
+      569
+     ],
+     "pauses": [
+      1128,
+      1128
+     ],
+     "resumes": [
+      505,
+      505
+     ]
+    },
+    "equal": true
+   }
+  },
+  "equal_before_pass": true,
+  "in_run_pass_evals_library": 3050854
+ },
+ "library_form": {
+  "libJ5_evals_before_pass": 8135786,
+  "libJ5D_evals_before_pass": 7253826,
+  "saving_share": 0.10840501458617524,
+  "j5d_search_evals": 6531563,
+  "gap_to_j5d": 722263,
+  "gap_in_fallbacks": 651089,
+  "j5dl_fallback_evals": 1361954,
+  "j5d_fallback_evals": 710865,
+  "grid_searches": {
+   "j5dl": 4,
+   "j5d": 2
+  },
+  "screen_pass_run_in_library": "no",
+  "accuracy_measured": "no"
+ }
+}

@@ -5142,6 +5142,1520 @@ the owner says; tuning any arm to the fine grid; another random seed; `held2`.
 - Missing voxels count as wrong; timed runs alone (slower, but quiet walls); seed 7 (next unused).
 - Part 1's fix, if any, adds `CF`; `CS` stays the build of the branch as it is.
 
+### AR5 step 23: end the seed refinement's second MC stage when it has converged
+
+Task `ar5w`. Approved: D-20261119-N1. Starts from `feature/eval-reduction` after step 22's key
+phase. Reuses step 22's cache (worktree `agent-aba6e1bdb95dff72a`: the `J5D` runs, their
+`mc_traces`, `e1_log`, `defer_steps`, `run.json`, and the `J5SD` passes), read only. Phase A ends
+at "READY FOR KEY" or at a gate; phase B only after a recorded decision.
+
+**Why.** The owner asks for fewer evaluations and less wall-clock time at equal accuracy, and for
+general early stops. The restart study (`.claude/reports/20261116-restart-distance.md`) found that
+the stock MC local optimization rarely refines a start that is already close: from starts 0.1,
+0.3, 0.5 and 1.0 degree away it ended within 0.05 degree in 0, 5, 12 and 8 runs of 40; the same
+evaluations spent in a shrinking true ball did so in 35, 33, 29 and 34. The schedule is the weak
+part, not the restart width. But in `J5SD` the stock MC fit from a neighbour's orientation never
+runs: the BFS fits are CMA fits with no MC fallback (0 fallback runs on all eight samples). The
+same sampler does run in `J5SD`, as the second stage of the seed step's MC refinement. There it
+costs 35% to 43% of `J5SD` on the `held` types, mostly after its last gain. So this step changes
+that stage only.
+
+**What was read and run.** The restart report; PLAN steps 11, 12, 15, 16 and 22; step 22's
+`tables.md` and `summary.json`; `J5D`'s `run.json`, `mc_traces`, `e1_log` and `defer_steps` on all
+eight disclosed samples; `refine_from_candidates`, `MCOptimizer.optimize` and
+`variance_minimizing_optimize` in the library. Arithmetic only, in scratch; no run. Nothing of
+`held2`; nothing of `fine7`.
+
+**What the record says.** The MC refinements are the largest single part of `J5SD` on the `held`
+types; the stock MC fit in BFS costs nothing. Reading line: per sample, `J5SD`'s total; the seed
+step's share (costing, CMA fits, MC refinements, rescue, polish and grid searches, as in step 22);
+the MC refinements alone; the BFS fits (all CMA); the grid searches (their count in brackets);
+the screen pass and the repair.
+
+| sample | J5SD total | seed step | MC refinements | BFS fits | grid (count) | screen, repair |
+|---|---|---|---|---|---|---|
+| held5 | 20,076,940 | 69.3% | 34.9% | 22.8% | 24.0% (14) | 7.9% |
+| held4 | 20,685,850 | 67.2% | 43.4% | 24.0% | 13.3% (8) | 8.8% |
+| held3 | 18,363,331 | 66.7% | 39.3% | 24.1% | 16.9% (9) | 9.2% |
+| held | 17,114,589 | 62.7% | 43.4% | 27.4% | 8.1% (4) | 9.9% |
+| mid | 7,383,368 | 45.4% | 27.7% | 43.0% | 9.0% (2) | 11.5% |
+| grad | 6,134,231 | 32.3% | 13.3% | 53.1% | 11.0% (2) | 14.6% |
+| big | 2,452,596 | 10.7% | 6.7% | 81.2% | 0.0% (0) | 8.1% |
+| held6 | 22,690,096 | 70.0% | 36.1% | 22.0% | 24.4% (16) | 8.0% |
+
+Most of a refinement's evaluations come after its last gain. Reading line: per sample, the MC
+refinements of `J5D`'s seed steps; their mean evaluations; the tail after the last gain as a share
+of `J5SD`, and the part of it in refinements that `DEF` resumed; the refinements that stopped at
+0.95, with those whose last gain came after the first stage in brackets; the ceiling (below) at a
+cap of 120 and of 300 evaluations for the second stage.
+
+| sample | refinements | mean evals | tail | in resumed | stops at 0.95 | ceiling 120 | ceil. 300 |
+|---|---|---|---|---|---|---|---|
+| held5 | 5,926 | 1,183 | 22.5% | 12.8% | 835 (450) | 25.2% | 19.9% |
+| held4 | 6,695 | 1,341 | 26.8% | 16.2% | 1,027 (568) | 32.8% | 27.0% |
+| held3 | 5,797 | 1,245 | 25.3% | 15.6% | 774 (391) | 28.9% | 23.3% |
+| held | 5,919 | 1,256 | 27.0% | 15.4% | 944 (506) | 32.1% | 25.9% |
+| mid | 1,724 | 1,184 | 18.2% | 9.9% | 361 (165) | 20.0% | 15.8% |
+| grad | 1,026 | 793 | 10.0% | 4.5% | 127 (29) | 7.8% | 4.8% |
+| big | 172 | 953 | 4.5% | 1.0% | 44 (15) | 4.4% | 3.1% |
+| held6 | 6,382 | 1,283 | 23.5% | 14.2% | 950 (479) | 26.8% | 21.8% |
+
+The **ceiling** is what `J5SD` would save if every stored refinement ended at its own count or at
+208 + cap + 1 evaluations, whichever is smaller, with the same refinements and no path change. It
+is arithmetic, not a prediction: a new second stage changes paths, and a refinement that no longer
+reaches 0.95 sends its step to the next candidate, to the rescue or to a grid search (about
+345,000 evaluations each). Three more facts. The first stage holds most early gains: the median
+last gain of a 0.95 stop is at 200 to 223 evaluations on the `held` types and `mid`. The second
+stage reaches far: on the `held` types the MC ends at 0.95 lie a median 0.44 to 0.49 degree from
+the CMA end of the same candidate, and 40% to 47% lie over 0.5 degree away. And late finds are
+real: on `held` step 15's low stop lost 68 (k = 1000) and 161 (k = 500) later 0.95 ends, and
+step 22 found 79 to 115 seeds a `held` sample only in a resumed refinement.
+
+**Terms.** **Hit ratio**: the share of simulated peaks that land on lit pixels; always the voxel's
+**own** hit ratio. **Seed step**: index the voxel, cost 20 candidates, then for the best 5 in turn
+a CMA fit and, under 0.95, an MC refinement from the same candidate; it stops at the first end at
+0.95 or more, else takes the lowest-cost end. **MC refinement**: the library's
+`refine_from_candidates` on one candidate. Its **first stage** (`FindOptimal`) runs blocks of 31
+samples in a small cube about the current state, step 0.13 degree halved on each gain, at most
+200 trial steps, and stops after three failed blocks: at most 208 evaluations. Its **second
+stage** (the variance stage) runs blocks of 10 samples from the first stage's best, doubles the
+radius after a failed block up to the box, restarts about that start with the raw radius (median
+0.32, 0.64 and then 1.11 degrees out), and grows its budget of 200 while a block's cost variance
+exceeds 0.02 squared.
+**Box**: `max(diameter/3, 0.2 deg) / 2^MinLocalResolution`, 0.329 degree in these runs. **Gain**:
+a strict drop of the running best cost. **Tail**: the evaluations after the last gain. **Ball of
+radius r**: a rotation about a uniformly random axis by the angle r times the cube root of a
+uniform number, so the points fill a ball of true angle r evenly. **Check**, **`PH(500)`**,
+**`DEF`**: as in step 22. **Right** / **wrong**: at most / over 1 degree from the truth
+(symmetry-reduced). **Fixed** / **broken**: by voxel. **Arm `J5DC`**: `J5D` with rule `CB`;
+**`J5SDC`**: `J5DC` with step 21's screen pass and wide repair. **Replay**: each stored seed step of
+`J5D` run again alone, in the script layer, from the same voxel and image.
+
+**The rule, frozen now.** Rule `CB` (converging ball). In the seed step's MC refinement the first
+stage runs as now. The second stage is replaced. It starts at the first stage's best with radius r
+equal to the box. Each proposal is the current best turned by a rotation drawn in a ball of
+radius r. A proposal with a strictly lower cost becomes the best and the new centre. After 10
+proposals in a row with no gain, r halves. The stage ends when r falls under 0.01 degree, or after
+300 proposals. Then the final evaluation, as now. The refinement's own generator goes on from the
+first stage. No hit ratio, no neighbour, no truth and no crystal symmetry inside the stage; each
+voxel is fitted on its own, so grains with orientation gradients need nothing special.
+Unchanged: the 20 costed and 5 refined candidates, CMA fits, 0.80, 0.95, `PH(500)` and `DEF` (inert
+under `CB`, see validity), `G1`, `G2b`, the grid search with its own final refinement, BFS, the
+screen pass and the wide repair. The constants 10, 0.01 degree and 300 are set now and not tuned:
+10 failures and halving come from the restart study's illustration; 0.01 degree is under half the
+median error (0.019 to 0.030 degree); 300 is 1.5 times the stock stage's starting budget.
+
+**Samples, and what has touched them.** `held5`, `held4`, `held3`, `held`, `mid`, `grad`, `big`
+and `held6`: disclosed; the rule was chosen looking at their records. `held2`: not used, not
+opened. `fine7`: not read. Clean test: a new sample `held7`, built by `held_make_sample.py` exactly
+as `held` (250 Voronoi grains, 24,570 voxels, gradients 0 to 4 degrees) with generator seed 7, as
+earlier steps built `held3` to `held6`: a new sample, not an extra random seed. Nobody reads its
+logs or maps before its runs and passes end. Clean images, Q-max 8.
+
+**Measured.** Seed-step evaluations, split into costing, CMA fits, first and second stage;
+second-stage proposals, halvings and ends (floor or cap); candidates tried per step; steps with an
+end at 0.95; rescues (`G1`, `G2b`) and grid searches; evaluations by stage; wrong voxels (Wilson
+95%); fixed and broken against `J5SD` and `S8`; median error over all 24,570 voxels; wall seconds
+of the `mid` runs under the timing preflight (reported, not gated).
+
+**Predictions, written before any run.**
+1. With `CB` the first stage of every refinement equals `J5D`'s, evaluation by evaluation (`mid`);
+   with `CB` off the replay reproduces `J5D`'s seed steps on `mid` (ends, evaluations).
+2. Replay, eight disclosed samples: the seed step's index stage 40% to 60% fewer evaluations than
+   `J5D`'s on the `held` types and `mid`, 20% to 45% on `grad` and `big`; 250 to 450 evaluations
+   per refinement (`J5D`: 793 to 1,341); the second stage ends at the floor in at least 90% of
+   refinements; steps with an end at 0.95 within 3% of `J5D`'s count.
+3. Live `J5SDC` against `J5SD`: 15% to 28% fewer evaluations on the `held` types, 10% to 20% on
+   `mid`, 3% to 8% on `grad`, 1% to 4% on `big`; broken minus fixed -3 to +4; grid searches within
+   2 of `J5D`'s; median error within 0.0005 degree.
+4. `held7`: 15% to 28% fewer evaluations than `J5SD`; broken minus fixed -3 to +4; median error
+   within 0.0005 degree; the house rule against `S8` passes.
+
+**Decision rules, fixed now.** Gate, on the disclosed samples, before `held7` is built: (g0)
+prediction 1, exactly; (g1) the replay on all eight: the index stage at least 30% fewer
+evaluations than `J5D`'s on the `held` types and `mid`, and steps that lose their 0.95 end (`J5D`
+had one, `CB` has none) at most 3% of the steps; (g2) live `J5SDC` on `mid` and `held`: at least
+10% fewer evaluations than `J5SD`, broken minus fixed at most 4, median error at most 0.001 degree
+higher, grid searches at most 2 more than `J5D`'s. Gate fails: stop, report, no tuning (no change
+of 10, 0.01 degree, 300 or the start radius), no `held7`. Then `J5SDC` passes on a sample if,
+against `J5SD`: (1) at least 10% fewer evaluations on the `held` types and `mid`, 2% on `grad`, 1%
+on `big`; (2) broken minus fixed at most 4; (3) median error at most 0.001 degree higher; (4) the
+house rule against `S8`: at least 20% fewer evaluations, broken minus fixed at most 5, median error
+at most 0.005 degree higher. The step passes if `J5SDC` passes on `held7` and on the five disclosed
+samples run live (`mid`, `held`, `held6`, `grad`, `big`). Fails on `held7`: no key value; study
+merge. Rule (2) allows 4, not step 22's 3: every refinement's second stage changes, so more seed
+ends move and BFS routes shift more; 4 stays under the house rule's 5. Set now, before any run.
+
+**Validity checks.** Each refinement's generator is keyed as in `J5D` (voxel, kind, call count);
+the second stage continues it. The first stage is checked identical to `J5D`'s on `mid`. Every
+evaluation is counted, the final one and any check included. `PH(500)` and `DEF` are inert under
+`CB`: the first stage stops after three failed blocks (at most about 96 evaluations with no gain)
+and the second stage has at most 300 proposals, so no refinement has 500 evaluations without a
+gain; the runs must show zero checks and zero pauses, else stop. A unit test checks the ball (no
+angle over r, median angle 0.794 r, axes even over the sphere). The arm reads no truth. Steps whose
+taken end moves over 0.05 degree from `J5D`'s are listed with both ends. Guards on `held2`, `held7`
+and `fine7`.
+
+**Machine.** Runs go one at a time (owner rule of 16 Nov). Replay on eight samples (about 24
+million). Gate: `J5DC` live on `mid` and `held`, each then the screen pass and the wide repair
+(about 18 million). Then `J5SDC` live on `held6`, `grad`, `big` (about 25 million). Then `held7`
+built (about 15 minutes); `S8` (about 68 million); `J5D` and its passes (about 23 million);
+`J5DC` and its passes (about 17 million). In all about 175 million. Step 22's runs did 9 to 20
+million an hour, so 9 to 19 process-hours, and the same in wall time, one run at a time. Caps:
+480 minutes for `S8`, 300 the rest. `S8` and `J5SD` on `held7` stay as clean baselines.
+
+**Stop rule:** stop and report if a stored count does not reproduce (both tables above), if
+prediction 1 fails, if the gate fails, if any check or pause fires under `CB`, if `J5DC` runs on
+any sample before `ar5/ball/frozen.json` is committed, if `held7`'s logs or maps are read before
+its runs and passes end, if anything of `held2` is opened or listed, if `fine7` is read, or if a
+run hits its cap.
+
+**Phase A (script layer).** 1. Link step 22's cache read only; check the counts of both tables;
+write only into this step's cache. 2. Tests first, `tests/test_ar5_ball.py`: the ball's draws; r
+halves after exactly 10 failures in a row and never otherwise; the stage ends at the floor or at
+300; strict-less acceptance moves the centre; the first stage untouched; the generator continued;
+every evaluation counted; zero checks and pauses under `CB`; guards on `held2`, `held7`, `fine7`.
+3. Commit `frozen.json` (rule, constants, gate, decision rules, hashes). 4. g0 on `mid`. 5. Replay
+on the eight samples (g1). 6. Gate (g2). 7. `J5SDC` on `held6`, `grad`, `big`. 8. Build `held7`
+(pilot first); `S8`, `J5D` with passes, `J5DC` with passes. Plot first (run evaluations against
+wrong voxels: `S8`, `J5SD`, `J5SDC`, six panels); tables; predictions. "READY FOR KEY".
+
+**Phase B (key).** One opt-in key `SeedIndexMCBall` (0 or 1, default 0, off), valid only with
+`SeedByIndexing` and `SeedIndexStopHitRatio` above 0: the seed step's MC refinement gets the
+converging second stage; the grid search's own refinement and the BFS fits are untouched. Parsed in
+`config_file.py`, checked in `check_bfs_keys`. Unit tests; key-off suite with no golden change; key
+on, a library run on `mid` equal to the script arm `J5DCl` (step 22's `J5Dl` with `CB`: the
+library's draws, no `G2b`), the same map and evaluation count. Page `findings_ar5_ball.md` (plot
+first), history, pareto rows, README.
+
+**Files:** `scripts/autoresearch/ar5/ball_*.py`, `tests/test_ar5_ball.py`,
+`benchmarks/autoresearch/ar5/ball/` (under 3 MB tracked; the cache untracked).
+
+**Library changes:** none in phase A (the script layer replaces the stage through a subclass, as
+steps 11 to 16 did); phase B the key, if the step passes. The C++ code is not changed. With the key
+off the library does exactly what it does now.
+
+**What would make us stop the line.** The gate fails; `held7` saves under 10% against `J5SD` or
+breaks more than 4 net; or lost 0.95 ends turn into rescues and grid searches that eat the saving.
+
+**Not in this step.** The stock MC fit in BFS (it does not run in `J5SD`; it matters for `S8` and
+C++ only); the restart-width fix; the first stage's schedule; the grid search's own refinement; a
+pure stop at the check; a smaller `PH` k; CMA settings; learned proposals; the boundary-pass skip;
+realistic images; other crystals; a C++ change; another random seed; `held2`; `fine7`.
+
+**Choices made.**
+- This idea: replace the second stage, which holds most of the tail, with a stage that ends once
+  its step is under 0.01 degree. A general early stop (stop when the search has converged, not
+  when a budget that grows with the cost variance runs out), no model, no threshold on the hit
+  ratio, symmetry-agnostic. Ceiling 20% to 33% of `J5SD` on the `held` types, 16% to 20% on `mid`.
+  Weak side: the stock stage's wide restarts (0.3 to 1.6 degrees out) find the right basin late
+  in some refinements, and the ball gives up that reach; lost 0.95 ends move to the next
+  candidate, the rescue or a grid search, which only the replay and live runs can size. Small on
+  `grad` (5% to 8%) and `big` (3% to 4%). Chosen looking at eight disclosed samples, so `held7` is
+  the only clean test. About 9 to 19 hours, one run at a time.
+- Runners-up: a ball for the whole refinement, from the candidate (saves up to about 6% more, the
+  first stage's 208 evaluations a refinement, but drops the stage where most 0.95 ends are found);
+  a fixed budget of 200 for the second stage with no growth (an exact prefix, replayable, but a
+  budget, not a schedule: its cube draws still rarely land near the start); the restart-width fix
+  alone (no gain in 160 cases at the 5-degree box; at the 0.33-degree box it keeps the variance
+  high and makes the stage longer); a pure stop at the check (23% to 31% of `J5S`, about 400
+  changed seed steps a sample; a stop, not a schedule); a smaller `PH` k (tuning a rule on the
+  disclosed samples); the stock MC fit in BFS (0 evaluations in `J5SD`); learned grid proposals
+  (grid 8% to 24% on the `held` types; step 10's cut failed).
+
+### AR5 step 24: the converging ball first, the stock second stage only when no ball end hits 0.95
+
+Task `ar5x`. Approved: D-20261119-N3. Starts from `feature/eval-reduction` at 92005ed2 or later.
+Reuses step 23's replay rows (`ar5/ball/cache/replay_on_*`, main checkout) and step 22's cache
+(worktree `agent-aba6e1bdb95dff72a`: the `J5D` runs, their `e1_log`, `mc_traces`, `run.json`, and
+the `J5SD` passes), read only. Phase A ends at "READY FOR KEY" or at a gate; phase B only after a
+recorded decision.
+
+**Why.** The owner asks for fewer evaluations and less wall-clock time at equal accuracy, and for
+general early stops. Step 23's ball (rule `CB`) cut the seed step's index stage by 45% to 64%, but
+8% to 10% of steps on the `held` types lost their 0.95 end. Every lost end was found by the stock
+second stage after its first block, mostly over 0.33 degree away. So the stock stage is needed in
+some steps, but not in most. The ball is cheap and finds the same 0.95 end in most steps. This step
+runs the ball first on every candidate, and runs the stock second stage only when no ball end
+reaches 0.95. It is step 22's idea (do not pay for a slow search while cheaper options remain)
+with an earlier pause point: the ball's convergence instead of 500 evaluations with no gain.
+
+**What was read and run.** PLAN steps 22 and 23; step 23's `info.json`, `info_tables.md`,
+`frozen.json`, `replay_partial.json`, its report and review
+(`.claude/reports/20261119-0119-ar5w.md`, `20261119-1010-review-ar5w.md`); the replay rows of
+all eight disclosed samples (22,087 steps); `J5D`'s `e1_log`, `mc_traces` and `run.json`;
+`variance_minimizing_optimize`,
+`_zero_temp_with_variance`, `refine_from_candidates` and `_index_seed` in the library;
+`ball_replay.py`, `ball_rules.py`, `defer_pick.py`. Arithmetic only, in scratch (`size24*.py`); no
+run. Nothing of `held2`; nothing of `fine7`.
+
+**What the record says.** Rule `BF` (below) costs exactly what the stored rows say, because a step
+either ends in the ball pass (step 23's replay measured it) or falls back to `J5D`'s own stage 2
+(step 22's traces measured it). The accounting identity (costing + CMA fits + MC refinements =
+`J5D`'s step) holds in all 4,342 fallback steps. Reading line: per sample, `J5D`'s index stage; step
+23's `CB` index stage; steps with no ball end at 0.95 (they fall back); `BF`'s index stage; `BF`
+against `J5D` on the index stage; the saving as a share of `J5SD`'s total; lost 0.95 ends under
+`BF`; seed steps under the 0.80 seed test for `J5D`, `CB` and `BF`.
+
+| sample | J5D index | CB index | fall back | BF index | BF fewer | of J5SD | lost | seed test J5D/CB/BF |
+|---|---|---|---|---|---|---|---|---|
+| held5 | 8,690,640 | 3,398,238 | 773 | 7,376,267 | 15.1% | 6.55% | 0 | 104 / 540 / 96 |
+| held4 | 10,882,299 | 3,884,631 | 899 | 9,076,725 | 16.6% | 8.73% | 0 | 70 / 558 / 68 |
+| held3 | 8,840,378 | 3,287,015 | 813 | 7,856,813 | 11.1% | 5.36% | 0 | 90 / 528 / 85 |
+| held | 9,129,537 | 3,433,723 | 777 | 7,666,627 | 16.0% | 8.55% | 0 | 66 / 480 / 64 |
+| mid | 2,644,672 | 1,099,560 | 173 | 2,099,764 | 20.6% | 7.38% | 0 | 12 / 67 / 12 |
+| grad | 1,255,626 | 690,503 | 97 | 1,023,858 | 18.5% | 3.78% | 0 | 11 / 35 / 10 |
+| big | 261,653 | 143,064 | 6 | 192,919 | 26.3% | 2.80% | 0 | 0 / 1 / 0 |
+| held6 | 10,054,329 | 3,684,745 | 804 | 8,368,681 | 16.8% | 7.43% | 0 | 63 / 504 / 62 |
+
+Two facts from this table. First, step 23's 60% was not the whole cost of `CB`: its seed steps fell
+under the 0.80 seed test 480 to 558 times on the `held` types, against 63 to 104 for `J5D` (66 on
+`held` matches `run.json`'s `index_fallback_seed_test`). Each of those goes to the rescue and
+perhaps a grid search (about 345,000 evaluations). `BF` keeps `J5D`'s count or lowers it. Second,
+`BF` pays for the ball in the steps that fall back: in those steps the ball pass costs 2.3% to 3.1%
+of `J5SD` on the `held` types (the ball's stage 2, and in lost steps the CMA fits and first stages
+of later candidates that `J5D` never reached). The table's saving is net of that.
+
+Where the saving sits. Reading line: per sample, seed steps; first-seed steps; `CB`'s saving on
+first seeds alone, as a share of `J5SD`; lost ends on first seeds under `CB`; steps where the ball
+finds an end that `J5D` did not (gained); steps whose taken end moves over 0.05 degree under `BF`.
+
+| sample | steps | first seeds | first-seed saving | first lost | gained | moved over 0.05 |
+|---|---|---|---|---|---|---|
+| held5 | 3,556 | 282 | 1.13% | 7 | 83 | 90 |
+| held4 | 4,109 | 338 | 1.37% | 19 | 107 | 124 |
+| held3 | 3,391 | 293 | 1.38% | 10 | 72 | 79 |
+| held | 3,685 | 297 | 1.52% | 11 | 80 | 92 |
+| mid | 1,626 | 162 | 0.74% | 2 | 27 | 51 |
+| grad | 1,281 | 348 | 0.52% | 0 | 20 | 19 |
+| big | 330 | 39 | 0.07% | 0 | 0 | 5 |
+| held6 | 4,109 | 339 | 1.19% | 19 | 113 | 105 |
+
+Reseed steps hold about 95% of the index stage on the `held` types, so a rule for first seeds only
+saves 0.7% to 1.5% of `J5SD`. Most moved ends are gained steps: a 0.95 end in place of a lower one.
+
+The fallback steps are the largest pot left, and they cannot be cut by a threshold. Reading line:
+per sample, fallback steps that `J5D` resolves (lost under `CB`) and that it does not (never); the
+stock stage 2 inside the never steps, and the whole never steps, as shares of `J5SD`; the median
+own hit ratio of the best ball end in lost and in never steps; the median hit ratio of `J5D`'s end
+in never steps; lost steps whose 0.95 end came from the candidate with the best ball end.
+
+| sample | lost | never | stock stage 2 in never | never steps | ball hit lost / never | J5D never | best cand. |
+|---|---|---|---|---|---|---|---|
+| held5 | 309 | 464 | 15.7% | 20.3% | 0.761 / 0.736 | 0.886 | 92 |
+| held4 | 406 | 493 | 19.1% | 23.8% | 0.771 / 0.759 | 0.896 | 94 |
+| held3 | 284 | 529 | 20.6% | 26.3% | 0.765 / 0.744 | 0.893 | 70 |
+| held | 352 | 425 | 18.8% | 23.7% | 0.762 / 0.760 | 0.899 | 112 |
+| mid | 70 | 103 | 11.1% | 13.9% | 0.847 / 0.817 | 0.888 | 18 |
+| grad | 19 | 78 | 5.0% | 7.5% | 0.829 / 0.858 | 0.886 | 15 |
+| big | 2 | 4 | 1.9% | 2.3% | 0.849 / 0.894 | 0.945 | 1 |
+| held6 | 330 | 474 | 16.4% | 20.5% | 0.765 / 0.759 | 0.901 | 98 |
+
+In never steps the stock stage does real work: it lifts the end from a median 0.74 to 0.76 to a
+median 0.89 to 0.90, over the 0.80 seed test. The ball hit ratios of lost and never steps are
+nearly the same, so a hit-ratio threshold cannot tell them apart. A fallback on the best ball
+candidate only would keep 23% to 32% of the lost ends. Lost ends come from all five candidate
+positions (the first holds 27% to 32%); on the `held` types the MC end lies a median 0.62 to 0.67
+degree from the same candidate's CMA end (66% to 68% over 0.5 degree), and the refinement's last
+gain comes a median 467 to 516 evaluations in (quartiles about 320 and 900).
+
+Candidate (a), stop the stock stage's polishing between restarts, has almost nothing to cut. In
+`variance_minimizing_optimize` every failed block (11 evaluations) restarts at once about the first
+stage's best; polishing happens only after a gain. A bound of 12 evaluations per stage-2 gain (one
+failed polishing block and the repeated start evaluation) is 1.5% to 1.9% of `J5SD` on the `held`
+types, 1.1% on `mid`, 0.2% on `grad` and `big`.
+
+**Terms.** **Hit ratio**: the share of simulated peaks that land on lit pixels; always the voxel's
+**own** hit ratio. **Seed step**: index the voxel, cost 20 candidates, then for the best 5 in turn
+a CMA fit and, under 0.95, an MC refinement from the same candidate; it stops at the first end at
+0.95 or more, else takes the lowest-cost end. **Seed test**: the taken end's hit ratio must reach
+0.80, else the rescue (`G1`, `G2b`) and then a grid search run. **First seed** / **reseed**: a seed
+step on a voxel no fit has reached / on the centre voxel of a cluster that BFS left unfitted.
+**MC refinement**, **first stage**, **second stage** (the stock variance stage), **box**, **gain**,
+**ball of radius r**: as in step 23. **Ball stage**: step 23's rule `CB` stage (start at the first
+stage's best, radius the box, halve after 10 proposals in a row with no gain, end under 0.01
+degree or at 300 proposals). **Ball pass**: the seed step with the ball stage as each refinement's
+second stage. **Kept state**: a refinement's best orientation, cost, evaluation count and generator
+state at the end of its first stage. **Fallback**: `J5D`'s seed step run again from the kept
+states. **Lost** / **gained**: `J5D` has an end at 0.95 and the arm has none / the other way round.
+**Never step**: neither has one. **Check**, **`PH(500)`**, **`DEF`**: as in step 22. **Right** /
+**wrong**: at most / over 1 degree from the truth (symmetry-reduced). **Fixed** / **broken**: by
+voxel. **Arm `J5DB`**: `J5D` with rule `BF`; **`J5SDB`**: `J5DB` with step 21's screen pass and wide
+repair. **Replay**: a stored seed step of `J5D` run again alone, from the same voxel and image.
+
+**The rule, frozen now.** Rule `BF` (ball first). The seed step runs in two passes.
+1. Ball pass. For the best 5 candidates in turn: the CMA fit as now; if its end is under 0.95, the
+   MC refinement's first stage as now, then its kept state is stored, then the ball stage runs on
+   a copy of the refinement's generator. The pass stops at the first end at 0.95 or more, and the
+   step takes it.
+2. Fallback, only if no end of the ball pass reaches 0.95. `J5D`'s seed step runs as it always
+   does (`PH(500)`, `DEF`, candidate order, pauses and resumes), with two changes: each CMA fit is
+   taken from the ball pass, not run again, and each MC refinement starts its stock second stage
+   from its kept state, not from the candidate. Its result is `J5D`'s result for that step,
+   evaluation by evaluation. If no end reaches 0.95, the lowest-cost end of the fallback is taken,
+   as in `J5D`.
+The ball stage's constants (10, 0.01 degree, 300, the box as start radius) are step 23's, not
+changed and not tuned. No new threshold, no hit ratio inside the stages, no neighbour, no truth, no
+crystal symmetry. Each voxel is fitted on its own, so grains with orientation gradients need
+nothing special. Unchanged: costing, CMA fits, 0.80, 0.95, `G1`, `G2b`, the grid search with its own
+final refinement, BFS, the screen pass and the wide repair. Every evaluation of both passes counts,
+including the ball stage in steps that fall back. The rule was chosen looking at the eight
+disclosed samples.
+
+**Samples, and what has touched them.** `held5`, `held4`, `held3`, `held`, `mid`, `grad`, `big`
+and `held6`: disclosed; the rule was chosen looking at their records. `held2`: not used, not
+opened. `fine7`: not read. Clean test: a new sample `held7`, built by `held_make_sample.py` exactly
+as `held` (250 Voronoi grains, 24,570 voxels, gradients 0 to 4 degrees) with generator seed 7, as
+earlier steps built `held3` to `held6`: a new sample, not an extra random seed. Step 23 stopped
+before building it, so nothing of it exists. Nobody reads its logs or maps before its runs and
+passes end. Clean images, Q-max 8.
+
+**Measured.** Seed-step evaluations, split into costing, CMA fits, first stage, ball stage and
+fallback stage 2; steps that fall back, lost and gained steps (Wilson 95%); taken ends that move
+over 0.05 degree; seed-test failures, rescues (`G1`, `G2b`) and grid searches; evaluations by stage;
+wrong voxels (Wilson 95%); fixed and broken against `J5SD` and `S8`; median error over all 24,570
+voxels; wall seconds of the `mid` runs under the timing preflight (reported, not gated). For a later
+study, every fallback step also writes one feature row at no extra evaluation: the five ball ends'
+and CMA ends' own hit ratios and costs, their spread in angle, and whether the fallback found 0.95.
+
+**Predictions, written before any run.**
+1. Replay on `mid`: the 1,453 steps that end in the ball pass equal step 23's stored rows (stop,
+   taken end, evaluations); the 173 fallback steps equal `J5D`'s stored steps (fits, stop, taken
+   end); the index stage is 2,099,764 evaluations exactly; 0 lost ends; 0 checks and 0 pauses in
+   the ball pass.
+2. The tracked sizing script reproduces the first table exactly on all eight samples.
+3. Live `J5SDB` against `J5SD`: 4.5% to 10% fewer evaluations on the `held` types, 5% to 9.5% on
+   `mid`, 2% to 5% on `grad`, 1.5% to 4% on `big`; broken minus fixed -3 to +3; grid searches within
+   2 of `J5SD`'s; seed-test failures within 10 of `J5SD`'s; median error within 0.0005 degree.
+4. `held7`: 4.5% to 10% fewer evaluations than `J5SD`; broken minus fixed -3 to +3; median error
+   within 0.0005 degree; the house rule against `S8` passes.
+
+**Decision rules, fixed now.** Gate, on the disclosed samples, before `held7` is built: (g0)
+prediction 1, exactly; (g1) prediction 2, exactly, with lost 0.95 ends at most 3% of the steps on
+every sample (by construction 0; any lost end is a bug and stops the step; the Wilson upper bound
+is reported, for example 0 of 3,685 on `held`: 0% to 0.10%) and the index stage at least 10% fewer
+evaluations than `J5D`'s on the `held` types and `mid`; (g2) live `J5SDB` on `mid` and `held`: at
+least 4% fewer evaluations than `J5SD`, broken minus fixed at most 3, median error at most 0.001
+degree higher, grid searches at most 2 more than `J5SD`'s, seed-test failures at most 10 more. Gate
+fails: stop, report, no tuning (no change of the ball's constants or of the fallback), no `held7`.
+Then `J5SDB` passes on a sample if, against `J5SD`: (1) at least 4% fewer evaluations on the `held`
+types and `mid`, 1.5% on `grad`, 1% on `big`; (2) broken minus fixed at most 3; (3) median error at
+most 0.001 degree higher; (4) the house rule against `S8`: at least 20% fewer evaluations, broken
+minus fixed at most 5, median error at most 0.005 degree higher. The step passes if `J5SDB` passes
+on `held7` and on the four disclosed samples run live (`mid`, `held`, `grad`, `big`). Fails on
+`held7`: no key value; study merge. Rule (2) allows 3, as step 22: only steps that end in the ball
+pass can change, and 79 to 124 taken ends a `held` sample move over 0.05 degree, fewer than step
+22's 172 to 251 C steps. The 4% bar sits under the smallest stored saving on a `held` type (5.36%
+on `held3`). Set now, before any run.
+
+**Validity checks.** The first stage of every refinement equals `J5D`'s (`mid`). The ball stage
+draws from a copy of the generator state at the end of the first stage, so its draws equal step
+23's and the fallback's draws equal `J5D`'s; both are checked on `mid`. CMA fits and first stages
+are never run twice in a step: the fallback reads them from the ball pass, and the script counts
+them once. Every other evaluation is counted, checks and final evaluations included. `PH(500)` and
+`DEF` cannot fire in the ball pass (the first stage stops after three failed blocks; the ball has
+at most 300 proposals); the runs must show zero checks and pauses there, else stop. The arm reads
+no truth. Steps whose taken end moves over 0.05 degree from `J5D`'s are listed with both ends.
+Guards on `held2`, `held7` and `fine7`.
+
+**Machine.** Runs go one at a time (owner rule of 16 Nov). Replay on `mid` (about 2.1 million;
+step 23's replays ran 2.2 to 3.7 million an hour, so under 1 hour). Gate: `J5DB` live on `mid` and
+`held`, each then the screen pass and the wide repair (about 22 million). Then `J5SDB` live on
+`grad` and `big` (about 8 million). Then `held7` built (about 15 minutes); `S8` (about 68
+million); `J5D` and its passes (about 23 million); `J5DB` and its passes (about 21 million). In all
+about 144 million live. Step 22's live runs did 9 to 20 million an hour, so 7 to 16 hours, plus
+about 1.25 hours for the replay and the build: about 8 to 17 hours of wall time, one run at a time.
+Caps: 480 minutes for `S8`, 300 the rest. `S8` and `J5SD` on `held7` stay as clean baselines for
+later steps.
+
+**Stop rule:** stop and report if a stored count does not reproduce (the tables above), if
+prediction 1 or 2 fails, if any lost end appears, if the gate fails, if any check or pause fires in
+the ball pass, if `J5DB` runs on any sample before `ar5/bf/frozen.json` is committed, if `held7`'s
+logs or maps are read before its runs and passes end, if anything of `held2` is opened or listed,
+if `fine7` is read, or if a run hits its cap.
+
+**Phase A (script layer).** 1. Link step 23's replay rows and step 22's cache read only; check the
+counts of the three tables with `bf_size.py`; write only into this step's cache. 2. Tests first,
+`tests/test_ar5_bf.py`: the ball pass stops at the first end at 0.95; the fallback runs only when
+the ball pass has none; the fallback equals `defer_rules.run_seed_step` with cached CMA fits and
+kept states (no CMA fit or first stage run twice); the generator copy (ball draws equal step 23's,
+fallback draws equal `J5D`'s); every evaluation counted, the ball stage in fallback steps included;
+zero checks and pauses in the ball pass; rule off gives `J5D`; guards on `held2`, `held7`,
+`fine7`. 3. Commit `frozen.json` (rule, constants, gate, decision rules, hashes). 4. g0: replay on
+`mid`. 5. g1: `bf_size.py` on the eight samples. 6. g2: `J5SDB` live on `mid` and `held`. 7.
+`J5SDB` on `grad` and `big`. 8. Build `held7` (pilot first); `S8`, `J5D` with passes, `J5DB` with
+passes. Plot first (run evaluations against wrong voxels: `S8`, `J5SD`, `J5SDB`, five panels);
+tables; predictions. "READY FOR KEY".
+
+**Phase B (key).** One opt-in key `SeedIndexMCBallFirst` (0 or 1, default 0, off), valid only with
+`SeedByIndexing`, `SeedIndexStopHitRatio` above 0 and `SeedIndexMCDefer` on: the seed step runs the
+ball pass, and falls back to the deferred stock refinement from the kept states. The grid search's
+own refinement and the BFS fits are untouched. Parsed in `config_file.py`, checked in
+`check_bfs_keys`. Unit tests; key-off suite with no golden change; key on, a library run on `mid`
+equal to the script arm `J5DBl` (step 22's `J5Dl` with `BF`: the library's draws, no `G2b`), the
+same map and evaluation count. Page `findings_ar5_bf.md` (plot first), history, pareto rows,
+README.
+
+**Files:** `scripts/autoresearch/ar5/bf_*.py`, `tests/test_ar5_bf.py`,
+`benchmarks/autoresearch/ar5/bf/` (under 3 MB tracked; the cache untracked).
+
+**Library changes:** none in phase A (the script layer builds the two passes from step 23's ball
+stage and step 22's deferred step, as earlier steps did); phase B the key, if the step passes: the
+MC refinement can return its kept state after the first stage and run the ball stage on a copy of
+its generator, and the deferred seed step can start a refinement's stock stage from a kept state
+(step 22's pause and resume already keep state and generator). The C++ code is not changed. With
+the key off the library does exactly what it does now.
+
+**What would make us stop the line.** The gate fails; `held7` saves under 4% against `J5SD` or
+breaks more than 3 net; or the moved seed ends shift BFS so that seed-test failures, rescues and
+grid searches eat the saving.
+
+**Not in this step.** A stop for the never steps (20% to 26% of `J5SD` on the `held` types, the
+largest pot; but the stock stage lifts their ends over the 0.80 seed test, and `CB` alone sent 480
+to 558 seeds a `held` sample under it, so a skip needs a predictor and the rescue's cost; this
+step's feature rows are for that study); a wider CMA fit or more candidates for reseeds; candidate
+(a); first seeds alone; the grid search; `held6` live; the stock MC fit in BFS; the first stage's
+schedule; the ball's constants; learned proposals; realistic images; other crystals; a C++ change;
+another random seed; `held2`; `fine7`.
+
+**Choices made.**
+- This idea: keep step 23's ball where it works and pay for the wide stock stage only where it is
+  needed. A general early stop (defer a slow search while a cheap one has not failed), no model, no
+  new threshold, no tuned constant, symmetry-agnostic. Sized exactly from stored rows: 5.4% to 8.7%
+  of `J5SD` on the `held` types, 7.4% on `mid`, 3.8% on `grad`, 2.8% on `big`; 0 lost ends by
+  construction; seed-test failures equal to or below `J5D`'s. Weak side: the saving is modest; the
+  ball costs 2.3% to 3.1% of `J5SD` in the steps that fall back; the never steps, the largest pot,
+  are left as they are; live BFS routes change through 79 to 124 moved seed ends a `held` sample,
+  which only live runs can judge. Chosen looking at eight disclosed samples, so `held7` is the only
+  clean test. About 8 to 17 hours, one run at a time.
+- Runners-up: (b) the ball on first seeds only (0.7% to 1.5% of `J5SD`; reseeds hold about 95% of
+  the index stage); (a) stop the stock stage's polishing between restarts (at most 1.1% to 1.9%; a
+  failed block already restarts at once); (c) more candidates or a wider CMA fit for reseeds (lost
+  ends come from all five positions and lie a median 0.62 to 0.67 degree from the same candidate's
+  CMA end, so more candidates do not target them; a wider CMA fit might, but no stored trace sizes
+  it: it needs a replay of about 800 fallback steps a `held` sample); a fallback gated by the ball's
+  hit ratio (lost and never steps have nearly the same ball hit ratios); a fallback on the best
+  ball candidate only (keeps 23% to 32% of lost ends); a cap on the fallback's stage 2 (tuning a cap
+  on the disclosed samples against the 3% limit); (d) the grid search (8% to 24%; step 10's cut
+  failed and there is no new idea); a full replay of `held` (about 7.7 million at replay speed,
+  2 to 3.5 hours; prediction 1 on `mid` already tests both halves exactly, and `held` runs live).
+
+### AR5 step 25: predict at the stall point whether a seed step will still reach 0.95
+
+Task `ar5y`. Starts from `feature/eval-reduction` after step 24. Reuses step 22's cache (`J5D_<s>`:
+`e1_log`, `mc_traces`, `run.json`; `stored_J5SD_<s>`) through the links in `ar5/ball/cache` (main
+checkout), read only. Phase 0 (stored rows) ends at gate s1; phase A only if s1 passes.
+
+**Why.** The owner: "One of the biggest challenges we have is our lack of ability to predict if
+further optimization will result in a more optimal voxel orientation. If you have a method to help
+with this, then we can stop earlier. General early stopping algorithms are desired." Step 24 left
+the "never" steps as the largest pot (20% to 26% of `J5SD` on the `held` types). First question, on
+stored rows: at a fixed point in a seed step, do features known there tell a step that will still
+reach 0.95 from one that never will? A live run follows only if so.
+
+**What was read and run.** PLAN steps 11, 15, 22 to 24; step 24's report and `bf_size.py`; `J5D`'s
+`e1_log`, `mc_traces`, `run.json` and `J5SD`'s `repair.json` on the eight disclosed samples.
+Arithmetic and small fits in scratch (`size25.py`, `pred25.py`, `gb25.py`, `imp25b.py`); no run, no
+truth, nothing of `held2` or `fine7`. Step 24's ball feature rows exist only for `mid` and `held`,
+so they cannot train on `held3` to `held6`; not used.
+
+**Terms.** **Stall point D**: the first moment in a `J5D` seed step when all 5 candidates have had
+their CMA fit and every MC refinement has reached its first `PH(500)` check (500 evaluations with
+no gain) or ended, with no end at 0.95. **End at D**: the lowest-cost end among the CMA ends and
+the running bests at D. **Rescued** / **never step**: reaches D, and `J5D` does / does not find a
+0.95 end after it. **AUC**: the chance that a random rescued step scores above a random never step
+(0.5 is a coin). **LOSO**: train on three of `held3` to `held6`, test on the fourth. Never steps
+here are all `J5D` steps with no 0.95 end (step 24's never plus gained steps: 505 = 425 + 80 on
+`held`). Others as in steps 22 to 24.
+
+**What the record says.** About one seed step in six reaches D. Most are never steps, and their
+work after D is a large pot. Reading line: per sample, seed steps; steps reaching D; rescued and
+never steps; evaluations after D in never and in rescued steps, as shares of `J5SD`; seed-test
+failures if every step stopped at D (`J5D`'s own count in brackets).
+
+| sample | steps | reach D | rescued | never | after D, never | after D, rescued | seed test if all stop |
+|---|---|---|---|---|---|---|---|
+| held3 | 3,391 | 686 | 85 | 601 | 14.48% | 1.65% | 100 (90) |
+| held4 | 4,109 | 729 | 129 | 600 | 15.92% | 3.06% | 101 (70) |
+| held5 | 3,556 | 638 | 91 | 547 | 11.49% | 1.66% | 86 (104) |
+| held6 | 4,109 | 688 | 101 | 587 | 13.52% | 1.86% | 91 (63) |
+| held | 3,685 | 625 | 120 | 505 | 15.05% | 2.71% | 77 (66) |
+| mid | 1,626 | 149 | 19 | 130 | 9.55% | 1.22% | 8 (12) |
+| grad | 1,281 | 108 | 10 | 98 | 2.61% | 0.20% | 6 (11) |
+| big | 330 | 5 | 1 | 4 | 1.52% | 0.30% | 0 (0) |
+
+In 65% to 68% of never steps on the `held` types the taken end does not change after D. But a plain
+stop at D about doubles the seed-test failures (each cost 24,000 to 93,000 evaluations in rescue
+and grid search here), so a stop must spare ends under 0.80 and pick out the never steps among the
+rest.
+
+The features at D do not separate rescued from never steps. Features (own only; no truth, neighbour
+or symmetry): top two hit ratios at D, their gap and cost; best and mean CMA hit ratio; MC lift;
+gains and last-gain evaluation; ends over 0.80; reseed; evaluations to D. Reading line: per sample,
+AUC of a logistic model, a depth-3 tree, a boosted tree (LOSO; trained on all four for the rest);
+then, for the logistic model with the 0.80 guard, its threshold set to stop at most 10% of the
+training rescued steps: stored saving, rescued steps stopped.
+
+| sample | AUC logistic | AUC tree | AUC boosted | saving (logistic) | rescued stopped |
+|---|---|---|---|---|---|
+| held3 | 0.588 | 0.570 | 0.599 | 2.34% | 6 of 85 |
+| held4 | 0.574 | 0.575 | 0.564 | 1.59% | 11 of 129 |
+| held5 | 0.589 | 0.559 | 0.604 | 1.40% | 7 of 91 |
+| held6 | 0.560 | 0.566 | 0.561 | 2.37% | 11 of 101 |
+| held | 0.547 | 0.563 | 0.582 | 2.41% | 13 of 120 |
+| mid | 0.574 | 0.528 | 0.569 | 2.10% | 4 of 19 |
+| grad | 0.349 | 0.594 | 0.540 | 1.92% | 7 of 10 |
+
+No single feature beats 0.56 (the hit ratio at D: 0.50); the median hit ratio at D is 0.86 to 0.90
+in both groups. This repeats steps 11 and 15 at a new point: a stall best does not tell whether the
+search will still find 0.95. Another label is predictable: "the end improves by over 0.05 after D"
+has AUC 0.75 to 0.82, but stopping on it drops 26 to 41 rescued steps a `held` sample.
+
+A stop that predicts nothing has a pot, with step 15's kind of loss (lost ends broke voxels). `R0`:
+stop at D whenever the end at D passes 0.80. Reading line: per sample, the stored saving (share of
+`J5SD`, arithmetic), lost 0.95 ends (Wilson 95%, share of seed steps), changed ends.
+
+| sample | R0 saving | lost 0.95 ends | changed ends |
+|---|---|---|---|
+| held3 | 12.42% | 62 (1.43% to 2.34%) | 173 |
+| held4 | 15.79% | 99 (1.98% to 2.92%) | 220 |
+| held5 | 10.28% | 71 (1.59% to 2.51%) | 164 |
+| held6 | 12.98% | 77 (1.50% to 2.34%) | 190 |
+| held | 15.19% | 93 (2.06% to 3.08%) | 207 |
+| mid | 9.86% | 19 (0.75% to 1.82%) | 48 |
+
+**The rule, frozen now** (live only if s1 passes). Rule `ES`. In `J5D`'s seed step the 5th
+refinement also pauses at its first check. At D the step computes the features and the frozen
+logistic model's probability p of a rescue (coefficients, scaling and threshold t fitted on `held3`
+to `held6` only; t stops at most 10% of their rescued steps). If p < t and the end at D passes
+0.80, the step takes the end at D. Else it goes on exactly as `J5D` (the 5th refinement first, then
+the resumes). Each voxel on its own; no truth, neighbour or crystal symmetry. All else as `J5SD`.
+Arms `J5DE`, `J5SDE`.
+
+**Samples.** `held3` to `held6`: training. `held`, `mid`, `grad`, `big`: disclosed. Clean test:
+`held7`, built by `held_make_sample.py` exactly as `held` with generator seed 7 (a new sample, not
+an extra random seed; nothing of it exists). Not read before its runs end. Clean images, Q-max 8.
+
+**Decision rules, fixed now.** (s0) the tracked script reproduces the three tables exactly. (s1)
+stored rows, before any run: AUC at least 0.70 in every LOSO fold and on `held` and `mid`, and a
+stored saving of at least 4% of `J5SD` in every fold and on `held` and `mid`. On the drafting
+numbers s1 fails (AUC 0.55 to 0.59, saving 1.4% to 2.4%); if reproduced, the step stops there with
+a negative result, and no other feature set, label or threshold is tried in it. Only if s1 passes:
+(g0) `mid` replay: rule off equals `J5D`; rule on, each stopped step's end and count equal its
+stored state at D. (g2) live `J5SDE` on `mid` and `held` against `J5SD`, pooled: at least 4% fewer
+evaluations in the sum; neither sample above its `J5SD` total; on each, broken minus fixed at most
+3 and median error at most 0.001 degree higher; in the sum, grid searches at most 2 more and
+seed-test failures at most 10 more. Pooling is the route allowance, set now: one grid search (about
+330,000) is 4.5% of `mid` but 1.3% of the pooled 24.5 million. The step passes if the five live
+samples (`mid`, `held`, `grad`, `big`, `held7`) pooled save at least 4% with grid searches at most
+3 more; `held7` alone saves at least 2% with broken minus fixed at most 3 and median error at most
+0.001 degree higher; and the house rule against `S8` holds on `held7` (20% fewer, broken minus
+fixed at most 5, median at most 0.005 degree higher). Gate fails: stop, no tuning, no `held7`.
+
+**Validity checks.** No leakage: no model sees the sample it is scored on; the others use the one
+model fitted on `held3` to `held6`, frozen in `ar5/es/frozen.json` (coefficients, scaling, t,
+hashes) before any live run. Live features equal stored ones on `mid` (g0). No truth at run time.
+Every evaluation counts, checks included. Guards on `held2`, `held7`, `fine7`.
+
+**Machine.** s0 and s1: under 1 hour, no reconstruction. If s1 passes: `mid` replay (2.6 million);
+`J5DE` with passes on `mid`, `held` (22 million), `grad`, `big` (8 million); `held7` built, `S8`
+(68 million), `J5D` and `J5DE` with passes (44 million). About 145 million: 8 to 17 hours, one run
+at a time. Caps: 480 minutes for `S8`, 300 the rest.
+
+**Stop rule:** s0, s1, g0 or g2 fails; `J5DE` runs before `frozen.json` is committed; `held7` read
+early; anything of `held2` opened or listed; `fine7` read; a run hits its cap.
+
+**Known limits.** One route per sample. D is late (500 evaluations with no gain in each
+refinement). A rescue may come from the stock stage's random wide restarts, which nothing at D can
+foresee. The drafting counts may be off by one per refinement at a check; s0 settles it.
+
+**Files:** `scripts/autoresearch/ar5/es_*.py`, `tests/test_ar5_es.py`,
+`benchmarks/autoresearch/ar5/es/` (under 3 MB). No library change.
+
+**Not in this step.** `R0` (a separate plan if the owner wants it); the ball rows (replays of
+`held3` to `held6`, about 8 million each); other labels; deep models; `BF` again; realistic images;
+other crystals; C++; another random seed; `held2`; `fine7`.
+
+**Choices made.**
+- This idea: a learned stop at one fixed point, on features already logged, trained on four samples
+  and checked on the others, with a cheap stored-row gate before machine time. General,
+  symmetry-agnostic, no new search. Weak side, measured while drafting: the features barely beat a
+  coin (AUC 0.55 to 0.60, a boosted tree too), so the expected outcome is a stop at s1 within an
+  hour. Worth that hour only as a record that closes this path; a live run is not worth it on these
+  numbers (at most 2.4% stored).
+- Pooling is the route allowance (one grid search moved step 24's verdict on `mid`); fixed before
+  any run, it does not reopen `BF`.
+- Runners-up: `R0`; a stop at each refinement's first check (a dropped refinement's rescue is not
+  replayable); a sequence model on gain traces (about 2,700 training steps, 406 rescued).
+
+Approved: D-20261119-N5, phase 0 only (s0 and s1); a live phase needs a new decision.
+
+### AR5 step 26: a faster ray indexer with the same candidates (wall time; evaluations unchanged)
+
+Task `ar5z`. Starts from `feature/eval-reduction` after step 25's merge. Reads step 22's cache
+through the links in `ar5/ball/cache` (main checkout), read only. Phase 0 (a quiet profile) ends at
+gate z0; phase A only if it passes; phase B only after a recorded decision.
+
+**Why.** The owner counts wall-clock time as well as operations. Steps 23 to 25 tried to cut
+evaluations in the seed step's second stage and earned no key. The stored runs show that most
+seconds are not spent in evaluations. With `FusedCost` on, one evaluation takes 0.07 to 0.11 ms.
+Ray indexing counts zero evaluations, yet takes 0.5 to 1.6 s a seed step: 41% to 77% of `J5SD`'s
+wall time. In AR1 (`FusedCost` off, 64 seeds) it was under 1%; cheaper evaluations and many reseeds
+moved it to the top. A faster indexer that returns the same candidates changes no search, no map
+and no evaluation count, so no accuracy trade decides it.
+
+**What was read and run.** PLAN steps 22 to 25; `J5D`'s `run.json`, `e1_log`, `polish.json`,
+`records` and `J5SD`'s `repair.json` (eight samples); step 23's replay rows; `ray_indexing.py`;
+shmem on AR1, AR3 step 9, steps 17, 18. Scratch `size26.py`; no run; nothing of `held2`, `fine7`.
+
+**Terms.** **Evaluation**: one strict cost of one orientation at one voxel. **Seed step**: index
+the voxel, cost 20 candidates, then for the best 5 a CMA fit and, under 0.95, an MC refinement.
+**Index stage**: the seed step's evaluations. **Indexing**: the work before them (`index_voxel`:
+attach rays, vote, cluster, refine); seconds in `index_s`. **Rescue**: `G1`, `G2b` after a failed
+seed test. **Neighbour stage**: BFS neighbour local optimizations and revisits. **Candidates**: the
+indexer's output (rotations, explained rays, votes, in order). **Contended**: timed while other
+jobs ran (preflight refused); indicative. **Quiet**: the timing preflight (`--require`) passed.
+
+**Where the evaluations go.** Reading line: per sample, `J5SD`'s evaluations (`J5D` stages plus
+screen plus repair, equal to step 24's totals), then shares of the index stage, rescue, grid search
+(count in brackets), neighbour stage, and screen pass plus repair.
+
+| sample | J5SD evals | index stage | rescue | grid (n) | neighbour | screen + repair |
+|---|---|---|---|---|---|---|
+| held3 | 18,363,331 | 48.1% | 1.6% | 16.9% (9) | 24.1% | 9.2% |
+| held4 | 20,685,850 | 52.6% | 1.3% | 13.3% (8) | 24.0% | 8.8% |
+| held5 | 20,076,940 | 43.3% | 2.0% | 24.0% (14) | 22.8% | 7.9% |
+| held6 | 22,690,096 | 44.3% | 1.3% | 24.4% (16) | 22.0% | 8.0% |
+| held | 17,114,589 | 53.3% | 1.3% | 8.1% (4) | 27.4% | 9.9% |
+| mid | 7,383,368 | 35.8% | 0.6% | 9.0% (2) | 43.0% | 11.5% |
+| grad | 6,134,231 | 20.5% | 0.8% | 11.0% (2) | 53.1% | 14.6% |
+| big | 2,452,596 | 10.7% | 0.0% | 0.0% (0) | 81.2% | 8.1% |
+
+In the index stage, costing is 0.3% to 0.4% of `J5SD` and CMA fits 3.7% to 9.5%; MC is the rest
+(about 15% first stage, 85% second, on refinements matched in step 23's replay).
+
+**Where the seconds go (contended).** Reading line: per sample, wall seconds (BFS run, screen pass
+and repair; one worker), the share in indexing and its seconds per seed step, the share in all
+evaluations and in the neighbour stage, then ms per evaluation: index stage, neighbour stage,
+rescue plus grid, repair, screen pass.
+
+| sample | wall s | indexing | s/step | all evals | neighbour | ms/eval idx, nbr, grid, repair, screen |
+|---|---|---|---|---|---|---|
+| held3 | 5,926 | 71.7% | 1.25 | 26.5% | 8.1% | 0.077, 0.108, 0.068, 0.088, 0.310 |
+| held4 | 8,138 | 76.7% | 1.52 | 21.6% | 6.6% | 0.075, 0.107, 0.068, 0.091, 0.300 |
+| held5 | 7,536 | 76.4% | 1.62 | 22.2% | 6.5% | 0.076, 0.107, 0.067, 0.089, 0.303 |
+| held6 | 7,416 | 72.6% | 1.31 | 25.5% | 7.3% | 0.075, 0.108, 0.068, 0.088, 0.301 |
+| held | 5,601 | 72.0% | 1.09 | 25.8% | 8.8% | 0.073, 0.105, 0.066, 0.086, 0.299 |
+| mid | 1,665 | 58.1% | 0.59 | 40.1% | 19.9% | 0.073, 0.104, 0.065, 0.086, 0.330 |
+| grad | 1,258 | 50.1% | 0.49 | 48.2% | 27.7% | 0.081, 0.107, 0.069, 0.086, 0.327 |
+| big | 438 | 40.8% | 0.54 | 58.3% | 47.8% | 0.073, 0.105, n/a, 0.087, 0.351 |
+
+BFS bookkeeping is 0.8% to 2.2%; the one-time ray pairing (17 to 39 s) sits in "all evals".
+Indexing is spread, not a tail: time outside evaluations per seed step has a median of 0.50 s on
+`mid` and 0.80 s on `held` (10th to 90th percentile 0.23 to 1.10 s, 0.37 to 2.04 s). No voxel is
+indexed twice, so a cache cannot help. AR1 split one indexing into voting 12%, clustering 48%,
+refining 39%. Clustering counts the neighbours of every vote in a k-d tree, then loops in Python
+over up to 150 seeds with 48 ball queries each; refining loops over up to 150 clusters, though 20
+are kept.
+
+**The rule, frozen now.** Rule `IX`: a new indexer returns, for every voxel, exactly the old
+`index_voxel` output (rotations, explained-ray and vote counts, attached rays, in the same order).
+Allowed: vectorizing, reordering, reusing arrays, skipping work that provably cannot change the
+output (for example refining a cluster that cannot enter the top 20). Not allowed: any change of
+`IndexParams` (tolerances, `n_seeds` 150, `max_pairs` 600,000, the pair subsample generator), of
+`top_k` 20, or of anything after indexing. No truth, no threshold, nothing crystal-specific; any
+symmetry group works.
+
+**Samples.** Profiling and design: 200 seed voxels of `mid` only. Exactness: all stored seed voxels
+of `mid` and `held` (5,311), and 300 per sample (generator 26) from `held3` to `held6`, `grad`,
+`big`. Timing: `mid` and `held`. `held7` (generator seed 7 of the held family; nothing of it
+exists) stays unused under tier 1: an exact change makes no accuracy claim. `held2` not opened;
+`fine7` not read.
+
+**Gates, fixed now.**
+- z0 (quiet): the old indexer on the 200 `mid` voxels, scaled to 1,626 steps, is at least 30% of a
+  quiet `J5SD` estimate on `mid` (stored evaluations at the session's quiet ms per evaluation).
+- e1 (exactness, index only): old and new on every exactness voxel. Tier 1: bit-identical outputs.
+  Tier 2, only if tier 1 fails on at most 0.1% of voxels: same order, counts and attached rays,
+  rotation entries within 1e-12. Anything else: stop.
+- e2 (exactness, live): the `J5SD` script arm with the new indexer on `mid` and `held`. Tier 1:
+  maps and counts equal stored `J5SD` exactly (7,383,368 and 17,114,589). Tier 2: evaluations
+  within 0.5% on each; at most 0.1% of voxels move over 0.001 degree; against stored `J5SD` judged
+  on `mid` and `held` pooled, broken minus fixed at most 3 per sample and median error at most
+  0.001 degree higher.
+- w1 (seconds, quiet, index only): summed indexing seconds over the 5,311 voxels at least 50% lower
+  than the old indexer's, same session, old and new in alternating blocks of 100 voxels.
+- w2 (seconds, quiet, whole run): `J5SD` old and new, each run alone, on `mid` and `held`: pooled
+  wall seconds (sum of both) at least 25% lower, and at least 15% lower on each sample.
+- Tier 2 only, house rule on `held7` (built as `held`): new `J5SD` against `S8`, at least 20% fewer
+  wall seconds and evaluations, broken minus fixed at most 5, median at most 0.005 degree higher.
+
+**Predictions, written before any run.** e1 tier 1 holds. w1: indexing 2 to 5 times faster. w2:
+`held` 35% to 55% less wall, `mid` 25% to 45%. Evaluation counts unchanged everywhere.
+
+**Costs.** Phase 0: 0.2 hour. e1 and w1: 7,111 voxels, old and new, no evaluations, 2 to 3 hours.
+e2 and w2 (the new runs serve both): four live runs, about 49 million evaluations, about 3 hours.
+In all 5 to 6 hours, one run at a time. Tier 2 adds `held7`: about 91 million, 4 to 6 hours.
+
+**Stop rules.** z0, e1 or e2 fails; an `IndexParams` value differs between arms; a timed run
+without a passing preflight (rerun it; no contended number enters a gate); the first table does not
+reproduce; `held2` opened or listed, `fine7` read, or `held7` built under tier 1.
+
+**Validity checks.** The old indexer stays unchanged as the reference. Both arms read the same
+`SmoothCost` and rays. One thread (`OMP`, `MKL`, torch), same power state, preflight JSON kept per
+timed run; ms per evaluation by stage reported, to show evaluations did not slow. No truth is read.
+
+**Known limits.** Contended stored seconds (z0 checks first); one machine; `S8` gains as well.
+
+**Phase A.** 1. z0; commit `ix/frozen.json` (rule, gates, voxel lists, hashes). 2. Tests first,
+`tests/test_ar5_ix.py`: new equals old on fixtures (under 2 rays, no votes, tied votes and
+explained rays, more than 600,000 pairs, cubic and hexagonal symmetry). 3. e1, w1. 4. e2, w2. Plot
+first (seconds per sample, old and new, indexing and evaluations), then tables. "READY FOR KEY".
+
+**Phase B (key).** Opt-in `RayIndexFast` (default 0, off), valid with `SeedByIndexing`; parsed,
+checked in `check_bfs_keys`; key-off suite with no golden change; key on, a library run on `mid`
+equal to `J5Dl`'s map and counts. Page `findings_ar5_ix.md`, history, README.
+
+**Files:** `scripts/autoresearch/ar5/ix_*.py`, `tests/test_ar5_ix.py`, `ar5/ix/` (under 3 MB).
+**Library:** phase A a new function beside `index_voxel`, unused unless called; phase B the key.
+
+**Not in this step.** Other indexer settings (an accuracy study); a learned proposer; batching;
+the neighbour stage; the seed step's second stage; the grid search; C++; realistic images; another
+random seed; `held2`; `fine7`.
+
+**Choices made.**
+- This idea: the largest wall-time pot (41% to 77% of `J5SD`, contended), exact, 5 to 6 hours.
+  Weak side: contended shares; bit-identical k-d tree counts may be hard to keep (a borderline
+  distance can flip), hence tier 2; the evaluation count does not move.
+- Runners-up, sized from the same rows: (d) a learned proposer in place of ray indexing (same wall
+  pot, but candidate quality drives seed-test failures, each 24,000 to 93,000 evaluations; 22,087
+  stored seed steps to train on; many hours); (a) batching several voxels' evaluations in one
+  tensor call (evaluations are 22% to 27% of wall on the `held` types, 40% `mid`, 58% `big`; the
+  neighbour stage runs at 0.105 ms against 0.067 for batched grid calls, so at most about a third
+  of its 6.5% to 48%; BFS order changes, so not exact); (b) a cheaper accept in the neighbour stage
+  (22% to 27% of evaluations on the `held` types, 43% `mid`, 81% `big`; AR3 step 9's start test
+  raised the median error 0.013 to 0.024 degree; steps 17 and 18's skips failed); (c) a smooth
+  orientation field per grain, verified with one evaluation per voxel (neighbour stage and repair,
+  30% to 89% of evaluations; new machinery, gradients of several degrees, tens of hours).
+
+Approved: D-20261119-N6, phases 0 and A; phase B needs a new decision.
+
+### AR5 step 27: a smaller ray-pair sample in the indexer, checked by the final cost (not exact)
+
+Task `ar5aa`. Starts from `feature/eval-reduction` after step 26's merge. Reads step 22's cache
+through the links in `ar5/ix/cache` (main checkout), read only. Phase A only after a recorded
+decision; phase B (a key) needs a second one.
+
+**Why.** Ray indexing counts no evaluations, yet it is 50% to 65% of `J5D`'s wall time even with
+step 26's faster indexer (contended: `mid` 627 of 1,247 s, `held` 2,668 of 4,097 s). Clustering is
+82% to 84% of the indexer, and it is bound by the number of votes. Votes grow with the ray pairs:
+a median of 100,046 pairs on `mid` and 229,206 on `held`, under the cap of 600,000. On 400 stored
+seed voxels, a cap of 50,000 pairs cut indexing seconds by 54% (`mid`) and 78% (`held`), and the
+orientation the run finally accepted stayed among the top 20 candidates in every voxel where it
+was before. The seed step's own strict costs and fits then check every candidate as now.
+
+**What was read and run.** STATE; PLAN steps 22 to 26; step 26's report and review; shmem on step
+26, reseeds, AR3 steps 6, 8, 9; `ray_indexing.py` (`index_voxel`, `index_voxel_fast`);
+`reconstructor.py` (`_reseed_clusters`, `_bfs_expand`). Stored rows: `J5D` logs, `e1_log`,
+`recon.mic`, `run.json` of `mid` and `held` (step 26's live runs, equal to step 22's). Scratch
+`size27a.py` (reuse, stored rows only) and `size27b.py` (indexer settings on 200 seed voxels of
+`mid` and 200 of `held`, a fixed stride, order of settings alternating per voxel, one thread,
+contended: load 2.9 to 4.5, `cpptools` busy). No evaluation, no run; nothing of `held2`, `fine7`.
+
+**Terms.** **Seed step**: index the voxel, cost 20 candidates, refine the best 5 (a CMA fit, then
+MC under 0.95). **Reseed**: a seed step on the voxel nearest the centre of a cluster of rejected
+voxels. **Ray pairs**: pairs of attached rays that vote; above `max_pairs` a fixed random subsample
+(generator 0) is kept. **Votes**: rotations cast by the pairs. **Rank**: position of the first
+candidate within 1 degree of the orientation the stored run finally accepted at that voxel.
+**Evaluation**, **contended**, **quiet**: as step 26. **Paired timing**: old and new run in one
+session, interleaved, so machine load falls on both alike.
+
+**(B) Cheaper settings, measured.** Reading line: per setting, the share of 200 voxels with rank 0,
+under 5, under 20, and the mean indexing seconds per voxel (contended), `mid` then `held`. All
+settings use step 26's clustering, so `base` is today's output.
+
+| setting | top 1 mid / held | top 5 | top 20 | s per voxel mid / held |
+|---|---|---|---|---|
+| base (600,000 pairs, 150 seeds) | 77.5% / 82.5% | 99.0% / 98.0% | 100% / 99.5% | 0.380 / 0.688 |
+| 150,000 pairs | 77.5 / 82.0 | 98.5 / 98.0 | 100 / 99.0 | 0.368 / 0.379 |
+| 50,000 pairs | 76.5 / 82.0 | 99.0 / 99.5 | 100 / 100 | 0.174 / 0.150 |
+| 20,000 pairs | 77.5 / 82.5 | 99.5 / 98.0 | 99.5 / 99.0 | 0.092 / 0.099 |
+| 25 seeds | 77.5 / 82.5 | 99.5 / 98.5 | 99.5 / 99.0 | 0.325 / 0.614 |
+| refine top 40 clusters | 77.5 / 82.5 | 99.0 / 98.5 | 99.5 / 99.0 | 0.352 / 0.648 |
+| 50,000 pairs and 25 seeds | 77.0 / 82.5 | 99.0 / 100 | 99.0 / 100 | 0.130 / 0.095 |
+
+Paired by voxel, 50,000 pairs lost no voxel from the top 20 (gained 1) and moved 1 from rank 1 to
+rank 5. The nearest candidate's angle to the accepted orientation is unchanged (median 0.368 and
+0.389 degree, against 0.376 and 0.395). Fewer seeds or refined clusters save little: the rest of
+the indexer is 8% to 10% of `base`. A coarse-to-fine vote was not built (pairs already do it).
+
+**(A) Known orientations first, sized.** Reading line: per sample, the share of seed steps whose
+accepted orientation lies within 0.5, 1, 2, 5 degrees of a voxel accepted EARLIER in the run
+within 5 side lengths; in brackets, the share that also ended at hit ratio 0.95 or more.
+
+| sample | steps | 0.5 | 1 | 2 | 5 |
+|---|---|---|---|---|---|
+| mid | 1,626 | 84.6% (78.5%) | 90.2% (83.3%) | 92.0% (85.0%) | 92.3% (85.3%) |
+| held | 3,685 | 76.6% (67.7%) | 89.7% (78.7%) | 92.2% (80.8%) | 93.1% (81.4%) |
+
+The 8 nearest accepted voxels hold one within 1 degree in 89.4% and 88.7% of steps. Why the BFS
+failed there: in 1,339 of 1,354 (`mid`) and 2,873 of 2,901 (`held`) such steps, a voxel within 2
+side lengths and 1 degree of the answer was accepted before the voxel's last rejected fit; the
+voxel was then fitted a median 6 and 7 more times, best hit ratio a median 0.838 and 0.791, while
+the seed step reached 0.990. The neighbour fit (CMA, 60 evaluations, first step 0.05 degree) stops
+short of an answer 0.3 to 1 degree away (AR3 step 8's class A, untested there). Reuse would need the
+seed step's longer fit, not the same start. Its share is an upper bound; the CMA result is not
+measured without evaluations. Saved per success: indexing plus up to 781 (`mid`) and 1,274
+(`held`) evaluations; cost per failure: about 209.
+
+**(C), (D).** (C) Exact headroom: the vote count is about 90% of clustering (25 seeds cut it only
+5% to 7%), so an exact gain needs a compiled neighbour count (an edge check adds a query); likely
+30% to 50% of indexing. (D) A learned proposer: 22,087 stored seed steps to train on; it must
+match top 20 in 99.5% to 100%. After (B), indexing is 0.10 to 0.17 s a step, about 30% of a wall
+that is itself 27% (`mid`) to 51% (`held`) shorter (projected from the table, contended).
+
+**The rule, frozen now.** Rule `PX`: the indexer runs with `max_pairs` 50,000 in place of 600,000.
+Nothing else changes: the pair generator (seed 0), tolerances, `n_seeds` 150, `top_k` 20, the
+seed step, rescue, BFS, screen and repair. Both arms use the same indexer function (`index_voxel`,
+or `index_voxel_fast` in both if step 26's key is approved first). No truth, no threshold read
+from data after this freeze, nothing crystal-specific. Chosen on 400 voxels of `mid` and `held`:
+in-sample, so `held7` is the clean test.
+
+**Samples.** Disclosed: `held3` to `held6`, `held`, `mid`, `grad`, `big`. Candidate quality: 300
+stored seed voxels per sample (generator 27) of all eight. Gates: `mid` and `held`. Clean test:
+`held7` (generator seed 7 of the held family, built as `held`; nothing of it exists). `held2` not
+opened or listed; `fine7` not read.
+
+**Gates, fixed now.** Counts first; they do not depend on machine load.
+- q1 (candidates, no evaluations): over the 2,400 voxels, the final orientation leaves the top 20
+  in at most 0.5% of voxels where it was in it under `base` (gained ones reported apart).
+- c1 (indexer work): summed ray pairs and votes of the new runs at least 60% lower than those of
+  stored `J5SD`'s seed voxels (indexed again, no evaluations), `mid` and `held` pooled.
+- c2 (evaluations): new `J5SD` at most 2% more than stored (7,383,368 + 17,114,589), summed.
+- c3 (accuracy, against stored `J5SD`, 23 and 45 wrong; `mid` and `held` pooled): broken minus
+  fixed at most 3 per sample; median error at most 0.001 degree higher; seed steps that reach
+  the grid search at most 2 more per sample.
+- t1 (paired, index only): old and new settings on the 5,311 stored seed voxels of `mid` and
+  `held`, alternating blocks of 100, one session: summed indexing seconds at least 50% lower.
+- t2 (paired, whole run): `J5SD` old and new in the order old `mid`, new `mid`, new `held`, old
+  `held`, one session, preflight before each, load sampled every 30 s: pooled wall at least 25%
+  lower. t1 and t2 are judged with any load, and reported with the preflight verdicts; a quiet
+  repeat of t2 is added if a quiet window comes, but is not required.
+- h1, house rule on `held7` (a non-exact change): new `J5SD` against `S8`, at least 20% fewer
+  evaluations, broken minus fixed at most 5, median error at most 0.005 degree higher.
+
+**Predictions, before any run.** q1: 0 to 6 lost. c1: pairs 70% to 80% lower. c2: within 1%.
+c3: -3 to +3. t1: 55% to 80% lower. t2: `mid` 25% to 40%, `held` 40% to 60% less. h1 passes.
+
+**Costs.** q1: 2,400 voxels, two settings, no evaluations, about 0.7 hour. t1: about 1.5 hours.
+c1 to c3 and t2: four live runs (the two old runs also check that stored `J5SD` reproduces), about
+4 hours. h1: build `held7`, run `S8` and new `J5SD` on it, about 4 to 5 hours. In all 10 to 11
+hours, one run at a time.
+
+**Stop rules.** q1 fails (no live run); an old run does not reproduce stored `J5SD`; any other
+`IndexParams` value differs; c2 or c3 fails (no `held7`); `held2` opened or listed, `fine7` read.
+A gate is never loosened after a timed run; every refused preflight is kept.
+
+**Validity checks.** `n_pairs`, `n_votes` logged per seed step (c1 read from the run). One thread.
+Same `SmoothCost` and rays in both arms; ms per evaluation by stage reported. No truth read before
+scoring (as step 24).
+
+**Known limits.** In-sample choice (two samples); route noise; a voxel under 50,000 pairs is
+unchanged; contended t1, t2 give a ratio, not quiet seconds; copper only (the rule is generic).
+
+**Phase A.** 1. Commit `px/frozen.json` (rule, gates, voxel lists, hashes). 2. Tests first,
+`tests/test_ar5_px.py`: `max_pairs` reaches `cast_votes`; under 50,000 pairs the output equals
+`base`; hexagonal fixture runs. 3. q1, t1. 4. c1 to c3, t2. 5. h1. Plot first (wall per sample,
+old and new, indexing and evaluations stacked; beside it broken and fixed), then the tables.
+
+**Phase B (key).** Opt-in `RayIndexMaxPairs N` (default 600,000), checked in `check_bfs_keys`;
+key-off suite, no golden change. Page `findings_ar5_px.md`, history, README.
+**Files:** `scripts/autoresearch/ar5/px_*.py`, `tests/test_ar5_px.py`, `ar5/px/` (under 3 MB).
+Library: phase A none (the setting passes through `IndexParams`); phase B the key.
+
+**Not in this step.** Reuse (A); an exact count (C); a learned proposer (D); `n_seeds`, `top_k`;
+the seed step's fits; the neighbour stage; batching; C++; realistic images; extra seeds.
+
+**Choices made.**
+- This idea: the largest wall saving per machine hour. Indexing seconds 54% to 78% lower on stored
+  voxels with no top-20 loss, one parameter, no new search code; about 10 hours with `held7`.
+  Weak side: not exact (route noise), in-sample choice, contended micro-benchmark.
+- 50,000, not 20,000 pairs: 20,000 is 1.5 to 1.9 times faster again but lost 1 of 200 top-20
+  voxels on each sample; one lost candidate can send a seed step to the grid search (24,000 to
+  93,000 evaluations), which c2 would feel. 25 seeds on top saves little more on `held`.
+- Runner-up (A), reuse known orientations (8 nearest accepted voxels, one 200-evaluation CMA fit,
+  index only under 0.95): at most 79% to 83% of seed steps skip indexing, and evaluations may
+  fall; but its success rate needs evaluations to measure, and new BFS code. After (B) it can
+  still remove most of the remaining 30%. The natural next step.
+- (C) 30% to 50% of indexing at best, compiled code. (D) the same pot as (A), hours of training.
+
+Approved: D-20261120-N1, phase A, with `index_voxel` in both arms; phase B needs a new decision.
+
+### AR5 step 28: a small pair sample first, the full sample again when the seed test fails
+
+Task `ar5ab`. Starts from `feature/eval-reduction` after step 27's merge (its scripts are reused).
+Reads step 27's run cache in the main checkout (`ar5/px/cache`), read only. Phase A only after a
+recorded decision; a key (phase B) needs a second one.
+
+**Why.** Step 27's rule `PX` (`max_pairs` 50,000) cut indexing seconds 75.8% and pooled wall 44.9%,
+but failed two count gates: evaluations +2.19% (limit 2%) and, on `held`, 7 grid searches against 4
+(limit 2 more). Each grid search costs about 346,000 evaluations and 23 s. The verdict stands; `PX`
+alone is not tried again. The stored rows show the extra grid searches are NOT lost candidates:
+the two settings give the fragile fits different starts, and they fail on different voxels. A
+second try with the full sample would have kept out of the grid search every voxel `PX` sent there.
+
+**What was read and run.** PLAN step 27, its report, `px_*.py`; `reconstructor.py` (`_index_seed`);
+`defer_run.py`, `high500_run.py`, `polish_rules.make_wrapper`, `order_draws.py`. Stored rows of
+step 27's old and new runs (`mid`, `held`): `e1_log`, `polish_log`, `run.json`, `px_index_run_*`,
+`after.npy`, logs. Scratch `s28_*.py`: stored rows only, and 11 voxels indexed with both settings
+(no evaluation, one thread, contended). No run; nothing of `held2`, `fine7`.
+
+**Terms.** **Seed step**: index the voxel, cost 20 candidates, refine the best 5 (CMA, then MC
+under 0.95). **Seed test** fails: no candidate, or the step's hit ratio is under 0.80
+(`_index_seed`: `hit < min_acceleration_threshold`). Then come the **rescue** (`G1`: CMA from the
+step's kept ends, accept at 0.95), the **polish** (`G2b`: local grid and CMA about each rescue end,
+accept at 0.95) and the **grid search** (full search). **Old**, **new**: step 27's runs with
+600,000 and 50,000 pairs (old = stored `J5SD`). **Shared voxel**: seeded once in both runs.
+
+**What the runs did.** Reading line: per run, seed steps, steps failing the seed test, and where
+those ended (rescued by `G1`, by `G2b`, or sent to the grid search).
+
+| run | seed steps | failed seed test | `G1` | `G2b` | grid search |
+|---|---|---|---|---|---|
+| mid old (= stored) | 1,626 | 12 | 8 | 2 | 2 |
+| mid new | 1,664 | 9 | 8 | 1 | 0 |
+| held old (= stored) | 3,685 | 66 | 46 | 16 | 4 |
+| held new | 3,679 | 63 | 38 | 18 | 7 |
+
+The failure rate barely moves. But which voxels fail changes a lot: of 2,691 shared `held` voxels,
+62 fail old and 60 fail new, yet only 20 fail in both (mid: 983 shared, 12 and 9, 4 in both).
+Every grid voxel is a reseed. 6 of the 13 grid searches ended under 0.80 (rejected anyway).
+
+**Lost candidates? No.** Reading line: per voxel that reached a grid search in either run, its
+outcome old then new, and the rank among the 20 candidates of the orientation finally accepted
+(old map / new map) at 600,000 and at 50,000 pairs; -1 would mean not in the top 20.
+
+| voxel | old to new | rank, 600,000 | rank, 50,000 | voxel | old to new | rank, 600,000 | rank, 50,000 |
+|---|---|---|---|---|---|---|---|
+| mid 7167 | grid, pass | 0 / 0 | 0 / 0 | held 20758 | grid, pass | 1 / 0 | 1 / 0 |
+| mid 16979 | grid, pass | 0 / 0 | 0 / 0 | held 15599 | pass, grid | 2 / 2 | 2 / 2 |
+| held 7225 | grid, grid | 0 / 0 | 0 / 0 | held 19825 | pass, grid | 0 / 0 | 0 / 0 |
+| held 3207 | grid, pass | 0 / 0 | 0 / 0 | held 18884 | `G1`, grid | 0 / 4 | 0 / 4 |
+| held 13831 | grid, grid | 0 / 0 | 0 / 0 | held 13284 | `G1`, grid | 0 / 0 | 0 / 0 |
+| | | | | held 11428 | pass, grid | 4 / 0 | 0 / 0 |
+
+All 11 accepted orientations stay in the top 5 at both settings, mostly first. The nearest
+candidate's angle to them changes by 0 to 0.57 degree, and fits from such starts end differently
+(the cost is sharp within 0.2 to 0.5 degree). 5 voxels newly reach the grid search; 4 no longer do.
+So step 28 does not restore lost candidates; it is a second try from other starts.
+
+**Replay, sized.** Seed-step fits use a fresh `default_rng(0)`; rescue, polish and grid use draws
+keyed by voxel. So a voxel's chain is fixed by its candidates (69 voxels under 50,000 pairs gave
+equal evaluations in both runs), and `PXF` at a shared voxel is the new step, then, if it fails,
+the stored old chain. Reading line: per sample, over shared voxels, evaluations of seed steps,
+rescue, polish and grid; steps sent to the rescue; grid searches; ray pairs fewer than old.
+
+| sample | shared | old | `PX` | `PXF` | `PXF` vs old | to rescue o/PX/PXF | grid o/PX/PXF | pairs fewer |
+|---|---|---|---|---|---|---|---|---|
+| mid | 983 | 2,483,991 | 1,919,642 | 1,955,036 | -21.3% | 12 / 9 / 4 | 2 / 0 / 0 | 52.4% |
+| held | 2,691 | 8,719,207 | 10,010,675 | 8,375,442 | -3.9% | 62 / 60 / 20 | 4 / 7 / 2 | 76.8% |
+
+Fallbacks on shared voxels: 9 (`mid`) and 60 (`held`); their steps cost 47,406 and 272,939
+evaluations, their indexings 6.9 and 110.9 s (contended). Without grid searches `PXF` costs 7.5%
+and 4.8% more than old: a 50,000-pair step costs 3% to 7% more on average, plus the fallbacks.
+The gain rests on 2 to 3 fewer grid searches per run.
+
+**The rule, frozen now.** Rule `PXF`. (1) A seed step (seed or reseed) indexes with `max_pairs`
+50,000, as `PX`. (2) If it fails the seed test (hit ratio under 0.80, or no candidate) and that
+indexing kept a subsample (the voxel had more than 50,000 ray pairs), the same voxel is indexed
+again with 600,000 pairs and the whole seed step runs again on the new candidates, same pick, same
+generators, no candidate skipped. (3) If that step passes, it is the result. Else `G1`, `G2b` and
+the grid search run as now, from the second step's kept ends. (4) Both steps count as the seed's
+evaluations; both indexings count in c1. Nothing else changes (pair generator 0, `n_seeds` 150,
+`top_k` 20, tolerances, BFS, screen, repair). No truth, no threshold read from data, nothing
+crystal-specific. Script layer only: a wrapper of `BFSReconstruction._index_seed`.
+
+**Samples.** Gates: `mid`, `held` (in-sample); old arm there: step 27's old runs (= stored
+`J5SD`), so only the new arm runs. Clean test: `held7` (generator seed 7 of the held family, built
+as `held`; nothing of it exists). `held2` not opened or listed; `fine7` not read.
+
+**Gates, fixed now.** Counts first; they do not depend on machine load. No candidate gate (q1).
+- c1 (indexer work): ray pairs and votes of the new runs, fallback indexings included, at least
+  50% lower than stored `J5SD`'s seed voxels indexed again (step 27's c1 rows), pooled.
+- c2 (evaluations): new `J5SD` at most 2% more than stored (7,383,368 + 17,114,589), summed.
+- c3 (accuracy, against stored `J5SD`, 23 and 45 wrong; per sample): broken minus fixed at most
+  3; median error at most 0.001 degree higher; seed steps reaching the grid search at most 2 more.
+- t2 (whole run): pooled wall of the new `J5SD` runs at least 25% lower than step 27's old runs
+  (8,219 s), judged with any load; preflight verdicts and sampled load reported.
+- h1, house rule on `held7`: new `J5SD` against `S8`, at least 20% fewer evaluations, broken minus
+  fixed at most 5, median error at most 0.005 degree higher; wall seconds of both reported.
+
+**Predictions, before any run.** c1: 68% to 76% fewer pairs. c2: -5% to +1% (centre -2.5%).
+Fallbacks: `mid` 7 to 14, `held` 50 to 70; steps to the rescue `mid` 2 to 7, `held` 15 to 30.
+c3: broken minus fixed -6 to +3; grid searches `mid` 0 to 1, `held` 1 to 4. t2: 35% to 50% lower
+(step 27's `PX`: 44.9%). h1 passes.
+
+**Costs.** Tests and wrapper 1 hour; new `J5SD` on `mid` and `held` 1.5 hours; h1 (build `held7`,
+`S8`, new `J5SD`) 4 to 5 hours. In all 6.5 to 7.5 hours, one run at a time.
+
+**Stop rules.** A test fails. A fallback at a voxel seeded once in step 27's old run does not equal
+the stored old step (evaluations, fits, hit ratio): the replay premise is broken, stop. Any other
+`IndexParams` value differs. c1, c2 or c3 fails: no `held7`. `held2` opened or listed, `fine7`
+read. A gate is never loosened after a run; every refused preflight is kept.
+
+**Validity checks.** Logged per seed step: `n_pairs`, `n_votes`, seconds of each indexing, a
+fallback flag, both steps' evaluations and hit ratios. The stop rule's reproduction check on every
+such voxel (about 5 on `mid`, 45 on `held`). One thread; same `SmoothCost` and rays as step 27.
+
+**Known limits.** In-sample: the rule was designed after seeing step 27's `mid` and `held` runs,
+and the replay uses them; `held7` is the clean test. The replay covers shared voxels only (60% and
+73% of steps) and ignores route changes. Each grid search is 1.4% of pooled evaluations, so c2's
+margin is 2 to 3 grid searches. t2 is not paired in one session. Copper only (rule generic).
+
+**Phase A.** 1. Commit `pxf/frozen.json` (rule, gates, predictions, hashes). 2. Tests first,
+`tests/test_ar5_pxf.py`: no fallback at or under 50,000 pairs; the fallback step equals a direct
+600,000-pair step at the voxel; `G1` gets the second step's kept ends; both steps' evaluations
+counted; hexagonal fixture runs. 3. New `J5SD` on `mid`, then `held`; score c1 to c3, t2. 4. h1.
+Plot first (wall per sample, old, `PX` and `PXF`, indexing and evaluations stacked; beside it
+grid searches and broken and fixed), then the tables.
+
+**Phase B (key).** Opt-in `RayIndexMaxPairs N` and `RayIndexFallbackFull 1` in `check_bfs_keys`;
+key-off suite, no golden change; `findings_ar5_pxf.md`, history, README. **Files:** `pxf_*.py`
+(reusing `px_launch`, `px_score`, `px_build_held7`), `tests/test_ar5_pxf.py`, `ar5/pxf/` (< 3 MB).
+
+**Not in this step.** `PX` alone; other pair counts; a second 50,000-pair try from another pair
+generator (no stored rows to size it); skipping grid searches that end rejected (6 of 13); reuse
+(A); `n_seeds`, `top_k`; the seed step's fits; C++; realistic images; extra seeds.
+
+**Choices made.**
+- This idea: it keeps `PX`'s indexing saving (pairs 73% fewer counting fallbacks) and, by the
+  replay, takes steps to the rescue from 74 to 24 and grid searches from 6 to 2 on shared voxels.
+  Weak side: the gain over old is 2 to 3 grid searches per run, a small count; in-sample design.
+- No skip of candidates near ones already tried: the second step helps because its starts lie
+  0 to 0.6 degree from the first; a skip within 1 degree would drop most and break reproduction.
+- Full sample as the fallback, not another 50,000-pair sample: only it reproduces stored steps, so
+  it is sized now and checked exactly in the run. Only after a subsampled first indexing (else the
+  step would be identical).
+- Runner-up (A), reuse known orientations with a longer fit: larger possible saving (79% to 83% of
+  seed steps skip indexing), but its success rate needs evaluations and new BFS code.
+- Old `J5SD` on `held7` too (about 1 hour) would give a clean count comparison; left as an option.
+
+Approved: D-20261120-N2, phase A, plus plain `J5SD` on `held7` (reported, not a gate).
+Phase B needs a new decision.
+
+### AR5 step 29: try known orientations with a longer fit before a seed step, index only after
+
+Task `ar5ad`. Starts from `feature/eval-reduction` after step 28's phase B merge (task `ar5ac`);
+step 28's scripts are reused. Reads step 28's run cache in the main checkout (`ar5/pxf/cache`),
+read only. Phase A only after a recorded decision; a key (phase B) needs a second one.
+
+**Why.** After rule `PXF`, seed steps still hold most of the cost: with rescue, polish and grid,
+41% of `J5SD`'s evaluations on `mid` and 61% on `held`, and about 30% of the wall in indexing
+(contended). Yet about 89% of seed steps end within 1 degree of an orientation accepted earlier
+nearby. The BFS neighbour fit (CMA, 60 evaluations, first step 0.05 degree) fails there. A fit
+with a wider first step succeeds in most such voxels, and then no indexing or seed step is needed.
+
+**What was read and run.** PLAN steps 26 to 28; step 28's report and review; shmem on steps 27,
+28, AR3 step 8; `reconstructor.py` (`index_seed`, `local_optimization`, `_index_seed`). Stored rows
+of step 28's `PXF` runs (`mid`, `held`): logs, `e1_log`, `pxf_steps`, `polish_log`,
+`before_J5D.npy`, `summary.json`. Scratch `s29_rows.py` (stored rows) and `s29_probe.py`: an
+offline replay on 398 (`mid`) and 399 (`held`) stored seed steps, fixed stride, one thread, 2.19
+million evaluations, about 5 minutes with set-up, contended (load 2.4 to 5.1). Truth read only to
+score the probe. No run; nothing of `held2`, `fine7`.
+
+**Terms.** **Seed step**: index, cost 20 candidates, refine the best 5 (CMA, then MC under 0.95),
+with `PXF`'s second try. **Seed-stage evaluations**: the seed step's plus rescue, polish and grid
+search. **Known start**: the orientation of a voxel accepted earlier in the run (seed test passed
+or fitted in the BFS, not rejected since). **Try**: costing known starts and fitting from them.
+**Success**: a try whose end has hit ratio 0.95 or more. **Evaluation**, **contended**: step 26.
+
+**Seed steps after PXF.** Reading line: per sample, seed steps; seed-stage evaluations (share of
+`J5SD`); indexing seconds (share of job wall, contended); steps that fit only their own voxel;
+steps with a known start within 1 degree of the answer among the 8 nearest accepted voxels.
+
+| sample | seed steps | seed-stage evals | indexing s | own voxel only | known within 1 deg |
+|---|---|---|---|---|---|
+| mid | 1,667 | 2,796,999 (41.0%) | 441 (29.8%) | 54.0% | 89.4% |
+| held | 3,669 | 10,147,984 (61.2%) | 902 (29.4%) | 63.7% | 88.4% |
+
+The median seed step costs 221 evaluations on `mid` (20 costs and one CMA fit) and 994 on `held`.
+Steps over 1,000 evaluations hold 86.7% and 92.7% of the step evaluations. A success at a cheap
+step saves the indexing only; at a costly step it saves evaluations as well.
+
+**The probe.** Reading line: per fit from the lowest-cost of the 8 known starts, evaluations per
+try (8 costs plus the fit), share of sampled steps that succeed, and projected change of `J5SD`'s
+evaluations and job wall (contended) if each success replaces indexing and seed step and each
+failure adds its try. Projection: the sample's covered shares of step evaluations and indexing
+seconds times the run totals; wall adds 0.077 ms per saved evaluation, minus the tries' seconds.
+
+| fit from best start | evals/try | success mid / held | evals mid / held | wall mid / held |
+|---|---|---|---|---|
+| BFS neighbour fit: 60, 0.05 deg | 69 | 23.6% / 12.8% | -1.7% / -3.0% | -7.6% / -3.8% |
+| seed step's fit: 200, 0.05 deg | 209 | 34.9% / 22.1% | -2.6% / -3.2% | -11.3% / -7.2% |
+| 200, 0.25 deg | 209 | 65.8% / 53.9% | -18.2% / -19.7% | -26.4% / -21.6% |
+| 200, 0.5 deg | 209 | 68.3% / 57.4% | -16.5% / -22.8% | -26.7% / -23.9% |
+| 200, 1 deg | 209 | 64.6% / 53.9% | -15.8% / -22.9% | -25.3% / -22.0% |
+| 400, 0.5 deg | 409 | 69.6% / 60.7% | -11.7% / -21.3% | -25.7% / -24.6% |
+| 1,000, 0.25 deg | 1,009 | 65.8% / 54.6% | +1.3% / -3.0% | -20.3% / -15.8% |
+| 200, 0.5 deg, 2nd start | 265 / 287 | 80.7% / 70.7% | -26.0% / -29.2% | -33.7% / -31.2% |
+
+Last row (if the first fit fails, a second from the best start over 0.5 degree from the first),
+Wilson 95%: 76.5% to 84.2% (`mid`), 66.0% to 74.9% (`held`). 1,000 evaluations succeed no more
+often than 200: consistent with a trap near the start, not a short budget (AR3 step 8's class A;
+untested). Success falls with the nearest known angle: 90.8% and 82.9% within 0.5 degree, 69.0%
+and 62.7% from 0.5 to 1, 0% and 2.4% over 2 (a grain with no accepted voxel yet).
+Successes have a median error of 0.0084 and 0.0071 degree, against 0.0102 and 0.0084 for the
+stored seed step at the same voxels; none is wrong. A 200-evaluation fit takes 16 ms (median,
+contended); an indexing takes 0.25 s. Failure cost: about 408 evaluations and 35 ms.
+
+**The rule, frozen now.** Rule `RU`. (1) Before every seed step (seed or reseed) at voxel v, take
+the voxels accepted so far in the run (seed test passed or fitted in the BFS, not rejected since)
+and keep the 8 nearest to v by centre distance (ties by voxel index; any distance; fewer if fewer
+exist; none: go to (4)). (2) Take the strict cost of each one's orientation at v (one evaluation
+each). From the lowest-cost one, run one CMA local optimization: first step 0.5 degree, 200
+evaluations, a fresh `default_rng(0)`. If the end's hit ratio (one overlap evaluation, not counted,
+as in the library) is 0.95 or more, the end is the seed result. Then there is no indexing and no
+seed step, and the BFS goes on as after a passing seed step. (3) Else, run the same fit from the
+lowest-cost start more than 0.5 degree from the first (if any), with the same acceptance. (4) Else
+the `PXF` seed step runs unchanged. All try evaluations count as the seed's. Nothing else changes.
+No truth, no threshold read from data after this freeze, nothing crystal-specific (misorientation
+under the sample's symmetry group; any group works). Script layer only: a wrapper of
+`BFSReconstruction._index_seed` on top of `PXF`'s.
+
+**Samples.** Gates: `mid`, `held` (in-sample; first step and second start chosen on the probe).
+Old arm: step 28's `PXF` runs (stored, not rerun). Clean test: `held8` (generator seed 8 of the
+held family, built as `held7`, only after r1 to r3 pass; nothing of it exists). Disclosed: `big`,
+`grad`, `mid`, `held`, `held3` to `held7`. `held2` not opened or listed; `fine7` not read.
+
+**Gates, fixed now.** Counts first; they do not depend on machine load.
+- r1 (evaluations): new `J5SD` (`PXF` and `RU`) at least 15% fewer than the stored `PXF` runs
+  (6,822,192 + 16,580,548 = 23,402,740), summed.
+- r2 (accuracy, against stored `PXF`, 16 and 40 wrong; per sample): broken minus fixed at most 3;
+  median error at most 0.001 degree higher; seed steps reaching the grid search at most 2 more.
+- r3 (wall): pooled wall of the new runs at least 15% lower than step 28's `PXF` runs (4,545 s),
+  judged at any load and labelled contended; preflight verdicts and sampled load reported.
+- h1, house rule on `held8`: new `J5SD` against `S8`, at least 20% fewer evaluations, broken minus
+  fixed at most 5, median error at most 0.005 degree higher.
+- h2, on `held8` against the baseline: new against `PXF` `J5SD`, at least 10% fewer evaluations,
+  broken minus fixed at most 5, median error at most 0.001 degree higher. Walls of all three arms
+  reported, contended.
+
+**Predictions, before any run.** Seed steps ended by a try: `mid` 72% to 85%, `held` 62% to 76%.
+r1: 18% to 32% fewer (centre 28%). r2: broken minus fixed -3 to +3; grid searches `mid` 0 to 1,
+`held` 0 to 3. r3: 22% to 38% lower. h1 passes. h2: 15% to 30% fewer.
+
+**Costs.** Tests and wrapper 1.5 hours; new `J5SD` on `mid`, `held` 1 hour; `held8`: build 1, `S8`
+3.3, `PXF` `J5SD` 1.1, new `J5SD` 0.8 hours. In all 8.5 to 9 hours, one run at a time.
+
+**Stop rules.** A test fails. A try accepts an end under 0.95, or uses a voxel not accepted at that
+moment (checked from the log). An index call at a voxel that a try accepted. r1, r2 or r3 fails:
+no `held8`. `held2` opened or listed, `fine7` read, `held8` built before the gates pass. A gate is
+never loosened after a run; every refused preflight is kept.
+
+**Validity checks.** Logged per seed step: try or not, start voxels, costs, each fit's evaluations,
+hit ratio, seconds, success; indexing calls, pairs, seconds (calls = steps - successes + second
+tries). One thread; same `SmoothCost` and rays as step 28. No truth read before scoring.
+
+**Known limits.** In-sample choice. The probe keeps the stored run's order and accepted set; a live
+run changes routes (successes lie within 0.5 degree of the stored answer in all but one voxel).
+Rescue and grid voxels are too few in the probe to size (3 sampled, 1 grid; 1 succeeded). A known
+start is only a start: grains have orientation gradients, so the fit must still travel 0.2 to 1
+degree. Walls contended; copper only (the rule is generic).
+
+**Phase A.** 1. Commit `ru/frozen.json` (rule, gates, predictions, hashes). 2. Tests first,
+`tests/test_ar5_ru.py`: no try when nothing is accepted; the 8 nearest by distance, ties by index;
+rejected voxels left out; the second start more than 0.5 degree from the first; a success skips
+indexing and returns the fit's end; a failure runs the `PXF` step unchanged (equal to a direct
+`PXF` step); evaluations counted; hexagonal fixture runs. 3. New `J5SD` on `mid`, then `held`;
+score r1 to r3. 4. Build `held8`; `S8`, `PXF` `J5SD`, new `J5SD`, one at a time; h1, h2. Plot first
+(wall per sample, `PXF` and `RU`, with indexing, tries and other evaluations stacked; beside it
+broken and fixed), then the tables.
+
+**Phase B (key).** Opt-in `SeedReuseKnown 1` (default 0; constants as frozen), valid with
+`SeedByIndexing`, in `check_bfs_keys`; key-off suite, no golden change; `findings_ar5_ru.md`,
+history, README. **Files:** `ru_*.py` (reusing `pxf_launch`, `pxf_score`, `pxf_build_held7` for
+`held8`), `tests/test_ar5_ru.py`, `ar5/ru/` (under 3 MB). Library: phase A none.
+
+**Not in this step.** A longer BFS neighbour fit everywhere (24,412 fits on `mid`; at 200 each,
+about 3.4 million more); a distance cap; more starts or fits; skipping grid searches that end
+rejected; reseeds that fit only their own voxel; `n_seeds`, `top_k`; C++; realistic images; seeds.
+
+**Choices made.**
+- This idea: the largest pot left after `PXF`, and generic. Projected 26% to 29% fewer evaluations
+  and 31% to 34% less wall (contended). Weak side: in-sample choice from 797 steps; route effects
+  and grid-search voxels unsized.
+- First step 0.5 degree and a second start: the second start adds 12 to 13 points of success. The
+  first fit alone projects 16.5% and 22.8% fewer evaluations. 400 or 1,000 evaluations cost more
+  for little more success. 0.25 degree is close; 0.5 was better on `held`.
+- Accept at 0.95, not the seed test's 0.80: a reused end must match a strong seed step. Voxels
+  between 0.80 and 0.95 still get the full seed step.
+- Runner-up from the same rows: skipping grid searches that end rejected. Only 2 grid searches are
+  left on `held` (714,371 evaluations, 4.3%) and none on `mid`, so it is far smaller.
+
+Approved: D-20261120-N4, phase A, after task `ar5ac` merges; phase B needs a new decision.
+
+### AR5 step 29 phase B: the reuse rule as an opt-in library key
+
+Task `ar5ae` (proposed). Starts from `feature/eval-reduction` after phase A's merge (75af46bb).
+Needs a new recorded decision. Runs start only when the machine is free of the current long run.
+
+**Why.** Rule `RU` met every phase A gate (28.9% fewer evaluations on `mid` and `held`, in-sample;
+on `held8` 32.8% fewer than `PXF`, 9 fixed, 9 broken). A key lets configs use it without scripts.
+
+**What was read.** PLAN steps 28, 29; reports and reviews of `ar5ac`, `ar5ad`; `ru_rules.py`,
+`ru_launch.py`, `pxf_hl.py`, `pxf_lib_run.py`, `ar3/seed_pick.py`; the four library files of step
+28 and its tests. Stored rows only (`ru_steps_mid`, three `seed_log` files, `pxf/lib_check.json`).
+
+**Terms.** **Try**: phase A's step (cost the 8 nearest accepted orientations, one or two CMA fits
+of 200 evaluations, first step 0.5 degree). **Library form**: the library alone, keys in the
+config. **Aligned draws**, **`G2b`**: script-only pieces of `J5D` (step 22) the library lacks.
+
+**Library changes:** `SeedReuseKnown 0|1` (default 0) in `config_file.py` and `SearchParameters`
+(`check_seed_reuse_known`, as step 28). Pure helpers copied from `ru_rules` (nearest accepted
+voxels, second start) into `ray_indexing.py`, beside `misorientation_deg` and `SeedResult`; no new
+module. In `reconstructor.py`: refusals in `check_bfs_keys`, and one guarded block at the top of
+`BFSReconstruction._index_seed`, before the first indexing. Constants stay as frozen (8 starts,
+0.5 degree, 200 evaluations, 0.5 degree apart, accept at 0.95); none becomes a key. Key 0: the
+block is skipped (no tree, counter or log field): off is bit-identical, no golden change.
+
+**Where, and why there.** `_index_seed` holds the voxel, its record and the run's voxel states,
+which the try needs (accepted = state `FITTED`). Phase A wrapped the call inside the first
+indexing step. With step 28's keys that call can run twice (the full-sample second step), so the
+library block sits before the first step: one try per seed step, as in phase A. On success it
+returns at once with the fit's own overlap info (review suggestion; no uncounted re-evaluation).
+On failure it adds the try's evaluations and seconds to the step, as phase A did. The 8 costs and
+both fits count in `n_evals_seed`. Shared counters keep phase A's accounting (`index_runs` and
+`index_used` include steps ended by a try), so they can be compared one to one; new counters
+`reuse_*` and a `reuse` field per `index_log` entry say which steps a try ended.
+
+**Refused** (`ValueError` naming the key, as step 28): `SeedReuseKnown 1` without `SeedByIndexing`;
+without `RayIndexFallbackFull 1` (so `RayIndexMaxPairs` under 600,000: the rule was gated only on
+top of `PXF`); with `PaintGrains 1` (the paint path calls `index_seed` directly); with
+`use_hybrid_optimizer` or a `LocalOptimizer` other than `mc` (as `SeedRescueCMA`; the gated arms
+ran `mc`). A value other than 0 or 1 raises at parse time and in `SearchParameters`.
+
+**What can be equal.** Reading line: per comparison, what is compared with the library run on
+`mid`, and whether exact equality is possible.
+
+| compared with | what | exact? |
+|---|---|---|
+| new script arm `RUl` (`PXFl` plus the `RU` wrapper) | map, evaluations, counters, try rows | yes, gated |
+| stored `LibPXF` (same keys, `SeedReuseKnown` off) | evaluations, grid searches, wrong voxels | no, gated as L2 |
+| phase A `ru_steps_mid` (1,719 rows, 1,403 successes) | try or not, starts, evaluations, hit | prefix only |
+
+Phase A's arm has `G2b`, aligned draws, the screen pass and the repair. The library has none of
+these, so its map and totals cannot equal phase A's. The stored seed logs show where the draws
+part: `PXFl` and step 28's `J5D` agree for the first 58 seed steps on `mid` (phase A's `RU` and
+step 28's `J5D`, 60). So the library rows can match `ru_steps_mid` for about the first 58 rows
+only. That prefix length is reported, with the try share (phase A 81.6%), second fits (441),
+evaluations per try and the lowest accepted hit ratio. None of these is a gate (route effects).
+
+**Runs, one at a time, `mid` only, Q-max 8 as in phase A.** (1) `RUl`: `ru_hl.py` (`pxf_hl.py`
+plus `ru_rules.make_index_seed`), through `ru_common`, BEFORE any library edit (`ru/frozen.json`
+still agrees: nothing in `icenine/`, `pyproject.toml` or `uv.lock` has changed since 8a2f7e32).
+About 0.25 hours. (2) `LibRU`: `ru_lib_run.py`, `LibPXF`'s keys plus `SeedReuseKnown 1`, with the
+boundary pass; about 0.35 hours. Walls are contended labels, not gates; preflights kept.
+
+**Pass criteria, fixed now.**
+- L1 (equality): `LibRU` before the pass equals `RUl`: map bytes, total evaluations, every shared
+  counter, all 24,570 records, and every try row (voxel, tried, starts, costs, each fit's
+  evaluations and hit ratio, success, second). Seconds are not compared.
+- L2 (library form): `LibRU` before the pass at least 10% fewer evaluations than `LibPXF`
+  (6,731,510). After the pass, against `LibPXF`'s map: broken minus fixed at most 3, median error
+  at most 0.001 degree higher (truth read only to score).
+- Predictions: L2 15% to 30% fewer; try share 75% to 88%; broken minus fixed -3 to +3.
+
+**Stop rule:** A test fails. The freeze refuses `RUl`, or the library was edited before it ran.
+`RUl`'s rows before its first success differ from stored `PXFl`. A try accepts an end under 0.95,
+or a start that is not `FITTED`. L1 fails: report the first differing voxel and stop; no fix and
+rerun without review. A run passes 1 hour. `held2` opened or listed; `fine7` or fine1 results
+read. A criterion is never changed after a run.
+
+**Tests** (`tests/test_seed_reuse_known.py`, tests first): defaults off and the key parses; bad
+values raise; each refused combination says why; absent and `SeedReuseKnown 0` give identical
+fingerprints (map, stats, `index_log`) on a small BFS fixture, with no `reuse_*` counter; the
+helpers equal `ru_rules` on scripted cases (8 nearest, ties by index, rejected voxels left out,
+second start over 0.5 degree); a success skips indexing and returns the fit end; a failure runs
+the `PXF` step unchanged with the try added; the try runs once when the full-sample step repeats;
+the fit's overlap hit equals a fresh `evaluate_overlap`; a small real-reconstructor case (review
+suggestion); a hexagonal fixture runs. Then the full suite once, keys off, no golden change.
+
+**Docs.** Findings text to `.claude/reports/<stamp>-ar5ae-findings_ar5_ru.md` (agents cannot write
+into `docs/`); MIGRATION_HISTORY; README `SeedReuseKnown` row (phase A as SCRIPT arm, then L2).
+
+**Files.** `icenine/{config_file,orientation_search,ray_indexing,reconstructor}.py`;
+`tests/test_seed_reuse_known.py`; `scripts/autoresearch/ar5/ru_{hl,lib_run,lib_check}.py`;
+`ar5/ru/lib_check.json`, `lib_tables.md` (with sha256 of every script `RUl` imports).
+
+**Costs.** `ru_hl.py` 0.5 h; `RUl` 0.25 h; library and tests 2 h; suite 0.25 h; `LibRU` 0.35 h;
+check and docs 1 h. In all about 4.5 hours, one run at a time.
+
+**Known limits.** One library-form sample, in-sample; no `held` or `held8` run in library form.
+The library lacks `G2b`, aligned draws, the screen pass and the repair, so phase A's savings are
+the script arm's. Requiring `PXF` narrows the key. `index_runs` counts try successes. Copper only.
+
+**Not in this step.** The key without `PXF`; constants as keys; library runs on `held`, `held8`;
+default on; `G2b` or aligned draws in the library; the findings page; C++; realistic images; seeds.
+
+**Choices made.**
+- Block before the first indexing, not inside it: it keeps one try per seed step with `PXF` on.
+- Equality to a new script arm, as step 28: the only arm the library can equal exactly.
+- Phase A's counter accounting kept: a one-to-one check, no mapping to get wrong.
+- Requiring `RayIndexFallbackFull 1`: the only gated setting; a later step can relax it.
+
+Approved: D-20261121-N1 (task `ar5ae`); runs wait for the long layer run to end.
+
+### AR5 step 30: start each BFS neighbour fit from a local orientation field of accepted voxels
+
+Task `ar5af` (proposed). Starts from `feature/eval-reduction` after step 29 phase B (70fe192d).
+Reads step 29's run cache in the main checkout (`ar5/ru/cache`), read only. Phase A only after a
+recorded decision; a key (phase B) needs a second one. Runs wait until the long timing run ends.
+
+**Why.** After rules `PXF` and `RU`, the BFS neighbour fits are the largest pot: 47.4% of the
+16,648,743 evaluations on `mid` and `held`. Each fit costs 61 evaluations, but 56.5% (`mid`) and
+72.9% (`held`) of fits are rejected, so a voxel costs 130.5 and 190.6 evaluations of BFS fits.
+Most rejected fits start in the right grain, 0.25 to 2 degrees from the answer: `held` grains
+spread 0 to 4 degrees, and a fit with first step 0.05 degree cannot travel that far. A start
+predicted from the orientations of several accepted voxels nearby lies much closer, at no cost.
+
+**What was read and run.** PLAN steps 17, 18, 28, 29, 29 phase B; report `ar5ad` and review;
+MIGRATION_HISTORY steps 17, 18; `reconstructor.py` (`_expand`, `_insert_seed`); Ilium's
+`SUMMARY.md` and `findings.md` (GO2 to GO2c) by `git show origin/feature/grain-opt`. Stored rows
+only: `run.json`, `polish.json`, `ru_steps_*`, `repair.json`, `before_J5D.npy` of the `RU` runs
+(`mid`, `held`, `held8`); step 17's recording `J5r` (`mid`, `held`; one row per BFS fit: start,
+end, running best cost, acceptance), untracked cache of worktree `agent-aeba15b7c3850b007`.
+Scratch `s30_*.py`, one thread, no evaluation, no truth. Nothing of `held2`, `fine7`, fine1.
+
+**Terms.** **BFS fit**: the per-voxel local optimization from an inherited orientation (CMA, 60
+evaluations, first step 0.05 degree, plus the start's cost). A **first fit** is a voxel's first
+one; a **revisit** fits a rejected voxel again from a newly accepted neighbour. **Rejected**: end
+hit ratio not over 0.9 times the expansion's best. **Same-grain start**: under 2 degrees from the
+voxel's answer in the stored `RU` map; **other-grain**: 5 or more. **Side**: triangle side length.
+
+**Where the evaluations go.** Reading line: per sample, evaluations of the stored `RU` run (`J5SD`
+with the pass) by part, with the share of the total; nothing else is counted.
+
+| sample | total | seed tries | seed steps, rescue, polish, grid | BFS first fits | revisits | screen and repair |
+|---|---|---|---|---|---|---|
+| mid | 5,177,331 | 447,703 (8.6%) | 731,095 (14.1%) | 1,489,254 (28.8%) | 1,717,150 (33.2%) | 792,129 (15.3%) |
+| held | 11,471,412 | 1,081,713 (9.4%) | 4,152,408 (36.2%) | 1,480,287 (12.9%) | 3,202,134 (27.9%) | 1,554,870 (13.6%) |
+| held8 | 10,905,900 | 1,024,404 (9.4%) | 4,014,348 (36.8%) | 1,480,775 (13.6%) | 3,042,314 (27.9%) | 1,344,059 (12.3%) |
+
+BFS fits 52,564, 76,761, 74,149; rejected 29,713, 55,927, 53,111 (31.4% of pooled `mid` and `held`
+evaluations). `held`'s seed steps after a failed try cost 3,350 each (1,015 steps).
+
+**Why the fits are rejected.** Reading line: on the `J5r` rows (an older arm, same BFS fit),
+rejected fits by start class; median start error against the `RU` map with the parent's
+orientation and with the field start; share of starts under 0.25 degree; accepted fits likewise.
+
+| sample | rejected | same-grain | other-grain | same-grain median, parent / field | under 0.25, parent / field | accepted under 0.25, parent / field |
+|---|---|---|---|---|---|---|
+| mid | 29,075 | 16,760 | 12,285 | 0.686 / 0.100 | 2.2% / 72.5% | 75.9% / 98.1% |
+| held | 56,051 | 32,937 | 21,734 | 0.790 / 0.142 | 2.5% / 57.6% | 76.8% / 97.5% |
+
+The parent's orientation is right (nearly all within 0.25 degree of its answer); the voxel lies
+0.25 to 2 degrees away. From parent starts the fit is accepted at 94.5% and 88.9% of starts 0.1 to
+0.25 degree off, 51.5% and 38.0% at 0.25 to 0.5, 12.5% and 6.6% at 0.5 to 1. These rates applied
+to the field starts convert about 12,822 and 19,742 rejected fits: 782,131 and 1,204,258
+evaluations, 15.1% and 10.5% of the `RU` totals, 11.9% pooled (radius 2 or 2.5 sides: 9.2%, 10.6%).
+For 0.6% of accepted fits the field start is worse than the parent's by over 0.1 degree.
+
+**Ilium's grain field, assessed.** 113 evaluations per voxel at its "100" setting (GO2; at "50",
+63, with 20 voxels over 0.1 degree against 18 for a 61-evaluation per-voxel fit). A BFS fit costs
+61. The field needs a painted start and grain groups, so it cannot make the first answer; over
+24,570 voxels (2.8 million) it costs more than the repair it could replace; it is weak on strongly
+deformed grains (`held` spreads reach 4 degrees). The waste is the rejected fits, not the price of
+a fit. This step borrows its idea, pooling neighbours into a smooth field, only for the start.
+
+**The rule, frozen now.** Rule `FS`. (1) Before every BFS fit (first fit or revisit) at voxel v,
+whose inherited start is R_p, take the voxels FITTED at that moment (seeds included) whose centres
+lie within 3 sides of v's centre (v excluded). (2) For each, take its symmetry equivalent nearest
+to R_p and the rotation vector w of R_p^T R_j; keep it if |w| is under 3 degrees. (3) If at least 3
+are kept and the matrix of rows (1, x_j / side), x_j the in-layer offset of j's centre from v's,
+has full rank (3), fit w = a + G x by plain least squares, and start the fit from R_p exp(a). (4)
+Else start from R_p. The fit, its evaluations, generators, acceptance, push rule and the
+propagated orientation are unchanged; the prediction costs no evaluation. No truth, nothing read
+from data after this freeze, nothing crystal-specific (any symmetry group). Script layer only: a
+wrapper of `BFSReconstruction._local_fit`, outside the aligned-draws wrapper.
+
+**Samples.** Gates: `mid`, `held` (in-sample; the radius was chosen on them). Old arm: step 29's
+`RU` runs (stored, not rerun). Clean test: `held9` (generator seed 9 of the held family, built as
+`held8`, only after f1 and f2 pass; nothing of it exists). Disclosed: `big`, `grad`, `mid`,
+`held`, `held3` to `held8`. `held2` not opened or listed; `fine7` and fine1 not read.
+
+**Gates, fixed now.** Counts first; they do not depend on machine load.
+- f1 (evaluations): new `J5SD` (`PXF`, `RU`, `FS`) at least 6% fewer than the stored `RU` runs
+  (5,177,331 + 11,471,412 = 16,648,743), summed.
+- f2 (accuracy, against stored `RU`, 15 and 39 wrong; per sample): broken minus fixed at most 3;
+  median error at most 0.001 degree higher; seed steps reaching the grid search at most 2 more.
+- h1, house rule on `held9`: new `J5SD` against `S8`, at least 20% fewer evaluations, broken minus
+  fixed at most 5, median error at most 0.005 degree higher.
+- h2, on `held9` against `RU` `J5SD`: at least 5% fewer evaluations, broken minus fixed at most 5,
+  median error at most 0.001 degree higher. Walls of all three arms reported, contended.
+
+**Predictions, before any run.** Probe: 60% to 85% (`mid`) and 45% to 70% (`held`) of sampled
+same-grain rejected fits accepted from the field start. Rejected BFS fits: `mid` 12,000 to 20,000
+(from 29,713), `held` 28,000 to 42,000 (from 55,927). f1: 8% to 18% fewer (centre 12%). Seed steps:
+0% to 25% fewer (unsized). f2: broken minus fixed -3 to +3; median error -0.002 to +0.0003 degree.
+h1 passes. h2: 6% to 16% fewer. Field seconds under 2% of job wall.
+
+**Costs.** `J5r` copy 0.1 hours; tests, wrapper 1.5; probe 0.2; `mid`, `held` 0.9; `held9`: build 1,
+`S8` 2.3 to 3.3, `RU` 0.6, new 0.5; scoring, plot, docs 1. In all 8 to 9 hours, one run at a time.
+
+**Stop rules.** A test fails. The probe misses p1, p2 or p3: stop and report, no live run, no
+retuning. A BFS fit with other than 61 evaluations; a start built from a voxel not FITTED at that
+moment (from the log); totals that do not reconcile (`run.json` plus `repair.json`). A `mid` or
+`held` run passes 1.5 hours. f1 or f2 fails: no `held9`. `held2` opened or listed, `fine7` or fine1
+read, `held9` built before the gates pass. No gate loosened after a run; refused preflights kept.
+
+**Validity checks.** Logged per BFS fit: voxel, kind, parent, points kept, start used, angle to the
+parent's, evaluations, end hit ratio, accepted, field ms. Predictions equal BFS fits. `RU`, `PXF`
+frozen. One thread; same `SmoothCost`, rays, Q-max 8 as step 29. Truth read only to score.
+
+**Known limits.** No evaluation was possible while the machine is busy. The sizing uses step 17's
+`J5r` rows (arm `J5`, an older route), the `RU` map as the answer, and a model in which acceptance
+depends only on start error. So phase A opens with a 10-minute probe on stored `J5r` rows: 300
+same-grain rejected and 300 accepted fits per sample (fixed stride), each refitted from its field
+start with the stock BFS fit, judged with the stored best; about 73,000 evaluations, one thread.
+It must confirm: p1, at least 45% (`mid`) and 35% (`held`) of the rejected fits accepted (the f1
+margin needs about these); p2, at most 3% of the accepted fits rejected; p3, their median end
+error at most 0.001 degree above the stored ends. Else the stop rule applies. The radius is an
+in-sample choice. The generated grains have linear gradients, the case a linear field fits best;
+real grains bend, and only the 3-side radius keeps the fit local (AR6's `rand`, `corr3` untested).
+Route effects are unsized; other-grain rejections (about 40%) untouched; 2D layers; copper only.
+
+**Phase A.** 0. Copy `J5r_{mid,held}.jsonl.gz` into `ar5/fs/cache`, checking sha256 against step
+17's `manifest.json`. 1. Commit `fs/frozen.json` (rule, constants, gates, predictions, probe
+criteria, hashes). 2. Tests first, `tests/test_ar5_fs.py`: no FITTED neighbour, under 3 kept or
+rank 2 give the parent start; a voxel not FITTED is never used; neighbours over 3 degrees are left
+out; a symmetry equivalent enters as its nearest one (cubic and hexagonal fixtures); an exactly
+linear field is reproduced to 1e-9; the fit gets the predicted start and equals an unwrapped fit
+from it; the prediction counts no evaluation; acceptance, push rule, `RU` and `PXF` unchanged.
+3. The probe. 4. New `J5SD` on `mid`, then `held`; score f1, f2. 5. Build `held9`; `S8`, `RU`
+`J5SD`, new `J5SD`, one at a time; h1, h2. Plot first (evaluations per run stacked: tries, seed
+steps, accepted BFS fits, rejected BFS fits, passes; beside it broken and fixed), then tables.
+
+**Phase B (key), a later decision.** Opt-in `BFSFieldStart 1` (default 0, constants frozen); one
+guarded block in `_expand` before `_local_fit`; key off bit-identical; equality with a new script
+arm on `mid`. **Files:** `fs_*.py` (reusing `ru_launch`, `ru_score`, `ru_build_held8` for
+`held9`), `tests/test_ar5_fs.py`, `ar5/fs/` (under 3 MB). Library: phase A none.
+
+**Not in this step.** Ilium's grain field; skips by start hit ratio (steps 17, 18); a second fit
+after a rejected field-start fit; the field start as a ninth `RU` start; other-grain rejections;
+weights, curved fields, other radii; the 0.9 acceptance; revisit caps; C++; realistic images; seeds.
+
+**Choices made.**
+- This idea: the largest pot, generic, zero evaluations per prediction, the fit itself unchanged
+  (accepted starts 0.103 to 0.033 degree median on `mid`). Projected 11.9% fewer evaluations
+  pooled. Weak side: a proxy sizing, linear gradients by construction.
+- Not a skip: steps 17, 18 stopped at 3.6% to 5.7% and broke voxels; a start-cost revisit gate
+  would wrongly skip 2,611 of 8,840 accepted revisits (`mid`). Not an early stop: a 15-evaluation
+  stall stop changes the end of 47% of accepted fits on `mid` (the running best improves late).
+- Radius 3 sides (best of 2, 2.5, 3 on both samples), 3 points; 3 degrees keeps other grains out.
+- Runner-up: `held`'s seed steps after a failed try (36.2% with rescue, grid); see steps 22 to 25.
+
+Approved: D-20261121-N2, phase A (task `ar5af`); starts when the stock Python layer run ends.
+
 ## Machine-time runs from the review page
 
 Run when the machine is otherwise quiet: item 14 (both keys on E0 and the pilot, with the timing

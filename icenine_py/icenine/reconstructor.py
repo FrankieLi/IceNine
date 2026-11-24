@@ -10,7 +10,9 @@ C++ Reference:
     Src/ReconstructionSetup.h       — Setup and data loading
 """
 
+import dataclasses
 import math
+import threading
 import time
 import warnings
 from collections import deque
@@ -32,6 +34,7 @@ from .forward_simulation import ForwardSimulation
 from .mic_file import MicFile, ReconstructionState
 from .orientation_search import (
     LOCAL_OPTIMIZERS,
+    RAY_INDEX_MAX_PAIRS_DEFAULT,
     CMAOptimizer,
     MCOptimizer,
     RiemannianAdamOptimizer,
@@ -193,6 +196,49 @@ def check_bfs_keys(params: Any) -> None:
             raise ValueError("SeedIndexMCStallHit needs LocalOptimizer mc")
         if getattr(params, "use_hybrid_optimizer", False):
             raise ValueError("SeedIndexMCStallHit cannot be combined with use_hybrid_optimizer")
+    if int(getattr(params, "seed_index_mc_defer", 0)) > 0:  # AR5 step 22
+        if int(getattr(params, "seed_index_mc_stall_hit", 0)) <= 0:
+            raise ValueError(
+                "SeedIndexMCDefer needs SeedIndexMCStallHit k >= 1 (it pauses a refinement at "
+                "its stall check; with no check there is nothing to pause)"
+            )
+    if int(getattr(params, "seed_reuse_known", 0)) > 0:  # AR5 step 29, rule RU
+        if not getattr(params, "seed_by_indexing", False):
+            raise ValueError(
+                "SeedReuseKnown needs SeedByIndexing 1 (it acts before the indexed seed step)"
+            )
+        if getattr(params, "paint_grains", False):  # grain_paint calls index_seed directly
+            raise ValueError("SeedReuseKnown cannot be combined with PaintGrains 1")
+        if int(getattr(params, "ray_index_fallback_full", 0)) <= 0:
+            raise ValueError(
+                "SeedReuseKnown needs RayIndexFallbackFull 1 (with RayIndexMaxPairs below "
+                f"{RAY_INDEX_MAX_PAIRS_DEFAULT:,}): the rule was gated only on top of the "
+                "PXF seed step"
+            )
+        if getattr(params, "use_hybrid_optimizer", False):
+            raise ValueError("SeedReuseKnown cannot be combined with use_hybrid_optimizer")
+        if getattr(params, "local_optimizer", "mc") != "mc":
+            raise ValueError("SeedReuseKnown needs LocalOptimizer mc (the gated arms ran mc)")
+    max_pairs = int(getattr(params, "ray_index_max_pairs", RAY_INDEX_MAX_PAIRS_DEFAULT))
+    fallback_full = int(getattr(params, "ray_index_fallback_full", 0)) > 0
+    if max_pairs != RAY_INDEX_MAX_PAIRS_DEFAULT or fallback_full:  # AR5 step 28
+        if not getattr(params, "seed_by_indexing", False):
+            what = "RayIndexFallbackFull" if fallback_full else "RayIndexMaxPairs"
+            raise ValueError(
+                f"{what} needs SeedByIndexing 1 (it acts on the indexed seed step; the default "
+                f"RayIndexMaxPairs is {RAY_INDEX_MAX_PAIRS_DEFAULT:,})"
+            )
+        if getattr(params, "paint_grains", False):  # grain_paint calls index_seed without them
+            raise ValueError(
+                "RayIndexMaxPairs and RayIndexFallbackFull cannot be combined with PaintGrains 1"
+            )
+        if fallback_full and max_pairs >= RAY_INDEX_MAX_PAIRS_DEFAULT:
+            raise ValueError(
+                "RayIndexFallbackFull needs RayIndexMaxPairs below "
+                f"{RAY_INDEX_MAX_PAIRS_DEFAULT:,} (got {max_pairs:,}): the second step uses "
+                f"{RAY_INDEX_MAX_PAIRS_DEFAULT:,} pairs, so with that many or more in the first "
+                "it would repeat the same step"
+            )
     if cma_first:
         if getattr(params, "local_optimizer", "mc") != "mc":
             raise ValueError("BFSNeighborCMAFirst 1 needs LocalOptimizer mc")
@@ -560,6 +606,9 @@ class SeedMCStallHit:
         self.checks: List[List[Any]] = []
         self.continued = 0
         self.stopped = False
+        # SeedIndexMCDefer: called once, with the check's hit ratio, at the first check that goes
+        # on (after it is counted); it may block the refinement (``SeedMCRun``)
+        self.pause_hook: Optional[Callable[[float], None]] = None
 
     def feed(self, orientation: Any, cost: float) -> None:
         """Count one evaluation of ``orientation`` at ``cost``; may make the stall check."""
@@ -581,6 +630,9 @@ class SeedMCStallHit:
                 raise SeedStallHitStop()
             self.armed = False
             self.continued += 1
+            if self.pause_hook is not None:
+                hook, self.pause_hook = self.pause_hook, None  # only the first check that goes on
+                hook(hit)
 
     def wrap(self, evaluate: Callable[..., Any]) -> Callable[..., Any]:
         def wrapped(orientation: Any, *args: Any, **kw: Any) -> Any:
@@ -599,6 +651,172 @@ class SeedMCStallHit:
             continued=int(self.continued),
             stopped=bool(self.stopped),
         )
+
+
+class SeedMCAbort(BaseException):
+    """Raised inside a paused refinement to unwind it when it is abandoned (``SeedMCRun.abort``);
+    a ``BaseException`` so that no ``except Exception`` of the refinement's code catches it."""
+
+
+class SeedMCRun:
+    """SeedIndexMCDefer (opt-in, AR5 step 22): one seed-step MC refinement (the stock
+    ``refine_from_candidates`` with ``default_rng(0)`` and its local cost function wrapped by
+    ``SeedMCStallHit``, as ``AdaptiveVoxelReconstructor.seed_mc_refine`` runs it) that can be
+    PAUSED at its first stall check that goes on and resumed later exactly where it stopped.
+
+    With ``allow_pause`` the refinement runs in a worker thread; at the first check that goes on
+    (the check is counted) the worker blocks inside the cost function's wrapper, with the whole
+    call stack, the generator and every local variable of the refinement kept, and ``start()``
+    returns with ``paused`` True. ``resume()`` lets the same worker go on (no re-run: the
+    generator is continued, the evaluations already made are not made again) and returns the
+    end, cost and evaluations of the finished refinement: the very values ``seed_mc_refine``
+    gives (the count includes the check). ``abort()`` unwinds a refinement that is never resumed;
+    its log entry is the paused part (evaluations made plus the check). Only one thread runs at a
+    time (the caller waits), so no value or draw changes. Without ``allow_pause`` the refinement
+    runs in the calling thread. ``partial()``: the kept best so far, its cost, the evaluations
+    paid so far and the hit ratio of the check. The log entry (``meter.record``) is appended to
+    ``rec.last_seed_stall_hit`` when the refinement finishes or is aborted."""
+
+    def __init__(
+        self,
+        rec: Any,
+        R: np.ndarray,
+        cost: float,
+        voxel_vertices: Any,
+        phase_index: int,
+        k: int,
+        tau: float,
+        hit_fn: Callable[[np.ndarray], float],
+        allow_pause: bool,
+    ) -> None:
+        self.rec = rec
+        self._R = np.asarray(R).copy()
+        self._cost = float(cost)
+        self._vv = voxel_vertices
+        self._phase = phase_index
+        self.meter = SeedMCStallHit(k, tau, hit_fn)
+        self.cf = rec._make_local_cost_fn()
+        setattr(self.cf, "evaluate", self.meter.wrap(self.cf.evaluate))  # this cost function only
+        self.allow_pause = bool(allow_pause)
+        self.paused = False
+        self.done = False
+        self.aborted = False
+        self.result: Optional[Tuple[np.ndarray, float, int]] = None
+        self.log: Optional[Dict[str, Any]] = None
+        self.pause_hit: Optional[float] = None
+        self._abort = False
+        self._finished = False
+        self._error: Optional[BaseException] = None
+        self._out: Optional[Tuple[np.ndarray, float, int]] = None
+        self._to_worker = threading.Event()
+        self._to_main = threading.Event()
+        self._thread: Optional[threading.Thread] = None
+        if self.allow_pause:
+            self.meter.pause_hook = self._on_pause
+
+    def _on_pause(self, hit: float) -> None:  # runs in the worker, inside the cost function
+        self.pause_hit = float(hit)
+        self.paused = True
+        self._to_main.set()
+        self._to_worker.wait()
+        self._to_worker.clear()
+        if self._abort:
+            raise SeedMCAbort()
+        self.paused = False
+
+    def _body(self) -> Tuple[np.ndarray, float, int]:
+        m = self.meter
+        try:
+            r = self.rec.refine_from_candidates(
+                [SearchCandidate(orientation=self._R.copy(), cost=self._cost)],
+                self._vv,
+                self._phase,
+                rng=np.random.default_rng(0),
+                local_cost_fn=self.cf,
+            )
+            return (
+                np.asarray(r.orientation, np.float64),
+                float(r.cost),
+                int(self.cf.eval_count) + m.continued,
+            )
+        except SeedStallHitStop:
+            assert m.best_R is not None
+            return m.best_R.copy(), float(m.best), m.n + 1 + m.continued
+
+    def _work(self, grad: bool) -> None:
+        try:
+            torch.set_grad_enabled(grad)  # thread-local: the caller's setting
+            self._out = self._body()
+        except SeedMCAbort:
+            pass
+        except BaseException as e:  # reported to the caller by ``_wait``
+            self._error = e
+        finally:
+            self._finished = True
+            self._to_main.set()
+
+    def _finalize(self) -> None:
+        assert self._out is not None
+        self.result = self._out
+        self.rec._last_global_evals = 0
+        self.rec._last_local_evals = int(self.cf.eval_count)
+        self.log = self.meter.record(self._out[2])
+        self.rec.last_seed_stall_hit.append(self.log)
+        self.done = True
+        self.paused = False
+
+    def _wait(self) -> None:
+        self._to_main.wait()
+        self._to_main.clear()
+        if self._error is not None:
+            raise self._error
+        if self._finished and not self.aborted:
+            self._finalize()
+
+    def start(self) -> "SeedMCRun":
+        if not self.allow_pause:
+            self._out = self._body()
+            self._finalize()
+            return self
+        old = threading.stack_size()
+        threading.stack_size(64 * 1024 * 1024)  # the refinement's call stack is deep enough
+        try:
+            self._thread = threading.Thread(
+                target=self._work, args=(torch.is_grad_enabled(),), daemon=True
+            )
+            self._thread.start()
+        finally:
+            threading.stack_size(old)
+        self._wait()
+        return self
+
+    def partial(self) -> Tuple[np.ndarray, float, int, float]:
+        """(kept best, its cost, evaluations paid so far with the check, hit ratio of the check)."""
+        assert self.paused and self.meter.best_R is not None and self.pause_hit is not None
+        m = self.meter
+        return m.best_R.copy(), float(m.best), m.n + m.continued, self.pause_hit
+
+    def resume(self) -> Tuple[np.ndarray, float, int]:
+        """Go on exactly where it stopped; (end, cost, evaluations) of the finished refinement."""
+        assert self.paused, "only a paused refinement can be resumed"
+        self._to_worker.set()
+        self._wait()
+        assert self.result is not None
+        return self.result
+
+    def abort(self) -> None:
+        """Unwind a paused refinement that is never resumed; no-op otherwise."""
+        if not self.paused:
+            return
+        self._abort = True
+        self._to_worker.set()
+        assert self._thread is not None
+        self._thread.join()
+        self.aborted = True
+        self.paused = False
+        m = self.meter
+        self.log = m.record(m.n + m.continued)  # what the step was charged for it
+        self.rec.last_seed_stall_hit.append(self.log)
 
 
 # ---------------------------------------------------------------------------
@@ -1676,6 +1894,8 @@ class AdaptiveVoxelReconstructor:
         cma_first_evals: int = 0,
         cma_sigma0_deg: float = 0.2,
         mc_stall_hit: int = 0,
+        mc_defer: bool = False,
+        max_pairs: int = 0,
     ) -> Any:
         """SeedByIndexing (opt-in): the voxel's seed search from its observed rays
         (``ray_indexing.seed_by_indexing``): strict cost on the first ``n_cost`` candidates, the
@@ -1692,14 +1912,28 @@ class AdaptiveVoxelReconstructor:
         refinement of a candidate (the finisher, or the MC refinement of the mixed one) runs
         through ``seed_mc_refine``: a stall check after k evaluations with no strict gain ends it
         when the kept best's hit ratio reaches ``stop_hit``. Its log is ``last_seed_stall_hit``
-        (one entry per MC refinement of this call)."""
+        (one entry per MC refinement of this call).
+        ``mc_defer`` (SeedIndexMCDefer, needs ``mc_stall_hit``): an MC refinement whose stall
+        check goes on is paused (``SeedMCRun``: its state and generator kept) while the step has
+        an untried candidate, and resumed in candidate order only if no later candidate reaches
+        ``stop_hit`` (``ray_indexing.seed_by_indexing`` with ``defer``; the last candidate is
+        never paused). ``SeedResult.paused`` / ``resumed`` list the positions.
+        ``max_pairs`` > 0 (RayIndexMaxPairs, AR5 step 28): the indexer keeps that many ray pairs
+        (a random subsample above it) in place of the stored 600,000; 0 leaves the shared
+        ``IndexParams`` untouched (a copy carries the change, never the shared object)."""
         from . import ray_indexing as RI
 
         if cma_first_evals and (cma_first_evals < 2 or stop_hit <= 0):
             raise ValueError("cma_first_evals needs a value >= 2 and stop_hit > 0")
         if mc_stall_hit and (mc_stall_hit < 1 or stop_hit <= 0):
             raise ValueError("mc_stall_hit needs a value >= 1 and stop_hit > 0")
+        if mc_defer and not mc_stall_hit:
+            raise ValueError(
+                "mc_defer needs mc_stall_hit >= 1 (it defers a refinement at its check)"
+            )
         sc, crystal, params, strict_cf = self._index_context(phase_index)
+        if max_pairs > 0:
+            params = dataclasses.replace(params, max_pairs=int(max_pairs))
 
         def strict(R: np.ndarray) -> float:
             return float(
@@ -1726,6 +1960,33 @@ class AdaptiveVoxelReconstructor:
 
             if not cma_first_evals:
                 refine_fn = stall_fn
+
+        def start_mc(R: np.ndarray, cost: float, allow_pause: bool) -> "SeedMCRun":
+            return SeedMCRun(
+                self, R, cost, voxel_vertices, phase_index, mc_stall_hit, stop_hit, hit_fn,
+                allow_pause,
+            ).start()  # fmt: skip
+
+        if mc_defer and not cma_first_evals:
+
+            def refine_fn(  # type: ignore[misc]
+                R: np.ndarray, cost: float, allow_pause: bool = False
+            ) -> Any:
+                run = start_mc(R, cost, allow_pause)
+                if run.paused:
+                    end, c_part, ev_part, _hit = run.partial()
+                    return (
+                        end,
+                        c_part,
+                        ev_part,
+                        dict(
+                            paused=True,
+                            resume=lambda: (*run.resume(), dict(run.log or {})),
+                            abort=run.abort,
+                        ),
+                    )
+                return (*(run.result or ()), dict(run.log or {}))
+
         if cma_first_evals:
             from .orientation_search import SearchCandidate
 
@@ -1760,12 +2021,24 @@ class AdaptiveVoxelReconstructor:
                     int(self.last_eval_counts[1]),
                 )
 
-            def refine_fn(R: np.ndarray, cost: float) -> Any:  # type: ignore[misc]
-                return RI.mixed_refinement(R, cost, cma_fn, mc_fn, hit_fn, stop_hit)
+            if mc_defer:
 
+                def refine_fn(  # type: ignore[misc]
+                    R: np.ndarray, cost: float, allow_pause: bool = False
+                ) -> Any:
+                    return RI.mixed_refinement_deferred(
+                        R, cost, cma_fn, start_mc, hit_fn, stop_hit, allow_pause
+                    )
+
+            else:
+
+                def refine_fn(R: np.ndarray, cost: float) -> Any:  # type: ignore[misc]
+                    return RI.mixed_refinement(R, cost, cma_fn, mc_fn, hit_fn, stop_hit)
+
+        extra = dict(defer=True) if mc_defer else {}
         return RI.seed_by_indexing(
             self, sc, crystal, voxel_vertices, phase_index, params, strict, n_cost, n_refine,
-            stop_hit=stop_hit, hit_fn=hit_fn, refine_fn=refine_fn,
+            stop_hit=stop_hit, hit_fn=hit_fn, refine_fn=refine_fn, **extra,
         )  # fmt: skip
 
     def seed_mc_refine(
@@ -2624,6 +2897,95 @@ class BFSReconstruction:
         """Add to a counter that exists only when its key is on (SeedByIndexing, OutwardSearch)."""
         self.stats[key] = self.stats.get(key, 0) + value
 
+    def _reuse_try(
+        self, voxel_idx: int, vertices: torch.Tensor, phase: int
+    ) -> Tuple[Optional[Tuple[np.ndarray, float, Any]], Dict[str, Any]]:
+        """Rule ``RU`` (``SeedReuseKnown 1``, AR5 step 29) before a seed step at voxel
+        ``voxel_idx``: the strict cost (one evaluation each) of the orientations of the 8 nearest
+        voxels accepted so far (state ``FITTED``; ties by voxel index), then one CMA fit (first
+        step 0.5 degree, 200 evaluations, a fresh ``default_rng(0)``) from the lowest-cost one and,
+        if that ends under 0.95 hit ratio, one from the lowest-cost start more than 0.5 degree from
+        the first. Returns ((end orientation, end cost, end overlap info) of the first fit that
+        ends at hit ratio 0.95 or more, else None) and the row: ``tried``, ``starts`` (voxel ids),
+        ``costs``, ``fits`` (start voxel, evaluations, hit, cost, seconds, second), ``evals``
+        (costs plus fits; the final overlap evaluation of a fit is in the fit's count),
+        ``success``, ``second``. No start (no accepted voxel): ``tried`` is False and nothing is
+        evaluated."""
+        from . import ray_indexing as RI
+
+        mic = self.setup.sample.get_mic()
+        assert mic is not None
+        geo = getattr(self, "_reuse_geo", None)
+        if geo is None or geo[0] is not mic:  # built once per sample, only with the key on
+            from scipy.spatial import cKDTree
+
+            pos = np.asarray(mic.positions.numpy(), np.float64)
+            geo = (mic, pos, cKDTree(pos))
+            self._reuse_geo = geo
+        _, pos, tree = geo
+        voxels = mic.voxels
+        near = RI.nearest_accepted(
+            tree,
+            pos,
+            int(voxel_idx),
+            lambda j: voxels[j].reconstruction_id == ReconstructionState.FITTED,
+        )
+        row: Dict[str, Any] = dict(
+            tried=False,
+            starts=[int(j) for j in near],
+            costs=[],
+            fits=[],
+            evals=0,
+            success=False,
+            second=False,
+        )
+        if not near:
+            return None, row
+        row["tried"] = True
+        rc = self.reconstructor
+        _, crystal, _, strict_cf = rc._index_context(phase)
+        R = [np.asarray(voxels[j].orientation, np.float64) for j in near]
+        costs = [float(strict_cf.evaluate(r, vertices, phase).cost) for r in R]
+        row["costs"] = costs
+        row["evals"] = len(R)
+        order = [int(j) for j in np.argsort(np.asarray(costs), kind="stable")]
+
+        def mis(a: np.ndarray, b: np.ndarray) -> float:
+            return float(RI.misorientation_deg(a[None], b[None], crystal.sym)[0])
+
+        sec = RI.second_start(order, R, mis)
+        seq = [(order[0], False)] + ([(sec, True)] if sec is not None else [])
+        for j, is_second in seq:
+            t0 = time.perf_counter()
+            r = rc.local_optimization(
+                voxel_vertices=vertices,
+                phase_index=phase,
+                initial_orientation=R[j],
+                rng=np.random.default_rng(0),
+                cma_sigma0_deg=RI.REUSE_SIGMA0_DEG,
+                cma_max_evals=RI.REUSE_MAX_EVALS,
+                optimizer="cma",
+            )
+            dt = time.perf_counter() - t0
+            ev = int(rc.last_local_optimization_evals)
+            hit = float(self._ratios(r.overlap_info)[0])
+            row["evals"] += ev
+            row["fits"].append(
+                dict(
+                    start=int(near[j]),
+                    evals=ev,
+                    hit=hit,
+                    cost=float(r.cost),
+                    s=float(dt),
+                    second=is_second,
+                )
+            )
+            row["second"] = is_second
+            if hit >= RI.REUSE_ACCEPT:
+                row["success"] = True
+                return (np.asarray(r.orientation, np.float64), float(r.cost), r.overlap_info), row
+        return None, row
+
     def _index_seed(
         self, voxel: Any, vertices: torch.Tensor, rec: BFSVoxelRecord, reseed: bool
     ) -> Optional[Tuple[SearchCandidate, OverlapInfo, float]]:
@@ -2651,7 +3013,79 @@ class BFSReconstruction:
         stall_k = int(getattr(sp, "seed_index_mc_stall_hit", 0))
         if stall_k:  # SeedIndexMCStallHit (opt-in)
             kw["mc_stall_hit"] = stall_k
-        res = self.reconstructor.index_seed(vertices, voxel.phase, **kw)
+        defer_on = bool(int(getattr(sp, "seed_index_mc_defer", 0)))
+        if defer_on:  # SeedIndexMCDefer (opt-in; needs the stall check)
+            kw["mc_defer"] = True
+        max_pairs = int(getattr(sp, "ray_index_max_pairs", RAY_INDEX_MAX_PAIRS_DEFAULT))
+        full_on = int(getattr(sp, "ray_index_fallback_full", 0)) > 0
+        pairs_on = max_pairs != RAY_INDEX_MAX_PAIRS_DEFAULT or full_on
+        if max_pairs != RAY_INDEX_MAX_PAIRS_DEFAULT:  # RayIndexMaxPairs (opt-in)
+            kw["max_pairs"] = max_pairs
+        steps: List[Tuple[Any, List[Dict[str, Any]]]] = []  # (result, stall logs) of each step
+
+        def run_step(step_kw: Dict[str, Any]) -> Any:
+            r = self.reconstructor.index_seed(vertices, voxel.phase, **step_kw)
+            logs = []
+            if stall_k:  # this step's stall-check logs, before a second step resets them
+                logs = [dict(x) for x in getattr(self.reconstructor, "last_seed_stall_hit", [])]
+            steps.append((r, logs))
+            return r
+
+        reuse_end: Optional[Tuple[np.ndarray, float, Any]] = None
+        reuse_row: Optional[Dict[str, Any]] = None
+        if int(getattr(sp, "seed_reuse_known", 0)) > 0:  # SeedReuseKnown (rule RU): once per
+            # seed step, before the first indexing (a repeated full-sample step does not repeat it)
+            t_try = time.perf_counter()
+            reuse_end, reuse_row = self._reuse_try(rec.voxel_idx, vertices, voxel.phase)
+            reuse_row.update(voxel=int(rec.voxel_idx), try_s=time.perf_counter() - t_try)
+        first_step: Optional[Dict[str, Any]] = None
+        if reuse_end is not None:  # a fit of the try ended at the accepted hit ratio: no indexing
+            assert reuse_row is not None
+            from .ray_indexing import SeedResult
+
+            res = SeedResult(
+                orientation=reuse_end[0],
+                cost=reuse_end[1],
+                taken=-1,
+                n_cand=0,
+                n_att=0,
+                evals=int(reuse_row["evals"]),
+                index_s=0.0,
+                total_s=float(reuse_row["try_s"]),
+            )
+            steps.append((res, []))  # no indexer call and no stall log
+        else:
+            res = run_step(kw)
+        if reuse_end is None and full_on and int(res.n_pairs) >= max_pairs:
+            # RayIndexFallbackFull (rule PXF): the indexing kept a subsample; if the step fails
+            # the seed test it is run again, whole, with the full sample (the hit ratio of the
+            # first step is not an evaluation)
+            hit1: Optional[float] = None
+            if res.orientation is not None:
+                info1 = self.reconstructor.evaluate_overlap(res.orientation, vertices, voxel.phase)
+                hit1 = float(self._ratios(info1)[0])
+            if hit1 is None or hit1 < self.setup.config.min_acceleration_threshold:
+                first_step = dict(
+                    evals=int(res.evals),
+                    hit=hit1,
+                    n_pairs=int(res.n_pairs),
+                    n_votes=int(res.n_votes),
+                    index_s=float(res.index_s),
+                )
+                res1 = res
+                res = run_step(dict(kw, max_pairs=RAY_INDEX_MAX_PAIRS_DEFAULT))
+                res = dataclasses.replace(  # both steps count as the seed's
+                    res,
+                    evals=res1.evals + res.evals,
+                    index_s=res1.index_s + res.index_s,
+                    total_s=res1.total_s + res.total_s,
+                )
+        if reuse_row is not None and reuse_end is None and reuse_row["tried"]:
+            res = dataclasses.replace(  # a failed try's costs and fits count as the seed's
+                res,
+                evals=res.evals + int(reuse_row["evals"]),
+                total_s=res.total_s + float(reuse_row["try_s"]),
+            )
         dt = time.time() - t0  # includes the one-time pairing on the first call
         rec.n_evals += res.evals
         rec.wall_s += dt
@@ -2673,18 +3107,43 @@ class BFSReconstruction:
             hit_ratio=None,
             used=False,
         )
+        if pairs_on:  # RayIndexMaxPairs / RayIndexFallbackFull: the pairs of the step that counts
+            entry["ray_index"] = dict(
+                max_pairs=max_pairs,
+                n_pairs=int(res.n_pairs),
+                n_votes=int(res.n_votes),
+                fallback_full=first_step is not None,
+            )
+            if first_step is not None:  # the repeated first step (its evaluations are in ``evals``)
+                entry["ray_index"]["first"] = first_step
+                self._count("index_fb_full_steps")
+                self._count("index_fb_full_evals_first", first_step["evals"])
+                self._count("index_fb_full_passed", 0)  # raised below when the second step passes
+            self._count("index_pairs", sum(int(r.n_pairs) for r, _ in steps))
+            self._count("index_votes", sum(int(r.n_votes) for r, _ in steps))
+        if reuse_row is not None:  # SeedReuseKnown: the try's row and counters (key on only)
+            entry["reuse"] = reuse_row
+            tried = bool(reuse_row["tried"])
+            self._count("reuse_steps")
+            self._count("reuse_tried", int(tried))
+            self._count("reuse_success", int(reuse_end is not None))
+            self._count("reuse_second_fits", sum(1 for f in reuse_row["fits"] if f["second"]))
+            self._count("reuse_evals", int(reuse_row["evals"]))
+            self._count("reuse_evals_wasted", 0 if reuse_end is not None else reuse_row["evals"])
+            self._count("reuse_s", float(reuse_row["try_s"]))
         if stop_hit > 0:
             entry["stopped_at"] = int(res.stopped_at)
             self._count("index_stopped_early", 1 if res.stopped_at >= 0 else 0)
         if (
             cma_first
         ):  # SeedIndexCMAFirst: per candidate, did the CMA end reach the ratio, did MC run
-            entry["mixed"] = [dict(m) for m in res.mixed]
-            self._count("index_mixed_cands", len(res.mixed))
-            self._count("index_mixed_cma_reached", sum(1 for m in res.mixed if not m["mc_ran"]))
-            self._count("index_mixed_mc_ran", sum(1 for m in res.mixed if m["mc_ran"]))
+            mixed = [dict(m) for r, _ in steps for m in r.mixed]  # both steps with the fallback
+            entry["mixed"] = mixed
+            self._count("index_mixed_cands", len(mixed))
+            self._count("index_mixed_cma_reached", sum(1 for m in mixed if not m["mc_ran"]))
+            self._count("index_mixed_mc_ran", sum(1 for m in mixed if m["mc_ran"]))
         if stall_k:  # SeedIndexMCStallHit: per MC refinement, its stall checks and evaluations
-            logs = [dict(x) for x in getattr(self.reconstructor, "last_seed_stall_hit", [])]
+            logs = [x for _, step_logs in steps for x in step_logs]  # first step's, then second's
             entry["stall_hit"] = logs
             self._count("index_stallhit_refinements", len(logs))
             self._count("index_stallhit_checks", sum(len(x["checks"]) for x in logs))
@@ -2693,6 +3152,14 @@ class BFSReconstruction:
             self._count(
                 "index_stallhit_evals_in_stopped", sum(x["evals"] for x in logs if x["stopped"])
             )
+        if defer_on:  # SeedIndexMCDefer: which refinements were paused and which resumed
+            entry["defer"] = dict(
+                paused=[int(p) for p in res.paused], resumed=[int(p) for p in res.resumed]
+            )
+            for r, _ in steps:  # both steps with the fallback (``entry`` has the last one's lists)
+                self._count("index_defer_steps", 1 if r.paused else 0)
+                self._count("index_defer_pauses", len(r.paused))
+                self._count("index_defer_resumes", len(r.resumed))
         self.index_log.append(entry)
         self._count("index_runs")
         self._count("index_evals", res.evals)
@@ -2705,7 +3172,10 @@ class BFSReconstruction:
             print(f"    Seed voxel {rec.voxel_idx}: no index candidate: grid search", flush=True)
             return None
         result = SearchCandidate(orientation=res.orientation, cost=float(res.cost))
-        info = self.reconstructor.evaluate_overlap(result.orientation, vertices, voxel.phase)
+        if reuse_end is not None:  # the fit's own overlap (no further evaluation)
+            info = reuse_end[2]
+        else:
+            info = self.reconstructor.evaluate_overlap(result.orientation, vertices, voxel.phase)
         hit, _ = self._ratios(info)
         entry["hit_ratio"] = float(hit)
         if hit < self.setup.config.min_acceleration_threshold:
@@ -2725,6 +3195,8 @@ class BFSReconstruction:
         entry["used"] = True
         self._count("index_used")
         self._count("index_evals_used", res.evals)
+        if first_step is not None:
+            self._count("index_fb_full_passed")
         return result, info, dt
 
     def _rescue_seed(

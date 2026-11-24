@@ -2173,3 +2173,177 @@ ROADMAP.md (rows and "Decisions waiting on the owner"). Older decisions are in M
   runs before the freeze. Nothing merges to develop. Where: reports
   .claude/reports/20261116-1335-cppchk-phaseA.md and 20261116-1429-cppchk-phaseB.md; branches
   feature/eval-reduction-cppchk 748d0111, feature/eval-reduction-cpptrace ae912cf9.
+
+### D-20261116-N6 · Owner task 16 Nov part 2: slice cap · fine1: stock Python slice rerun with an 8-hour cap
+- 2026-11-16, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. The stock Python (PS) slice on fine7 hit the
+  launcher's default 1-hour slice cap (3,632 s; all 2,000 voxels recorded by 3,002 s, then still
+  in reseeds, 125 so far). The 1-hour cap was a guess of the plan, not a cap from a projection.
+  The owner's spec needs a finished slice to project the whole-layer time, so PS is run again from
+  the start with an 8-hour cap; the capped run is kept (PS.cap1h.marker, slice_PS.cap1h.log) and
+  reported. Then the fixed C++ slice (CF, fixed2 build, 2-hour cap). One run at a time (owner, 16
+  Nov). Slices done: CS 2,595 s, J5S 65 s (184,661 evaluations in its stages), both labelled
+  contended. A PS slice over 1 hour makes a whole-layer PS run over 48 hours likely: the owner is
+  asked before it starts. Where: icenine_py/docs/autoresearch/PLAN.md (Owner task of 16 Nov, part
+  2).
+
+### D-20261119-N1 · AR5 step 23 · AR5 step 23 approved: converging ball for the seed refinement's second MC stage
+- 2026-11-19, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Step 23 (task ar5w) is approved as placed in PLAN.md
+  (1d6bca35): rule CB replaces the second (variance) stage of the seed step's MC refinement with a
+  shrinking ball (start radius the box, halve after 10 failures in a row, end under 0.01 degree or
+  after 300 proposals); gate on the disclosed samples, clean test held7; phase B key
+  SeedIndexMCBall only after a recorded decision. Runs go one at a time (owner rule of 16 Nov) and
+  give way to the owner's finer-layer runs (J5S rerun, stock Python) if the owner approves those.
+  Ceiling 20% to 33% of J5SD on the held types is arithmetic, not a measurement. Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR5 step 23).
+
+### D-20261119-N2 · AR5 step 23 · AR5 step 23: failed at gate g1; seven replays run for information only
+- 2026-11-19, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Step 23 (rule CB) failed gate g1 on mid (70 of 1,626
+  seed steps, 4.31%, lose their 0.95 end; limit 3%). The frozen rule holds: no tuning, no g2, no
+  held7, no key; the step merges as a failed study with no library change. After the stop, the
+  other seven replays were run one at a time for information only (which steps lose their end and
+  where it was found); their numbers are disclosed and decide nothing. Independent review (Opus):
+  approve with eight text and bookkeeping fixes. Where: icenine_py/docs/autoresearch/PLAN.md (AR5
+  step 23).
+
+### D-20261119-N3 · AR5 step 24 · AR5 step 24 approved: ball first, stock second stage only as fallback
+- 2026-11-19, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Step 24 (task ar5x) is approved as placed in PLAN.md
+  (12cda3c7): rule BF runs step 23's ball stage on the five candidates first and falls back to
+  J5D's stock second stage, from kept states, only when no ball end reaches 0.95. Sized exactly
+  from stored rows: 5.4% to 8.7% of J5SD on the held types, 0 lost ends by construction. Gate on
+  the disclosed samples, clean test held7, key SeedIndexMCBallFirst only after a recorded
+  decision. Runs one at a time; they give way to the owner's finer-layer runs if the owner
+  approves those. The saving is modest; the never steps (20% to 26% of J5SD) are left for a later
+  study, for which this step records feature rows. Where: icenine_py/docs/autoresearch/PLAN.md
+  (AR5 step 24).
+
+### D-20261119-N4 · AR5 step 24 failed gate g2 on mid; held run as information only · AR5 step 24 (rule BF) fails gate g2 on mid; one held pair is run as information
+- 2026-11-19, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Gate g2 fails on mid: J5SDB 7,219,040 evaluations
+  against J5SD 7,383,368, 2.2% fewer, bar 4%. The verdict is final: no key SeedIndexMCBallFirst,
+  no phase B, no held7 run (held7 stays unused). The index stage fell 18.1% as sized, but the
+  grid-search stage rose by 329,915 evaluations (3 grid searches against 2). To learn whether the
+  shortfall is that one extra grid search or the rule, the implementer runs the held pair (J5SD
+  and J5SDB, about 90 minutes, one run at a time) as information only. It cannot change the
+  verdict. Then review and merge as a failed study. Where: icenine_py/docs/autoresearch/PLAN.md
+  (AR5 step 24); .claude/reports/20261119-1124-ar5x.md.
+
+### D-20261119-N5 · AR5 step 25 approved, phase 0 only (stored rows) · AR5 step 25 (stall-point predictor) approved for its stored-row phase only
+- 2026-11-19, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Step 24 merged as a failed study (db26a50b). Step 25
+  asks whether features known at the stall point of a seed step tell a step that will still reach
+  0.95 from one that never will. The drafting numbers say no (AUC 0.55 to 0.60, stored saving 1.4%
+  to 2.4%), so only phase 0 is approved: tracked scripts reproduce the three tables (s0) and gate
+  s1 (AUC at least 0.70 and saving at least 4%) is judged. About one hour, no reconstruction,
+  held7 not built. If s1 fails the step ends as a recorded negative result; no other feature set,
+  label or threshold is tried in it. A live phase needs a new decision. Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR5 step 25).
+
+### D-20261119-N6 · AR5 step 25 merged (negative); step 26 approved, phases 0 and A · AR5 step 25 ends as a negative result; AR5 step 26 (faster ray indexer, same candidates) approved
+- 2026-11-19, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Step 25: gate s1 failed (logistic AUC 0.55 to 0.59,
+  bar 0.70; stored saving under 2.5%, bar 4%); s0 was not exact (an off-by-one the plan foresaw,
+  about 0.01 points; boosted tree not reproduced, no new dependency). Merged as a negative result,
+  no live run. Step 26: stored J5SD runs spend 41% to 77% of wall time (contended) in ray
+  indexing, which counts no evaluations. A new indexer must return the same candidates
+  (bit-identical, or tier 2 within 1e-12) and is judged in quiet seconds: indexing at least 50%
+  faster, pooled mid and held wall at least 25% lower. Phases 0 (gate z0, a quiet profile) and A
+  approved, 5 to 6 hours, one run at a time; held7 unused under tier 1; a key (phase B) needs a
+  new decision. If the machine is not quiet the timed runs wait; no process of the owner is
+  stopped. Where: icenine_py/docs/autoresearch/PLAN.md (AR5 steps 25, 26).
+
+### D-20261120-N1 · AR5 step 26 merged as a study; step 27 approved, phase A · AR5 step 26 merged as a study (no key); AR5 step 27 (indexer with 50,000 ray pairs) approved
+- 2026-11-20, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Step 26 merged at ae16e2c7 as a study:
+  index_voxel_fast equals the old indexer on all tested data but not by construction; timing gates
+  not judged (machine not quiet); no key. Step 27, rule PX: the indexer's max_pairs is 50,000 in
+  place of 600,000, nothing else changes; on 400 stored seed voxels (contended) indexing seconds
+  fell 54% and 78% with no loss from the top 20 candidates. Phase A approved with index_voxel in
+  both arms: gates on counts first (q1, c1, c2, c3), paired timings in one session (t1, t2, judged
+  with any load), then the house rule against S8 on the clean sample held7, which this step uses
+  up. About 10 to 11 hours, one run at a time. A key needs a new decision. Sized as the next step:
+  trying nearby accepted orientations with a longer fit before indexing (about 80% of seed steps
+  end within 1 degree of an earlier accepted neighbour). Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR5 steps 26, 27).
+
+### D-20261120-N2 · AR5 step 27 merged (failed c2, c3); step 28 approved, phase A · AR5 step 27 merged as a failed study; AR5 step 28 (50,000 pairs first, full sample on a failed seed test) approved
+- 2026-11-20, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Step 27 (rule PX) merged at 87c1f49a as a failed
+  study: evaluations +2.19% (limit 2%), grid searches on held 7 against 4 (limit 2 more); indexing
+  seconds 75.8% and pooled wall 44.9% lower (contended). No key; the gates are not loosened; PX
+  alone is not tried again. Stored rows show the extra grid searches are not lost candidates: the
+  two pair settings give different starts and fail on different voxels (held: 62 old, 60 new, 20
+  both). Step 28, rule PXF: a seed step indexes with 50,000 pairs; if it fails the seed test and
+  the pairs were subsampled, the voxel is indexed again with 600,000 pairs and the seed step
+  repeated, then rescue and grid search as now. Phase A approved with step 27's count gates
+  unchanged (c1 at 50% as planned), then the house rule on the clean sample held7, which this step
+  uses up; plain J5SD also runs on held7 and is reported, not a gate. mid and held are in-sample
+  for this rule. About 7.5 to 8.5 hours, one run at a time. A key needs a new decision. Where:
+  icenine_py/docs/autoresearch/PLAN.md (AR5 steps 27, 28).
+
+### D-20261120-N3 · D-20261120-N3 · AR5 step 28 merged, all gates met; phase B (opt-in keys for rule PXF) approved
+- 2026-11-20, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. AR5 step 28 (rule PXF: 50,000 ray pairs first, the
+  full 600,000-pair sample again when the seed test fails) is merged as 66e61aa8 (suite 2396
+  passed, 45 skipped). All frozen gates met and recomputed by the review: c1 pairs 72.0% fewer; c2
+  evaluations 4.47% fewer on mid+held (in-sample; rests on 4 fewer grid searches, +1.18% without
+  them); c3 met; t2 wall 44.7% lower (contended, not paired in one session); h1 met on the clean
+  sample held7 (S8 77.78M evaluations, 96 wrong; new J5SD 20.08M, 42 wrong; plain J5SD 21.79M, 55
+  wrong; one sample, route effects, not proof of an accuracy gain). Phase B is approved as task
+  ar5ac: opt-in keys RayIndexMaxPairs and RayIndexFallbackFull, default off, key-off suite with no
+  golden change, a key-on library run equal to the script arm, findings text, history, README.
+  held7 is now disclosed. No merge to develop. Where: icenine_py/docs/autoresearch/PLAN.md AR5
+  step 28; .claude/reports/20261120-0826-ar5ab.md; .claude/reports/20261120-1740-review-ar5ab.md.
+
+### D-20261120-N4 · D-20261120-N4 · AR5 step 29 (rule RU: try known nearby orientations with a longer fit before indexing) approved, phase A
+- 2026-11-20, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. AR5 step 29 phase A is approved as task ar5ad, to
+  start after task ar5ac (step 28 keys) merges, one run at a time. Rule RU, frozen in the plan:
+  before a seed step, cost the 8 nearest accepted orientations, run a 200-evaluation CMA fit with
+  a 0.5 degree first step from the best, then a second fit from the best start over 0.5 degree
+  away; accept at hit ratio 0.95; otherwise the PXF seed step runs unchanged. Sizing probe (797
+  stored seed steps of mid and held, in-sample, 2.19 million evaluations): success 80.7% and
+  70.7%; projected 26% to 29% fewer evaluations and 31% to 34% less wall (contended projection;
+  route effects not sized). Gates r1 to r3 on mid and held against the stored PXF runs; clean test
+  on a new sample held8 (h1 against S8, h2 against PXF J5SD), built only after r1 to r3 pass. A
+  key (phase B) needs a new decision. Where: icenine_py/docs/autoresearch/PLAN.md AR5 step 29.
+
+### D-20261120-N5 · D-20261120-N5 · Owner: finer-layer Python runs may go ahead; order set
+- 2026-11-20, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by the owner in the session on 2026-11-20 (question card). On the finer 98,280-voxel
+  layer: rerun the current-recipe run (arm J5S) with a 6 h cap, then start the stock Python run
+  (arm PS, projected 33.7 to 51.0 h, cap 76.5 h), which may exceed the 48 h ask-first limit.
+  Order: AR5 step 29 (about 9 h) runs first, then the layer runs, one run at a time. Recorded by
+  Newt Agent. Where: icenine_py/docs/autoresearch/STATE.md; SP/owner_task_20261116.md.
+
+### D-20261120-N6 · D-20261120-N6 · Owner: parallel C++ IceNine may use all cores when nothing else runs
+- 2026-11-20, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by the owner in the session on 2026-11-20: parallel C++ IceNine may run with as many
+  workers as there are cores, provided nothing else is running. Newt Agent's plan under it (yours
+  to overrule): after AR5 step 29 ends, rerun the stock C++ and the corrected C++ on the finer
+  98,280-voxel layer with all cores (newt has 12 cores, 8 performance), each alone on the machine,
+  as new arms beside the one-worker arms (which stay as recorded); then the Python runs of
+  D-20261120-N5. Recorded by Newt Agent. Where: icenine_py/docs/autoresearch/STATE.md.
+
+### D-20261121-N1 · D-20261121-N1 · AR5 step 29 phase B: opt-in key SeedReuseKnown
+- 2026-11-21, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. Step 29 phase A met all gates and was reviewed, so
+  the reuse rule becomes an opt-in library key SeedReuseKnown (default 0), as drafted in PLAN 'AR5
+  step 29 phase B' (task ar5ae): equality to a new script arm RUl on mid, library-form gate L2
+  against LibPXF, key refused without the PXF keys. It runs after the J5S layer run ends and
+  before stock Python (PS) starts, one run at a time. Where: icenine_py/docs/autoresearch/PLAN.md,
+  section AR5 step 29 phase B.
+
+### D-20261121-N2 · D-20261121-N2 · AR5 step 30 phase A: field start for BFS neighbour fits (rule FS)
+- 2026-11-21, owner. Recorded by Newt Agent. Supersedes: none.
+- Decided by Newt Agent under D-20261109-N1. After PXF and RU, BFS neighbour fits hold 47% of
+  evaluations and 56% to 73% of them are rejected, mostly from same-grain starts 0.25 to 2 degrees
+  off. Step 30 phase A (task ar5af) starts each BFS fit from a local linear orientation field of
+  accepted voxels within 3 triangle sides, at no evaluation; gates f1, f2, h1, h2 and a 10-minute
+  opening probe are frozen in PLAN. Ilium's whole-grain fit was assessed and not chosen (113
+  evaluations per voxel against 61). Runs start only when the stock Python layer run (PS) has
+  ended: one IceNine job at a time (owner, 21 Nov). Where: icenine_py/docs/autoresearch/PLAN.md,
+  section AR5 step 30.

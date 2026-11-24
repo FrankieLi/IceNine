@@ -245,6 +245,14 @@ class ConfigFile:
     seed_rescue_evals: int = 0
     # AR5 step 12 (opt-in, off at 0): SeedIndexMCStallHit k (see SearchParameters)
     seed_index_mc_stall_hit: int = 0
+    # AR5 step 22 (opt-in, off at 0): SeedIndexMCDefer 0|1 (see SearchParameters)
+    seed_index_mc_defer: int = 0
+    # AR5 step 28 (opt-in): RayIndexMaxPairs N (default 600,000) and RayIndexFallbackFull 0|1 (off
+    # at 0); see SearchParameters
+    ray_index_max_pairs: int = 600_000
+    ray_index_fallback_full: int = 0
+    # AR5 step 29 (opt-in, off at 0): SeedReuseKnown 0|1 (see SearchParameters)
+    seed_reuse_known: int = 0
     cpp_overlap_rule: bool = False  # C++ CountQualifiedPeaks rule + centroid screen (opt-in)
     cpp_edge_rules: bool = False  # C++ conventions at the low edges (opt-in, see VoxelCostFunction)
     cpp_omega_interp: bool = False  # C++ omega interpolation in the level screen (opt-in)
@@ -506,6 +514,10 @@ class ConfigFile:
             "BoundaryPassScreen": self._parse_bool("boundary_pass_screen"),
             "SeedRescueCMA": self._parse_seed_rescue_cma,
             "SeedIndexMCStallHit": self._parse_seed_index_mc_stall_hit,
+            "SeedIndexMCDefer": self._parse_seed_index_mc_defer,
+            "RayIndexMaxPairs": self._parse_ray_index_max_pairs,
+            "RayIndexFallbackFull": self._parse_ray_index_fallback_full,
+            "SeedReuseKnown": self._parse_seed_reuse_known,
             "CppOverlapRule": self._parse_bool("cpp_overlap_rule"),
             "CppEdgeRules": self._parse_bool("cpp_edge_rules"),
             "CppOmegaInterp": self._parse_bool("cpp_omega_interp"),
@@ -689,6 +701,68 @@ class ConfigFile:
             raise ValueError(f"{tokens[0]} needs an integer >= 0, got {tokens[1]!r}") from None
         check_seed_index_mc_stall_hit(k)
         self.seed_index_mc_stall_hit = k
+
+    def _parse_seed_index_mc_defer(self, tokens: List[str]) -> None:
+        """SeedIndexMCDefer 0|1 (Python-only, opt-in, AR5 step 22): a seed-step MC refinement
+        whose stall check goes on is paused while the step has an untried candidate. ``0`` is
+        off. Needs ``SeedIndexMCStallHit`` (checked by ``reconstructor.check_bfs_keys``)."""
+        from .orientation_search import check_seed_index_mc_defer
+
+        if len(tokens) != 2:
+            raise ValueError(f"{tokens[0]} needs exactly one value, 0 or 1, got {tokens[1:]}")
+        try:
+            v = int(tokens[1])
+        except ValueError:
+            raise ValueError(f"{tokens[0]} needs 0 or 1, got {tokens[1]!r}") from None
+        check_seed_index_mc_defer(v)
+        self.seed_index_mc_defer = v
+
+    def _parse_ray_index_max_pairs(self, tokens: List[str]) -> None:
+        """RayIndexMaxPairs N (Python-only, opt-in, AR5 step 28): ray pairs the indexer keeps in a
+        seed step (default 600,000, today's setting). Needs ``SeedByIndexing`` when it differs
+        from the default (checked by ``reconstructor.check_bfs_keys``)."""
+        from .orientation_search import check_ray_index_max_pairs
+
+        if len(tokens) != 2:
+            raise ValueError(f"{tokens[0]} needs exactly one integer >= 1, got {tokens[1:]}")
+        try:
+            n = int(tokens[1])
+        except ValueError:
+            raise ValueError(f"{tokens[0]} needs an integer >= 1, got {tokens[1]!r}") from None
+        check_ray_index_max_pairs(n)
+        self.ray_index_max_pairs = n
+
+    def _parse_ray_index_fallback_full(self, tokens: List[str]) -> None:
+        """RayIndexFallbackFull 0|1 (Python-only, opt-in, AR5 step 28, rule ``PXF``): a seed step
+        that fails the seed test after a subsampled indexing is run again with 600,000 pairs.
+        ``0`` is off. Needs ``SeedByIndexing`` and ``RayIndexMaxPairs`` below 600,000 (checked by
+        ``reconstructor.check_bfs_keys``)."""
+        from .orientation_search import check_ray_index_fallback_full
+
+        if len(tokens) != 2:
+            raise ValueError(f"{tokens[0]} needs exactly one value, 0 or 1, got {tokens[1:]}")
+        try:
+            v = int(tokens[1])
+        except ValueError:
+            raise ValueError(f"{tokens[0]} needs 0 or 1, got {tokens[1]!r}") from None
+        check_ray_index_fallback_full(v)
+        self.ray_index_fallback_full = v
+
+    def _parse_seed_reuse_known(self, tokens: List[str]) -> None:
+        """SeedReuseKnown 0|1 (Python-only, opt-in, AR5 step 29, rule ``RU``): before a seed step,
+        try the orientations of the 8 nearest accepted voxels with a longer fit. ``0`` is off.
+        Needs ``SeedByIndexing`` and ``RayIndexFallbackFull`` (checked by
+        ``reconstructor.check_bfs_keys``)."""
+        from .orientation_search import check_seed_reuse_known
+
+        if len(tokens) != 2:
+            raise ValueError(f"{tokens[0]} needs exactly one value, 0 or 1, got {tokens[1:]}")
+        try:
+            v = int(tokens[1])
+        except ValueError:
+            raise ValueError(f"{tokens[0]} needs 0 or 1, got {tokens[1]!r}") from None
+        check_seed_reuse_known(v)
+        self.seed_reuse_known = v
 
     def _parse_off_or_min2(self, attr_name: str) -> Callable[[List[str]], None]:
         """Parser for an integer that is 0 (off) or at least 2."""

@@ -1237,3 +1237,212 @@ relative to the neighbours' median). Reviews in the main `.claude/reports/`:
   disclosed.
 - Worktree `agent-a8c1c16b70cf43e39` kept (cache `ar5/screen/cache` with S8, J5, J5C, J5S on held5).
 - Wake-up cron renewed 2026-11-16, id 24092880, expires 2026-11-23.
+
+### AR5 step 22 (defer a stalled seed refinement; task `ar5v`), merged at 566eea3f on 2026-11-16
+
+Suite after the merge: 2333 passed, 48 skipped, 1 deselected. Decisions D-20261116-N2 and
+D-20261116-N4. Reports in the main `.claude/reports/`: `20261116-1309-ar5v-stats.md`,
+`20261116-1451-ar5v-phaseB.md`, reviews `20261116-1310-review-ar5v.md` and
+`20261116-1451-review-ar5v-phaseB.md`.
+
+- Rule DEF: pause a stalled seed refinement while the seed step still has untried candidates.
+  Resume it only if no later candidate reaches hit ratio 0.95. This is arm J5SD (J5S plus DEF).
+  No truth is used.
+- Clean test on held6 (24,570 voxels): evaluations S8 67,502,030; J5 29,194,542; J5S 25,464,972;
+  J5SD 22,690,096. That is 10.90% fewer than J5S and 66.4% fewer than S8. Wrong voxels 80, 58,
+  39, 37. J5SD against J5S: 3 fixed, 1 broken. Median error 0.02199 against 0.02189 degree.
+- Disclosed samples, saving against J5S and broken minus fixed: held5 11.58% +3, held4 12.39%
+  +1, held3 9.28% 0, held 12.04% +2, mid 12.07% +3, grad 1.96% 0, big 6.80% 0. Pooled over
+  eight samples: 9 fixed, 16 broken.
+- Phase B added the library key `SeedIndexMCDefer`, default 0 (off); it needs
+  `SeedIndexMCStallHit`. The library key lacks rule G2b and the aligned draws. On mid, before the
+  boundary pass, it saves 10.8% (7,253,826 against 8,135,786). Accuracy was not measured. No
+  library run combines it with the screen pass and repair.
+- The plan's key-on check was replaced (the library run equals script arm J5Dl, not J5D). It
+  waits for the owner, as do those of steps 20 and 21.
+- Open for the owner: the findings page is not placed. Text is at
+  `.claude/reports/20261116-1506-ar5v-findings_ar5_defer_v2.md`; it goes to
+  `icenine_py/docs/autoresearch/findings_ar5_defer.md`.
+
+### AR5 step 23 (converging ball, rule CB; task `ar5w`), merged as a failed study at 92005ed2 on 2026-11-19
+
+Suite after the merge: 2350 passed, 48 skipped, 1 deselected. Decisions D-20261119-N1 (approval)
+and D-20261119-N2 (seven replays run for information only). Reports in the main
+`.claude/reports/`: `20261119-0119-ar5w.md`, review `20261119-1010-review-ar5w.md`, findings
+text `20261119-ar5w-findings_ar5_ball.md`. Numbers are in
+`icenine_py/benchmarks/autoresearch/ar5/ball/` (`info_tables.md`, `info.json`).
+
+- Rule CB: a converging-ball second stage for the MC refinement of the seed step. The step
+  failed its replay gate g1 (limit: at most 3% of seed steps lose their 0.95 end). No key, no
+  library change, no live run, no clean test sample.
+- On `mid`, 70 of 1,626 seed steps (4.31%, Wilson 3.42% to 5.40%) lose the 0.95 end. The whole
+  interval is above the limit.
+- Lost shares on the other samples (replays run for information only): held5 8.69%, held4
+  9.88%, held3 8.38%, held 9.55%, held6 8.03%, grad 1.48%, big 0.61%.
+- The saving is real but does not pay for the loss. Index-stage evaluations fall about 60% on
+  the held types (held 9.13M to 3.43M) and 58.4% on mid (2.64M to 1.10M).
+- Almost all lost steps are reseed steps. All 1,772 lost ends (all eight samples) were found
+  in the stock second stage after its first block.
+- Disclosed samples only. The rule and the gate were set looking at them, and the step stopped
+  at the gate. Other constants would be tuning after a failed gate.
+- Open for the owner: the findings page is not placed. Text is at
+  `.claude/reports/20261119-ar5w-findings_ar5_ball.md`.
+
+### AR5 step 24 (ball first, rule BF; task `ar5x`), merged as a failed study at db26a50b on 2026-11-19
+
+Decisions D-20261119-N3 (approval) and D-20261119-N4. Reports in the main `.claude/reports/`:
+`20261119-1124-ar5x.md` and review `20261119-1455-review-ar5x.md`.
+
+- Rule BF ("ball first"): the ball stage runs before the stock refinement of the seed step. Arm
+  J5SDB is J5SD plus BF. Gates g0 (replay) and g1 (sizing) passed. Gate g2 (live run on `mid`)
+  failed.
+- On `mid`, J5SDB needs 7,219,040 evaluations against 7,383,368 for J5SD. That is 2.2% fewer
+  (bar 4%). Wrong voxels 19 against 23. Grid searches 3 against 2 (+329,915 evaluations in the
+  grid stage; the cause was not tested).
+- Run for information only after the fail, on `held`: 15,643,196 evaluations against
+  17,114,589 (8.60% fewer). Wrong voxels 45 and 45. It is not part of the gate.
+- No key, no phase B, `held7` unused. No library change, no default change.
+- Step 25 (a stall-point predictor, stored rows first) is approved by D-20261119-N5.
+
+### AR5 step 25 (stall-point predictor; task `ar5y`), merged as a negative result at e0bfff98 on 2026-11-19
+
+Decisions D-20261119-N5 (approval) and D-20261119-N6. Reports in the main `.claude/reports/`:
+`20261119-1514-ar5y.md` and review `20261119-1600-review-ar5y.md`.
+
+- Idea: predict the stall point of seed steps that never reach 0.95. Stored rows only; no live
+  run, `held7` unused.
+- Gate s1 failed. Logistic AUC is 0.547 to 0.588 (bar 0.70). Stored saving is 1.39% to 2.47%
+  (bar 4%).
+- Gate s0 is not exact. An off-by-one the plan foresaw (about 0.01 points). The boosted tree was
+  not reproduced (no new dependency).
+- No key, no library change, no default change. Suite: 2366 passed, 48 skipped, 1 deselected.
+- Step 26 (task `ar5z`, a faster ray indexer with the same candidates) is approved by
+  D-20261119-N6. It targets wall time, not evaluations: stored J5SD runs spend 41% to 77% of
+  contended wall time in ray indexing.
+
+### AR5 step 26 (faster ray indexer; task `ar5z`), merged as a study at ae16e2c7 on 2026-11-20
+
+Decision D-20261119-N6. Reports in the main `.claude/reports/`: `20261119-1542-ar5z.md` and
+review `20261120-0035-review-ar5z.md`.
+
+- Idea: a faster ray indexer, `index_voxel_fast`, with the same candidates. It targets wall
+  time, not evaluations.
+- Exactness gates e1 and e2 met at tier 1 on the tested data. e1: 7,111 of 7,111 voxels equal.
+  e2: live J5SD equals the stored maps and counts on `mid` and `held`.
+- "Equal on tested data, not by construction": a vote on the 1-degree edge can change a
+  neighbour count.
+- Timing gates z0, w1, w2 are NOT JUDGED: the machine was not quiet and the preflight refused.
+- Contended numbers: indexing 35.4% lower pooled (line 50%), wall 23.0% lower pooled (line 25%).
+  Both would be missed.
+- No key. The new function is in the library, unused by default. No default change. Suite: 2379
+  passed, 45 skipped, 1 deselected.
+- A key would first need an exact neighbour count. Step 27 is being drafted.
+
+### AR5 step 27 (rule PX, 50,000 pairs; task `ar5aa`), merged as a failed study at 87c1f49a on 2026-11-20
+
+Decision D-20261120-N1. Reports in the main `.claude/reports/`: `20261120-0118-ar5aa.md` and
+review `20261120-0805-review-ar5aa.md`. Results: `benchmarks/autoresearch/ar5/px/`.
+
+- Idea: the ray indexer takes `max_pairs` 50,000 in place of 600,000, so it looks at fewer pairs.
+- Met: q1 (6 of 2,396 accepted orientations leave the top 20, 0 gained), c1 (pairs 73.9% fewer),
+  t1 (indexing seconds 75.8% lower, contended), t2 (pooled wall 44.9% lower, contended).
+- NOT met: c2, evaluations +2.19% against stored J5SD (limit 2%): mid 7.88% fewer, held 6.53%
+  more. c3 on held: grid searches 7 against 4 (limit 2 more).
+- Wrong voxels: mid 17 against 23, held 42 against 45.
+- The extra grid searches are not lost candidates. The cause was not tested in step 27.
+- held7 not built. No key. No library change. Suite: 2382 passed, 48 skipped, 1 deselected.
+- Step 28 (task `ar5ab`, rule PXF: 50,000 pairs first, the full sample again when the seed test
+  fails; D-20261120-N2) followed. It uses up held7.
+
+### AR5 step 28 (rule PXF; task `ar5ab`), merged at 66e61aa8 on 2026-11-20
+
+Decisions D-20261120-N2 (plan) and D-20261120-N3 (phase B approved). Reports in the main
+`.claude/reports/`: `20261120-0826-ar5ab.md` and review `20261120-1740-review-ar5ab.md`.
+Results: `benchmarks/autoresearch/ar5/pxf/`.
+
+- Idea: seed step indexes use 50,000 ray pairs. If the seed test fails after a subsampled
+  indexing, index again with 600,000 pairs and repeat the whole seed step.
+- All frozen gates met (reviewed, recomputed, 0 differences): c1 pairs 72.0% fewer. c2
+  evaluations 4.47% fewer on mid plus held (23,402,740 against 24,497,957). c3 met on both.
+  t2 pooled wall 44.7% lower (8,219 s to 4,545 s). h1 on held7 met.
+- Caution on c2: it rests on 4 fewer grid searches. Without grid evaluations PXF is +1.18%.
+- Caution on t2: contended (load 2.3 to 2.5) and unpaired, the runs come from different sessions.
+- Clean sample held7 (24,570 voxels), all contended. S8: 77,783,446 evaluations, 96 wrong. New
+  J5SD: 20,075,769, 42 wrong, 6 grid searches, 3,791 s. Plain J5SD: 21,788,476, 55 wrong, 12 grid
+  searches, 9,181 s. This is one sample with route effects. It is not proof of an accuracy gain.
+- mid and held are in-sample. held7 is now disclosed (used).
+- Disclosed: S8 log tail read once (3 lines, no result); two premature `bf_runs.done` windows;
+  run order on held7 was S8, plain, new because a guard bug forced it (fixed, no rule change).
+- Review fixes applied (81b369ab): held7 copied to the main checkout, render records committed,
+  freeze history file, new-vs-plain numbers in `summary.json`, contended and unpaired labels.
+- No library change in phase A. Suite: 2396 passed, 45 skipped, 1 deselected.
+- Phase B (opt-in keys `RayIndexMaxPairs` and `RayIndexFallbackFull`, task `ar5ac`) is approved
+  by D-20261120-N3 and has started.
+
+### AR5 step 28 phase B (task `ar5ac`), merged at fa31ffac on 2026-11-20
+
+Decision D-20261120-N3 (approved). Reports in the main `.claude/reports/`: `20261120-1900-ar5ac.md`
+and review `20261120-1915-review-ar5ac.md`. Results: `benchmarks/autoresearch/ar5/pxf/lib_check.json`.
+
+- Two opt-in keys, both off by default: `RayIndexMaxPairs` and `RayIndexFallbackFull`. They are
+  refused without `SeedByIndexing` and with `PaintGrains 1`.
+- Library form on mid before the boundary pass: 7.20% fewer evaluations than keys off (7,253,826
+  to 6,731,510). Grid searches go from 4 to 2. Without the fallback stage it is +2.80%.
+- The phase A numbers (4.47% fewer evaluations, wall 44.7% lower, contended) belong to the script
+  arm. That arm has extra stages the library lacks.
+- Keys off, nothing changes. No golden change. Suite: 2433 passed, 48 skipped, 1 deselected.
+- The findings text waits for the owner to place:
+  `.claude/reports/20261120-1900-ar5ac-findings_ar5_pxf.md`.
+- Step 29 (task `ar5ad`, rule RU: try the 8 nearest accepted orientations with a 200-evaluation
+  fit before indexing) is approved by D-20261120-N4 and has started.
+- D-20261120-N5: finer-layer runs (current recipe with a 6 h cap, then stock Python) go ahead
+  after step 29.
+
+### AR5 step 29 phase A (task `ar5ad`, rule RU), merged at 75af46bb on 2026-11-21
+
+Decision D-20261120-N4. Reports in the main `.claude/reports/`: `20261120-1937-ar5ad.md` and review
+`20261121-0115-review-ar5ad.md` (Opus, approve; six wording fixes applied in b1b90ad8).
+
+- Rule RU: before a seed step, cost the 8 nearest accepted orientations. Run one 200-evaluation
+  CMA fit from the lowest-cost one, first step 0.5 degree. Then a second start. Else the PXF seed
+  step runs unchanged.
+- r1: 16,648,743 against 23,402,740 evaluations on mid plus held, 28.9% fewer (in-sample).
+- r2: broken minus fixed is -1 on each. r3: pooled wall 3,104 s against 4,545 s, 31.7% lower
+  (contended).
+- Clean sample held8 (now disclosed): 81.2% fewer evaluations than S8, 30 fixed and 7 broken.
+  32.8% fewer than PXF J5SD, 9 fixed and 9 broken.
+- Seed steps ended by a try: 81.6% mid, 72.8% held, 72.6% held8.
+- The PXF run on held8 started on battery beside a busy process. Its wall gap to RU is not a
+  saving.
+- Suite: 2449 passed, 45 skipped, 1 deselected.
+- Phase B (key `SeedReuseKnown`) needs a new decision. Not decided.
+- The all-core C++ run (arm CSP) on the finer layer was launched 01:38 on 21 Nov under
+  D-20261120-N6. CFP, the J5S 6-hour rerun and PS follow, one at a time.
+
+### AR5 step 29 phase B (task `ar5ae`, key `SeedReuseKnown`), merged at 70fe192d on 2026-11-21
+
+Decision D-20261121-N1. Reports in the main `.claude/reports/`: `20261121-1009-ar5ae.md` and
+review `20261121-1320-review-ar5ae.md` (Opus, approve; nine wording and record fixes applied in
+234264c7). Findings text waiting for the owner to place: `20261121-1310-ar5ae-findings_ar5_ru.md`.
+
+- Opt-in library key `SeedReuseKnown`, default 0. Refused without `SeedByIndexing` and
+  `RayIndexFallbackFull 1`, with `PaintGrains 1`, and with a hybrid or non-`mc` optimizer.
+- Shared Track E/S files changed: `icenine/orientation_search.py` and `icenine/reconstructor.py`.
+  With the key off the result is bit-identical.
+- On mid (in-sample, copper only) the library form equals the script arm RUl exactly: map,
+  4,721,521 evaluations, 36 counters, 24,570 records, 1,692 try rows. The reviewer notes the
+  check is partly circular (shared helper code). It proves wiring and accounting.
+- Against LibPXF: 29.9% fewer evaluations before the boundary pass (4,721,521 against
+  6,731,510). 20.6% fewer with the pass (7,786,344 against 9,803,653).
+- Wrong voxels: 32 against 31 (11 broken, 10 fixed).
+- Suite: 2475 passed, 48 skipped, 1 deselected.
+
+### Finer layer fine1 (98,280 voxels): wall-clock so far, 2026-11-21
+
+All times are contended.
+
+- Stock C++ on all cores (13 MPI ranks): 10,267 s. Fixed C++ on all cores: 10,213 s.
+- Current-recipe Python J5S on one worker: 7,566 s, inside its 6 h cap.
+- Earlier one-worker C++: 91,206 s (stock), 71,996 s (fixed).
+- Stock Python (PS) started 13:36 with a 76.5 h cap. Accuracy and evaluation counts are
+  unread until PS ends.

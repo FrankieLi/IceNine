@@ -1,0 +1,156 @@
+[
+ {
+  "sample": "held6",
+  "in_sample": false,
+  "arm": "S8",
+  "evals_total": 67502030,
+  "evals_per_voxel": 2747.34,
+  "wrong": 80,
+  "n": 24570,
+  "fraction_right": 0.996744,
+  "wrong_wilson95": [
+   0.002617,
+   0.00405
+  ]
+ },
+ {
+  "sample": "held6",
+  "in_sample": false,
+  "arm": "J5",
+  "evals_total": 29194542,
+  "evals_per_voxel": 1188.22,
+  "wrong": 58,
+  "n": 24570,
+  "fraction_right": 0.997639,
+  "wrong_wilson95": [
+   0.001827,
+   0.00305
+  ]
+ },
+ {
+  "sample": "held6",
+  "in_sample": false,
+  "arm": "J5S",
+  "evals_total": 25464972,
+  "evals_per_voxel": 1036.43,
+  "wrong": 39,
+  "n": 24570,
+  "fraction_right": 0.998413,
+  "wrong_wilson95": [
+   0.001161,
+   0.002169
+  ]
+ },
+ {
+  "sample": "held6",
+  "in_sample": false,
+  "arm": "J5SD",
+  "evals_total": 22690096,
+  "evals_per_voxel": 923.49,
+  "wrong": 37,
+  "n": 24570,
+  "fraction_right": 0.998494,
+  "wrong_wilson95": [
+   0.001093,
+   0.002075
+  ]
+ },
+ {
+  "sample": "held5",
+  "in_sample": true,
+  "arm": "J5SD",
+  "evals_total": 20076940,
+  "evals_per_voxel": 817.13,
+  "wrong": 34,
+  "n": 24570,
+  "fraction_right": 0.998616,
+  "wrong_wilson95": [
+   0.00099,
+   0.001933
+  ]
+ },
+ {
+  "sample": "held4",
+  "in_sample": true,
+  "arm": "J5SD",
+  "evals_total": 20685850,
+  "evals_per_voxel": 841.91,
+  "wrong": 22,
+  "n": 24570,
+  "fraction_right": 0.999105,
+  "wrong_wilson95": [
+   0.000591,
+   0.001355
+  ]
+ },
+ {
+  "sample": "held3",
+  "in_sample": true,
+  "arm": "J5SD",
+  "evals_total": 18363331,
+  "evals_per_voxel": 747.39,
+  "wrong": 38,
+  "n": 24570,
+  "fraction_right": 0.998453,
+  "wrong_wilson95": [
+   0.001127,
+   0.002122
+  ]
+ },
+ {
+  "sample": "held",
+  "in_sample": true,
+  "arm": "J5SD",
+  "evals_total": 17114589,
+  "evals_per_voxel": 696.56,
+  "wrong": 45,
+  "n": 24570,
+  "fraction_right": 0.998168,
+  "wrong_wilson95": [
+   0.001369,
+   0.00245
+  ]
+ },
+ {
+  "sample": "mid",
+  "in_sample": true,
+  "arm": "J5SD",
+  "evals_total": 7383368,
+  "evals_per_voxel": 300.5,
+  "wrong": 23,
+  "n": 24570,
+  "fraction_right": 0.999064,
+  "wrong_wilson95": [
+   0.000624,
+   0.001404
+  ]
+ },
+ {
+  "sample": "grad",
+  "in_sample": true,
+  "arm": "J5SD",
+  "evals_total": 6134231,
+  "evals_per_voxel": 249.66,
+  "wrong": 25,
+  "n": 24570,
+  "fraction_right": 0.998982,
+  "wrong_wilson95": [
+   0.000689,
+   0.001502
+  ]
+ },
+ {
+  "sample": "big",
+  "in_sample": true,
+  "arm": "J5SD",
+  "evals_total": 2452596,
+  "evals_per_voxel": 99.82,
+  "wrong": 5,
+  "n": 24570,
+  "fraction_right": 0.999796,
+  "wrong_wilson95": [
+   8.7e-05,
+   0.000476
+  ]
+ }
+]

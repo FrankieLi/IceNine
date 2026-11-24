@@ -1,0 +1,57 @@
+{
+ "mid_stored": {
+  "total": 7383368,
+  "index": 2644672,
+  "rescue": 32032,
+  "polish": 12856,
+  "grid": 665977,
+  "bfs_neighbour": 1488888,
+  "bfs_revisit": 1687138,
+  "screen_pass": 100032,
+  "repair": 751773
+ },
+ "mid_new": {
+  "total": 6801802,
+  "index": 2758661,
+  "rescue": 21021,
+  "polish": 1631,
+  "grid": 0,
+  "bfs_neighbour": 1489132,
+  "bfs_revisit": 1711782,
+  "screen_pass": 100472,
+  "repair": 719103
+ },
+ "held_stored": {
+  "total": 17114589,
+  "index": 9129537,
+  "rescue": 172172,
+  "polish": 43525,
+  "grid": 1387715,
+  "bfs_neighbour": 1480653,
+  "bfs_revisit": 3206343,
+  "screen_pass": 170528,
+  "repair": 1524116
+ },
+ "held_new": {
+  "total": 18232082,
+  "index": 9136432,
+  "rescue": 183183,
+  "polish": 68608,
+  "grid": 2421061,
+  "bfs_neighbour": 1480226,
+  "bfs_revisit": 3177124,
+  "screen_pass": 170668,
+  "repair": 1594780
+ },
+ "summed": {
+  "total": {
+   "stored": 24497957,
+   "new": 25033884
+  },
+  "grid": {
+   "stored": 2053692,
+   "new": 2421061
+  },
+  "without_grid_more": 0.0075100699443710894
+ }
+}

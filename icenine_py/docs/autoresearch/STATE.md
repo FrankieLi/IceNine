@@ -33,21 +33,23 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
    waits: `.claude/reports/20261114-item14-findings_page_draft-v2.md` goes to
    `icenine_py/docs/autoresearch/findings_item14.md`.
    C++ time (`cpptime`): MERGED at 003cc5d (C1 1,236.87 s, C2 1,231.87 s, two busy processes).
-   Not a speed comparison: the C++ run left 416 of 2,000 pilot voxels wrong, Python 24; 393
-   refit voxels were never fitted again, all 1,921 local optimizations changed nothing.
+   Not a speed comparison (C++ 416 of 2,000 wrong, Python 24; explained by the 16 Nov check).
    Flagged for the owner. Page waits: `.claude/reports/20261114-cpptime-findings_cpp_time-v2.md`
-   goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. Fourteen pages wait now.
-   NOW: (a) step 22 (`ar5v`): PASSED (N4 2a0604d0); implementer on fixes + key; then review, merge.
-   (b) OWNER TASK (N3, N5): part 1 fix `cppfix` (aa5599885ce689568) + review a3baed25fd25abcd9;
-   part 2 `fine1` phase A (a22702f36dfefa989): after its freeze I start the slices, then project.
+   goes to `icenine_py/docs/autoresearch/findings_cpp_time.md`. 16 pages wait (+ar5v, cppchk).
+   NOW: (a) v61 live (20 Nov 18:25). (c) restart distance and C++ config done (20261116-*).
+   (b) OWNER TASK part 1: both C++ changes reviewed (a7e220e7; C5 56 wrong); fixed2 sub-grid test
+   PASSED (2 passed, 261 s). Part 2 `fine1`: projection (c501c238, re-freeze 2943a5e6), hours:
+   Whole layer: CS 91,206 s, CF 71,996 s done. After step 29: C++ all cores (N6), J5S 6 h, PS (N5).
 
 ## Running jobs
-- Step 14 key WAITS (held2: step 13 or owner). Steps 15 to 21: merged (see STATE_HISTORY); `J5r`
-  in `agent-aeba15b7c3850b007`; step 20 cache in `agent-a8b2d0066621fd0f8`, step 21 cache in
-  `agent-a8c1c16b70cf43e39` (merge 50628763, suite 2279 passed); v57 live.
-  Step 22 (`ar5v`, N2; arm J5SD): gate met (65e63d6c); all runs incl. `held6` ended 12:24,
-  16 Nov (worktree `agent-aba6e1bdb95dff72a`). held6: 10.90% fewer than J5S, wrong 37 vs 39.
-  Owner task (PLAN 4f5d47fc): part 1 trace done (ae912cf9): local opt. no bug, `Reset` bug (N5).
+- Step 14 key WAITS (held2). Steps 15 to 21 merged (caches: `J5r` `agent-aeba15b7c3850b007`,
+  step 20 `agent-a8b2d0066621fd0f8`, step 21 `agent-a8c1c16b70cf43e39`). Step 22 (`ar5v`; cache
+  in `agent-aba6e1bdb95dff72a`): MERGED. Steps 24 to 28 MERGED. Step 29 MERGED 75af46bb, its key
+  `SeedReuseKnown` 70fe192d (2475 passed; findings text waits); held7, held8 disclosed.
+  `fine1` all six arms ended (contended): CS 91,206 s, CF 71,996 s, CSP 10,267 s, CFP 10,213 s,
+  J5S 7,566 s, PS 183,312 s. Agent a22702f36dfefa989 scores since 16:32 23 Nov. Then review, then
+  REGROUP with the owner on all threads (owner, 21 Nov): page of every open thread; HOLD step 30
+  (`ar5af`, N2 approved, `brief_ar5af.md` in scratchpad) until then. One IceNine job at a time.
 
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
@@ -108,13 +110,11 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 - A choice: whether the documentation recommends the two `S11` keys (N21) and the skip key of
   step 7 (N6; `held` is not a clean test for it). All are off; none is recommended now.
 - Decided under the mandate, yours to overrule: D-20261110-N4 to N8, D-20261111-N1 to N25,
-  D-20261112-N1 to N10, D-20261113-N1 to N10, D-20261114-N1 to N3. N15 adds `held` (new seed);
-  N17, N18: run caps of 480 minutes. The gradient levels of step 7's sample are my choice.
-  Step 5's result files add about 50 MB to git; say so if you want them pruned.
+  D-20261112-N1 to N10, D-20261113-N1 to N10, D-20261114-N1 to N3 (N15: `held`; N17, N18: caps).
 
 ## Bookkeeping
-- Next decision ID: D-20261116-N6 (first of a day is N1).
-- Wake-up job: session cron id 24092880, every 3 hours at :53, created 2026-11-16, expires
-  2026-11-23. Create it again on or after 2026-11-22 and write the new id and date here.
-- Other agent: Ilium (Track S, `origin/feature/python-speed-parity`, last read at 347a8a4);
-  mailbox in `docs/ROADMAP.md`. Its plan approvals are the owner's; so is a "finisher" rename.
+- Next decision ID: D-20261121-N3 (first of a day is N1).
+- Wake-up job: session cron id 7b627cd5, every 3 hours at :53, created 2026-11-22, expires
+  2026-11-29. Create it again on or after 2026-11-28 and write the new id and date here.
+- Ilium: AR6 closed 20 Nov on `origin/feature/grain-opt` (read at c3245818, SUMMARY.md); and
+  Track S at 347a8a4. OWNER FLAG 20 Nov: I printed 2 held2 rows from tracked pareto_rows files.

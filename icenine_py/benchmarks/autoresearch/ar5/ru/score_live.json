@@ -1,0 +1,297 @@
+{
+ "rows": {
+  "mid": {
+   "sample": "mid",
+   "totals": {
+    "old": {
+     "search": 5997364,
+     "screen_pass": 100522,
+     "repair": 724306,
+     "total": 6822192
+    },
+    "new": {
+     "search": 4385202,
+     "screen_pass": 100130,
+     "repair": 691999,
+     "total": 5177331
+    }
+   },
+   "old_total_reproduces": true,
+   "wrong": {
+    "old": {
+     "n": 16,
+     "wilson": [
+      0.00040089012958657833,
+      0.0010576364037658626
+     ]
+    },
+    "new": {
+     "n": 15,
+     "wilson": [
+      0.0003700176330679053,
+      0.001007121544064253
+     ]
+    }
+   },
+   "median_err_deg": {
+    "old": 0.027151012854396635,
+    "new": 0.026706172405378474
+   },
+   "new_vs_old": {
+    "fixed": 5,
+    "broken": 4,
+    "both_wrong": 11,
+    "net": -1,
+    "median_higher": -0.00044484044901816136
+   },
+   "grid_fallbacks_left": {
+    "old": 0,
+    "new": 0
+   },
+   "stages": {
+    "old": {
+     "index": 2786359,
+     "rescue": 9009,
+     "polish": 1631,
+     "grid": 0,
+     "bfs_neighbour": 1489132,
+     "bfs_revisit": 1711233,
+     "screen_pass": 100522,
+     "repair": 724306
+    },
+    "new": {
+     "index": 1169159,
+     "rescue": 8008,
+     "polish": 1631,
+     "grid": 0,
+     "bfs_neighbour": 1489254,
+     "bfs_revisit": 1717150,
+     "screen_pass": 100130,
+     "repair": 691999
+    }
+   },
+   "job": {
+    "new": {
+     "label": "contended",
+     "wall_s": 1001,
+     "load_samples": 34,
+     "load_mean": 2.322058823529411,
+     "load_max": 3.15
+    },
+    "old": {
+     "label": "contended",
+     "wall_s": 1479,
+     "load_samples": 50,
+     "load_mean": 2.4892000000000003,
+     "load_max": 4.83
+    }
+   },
+   "run_wall_s": 564.8333110809326,
+   "old_run_wall_s": 1039.6797842979431,
+   "tries": {
+    "seed_steps": 1719,
+    "reseeds": 1563,
+    "no_start": 1,
+    "tried": 1718,
+    "success": 1403,
+    "success_first_fit": 1208,
+    "success_second_fit": 195,
+    "success_share": 0.8161721931355439,
+    "success_wilson": [
+     0.7971629271790582,
+     0.8337714547165264
+    ],
+    "failed_tries": 315,
+    "try_evals": 447703,
+    "try_evals_in_successes": 332422,
+    "try_evals_in_failures": 115281,
+    "try_seconds": 37.30866252900148,
+    "pxf_steps_after_try": 316,
+    "pxf_fallbacks": 5,
+    "index_calls": 321,
+    "index_seconds": 77.83581520300052,
+    "check_pxf_steps_equal_steps_minus_successes": true,
+    "check_calls_equal": true,
+    "check_no_success_under_095": true
+   },
+   "index_old": {
+    "calls": 1676,
+    "pairs": 83535544,
+    "votes": 44023434,
+    "seconds": 440.6961296380016
+   },
+   "fewer_evals": 0.24110447199375218,
+   "r2": {
+    "net": -1,
+    "median_higher": -0.00044484044901816136,
+    "grid_extra": 0,
+    "ok": true
+   }
+  },
+  "held": {
+   "sample": "held",
+   "totals": {
+    "old": {
+     "search": 14802955,
+     "screen_pass": 170592,
+     "repair": 1607001,
+     "total": 16580548
+    },
+    "new": {
+     "search": 9916542,
+     "screen_pass": 170872,
+     "repair": 1383998,
+     "total": 11471412
+    }
+   },
+   "old_total_reproduces": true,
+   "wrong": {
+    "old": {
+     "n": 40,
+     "wilson": [
+      0.001195853487466834,
+      0.0022159695951723896
+     ]
+    },
+    "new": {
+     "n": 39,
+     "wilson": [
+      0.0011614142531444016,
+      0.0021690214732745395
+     ]
+    }
+   },
+   "median_err_deg": {
+    "old": 0.022573733205259117,
+    "new": 0.021904754937053714
+   },
+   "new_vs_old": {
+    "fixed": 11,
+    "broken": 10,
+    "both_wrong": 29,
+    "net": -1,
+    "median_higher": -0.000668978268205403
+   },
+   "grid_fallbacks_left": {
+    "old": 2,
+    "new": 2
+   },
+   "stages": {
+    "old": {
+     "index": 9390876,
+     "rescue": 50050,
+     "polish": 13357,
+     "grid": 693701,
+     "bfs_neighbour": 1480226,
+     "bfs_revisit": 3174745,
+     "screen_pass": 170592,
+     "repair": 1607001
+    },
+    "new": {
+     "index": 4482018,
+     "rescue": 45045,
+     "polish": 13357,
+     "grid": 693701,
+     "bfs_neighbour": 1480287,
+     "bfs_revisit": 3202134,
+     "screen_pass": 170872,
+     "repair": 1383998
+    }
+   },
+   "job": {
+    "new": {
+     "label": "contended",
+     "wall_s": 2103,
+     "load_samples": 71,
+     "load_mean": 2.4107042253521125,
+     "load_max": 3.12
+    },
+    "old": {
+     "label": "contended",
+     "wall_s": 3066,
+     "load_samples": 103,
+     "load_mean": 2.3425242718446597,
+     "load_max": 3.0
+    }
+   },
+   "run_wall_s": 1355.8447940349579,
+   "old_run_wall_s": 2304.345892906189,
+   "tries": {
+    "seed_steps": 3736,
+    "reseeds": 3433,
+    "no_start": 1,
+    "tried": 3735,
+    "success": 2721,
+    "success_first_fit": 2122,
+    "success_second_fit": 599,
+    "success_share": 0.7283190578158458,
+    "success_wilson": [
+     0.7138258684884476,
+     0.7423431842329297
+    ],
+    "failed_tries": 1014,
+    "try_evals": 1081713,
+    "try_evals_in_successes": 689088,
+    "try_evals_in_failures": 392625,
+    "try_seconds": 90.18667553500336,
+    "pxf_steps_after_try": 1015,
+    "pxf_fallbacks": 44,
+    "index_calls": 1059,
+    "index_seconds": 296.1052825460048,
+    "check_pxf_steps_equal_steps_minus_successes": true,
+    "check_calls_equal": true,
+    "check_no_success_under_095": true
+   },
+   "index_old": {
+    "calls": 3732,
+    "pairs": 201741534,
+    "votes": 84571595,
+    "seconds": 902.0608609469904
+   },
+   "fewer_evals": 0.30814035820770214,
+   "r2": {
+    "net": -1,
+    "median_higher": -0.000668978268205403,
+    "grid_extra": 0,
+    "ok": true
+   }
+  }
+ },
+ "judge": {
+  "r1": {
+   "new": 16648743,
+   "old": 23402740,
+   "fewer": 0.2885985572629529,
+   "ok": true
+  },
+  "r2": {
+   "mid": {
+    "net": -1,
+    "median_higher": -0.00044484044901816136,
+    "grid_extra": 0,
+    "ok": true
+   },
+   "held": {
+    "net": -1,
+    "median_higher": -0.000668978268205403,
+    "grid_extra": 0,
+    "ok": true
+   }
+  },
+  "r3": {
+   "fewer": 0.31705170517051706,
+   "need": 0.15,
+   "ok": true,
+   "new_wall_s": 3104,
+   "old_wall_s_frozen": 4545,
+   "old_wall_s_from_logs": 4545,
+   "labels": {
+    "mid": "contended",
+    "held": "contended"
+   }
+  },
+  "old_totals_reproduce": true,
+  "checks_ok": true,
+  "all_ok": true
+ }
+}

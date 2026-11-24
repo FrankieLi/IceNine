@@ -107,6 +107,33 @@ def check_seed_index_mc_stall_hit(k: Any) -> None:
         raise ValueError(f"SeedIndexMCStallHit must be an integer >= 0 (0 = off), got {k!r}")
 
 
+def check_seed_index_mc_defer(v: Any) -> None:
+    """SeedIndexMCDefer: the integer 0 (off) or 1 (on). Raises ValueError otherwise."""
+    if isinstance(v, bool) or not isinstance(v, (int, np.integer)) or int(v) not in (0, 1):
+        raise ValueError(f"SeedIndexMCDefer must be 0 (off) or 1 (on), got {v!r}")
+
+
+RAY_INDEX_MAX_PAIRS_DEFAULT = 600_000  # ray_indexing.IndexParams.max_pairs: today's setting
+
+
+def check_ray_index_max_pairs(n: Any) -> None:
+    """RayIndexMaxPairs N: an integer >= 1 (default 600,000). Raises ValueError otherwise."""
+    if isinstance(n, bool) or not isinstance(n, (int, np.integer)) or int(n) < 1:
+        raise ValueError(f"RayIndexMaxPairs must be an integer >= 1, got {n!r}")
+
+
+def check_ray_index_fallback_full(v: Any) -> None:
+    """RayIndexFallbackFull: the integer 0 (off) or 1 (on). Raises ValueError otherwise."""
+    if isinstance(v, bool) or not isinstance(v, (int, np.integer)) or int(v) not in (0, 1):
+        raise ValueError(f"RayIndexFallbackFull must be 0 (off) or 1 (on), got {v!r}")
+
+
+def check_seed_reuse_known(v: Any) -> None:
+    """SeedReuseKnown: the integer 0 (off) or 1 (on). Raises ValueError otherwise."""
+    if isinstance(v, bool) or not isinstance(v, (int, np.integer)) or int(v) not in (0, 1):
+        raise ValueError(f"SeedReuseKnown must be 0 (off) or 1 (on), got {v!r}")
+
+
 @dataclass
 class SearchParameters:
     """
@@ -238,6 +265,45 @@ class SearchParameters:
     #   a default (MIGRATION_HISTORY.md, "Autoresearch AR5 step 12"). k = 500 (rule PH(500)) is
     #   tested: tests/test_ar5_high500_key.py, MIGRATION_HISTORY.md "Autoresearch AR5 step 16".
     seed_index_mc_stall_hit: int = 0
+    # seed_index_mc_defer (SeedIndexMCDefer 0|1, AR5 step 22; 0 = off): needs
+    #   seed_index_mc_stall_hit >= 1. A seed-step MC refinement whose stall check goes on (the kept
+    #   best's hit ratio under seed_index_stop_hit) is PAUSED while the step has an untried
+    #   candidate (never the last one): its state and generator are kept, the next candidate is
+    #   tried, and the step stops at the first end at seed_index_stop_hit or more. If no later
+    #   candidate reaches it, the paused refinements are resumed in candidate order, exactly where
+    #   they stopped (no re-run), until one reaches it; else the lowest-cost end is taken, as
+    #   before. A paused refinement costs the evaluations made before its check plus the check;
+    #   a resumed one the same total as the uninterrupted refinement. Rule DEF of
+    #   scripts/autoresearch/ar5/defer_rules.py. Off by default (MIGRATION_HISTORY.md,
+    #   "Autoresearch AR5 step 22").
+    seed_index_mc_defer: int = 0
+    # ray_index_max_pairs (RayIndexMaxPairs N, AR5 step 28; default 600,000 = the indexer's
+    #   setting, nothing changes): the number of ray pairs the indexer keeps in a seed step (a
+    #   random subsample above it, ``default_rng(0)``). A smaller N makes the indexing cheaper
+    #   (50,000: about 4 times fewer pairs on the mid and held samples) and gives the fits other
+    #   starts.
+    #   Needs seed_by_indexing when it differs from the default.
+    # ray_index_fallback_full (RayIndexFallbackFull 0|1, AR5 step 28; 0 = off): rule PXF of
+    #   scripts/autoresearch/ar5/pxf_rules.py. A seed step that fails the seed test (no
+    #   candidate, or a hit ratio under min_acceleration_threshold) after an indexing that kept
+    #   a subsample (n_pairs >= ray_index_max_pairs) is run again, the whole step, with 600,000
+    #   pairs; that second step is the result (the rescue starts from its kept ends) and both
+    #   steps' evaluations count as the seed's. Needs seed_by_indexing and ray_index_max_pairs
+    #   below 600,000 (else the second step would be the same step). Off by default
+    #   (MIGRATION_HISTORY.md, "Autoresearch AR5 step 28").
+    ray_index_max_pairs: int = RAY_INDEX_MAX_PAIRS_DEFAULT
+    ray_index_fallback_full: int = 0
+    # seed_reuse_known (SeedReuseKnown 0|1, AR5 step 29; 0 = off): rule RU of
+    #   scripts/autoresearch/ar5/ru_rules.py. Before a seed step (seed or reseed) the BFS costs
+    #   the orientations of the 8 nearest voxels accepted so far (state FITTED), runs one CMA fit
+    #   (first step 0.5 degree, 200 evaluations) from the lowest-cost one and, if it ends under
+    #   0.95 hit ratio, a second from the lowest-cost start over 0.5 degree from the first. A fit
+    #   that ends at 0.95 or more is the seed result and nothing is indexed; otherwise the seed
+    #   step runs unchanged and the try's evaluations are added to it. The constants are not keys.
+    #   Needs seed_by_indexing and ray_index_fallback_full (the setting the rule was gated on),
+    #   the mc local optimizer, no hybrid optimizer and no paint_grains. Off by default
+    #   (MIGRATION_HISTORY.md, "Autoresearch AR5 step 29").
+    seed_reuse_known: int = 0
     # paint_grains: opt-in (config key PaintGrains, default off; AR3 step 2). With the key on,
     #   ``BFSReconstruction.reconstruct_sample`` runs ``grain_paint.paint_grains`` in place of the
     #   BFS (seeds indexed, each grain flooded by single strict scores, each voxel painted with the
@@ -348,6 +414,10 @@ class SearchParameters:
             )
         check_seed_rescue(self.seed_rescue_sigma_deg, self.seed_rescue_evals)
         check_seed_index_mc_stall_hit(self.seed_index_mc_stall_hit)
+        check_seed_index_mc_defer(self.seed_index_mc_defer)
+        check_ray_index_max_pairs(self.ray_index_max_pairs)
+        check_ray_index_fallback_full(self.ray_index_fallback_full)
+        check_seed_reuse_known(self.seed_reuse_known)
         from .candidate_dedup import DedupSpec
 
         DedupSpec.parse(self.candidate_dedup)  # raises ValueError on a malformed spec
@@ -398,6 +468,12 @@ class SearchParameters:
             seed_rescue_sigma_deg=float(getattr(config, "seed_rescue_sigma_deg", 0.0)),
             seed_rescue_evals=int(getattr(config, "seed_rescue_evals", 0)),
             seed_index_mc_stall_hit=int(getattr(config, "seed_index_mc_stall_hit", 0)),
+            seed_index_mc_defer=int(getattr(config, "seed_index_mc_defer", 0)),
+            ray_index_max_pairs=int(
+                getattr(config, "ray_index_max_pairs", RAY_INDEX_MAX_PAIRS_DEFAULT)
+            ),
+            ray_index_fallback_full=int(getattr(config, "ray_index_fallback_full", 0)),
+            seed_reuse_known=int(getattr(config, "seed_reuse_known", 0)),
             paint_grains=bool(getattr(config, "paint_grains", False)),
             cpp_overlap_rule=bool(getattr(config, "cpp_overlap_rule", False)),
             cpp_edge_rules=bool(getattr(config, "cpp_edge_rules", False)),

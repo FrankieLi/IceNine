@@ -1,0 +1,260 @@
+{
+ "mid": {
+  "sample": "mid",
+  "j5sd_total_matches_step22": true,
+  "totals": {
+   "s8": 26443074,
+   "j5sd": 7383368,
+   "j5sdb": 7219040
+  },
+  "fewer": {
+   "j5sd": 0.022256509495395593,
+   "s8": 0.7269969444550963
+  },
+  "wrong": {
+   "j5sdb": {
+    "n": 19,
+    "wilson": [
+     0.0004951329640351543,
+     0.0012075556379781344
+    ]
+   },
+   "j5sd": {
+    "n": 23,
+    "wilson": [
+     0.0006238762691554134,
+     0.001404361757739006
+    ]
+   },
+   "s8": {
+    "n": 31,
+    "wilson": [
+     0.0008890352069823217,
+     0.0017903016696743583
+    ]
+   }
+  },
+  "median_err_deg": {
+   "j5sdb": 0.026952619389540564,
+   "j5sd": 0.027046605963688786,
+   "s8": 0.029722923795110812
+  },
+  "pair": {
+   "j5sd": {
+    "fixed": 4,
+    "broken": 0,
+    "net": -4,
+    "median_higher": -9.398657414822278e-05
+   },
+   "s8": {
+    "fixed": 16,
+    "broken": 4,
+    "net": -12,
+    "median_higher": -0.0027703044055702487
+   }
+  },
+  "stages": {
+   "index": 2164870,
+   "rescue": 37037,
+   "polish": 18186,
+   "grid": 995892,
+   "bfs_neighbour": 1488949,
+   "bfs_revisit": 1698362,
+   "screen_pass": 99908,
+   "repair": 715836
+  },
+  "stages_j5sd": {
+   "index": 2644672,
+   "rescue": 32032,
+   "polish": 12856,
+   "grid": 665977,
+   "bfs_neighbour": 1488888,
+   "bfs_revisit": 1687138,
+   "screen_pass": 100032,
+   "repair": 751773
+  },
+  "grid": {
+   "j5d": 2,
+   "j5db": 3
+  },
+  "rescues": {
+   "j5d_attempted": 12,
+   "j5d_rescued": 8,
+   "j5db_attempted": 13,
+   "j5db_rescued": 8
+  },
+  "ball": {
+   "ball_on": true,
+   "refinements": 1851,
+   "ends_floor": 1851,
+   "ends_cap": 0,
+   "proposals": 131816,
+   "gains": 4880,
+   "halvings": 11106,
+   "stage1_evals": 353637,
+   "stage2_evals": 133667,
+   "checks": 0,
+   "pauses": 0
+  },
+  "bf": {
+   "bf_on": true,
+   "steps": 1665,
+   "ball_found": 1487,
+   "fallback_steps": 178,
+   "fallback_found": 73,
+   "fallback_none": 105,
+   "no_candidates": 0,
+   "stage1_checked": 728,
+   "stage1_mismatch": 0,
+   "ball_waste_evals": 63766,
+   "fallback_extra_evals": 1034189
+  },
+  "seed_test": {
+   "j5d": 12,
+   "j5db": 13
+  },
+  "checks": 0,
+  "pauses": 0,
+  "vs_j5sd": {
+   "r1": false,
+   "r2": true,
+   "r3": true,
+   "ok": false
+  },
+  "vs_s8": {
+   "fewer": true,
+   "broken": true,
+   "median": true,
+   "ok": true
+  }
+ },
+ "held": {
+  "sample": "held",
+  "j5sd_total_matches_step22": true,
+  "totals": {
+   "s8": 59923523,
+   "j5sd": 17114589,
+   "j5sdb": 15643196
+  },
+  "fewer": {
+   "j5sd": 0.0859730257033926,
+   "s8": 0.7389473245756929
+  },
+  "wrong": {
+   "j5sdb": {
+    "n": 45,
+    "wilson": [
+     0.0013691418781273772,
+     0.0024496179856132597
+    ]
+   },
+   "j5sd": {
+    "n": 45,
+    "wilson": [
+     0.0013691418781273772,
+     0.0024496179856132597
+    ]
+   },
+   "s8": {
+    "n": 70,
+    "wilson": [
+     0.002255787723261974,
+     0.0035976560459857285
+    ]
+   }
+  },
+  "median_err_deg": {
+   "j5sdb": 0.022497717043749924,
+   "j5sd": 0.022775047138410505,
+   "s8": 0.028587037850269052
+  },
+  "pair": {
+   "j5sd": {
+    "fixed": 7,
+    "broken": 7,
+    "net": 0,
+    "median_higher": -0.0002773300946605807
+   },
+   "s8": {
+    "fixed": 34,
+    "broken": 9,
+    "net": -25,
+    "median_higher": -0.006089320806519128
+   }
+  },
+  "stages": {
+   "index": 7713687,
+   "rescue": 170170,
+   "polish": 43525,
+   "grid": 1387715,
+   "bfs_neighbour": 1480653,
+   "bfs_revisit": 3195302,
+   "screen_pass": 170862,
+   "repair": 1481282
+  },
+  "stages_j5sd": {
+   "index": 9129537,
+   "rescue": 172172,
+   "polish": 43525,
+   "grid": 1387715,
+   "bfs_neighbour": 1480653,
+   "bfs_revisit": 3206343,
+   "screen_pass": 170528,
+   "repair": 1524116
+  },
+  "grid": {
+   "j5d": 4,
+   "j5db": 4
+  },
+  "rescues": {
+   "j5d_attempted": 66,
+   "j5d_rescued": 46,
+   "j5db_attempted": 64,
+   "j5db_rescued": 44
+  },
+  "ball": {
+   "ball_on": true,
+   "refinements": 6384,
+   "ends_floor": 6384,
+   "ends_cap": 0,
+   "proposals": 444816,
+   "gains": 14747,
+   "halvings": 38304,
+   "stage1_evals": 1215962,
+   "stage2_evals": 451200,
+   "checks": 0,
+   "pauses": 0
+  },
+  "bf": {
+   "bf_on": true,
+   "steps": 3713,
+   "ball_found": 2928,
+   "fallback_steps": 785,
+   "fallback_found": 360,
+   "fallback_none": 425,
+   "no_candidates": 0,
+   "stage1_checked": 3267,
+   "stage1_mismatch": 0,
+   "ball_waste_evals": 274728,
+   "fallback_extra_evals": 4238688
+  },
+  "seed_test": {
+   "j5d": 66,
+   "j5db": 64
+  },
+  "checks": 0,
+  "pauses": 0,
+  "vs_j5sd": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "ok": true
+  },
+  "vs_s8": {
+   "fewer": true,
+   "broken": true,
+   "median": true,
+   "ok": true
+  }
+ }
+}

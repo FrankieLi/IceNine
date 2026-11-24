@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-11-20T10:12:29",
+  "host": "newt.local",
+  "loadavg": [
+    1.71630859375,
+    2.0771484375,
+    2.1826171875
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": "1",
+  "mkl_num_threads": "1",
+  "torch_threads": 1,
+  "busy_processes": [
+    {
+      "pid": 5359,
+      "cpu": 100.4,
+      "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+    }
+  ]
+}
