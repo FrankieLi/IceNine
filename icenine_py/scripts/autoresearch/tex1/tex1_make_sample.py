@@ -52,6 +52,24 @@ def cubic_quats() -> np.ndarray:
     )
 
 
+def write_slice_record() -> None:
+    """``slice.json``: the 2,000 grid rows nearest the centre (the rule of ``render_full.py
+    --n-voxels``), and a check that ``tex24_slice2000.mic`` (a copy of fine1's slice file) holds
+    exactly those rows of the grid, in order."""
+    raw = np.loadtxt(P.GRID, skiprows=1)
+    rows = F.nearest_centre_rows(raw[:, :2], P.SLICE_N)
+    sl = np.loadtxt(P.SLICE, skiprows=1)
+    assert len(sl) == len(rows) == P.SLICE_N
+    assert np.allclose(sl[:, :4], raw[rows][:, :4], atol=1e-9), "slice file is not those rows"
+    out = dict(
+        n=int(len(rows)),
+        rule="np.sort(np.argsort(|left vertex (x, y)|)[:2000]) over the rows of fine7_grid.mic",
+        rows=[int(r) for r in rows],
+        sha256_slice_grid=P.sha256(P.SLICE),
+    )
+    P.SLICE_JSON.write_text(json.dumps(out) + "\n")
+
+
 def main() -> None:
     from icenine.mic_file import MicFile
 
@@ -153,6 +171,7 @@ def main() -> None:
         check=check,
     )
     P.SAMPLE_JSON.write_text(json.dumps(out) + "\n")
+    write_slice_record()
     print("voxels", nf, "grains", len(gids), "truth sha256", sha)
     print("grains by class", out["n_by_class"])
 
