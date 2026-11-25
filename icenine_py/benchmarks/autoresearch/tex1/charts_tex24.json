@@ -1,0 +1,38 @@
+{
+ "id": "tex24_98280",
+ "title": "Textured fine layer tex24 (98,280 voxels), clean",
+ "rows": [
+  {
+   "method": "stock C++, 12 workers (CSP)",
+   "arm": "CSP",
+   "evaluations": 4025337766,
+   "wrong_on_common": 11560,
+   "common_n": 98280,
+   "wilson95_common": [
+    11363.514318180622,
+    11759.423445049832
+   ],
+   "wrong_all": 11560,
+   "n_all": 98280,
+   "wall_s": 32051.62,
+   "workers": 12,
+   "label": "contended; 13 ranks on 12 cores"
+  },
+  {
+   "method": "Python, recipe of 24 Nov (RCP)",
+   "arm": "RCP",
+   "evaluations": 284235185,
+   "wrong_on_common": 3992,
+   "common_n": 98280,
+   "wilson95_common": [
+    3872.4580859179828,
+    4115.071294984848
+   ],
+   "wrong_all": 3992,
+   "n_all": 98280,
+   "wall_s": 22572.69,
+   "workers": 1,
+   "label": "contended; single worker"
+  }
+ ]
+}

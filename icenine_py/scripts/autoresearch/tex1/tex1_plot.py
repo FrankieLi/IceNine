@@ -91,7 +91,7 @@ def distribution_figure(
         ax.set_xscale("log")
         ax.set_xlim(BINS[0], BINS[-1])
         ax.set_title(f"{name}: {int(sel.sum()):,} voxels", fontsize=9)
-        ax.set_xlabel("misorientation to the voxel's own truth (deg, log)")
+        ax.set_xlabel("error to own ground truth (deg, log)")
         ax.grid(alpha=0.3, which="both")
     for ax in axes:
         ax.set_ylabel("share of voxels per bin", fontsize=8)
@@ -175,7 +175,8 @@ def cost_accuracy_figure(panel: Dict[str, Any], grey: List[Dict[str, Any]], out_
             f"{r['wall_s'] / 3600:.1f} h wall",
             (r["evaluations"], y),
             textcoords="offset points",
-            xytext=(10, 10),
+            xytext=(-12, 12),
+            ha="right",
             fontsize=8,
         )
     ax.set_xscale("log")
@@ -236,17 +237,22 @@ def map_figure(
 ) -> List[Dict[str, Any]]:
     """Truth and arm orientation maps (top) and the misorientation map with the truth grain
     boundaries, 0 to 2 degrees (bottom): ``plot_mic.plot_maps`` with its two opt-in arguments."""
-    return plot_mic.plot_maps(
+    stats = plot_mic.plot_maps(
         truth or str(P.TRUTH),
         [mic_path],
         [f"{arm}: {NAMES[arm]}"],
         str(out_png),
-        ref_label="tex24 truth",
-        title=f"tex24, {arm}: orientation maps and misorientation to the truth "
+        ref_label="tex24 ground truth",
+        title=f"tex24, {arm}: orientation maps and misorientation to the ground truth "
         f"(0 to {MIS_MAX_DEG:g} deg, grain boundaries in black)",
         boundaries=grainmap or str(P.GRAINMAP),
         mis_max=MIS_MAX_DEG,
     )
+    from PIL import Image
+
+    img = Image.open(out_png).convert("RGB")  # 256 colours: the file stays small (size limit)
+    img.quantize(256, method=Image.MEDIANCUT, dither=Image.NONE).save(out_png, optimize=True)
+    return stats
 
 
 def decompressed(arm: str, td: Path) -> str:

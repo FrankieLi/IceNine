@@ -1,0 +1,14 @@
+[
+ {
+  "label": "RCP: Python, recipe of 24 Nov",
+  "path": "/var/folders/k0/0rc6qfn905b2zcrg2lsbgx_80000gp/T/tmpxsilo3_v/recon.mic",
+  "n_reference": 98280,
+  "n_voxels": 98280,
+  "n_matched": 98280,
+  "n_over_1deg": 3992,
+  "median_deg": 0.030340683322620646,
+  "median_right_deg": 0.02812300497430634,
+  "p90_deg": 0.39229426431625364,
+  "max_deg": 61.85008936592563
+ }
+]

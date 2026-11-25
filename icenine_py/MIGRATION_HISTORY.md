@@ -14397,3 +14397,74 @@ change: `scripts/plot_mic.py` got two opt-in flags, `--boundaries <grainmap.npz>
   `tex1_plot.py` written; score and plots rehearsed on synthetic maps only.
 - **Slice pilot** (`RCP`, 2,000 central voxels, all 16 keys together accepted): see the report for
   counts and seconds. The whole `CSP` and `RCP` runs and the scoring are later phases.
+
+## Autoresearch `tex1`, phase B: the two whole-layer runs on `tex24` and their score (2026-11-24, task tex1)
+
+Both arms ran on the whole textured layer (98,280 voxels) and ended with exit 0; no cap was hit. The
+walls are contended (a cpptools process holds a core); `CSP` also ran 13 MPI ranks on 12 cores
+(oversubscribed). So the wall ratio below is not a clean speed comparison. Library changes: none.
+Charts first (in `benchmarks/autoresearch/tex1/`): `tex24_CSP_maps.png` and `tex24_RCP_maps.png`
+(ground truth and recovered orientation maps; misorientation map, 0 to 2 degrees, ground-truth
+grain boundaries on top), `tex24_CSP_distribution.png` and `tex24_RCP_distribution.png` (error
+distribution, all voxels and the four classes, the trivial answer dashed), `tex24_cost_accuracy.png`
+(Chart A) and `tex24_wall_time.png` (Chart B), rows in `charts_tex24.json`.
+
+Reading line for the table: wrong = over 1 degree from the voxel's own ground truth; the trivial
+answer is the grain's one orientation `R_g` for every voxel; "closer" is the share of voxels
+the arm is closer to the ground truth than the trivial answer is.
+
+<!-- table:tex1_per_class -->
+| arm | cls | voxels | wrong | share | no_output | median | p90 | trivial_median | closer |
+|---|---|---|---|---|---|---|---|---|---|
+| CSP | all | 98,280 | 11,560 | 11.762% (11.562, 11.965) | 0 | 0.0744 | 1.1153 | 0.6859 | 50.5% |
+| CSP | sharp | 37,413 | 1,051 | 2.809% (2.647, 2.982) | 0 | 0.0229 | 0.0546 | 0.0000 | 0.0% |
+| CSP | noise | 9,848 | 3,492 | 35.459% (34.520, 36.409) | 0 | 0.8353 | 1.5108 | 0.7947 | 42.9% |
+| CSP | gradient | 39,355 | 2,379 | 6.045% (5.814, 6.285) | 0 | 0.1896 | 0.4327 | 1.4813 | 92.5% |
+| CSP | both | 11,664 | 4,638 | 39.763% (38.879, 40.655) | 0 | 0.8254 | 1.6459 | 1.6647 | 76.9% |
+| RCP | all | 98,280 | 3,992 | 4.062% (3.940, 4.187) | 0 | 0.0303 | 0.3923 | 0.6859 | 56.1% |
+| RCP | sharp | 37,413 | 15 | 0.040% (0.024, 0.066) | 0 | 0.0187 | 0.0410 | 0.0000 | 0.0% |
+| RCP | noise | 9,848 | 2,130 | 21.629% (20.827, 22.453) | 0 | 0.6580 | 1.2002 | 0.7947 | 58.4% |
+| RCP | gradient | 39,355 | 391 | 0.994% (0.900, 1.096) | 0 | 0.0570 | 0.2418 | 1.4813 | 98.4% |
+| RCP | both | 11,664 | 1,456 | 12.483% (11.895, 13.095) | 0 | 0.0300 | 1.1147 | 1.6647 | 91.3% |
+<!-- /table:tex1_per_class -->
+
+Cost and wall (contended; `CSP` oversubscribed):
+
+<!-- table:tex1_cost_wall -->
+| arm | workers | evals | wall_s | wall_h |
+|---|---|---|---|---|
+| CSP | 12 workers, 13 ranks on 12 cores | 4,025,337,766 | 32,052 | 8.90 |
+| RCP | 1 worker | 284,235,185 | 22,573 | 6.27 |
+<!-- /table:tex1_cost_wall -->
+
+Paired by voxel (a = `CSP`, b = `RCP`; no voxel lacks an output in either arm):
+
+<!-- table:tex1_pairs -->
+| subset | both_wrong | only_a_wrong | only_b_wrong | neither |
+|---|---|---|---|---|
+| all_voxels | 2,482 | 9,078 | 1,510 | 85,210 |
+| sharp | 8 | 1,043 | 7 | 36,355 |
+| noise | 1,247 | 2,245 | 883 | 5,473 |
+| gradient | 305 | 2,074 | 86 | 36,890 |
+| both | 922 | 3,716 | 534 | 6,492 |
+<!-- /table:tex1_pairs -->
+
+Recovered spread of the 125 gradient grains, 90th-percentile misorientation to `R_g` of the
+recovered map divided by that of the ground truth:
+
+<!-- table:tex1_spread_ratio -->
+| arm | grains | median | q25 | q75 |
+|---|---|---|---|---|
+| CSP | 125 | 1.134 | 1.060 | 1.501 |
+| RCP | 125 | 1.003 | 0.988 | 1.023 |
+<!-- /table:tex1_spread_ratio -->
+
+- **No output:** 0 voxels in both arms; 98,280 common voxels.
+- **Where `RCP`'s 284,235,185 evaluations went:** reseeds 241,611,993 (85.0%), revisit 14,522,270,
+  seed steps 12,191,717, repair 9,084,680, neighbour fits 5,942,437, boundary pass 805,890 and
+  score 76,198; 15,058 global searches (seeds and reseeds). That is 2,892 evaluations per voxel
+  against 332 for `J5S` on `fine7` (a different sample): 8.7 times, so the plan's "over 3 times"
+  roadmap trigger is met.
+- **Unexpected:** `RCP` recovers the per-voxel noise (median error 0.03 degree) in 25 of 26
+  both-class grains and in 11 of 24 noise-only grains, and not in the other noise-only grains
+  (median 0.34 to 0.79). The cause was not tested. `RCP` is better than `CSP` in all four classes.
