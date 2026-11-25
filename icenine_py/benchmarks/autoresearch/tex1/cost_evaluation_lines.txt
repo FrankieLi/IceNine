@@ -1,0 +1,13 @@
+# CSP
+[cost evaluations] client 1: 340313428
+[cost evaluations] client 2: 344263222
+[cost evaluations] client 3: 327096975
+[cost evaluations] client 4: 328483562
+[cost evaluations] client 6: 329109113
+[cost evaluations] client 7: 343448341
+[cost evaluations] client 8: 339347414
+[cost evaluations] client 9: 323449752
+[cost evaluations] client 10: 336593048
+[cost evaluations] client 11: 336511790
+[cost evaluations] client 12: 327678166
+[cost evaluations] client 5: 349042955
