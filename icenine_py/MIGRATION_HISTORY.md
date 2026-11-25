@@ -14374,3 +14374,138 @@ system for CPU), all contended. `cores` is CPU hours over wall hours.
   comparison. (2) Should Python honour `SampleRadius`, or should the docs say it ignores the key?
   (3) Keep calling `PS` "stock Python" although it carries three Python-only BFS keys.
   Results: `score.json`, `score_tables.md`, `projection.json`.
+
+## Autoresearch `tex1`, phase A: a textured finer layer, sample built, frozen, slice pilot (2026-11-24, task tex1)
+
+Owner task of 24 Nov (D-20261124-N1). A measurement on a new sample: two arms only (stock C++ in
+parallel `CSP`, the recipe `RCP`), nothing tuned. Library changes: none; C++ not changed. One script
+change: `scripts/plot_mic.py` got two opt-in flags, `--boundaries <grainmap.npz>` and `--mis-max
+<deg>` (default output byte-equal to the old script on a 300-voxel test; a test checks it).
+
+- **Sample `tex24`** (generator seed 24, `fine7`'s grid, sha256 checked against `fine1/frozen.json`;
+  `tex1_make_sample.py`, `tex1_lib.py`): 250 grains (46 to 1,705 voxels, median 349.5), 50 noise
+  grains (rotation vector uniform in a 1-degree ball per voxel) and 125 gradient grains (smooth
+  field, largest edge-pair step `t_g` uniform on [0.1, 0.5) degree), drawn independently: sharp 101,
+  noise only 24, gradient only 99, both 26 grains. Gate `tex1_sample_check.py` passed (tolerance
+  5e-4 degree, the `.mic` Euler rounding); numbers in `benchmarks/autoresearch/tex1/sample/
+  sample_tables.md`. Gradient spreads median 3.56, largest 10.26 degrees; 1 of 700 grain
+  boundaries has a touching voxel pair under 5 degrees (least 3.49).
+- **Images and stack.** `render_full.py --tag tex24 --variants clean`, 4 workers, 224 s contended;
+  the stack equals all 360 frames (`stack_check.json`).
+- **Freeze.** `benchmarks/autoresearch/tex1/frozen.json` committed before any run; the launcher
+  (`tex1_launch.sh`, wrappers `_slice` and `_whole`), `tex1_run_py.py`, `tex1_score.py`,
+  `tex1_plot.py` written; score and plots rehearsed on synthetic maps only.
+- **Slice pilot** (`RCP`, 2,000 central voxels, all 16 keys together accepted): see the report for
+  counts and seconds. The whole `CSP` and `RCP` runs and the scoring are later phases.
+
+## Autoresearch `tex1`, phase B: the two whole-layer runs on `tex24` and their score (2026-11-24, task tex1)
+
+Both arms ran on the whole textured layer (98,280 voxels) and finished (guard exit code 0; the
+launcher markers read exit=5, which is only the "not quiet" label); no cap was hit. The walls are
+contended (a cpptools process holds a core; load medians in `run_quiet_summary.json`); `CSP` also ran
+13 MPI ranks on 12 cores (8 fast and 4 slow), oversubscribed. So the wall ratio below is not a clean
+speed comparison. Library changes: none. The 5 progress lines of `whole_CSP.log` read at launch
+(before both end markers) held no result and no change followed.
+Charts first (in `benchmarks/autoresearch/tex1/`): `tex24_CSP_maps.png` and `tex24_RCP_maps.png`
+(ground truth and recovered orientation maps; misorientation map, 0 to 2 degrees, ground-truth
+grain boundaries in white; dark red = over 2 degrees), `tex24_CSP_distribution.png` and
+`tex24_RCP_distribution.png` (error distribution, all voxels and the four classes, the trivial answer
+dashed), `tex24_cost_accuracy.png` (Chart A) and `tex24_wall_time.png` (Chart B), rows in
+`charts_tex24.json`.
+
+Reading line for the first table: "wrong" is over 1 degree from the voxel's own ground truth. The
+trivial answer gives every voxel of a grain the grain's one orientation `R_g` that the generator
+drew; no method knows it, so it is an oracle reference, not a method. "Closer" is the share of voxels
+the arm is closer to the ground truth than the trivial answer is (not defined for the "all" row,
+which pools sharp voxels where the trivial answer is exact).
+
+<!-- table:tex1_per_class -->
+| arm | cls | voxels | wrong | share | no_output | median | p90 | trivial_median | trivial_wrong | closer |
+|---|---|---|---|---|---|---|---|---|---|---|
+| CSP | all | 98,280 | 11,560 | 11.762% (11.562, 11.965) | 0 | 0.0744 | 1.1153 | 0.6859 | 35,520 | n/a (pools sharp voxels) |
+| CSP | sharp | 37,413 | 1,051 | 2.809% (2.647, 2.982) | 0 | 0.0229 | 0.0546 | 0.0000 | 0 | 0.0% |
+| CSP | noise | 9,848 | 3,492 | 35.459% (34.520, 36.409) | 0 | 0.8353 | 1.5108 | 0.7947 | 0 | 42.9% |
+| CSP | gradient | 39,355 | 2,379 | 6.045% (5.814, 6.285) | 0 | 0.1896 | 0.4327 | 1.4813 | 26,558 | 92.5% |
+| CSP | both | 11,664 | 4,638 | 39.763% (38.879, 40.655) | 0 | 0.8254 | 1.6459 | 1.6647 | 8,962 | 76.9% |
+| RCP | all | 98,280 | 3,992 | 4.062% (3.940, 4.187) | 0 | 0.0303 | 0.3923 | 0.6859 | 35,520 | n/a (pools sharp voxels) |
+| RCP | sharp | 37,413 | 15 | 0.040% (0.024, 0.066) | 0 | 0.0187 | 0.0410 | 0.0000 | 0 | 0.0% |
+| RCP | noise | 9,848 | 2,130 | 21.629% (20.827, 22.453) | 0 | 0.6580 | 1.2002 | 0.7947 | 0 | 58.4% |
+| RCP | gradient | 39,355 | 391 | 0.994% (0.900, 1.096) | 0 | 0.0570 | 0.2418 | 1.4813 | 26,558 | 98.4% |
+| RCP | both | 11,664 | 1,456 | 12.483% (11.895, 13.095) | 0 | 0.0300 | 1.1147 | 1.6647 | 8,962 | 91.3% |
+<!-- /table:tex1_per_class -->
+
+- **Noise-only grains, in one sentence:** in the 9,848 voxels of noise-only grains the trivial answer
+  has 0 wrong voxels, `CSP` has 3,492 and `RCP` has 2,130. So by the wrong count both arms do worse
+  than doing nothing there. By the median error `RCP` is better than the trivial answer (0.658 against
+  0.795 degree) and `CSP` is not (0.835); by the share of voxels closer to the ground truth than the
+  trivial answer `RCP` has 58.4% and `CSP` 42.9%. Which measure applies is the owner's choice; both
+  are reported and none is picked. (The plan's line "neither arm beats the trivial answer in noise
+  grains" holds by the wrong count for both arms; by the other two measures it holds for `CSP` only.)
+
+Cost and wall (contended; `CSP` oversubscribed):
+
+<!-- table:tex1_cost_wall -->
+| arm | workers | evals | wall_s | wall_h |
+|---|---|---|---|---|
+| CSP | 12 workers, 13 ranks on 12 cores | 4,025,337,766 | 32,052 | 8.90 |
+| RCP | 1 worker | 284,235,185 | 22,573 | 6.27 |
+<!-- /table:tex1_cost_wall -->
+
+Paired by voxel (a = `CSP`, b = `RCP`; no voxel lacks an output in either arm):
+
+<!-- table:tex1_pairs -->
+| subset | both_wrong | only_a_wrong | only_b_wrong | neither |
+|---|---|---|---|---|
+| all_voxels | 2,482 | 9,078 | 1,510 | 85,210 |
+| sharp | 8 | 1,043 | 7 | 36,355 |
+| noise | 1,247 | 2,245 | 883 | 5,473 |
+| gradient | 305 | 2,074 | 86 | 36,890 |
+| both | 922 | 3,716 | 534 | 6,492 |
+<!-- /table:tex1_pairs -->
+
+Recovered spread of the 125 gradient grains: 90th-percentile misorientation to `R_g` of the
+recovered map divided by that of the ground truth; "within" counts grains with a ratio from 0.8 to
+1.25:
+
+<!-- table:tex1_spread_ratio -->
+| arm | grains | median | q25 | q75 | within |
+|---|---|---|---|---|---|
+| CSP | 125 | 1.134 | 1.060 | 1.501 | 87 of 125 |
+| RCP | 125 | 1.003 | 0.988 | 1.023 | 125 of 125 |
+<!-- /table:tex1_spread_ratio -->
+
+Grains with noise: a grain counts as "recovered" if its median error is under 0.2 degree (an
+after-the-fact rule; it separates the grains cleanly). Intervals are Wilson 95%:
+
+<!-- table:tex1_noise_grains -->
+| arm | cls | grains | recovered | pooled_median | wrong_in_recovered | size_recovered | size_other |
+|---|---|---|---|---|---|---|---|
+| CSP | noise | 24 | 0 (0%, 14%) | n/a | none recovered | none | [65, 1705] |
+| CSP | both | 26 | 0 (0%, 13%) | n/a | none recovered | none | [108, 1427] |
+| RCP | noise | 24 | 11 (28%, 65%) | 0.053 | 354 of 1975 (17.9%) | [65, 270] | [249, 1705] |
+| RCP | both | 26 | 25 (81%, 99%) | 0.029 | 1339 of 11142 (12.0%) | [108, 1427] | [522, 522] |
+<!-- /table:tex1_noise_grains -->
+
+- **No output:** 0 voxels in both arms; 98,280 common voxels.
+- **Terms.** A "global search" starts with no guess. A "reseed" is a global search started again
+  during the region-growing pass when the neighbour local optimization is rejected. "Revisit" is a
+  new local fit of a voxel that was left unresolved, started from the orientation of a later solved
+  neighbour. "Repair" is the final per-voxel
+  refit of boundary and wide-error voxels.
+- **Where `RCP`'s 284,235,185 evaluations went:** reseeds 241,611,993 (85.0%), revisit 14,522,270,
+  seed steps 12,191,717, repair 9,084,680, neighbour fits 5,942,437, boundary pass 805,890 and
+  score 76,198; 15,058 global searches (seeds and reseeds). That is 2,892 evaluations per voxel
+  against 332 for `J5S` on `fine7` (a different sample): 8.7 times, so the plan's "over 3 times"
+  roadmap trigger is met. `CSP` used 4.03 billion evaluations (40,958 per voxel), 14 times more than
+  `RCP`. Not counted as evaluations: `RCP`'s ray indexing (index time 2,437.6 s, about 11% of its
+  22,563 s run; 497,763,171 ray pairs and 177,641,407 votes); `CSP` has no such step.
+- **Noise recovery in `RCP`** (rule above): 25 of 26 grains with both noise and gradient (Wilson 81%
+  to 99%) and 11 of 24 noise-only grains (28% to 65%); none in `CSP`. The pooled median error in
+  the recovered grains is 0.029 degree (both) and 0.053 (noise-only), but 12.0% (1,339 of 11,142) and
+  17.9% (354 of 1,975) of their voxels are still over 1 degree, so this is a partial recovery. The
+  recovered noise-only grains have 65 to 270 voxels and the others 249 to 1,705: consistent with grain
+  size; untested. The cause was not tested.
+- **Not tested, a side note:** in sharp and gradient grains nearly every wrong voxel of both arms
+  lies next to another grain (a count made in review, not in `score.json`); the gap between the two
+  arms outside noise grains is consistent with boundary assignment.
+- 15 of the 250 grain pieces touch the rest of their grain only at a corner (found in review).

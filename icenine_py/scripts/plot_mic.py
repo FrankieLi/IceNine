@@ -4,7 +4,13 @@ Python 3 port of the plotting in MicAnalyzer/Python/xdm_toolkit/xdm_plot.py (tri
 colour from the Rodrigues vector), without the hexrd dependency.
 
   uv run python scripts/plot_mic.py --ref truth.mic [--ref-index idx.npy] [--z Z] \
-      --mic a.mic b.mic --labels "A" "B" --out maps.png [--title "..."] [--stats stats.json]
+      --mic a.mic b.mic --labels "A" "B" --out maps.png [--title "..."] [--stats stats.json] \
+      [--boundaries grainmap.npz] [--mis-max DEG]
+
+Two opt-in flags (defaults unchanged, the output is the same without them): --boundaries draws the
+edges between reference grains (a .npz with the array "grain", one grain number per reference .mic
+row, after --ref-index) on the misorientation panels; --mis-max sets the top of the colour scale
+(default: the cubic maximum 62.8 degrees; larger values are drawn in the top colour).
 
 Top row: orientation maps (the reference, then each --mic). Orientation colour: the cubic
 fundamental-zone Rodrigues vector, each component mapped linearly from [-(sqrt2-1), sqrt2-1] to
@@ -32,7 +38,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
-from matplotlib.collections import PolyCollection  # noqa: E402
+from matplotlib.collections import LineCollection, PolyCollection  # noqa: E402
 from scipy.spatial import cKDTree  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -140,6 +146,29 @@ def match_to_reference(tri_ref: np.ndarray, tri: np.ndarray, tol: float) -> np.n
     return j
 
 
+def boundary_segments(tri: np.ndarray, grain: np.ndarray) -> np.ndarray:
+    """Segments (m, 2, 2) of the triangle edges shared by two triangles of different grains.
+    ``tri`` (N, 3, 2) vertices, ``grain`` (N,) grain numbers."""
+    grain = np.asarray(grain)
+    if len(grain) != len(tri):
+        raise ValueError(f"grain map has {len(grain)} entries for {len(tri)} reference voxels")
+    a = np.stack([tri, np.roll(tri, -1, axis=1)], axis=2)  # (N, 3, 2 ends, 2 xy)
+    key = np.round(a * 1e8).astype(np.int64)
+    swap = (key[:, :, 0, 0] > key[:, :, 1, 0]) | (
+        (key[:, :, 0, 0] == key[:, :, 1, 0]) & (key[:, :, 0, 1] > key[:, :, 1, 1])
+    )
+    key = np.where(swap[..., None, None], key[:, :, ::-1, :], key)
+    flat = key.reshape(-1, 4)
+    owner = np.repeat(np.arange(len(tri)), 3)
+    _, inv = np.unique(flat, axis=0, return_inverse=True)
+    inv = np.asarray(inv).reshape(-1)
+    order = np.argsort(inv, kind="stable")
+    same = inv[order][1:] == inv[order][:-1]
+    first, second = order[:-1][same], order[1:][same]
+    differ = grain[owner[first]] != grain[owner[second]]
+    return a.reshape(-1, 2, 2)[first[differ]]
+
+
 def draw(ax: plt.Axes, tri: np.ndarray, lim: np.ndarray, **kw: Any) -> PolyCollection:
     pc = PolyCollection(tri, edgecolors="face", linewidths=0.1, **kw)
     ax.add_collection(pc)
@@ -160,8 +189,15 @@ def plot_maps(
     ref_label: str = "Reference",
     title: str = "",
     z: Optional[float] = None,
+    boundaries: Optional[str] = None,
+    mis_max: Optional[float] = None,
+    boundary_color: str = "k",
+    boundary_width: float = 0.25,
+    legend_ref: str = "the reference",
 ) -> List[Dict[str, Any]]:
-    """Draw the figure and return one stats dict per --mic."""
+    """Draw the figure and return one stats dict per --mic. ``boundaries``: a .npz with the array
+    "grain" (one number per row of the reference .mic, after ``ref_index``): the edges between
+    grains are drawn on the misorientation panels. ``mis_max``: top of the colour scale."""
     sym = np.asarray(get_symmetry_quaternions(create_cubic_symmetry(1.0)), dtype=np.float64)
     ref = MicFile.read(ref_path)
     rv = select_voxels(ref, ref_index, z, ref_path)
@@ -171,6 +207,12 @@ def plot_maps(
     q_ref = quats(rv)
     s_ref = min(side_of(v, ref) for v in rv)
     lim = np.array([tri_ref.reshape(-1, 2).min(axis=0), tri_ref.reshape(-1, 2).max(axis=0)])
+    segs = None
+    if boundaries:
+        gr = np.load(boundaries)["grain"]
+        gr = gr if ref_index is None else gr[ref_index]
+        segs = boundary_segments(tri_ref, gr)
+    top = CUBIC_MAX_MISORIENTATION_DEG if mis_max is None else float(mis_max)
 
     n = len(mic_paths) + 1
     fig, axes = plt.subplots(
@@ -188,7 +230,7 @@ def plot_maps(
         0.5,
         0.5,
         "Top row: orientation\n(cubic Rodrigues vector\nas RGB, fixed scale)\n\n"
-        "Bottom row: misorientation\nagainst the reference (deg)\ngrey = no matching voxel",
+        f"Bottom row: misorientation\nagainst {legend_ref} (deg)\ngrey = no matching voxel",
         ha="center",
         va="center",
         fontsize=9,
@@ -221,8 +263,12 @@ def plot_maps(
             lim,
             array=err[ok],
             cmap="jet",
-            clim=(0.0, CUBIC_MAX_MISORIENTATION_DEG),
+            clim=(0.0, top),
         )
+        if segs is not None:
+            axes[1, j].add_collection(
+                LineCollection(segs, colors=boundary_color, linewidths=boundary_width)
+            )
         e = err[ok]
         st: Dict[str, Any] = {
             "label": label,
@@ -247,7 +293,10 @@ def plot_maps(
         axes[1, j].set_title(sub, fontsize=8)
     if mappable is not None:
         cb = fig.colorbar(mappable, cax=axes[1, n])
-        cb.set_label("misorientation (deg), max 62.8", fontsize=9)
+        if mis_max is None:
+            cb.set_label("misorientation (deg), max 62.8", fontsize=9)
+        else:
+            cb.set_label(f"misorientation (deg), over {top:g} saturated", fontsize=9)
     else:
         axes[1, n].axis("off")
     if title:
@@ -268,12 +317,16 @@ def main() -> None:
     ap.add_argument("--title", default="")
     ap.add_argument("--out", required=True, help="output image (.png, .pdf)")
     ap.add_argument("--stats", help="write per-panel statistics to this JSON file")
+    ap.add_argument("--boundaries", help=".npz (array grain): draw the reference grain boundaries")
+    ap.add_argument("--mis-max", type=float, help="top of the misorientation colour scale (deg)")
     a = ap.parse_args()
     labels = a.labels or [Path(p).parent.name for p in a.mic]
     if len(labels) != len(a.mic):
         ap.error("--labels needs one label per --mic")
     idx = np.load(a.ref_index) if a.ref_index else None
-    stats = plot_maps(a.ref, a.mic, labels, a.out, idx, a.ref_label, a.title, a.z)
+    stats = plot_maps(
+        a.ref, a.mic, labels, a.out, idx, a.ref_label, a.title, a.z, a.boundaries, a.mis_max
+    )
     if a.stats:
         Path(a.stats).write_text(json.dumps(stats, indent=2))
     for st in stats:
