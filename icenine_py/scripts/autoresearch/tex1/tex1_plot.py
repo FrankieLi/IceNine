@@ -49,6 +49,7 @@ FINE7_PANEL = P.ICE / "benchmarks" / "autoresearch" / "fine1" / "pareto_panel_fi
 FINE7_ARMS = {"CSP": "stock C++ (CSP)", "J5S": "Python recipe (J5S)"}
 BINS = np.logspace(-3, np.log10(63.0), 61)
 MIS_MAX_DEG = 2.0
+MAP_SCALE = 0.8
 
 
 def histogram_fractions(err: np.ndarray, bins: np.ndarray = BINS) -> np.ndarray:
@@ -98,7 +99,8 @@ def distribution_figure(
     axes[0].legend(fontsize=8)
     fig.suptitle(
         f"{arm} ({NAMES[arm]}): distribution of the error; dotted line = 1 degree; "
-        f"{n_miss:,} voxels with no output left out",
+        f"{n_miss:,} voxels with no output left out; errors under 0.001 are in the first bin; the "
+        "dashed spike runs off the top where it is tall",
         fontsize=10,
     )
     fig.tight_layout()
@@ -132,6 +134,7 @@ def chart_rows(score: Dict[str, Any]) -> Dict[str, Any]:
                 wrong_all=a["n_wrong"],
                 n_all=a["n"],
                 wall_s=d["wall_s"],
+                cpu_s=d.get("user_s", 0.0) + d.get("sys_s", 0.0),
                 workers=d["workers"],
                 label="contended"
                 + ("; 13 ranks on 12 cores" if d["workers"] > 1 else "; single worker"),
@@ -175,7 +178,7 @@ def cost_accuracy_figure(panel: Dict[str, Any], grey: List[Dict[str, Any]], out_
             f"{r['wall_s'] / 3600:.1f} h wall",
             (r["evaluations"], y),
             textcoords="offset points",
-            xytext=(-12, 12),
+            xytext=(-12, -22) if r["workers"] > 1 else (-12, 12),
             ha="right",
             fontsize=8,
         )
@@ -184,9 +187,9 @@ def cost_accuracy_figure(panel: Dict[str, Any], grey: List[Dict[str, Any]], out_
     ax.set_xlabel("cost evaluations (all, log scale)")
     ax.set_ylabel("wrong voxels (over 1 degree, log scale)")
     ax.set_title(
-        "Chart A, textured fine layer tex24 (coloured; Wilson 95%) and fine7 (grey, another "
-        "sample).\nRound = 1 worker; open square = 12 workers (13 MPI ranks on 12 cores). "
-        "Voxels both arms have an output for.",
+        "Chart A, textured fine layer tex24 (coloured; all 98,280 voxels; Wilson 95%) and fine7 "
+        "(grey, another sample: wrong voxels of 85,676).\nRound = 1 worker; open square = 12 "
+        "workers (13 MPI ranks on 12 cores).",
         fontsize=8,
     )
     ax.grid(alpha=0.3, which="both")
@@ -199,29 +202,37 @@ def cost_accuracy_figure(panel: Dict[str, Any], grey: List[Dict[str, Any]], out_
 def wall_time_figure(panel: Dict[str, Any], grey: List[Dict[str, Any]], out_stem: Path) -> None:
     """Chart B: wall seconds (linear); hatched = 12 workers; fine7 bars grey."""
     fig, ax = plt.subplots(figsize=(9, 3.8))
-    labels, vals, cols, hatch, edge = [], [], [], [], []
+    labels, vals, cols, hatch, edge, cpu = [], [], [], [], [], []
     for r in grey:
         labels.append(f"fine7 {FINE7_ARMS[r['arm']]} (another sample)")
         vals.append(r["wall_s"])
         cols.append(GREY)
         hatch.append("xx" if r["workers"] > 1 else "")
         edge.append("#666666")
+        cpu.append(0.0)
     for r in panel["rows"]:
         labels.append(f"tex24 {r['arm']}: {NAMES[r['arm']]}")
         vals.append(r["wall_s"])
         cols.append(COL[r["arm"]])
         hatch.append("xx" if r["workers"] > 1 else "")
         edge.append("black")
+        cpu.append(r.get("cpu_s", 0.0))
     y = np.arange(len(vals))
     for yi, v, c, h, e in zip(y, vals, cols, hatch, edge):
         ax.barh(yi, v, color=c, hatch=h, edgecolor=e, height=0.6)
-        ax.text(v, yi, f" {v:,.0f} s ({v / 3600:.2f} h)", va="center", fontsize=8)
+        note = f"; CPU {cpu[yi]:,.0f} s" if cpu[yi] else ""
+        ax.text(v, yi, f" {v:,.0f} s ({v / 3600:.2f} h{note})", va="center", fontsize=8)
     ax.set_yticks(y)
     ax.set_yticklabels(labels, fontsize=8)
     ax.invert_yaxis()
     ax.set_xlabel("wall seconds (linear); hatched = 12 fitting workers; every run contended")
-    ax.set_xlim(0, max(vals) * 1.3)
-    ax.set_title("Chart B, wall-clock time", fontsize=9)
+    ax.set_xlim(0, max(vals) * 1.45)
+    ax.set_title(
+        "Chart B, wall-clock time (CPU seconds = user + system, all cores).\nThe machine has 8 "
+        "fast and 4 slow cores and another process held a core:\nthe hatched bar is not a clean "
+        "12-core figure, and the two walls are not a clean speed comparison.",
+        fontsize=8,
+    )
     fig.tight_layout()
     for ext in ("png", "svg"):
         fig.savefig(f"{out_stem}.{ext}", dpi=140)
@@ -244,14 +255,19 @@ def map_figure(
         str(out_png),
         ref_label="tex24 ground truth",
         title=f"tex24, {arm}: orientation maps and misorientation to the ground truth "
-        f"(0 to {MIS_MAX_DEG:g} deg, grain boundaries in black)",
+        f"(0 to {MIS_MAX_DEG:g} deg; ground-truth grain boundaries in white)\n"
+        f"Dark red = over {MIS_MAX_DEG:g} deg (the scale is saturated there); grey = no output",
         boundaries=grainmap or str(P.GRAINMAP),
         mis_max=MIS_MAX_DEG,
+        boundary_color="white",
+        boundary_width=0.5,
+        legend_ref="the ground truth",
     )
     from PIL import Image
 
-    img = Image.open(out_png).convert("RGB")  # 256 colours: the file stays small (size limit)
-    img.quantize(256, method=Image.MEDIANCUT, dither=Image.NONE).save(out_png, optimize=True)
+    img = Image.open(out_png).convert("RGB")  # smooth colours kept; scaled down for the size limit
+    w, h = img.size
+    img.resize((int(w * MAP_SCALE), int(h * MAP_SCALE)), Image.LANCZOS).save(out_png, optimize=True)
     return stats
 
 

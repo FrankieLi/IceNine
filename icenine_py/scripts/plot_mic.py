@@ -191,6 +191,9 @@ def plot_maps(
     z: Optional[float] = None,
     boundaries: Optional[str] = None,
     mis_max: Optional[float] = None,
+    boundary_color: str = "k",
+    boundary_width: float = 0.25,
+    legend_ref: str = "the reference",
 ) -> List[Dict[str, Any]]:
     """Draw the figure and return one stats dict per --mic. ``boundaries``: a .npz with the array
     "grain" (one number per row of the reference .mic, after ``ref_index``): the edges between
@@ -227,7 +230,7 @@ def plot_maps(
         0.5,
         0.5,
         "Top row: orientation\n(cubic Rodrigues vector\nas RGB, fixed scale)\n\n"
-        "Bottom row: misorientation\nagainst the reference (deg)\ngrey = no matching voxel",
+        f"Bottom row: misorientation\nagainst {legend_ref} (deg)\ngrey = no matching voxel",
         ha="center",
         va="center",
         fontsize=9,
@@ -263,7 +266,9 @@ def plot_maps(
             clim=(0.0, top),
         )
         if segs is not None:
-            axes[1, j].add_collection(LineCollection(segs, colors="k", linewidths=0.25))
+            axes[1, j].add_collection(
+                LineCollection(segs, colors=boundary_color, linewidths=boundary_width)
+            )
         e = err[ok]
         st: Dict[str, Any] = {
             "label": label,

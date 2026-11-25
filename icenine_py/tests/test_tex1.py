@@ -405,12 +405,24 @@ def tiny_mic_files(tmp_path: Path) -> Any:
     return truth, arm, gm
 
 
+OLD_PLOT_MATPLOTLIB = "3.9.4"
+OLD_PLOT_SHA256 = "12f0df947312a18772d9788bd58b92894afc674ef5d5e85171b234fb8287567e"
+
+
 def test_plot_mic_without_the_new_flags_is_byte_equal(tmp_path: Path) -> None:
     truth, arm, gm = tiny_mic_files(tmp_path)
     a, b = tmp_path / "a.png", tmp_path / "b.png"
     sa = PM.plot_maps(str(truth), [str(arm)], ["x"], str(a))
     sb = PM.plot_maps(str(truth), [str(arm)], ["x"], str(b), boundaries=None, mis_max=None)
     assert a.read_bytes() == b.read_bytes() and sa == sb
+    # against the OLD script: sha256 of the PNG the script of the base commit (before the flags)
+    # wrote for this input, recorded with matplotlib 3.9.4 (PNG bytes depend on the version)
+    import hashlib
+
+    import matplotlib
+
+    if matplotlib.__version__ == OLD_PLOT_MATPLOTLIB:
+        assert hashlib.sha256(a.read_bytes()).hexdigest() == OLD_PLOT_SHA256
     c = tmp_path / "c.png"
     PM.plot_maps(str(truth), [str(arm)], ["x"], str(c), boundaries=str(gm), mis_max=2.0)
     assert c.read_bytes() != a.read_bytes()
@@ -487,3 +499,77 @@ def test_distribution_figure_on_synthetic_errors(tmp_path: Path) -> None:
         err, has, np.abs(rng.normal(0, 0.5, n)), rng.integers(0, 4, n), "RCP", tmp_path / "d"
     )
     assert (tmp_path / "d.png").exists() and (tmp_path / "d.svg").exists()
+
+
+def test_noise_grain_summary_uses_the_median_rule_and_a_wilson_interval() -> None:
+    ids = np.repeat([0, 1, 2], 4)
+    err = np.array([0.01, 0.02, 0.03, 2.0, 0.5, 0.6, 0.7, 0.8, 0.05, 0.06, 0.07, 0.08])
+    cls = {0: F.NOISE_ONLY, 1: F.NOISE_ONLY, 2: F.BOTH}
+    r = SC.noise_grain_summary(err, ids, cls, [0, 1, 2])
+    n = r["noise"]
+    assert (n["n_grains"], n["n_recovered"]) == (2, 1)  # grain 0 median 0.025, grain 1 0.65
+    assert n["recovered_n_wrong"] == 1 and n["recovered_n_voxels"] == 4
+    assert n["recovered_pooled_median_err_deg"] == pytest.approx(0.025)
+    assert n["size_range_recovered"] == [4, 4] and n["other_median_range_deg"][0] == pytest.approx(
+        0.65
+    )
+    assert 0.0 < n["recovered_wilson95"][0] < 0.5 < n["recovered_wilson95"][1] < 1.0
+    assert r["both"]["n_recovered"] == 1 and len(r["grains"]) == 3
+
+
+def test_spread_summary_counts_grains_inside_the_band() -> None:
+    rows = [dict(rec_p90_deg=r, true_p90_deg=1.0) for r in (0.79, 0.8, 1.0, 1.25, 1.3)]
+    s = SC.spread_summary(rows)
+    assert s["n"] == 5 and s["n_within_band"] == 3 and s["band"] == [0.8, 1.25]
+
+
+def test_per_class_table_has_trivial_wrong_and_no_closer_share_for_all() -> None:
+    cls = dict(
+        n=10,
+        n_no_output=0,
+        n_wrong=1,
+        wrong_fraction=0.1,
+        wilson95=[0.0, 0.3],
+        median_err_deg=0.1,
+        p90_err_deg=0.2,
+        trivial_median_err_deg=0.5,
+        trivial_wrong=4,
+        n_closer_than_trivial=5,
+        closer_fraction=0.5,
+        closer_wilson95=[0.2, 0.8],
+    )
+    d = dict(
+        workers=1,
+        evals_all=1,
+        wall_s=1.0,
+        classes={c: cls for c in SC.CLASSES},
+        spread_summary=dict(n=0),
+        noise_grains={
+            n: dict(
+                n_grains=1,
+                n_recovered=1,
+                recovered_wilson95=[0.0, 1.0],
+                recovered_pooled_median_err_deg=0.1,
+                recovered_n_voxels=3,
+                recovered_n_wrong=0,
+                recovered_wrong_fraction=0.0,
+                size_range_recovered=[3, 3],
+                size_range_other=None,
+            )
+            for n in ("noise", "both")
+        },
+    )
+    import tex1_paths
+
+    old = tex1_paths.BENCH
+    try:
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as td:
+            tex1_paths.BENCH = Path(td)
+            SC.write_tables({"RCP": d}, {})
+            text = (Path(td) / "score_tables.md").read_text()
+    finally:
+        tex1_paths.BENCH = old
+    assert "trivial_wrong" in text and "n/a (pools sharp voxels)" in text
+    assert "tex1_noise_grains" in text

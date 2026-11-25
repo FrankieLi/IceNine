@@ -15,6 +15,7 @@
    "wrong_all": 11560,
    "n_all": 98280,
    "wall_s": 32051.62,
+   "cpu_s": 350882.57,
    "workers": 12,
    "label": "contended; 13 ranks on 12 cores"
   },
@@ -31,6 +32,7 @@
    "wrong_all": 3992,
    "n_all": 98280,
    "wall_s": 22572.69,
+   "cpu_s": 22609.5,
    "workers": 1,
    "label": "contended; single worker"
   }

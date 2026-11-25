@@ -55,6 +55,8 @@ RUNS = P.RUNS / "whole"
 EVAL_RECORD = P.BENCH / "cost_evaluation_lines.txt"
 EVAL_LINE = re.compile(r"\[cost evaluations\] client (\d+):\s*(\d+)")
 CLASSES = ("all",) + F.CLASS_NAMES
+RECOVERED_MEDIAN_DEG = 0.2  # a noise grain is "recovered" if its median error is under this
+SPREAD_BAND = (0.8, 1.25)  # recovered / true spread counted as close inside this band
 
 
 def read_map(arm: str) -> Any:
@@ -179,10 +181,72 @@ def spread_summary(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
         return dict(n=0)
     return dict(
         n=int(len(q)),
+        n_within_band=int(((q >= SPREAD_BAND[0]) & (q <= SPREAD_BAND[1])).sum()),
+        band=list(SPREAD_BAND),
         ratio_p90_median=float(np.median(q)),
         ratio_p90_q25=float(np.percentile(q, 25)),
         ratio_p90_q75=float(np.percentile(q, 75)),
     )
+
+
+def noise_grain_summary(
+    err: np.ndarray,
+    ids: np.ndarray,
+    cls_of: Dict[int, int],
+    grains: List[int],
+) -> Dict[str, Any]:
+    """Per grain with noise (noise only or both): its median error; a grain is "recovered" if the
+    median is under ``RECOVERED_MEDIAN_DEG``. Summary per class: grains, recovered with a Wilson
+    interval, the pooled median and the wrong count and share (over 1 degree) of the voxels of the
+    recovered grains, and the grain size ranges of the recovered and the other grains."""
+    rows = []
+    for g in grains:
+        e = err[ids == g]
+        rows.append(
+            dict(
+                id=int(g),
+                cls=F.CLASS_NAMES[cls_of[g]],
+                n_voxels=int(len(e)),
+                median_err_deg=float(np.median(e)),
+                n_wrong=int((e > WRONG_DEG).sum()),
+            )
+        )
+    out: Dict[str, Any] = dict(
+        rule=f"recovered = grain median error under {RECOVERED_MEDIAN_DEG} deg"
+    )
+    for c in (F.NOISE_ONLY, F.BOTH):
+        name = F.CLASS_NAMES[c]
+        sub = [r for r in rows if r["cls"] == name]
+        rec = [r for r in sub if r["median_err_deg"] < RECOVERED_MEDIAN_DEG]
+        oth = [r for r in sub if r["median_err_deg"] >= RECOVERED_MEDIAN_DEG]
+        m = np.isin(ids, [r["id"] for r in rec])
+        e = err[m]
+        lo, hi = ST.wilson(len(rec), len(sub)) if sub else (float("nan"), float("nan"))
+        out[name] = dict(
+            n_grains=len(sub),
+            n_recovered=len(rec),
+            recovered_wilson95=[lo, hi],
+            recovered_pooled_median_err_deg=float(np.median(e)) if len(e) else float("nan"),
+            recovered_n_voxels=int(m.sum()),
+            recovered_n_wrong=int((e > WRONG_DEG).sum()),
+            recovered_wrong_fraction=float((e > WRONG_DEG).mean()) if len(e) else float("nan"),
+            size_range_recovered=(
+                [min(r["n_voxels"] for r in rec), max(r["n_voxels"] for r in rec)] if rec else None
+            ),
+            size_range_other=(
+                [min(r["n_voxels"] for r in oth), max(r["n_voxels"] for r in oth)] if oth else None
+            ),
+            other_median_range_deg=(
+                [
+                    min(r["median_err_deg"] for r in oth),
+                    max(r["median_err_deg"] for r in oth),
+                ]
+                if oth
+                else None
+            ),
+        )
+    out["grains"] = rows
+    return out
 
 
 def pair_counts(wa: np.ndarray, wb: np.ndarray) -> Dict[str, int]:
@@ -267,6 +331,7 @@ def main() -> int:
         maps[arm] = dict(has=has, wrong=~has | (err > WRONG_DEG), err=err)
         np.save(P.SCORE / f"{arm}_err.npy", err)
         sp = spread_rows(R_all, has, ids, R_g, truth_R, grad_grains, sym)
+        noise_grains = [g for g, c in cls_of.items() if c in (F.NOISE_ONLY, F.BOTH)]
         t = time_seconds(arm)
         d: Dict[str, Any] = dict(
             workers=WORKERS[arm],
@@ -275,6 +340,7 @@ def main() -> int:
             classes=class_rows(err, has, triv, vox_class, np.ones(n, dtype=bool)),
             spread_rows=sp,
             spread_summary=spread_summary(sp),
+            noise_grains=noise_grain_summary(err, ids, cls_of, noise_grains),
             wall_s=t["real"],
             user_s=t["user"],
             sys_s=t["sys"],
@@ -291,6 +357,9 @@ def main() -> int:
                 global_searches=rj["global_searches"],
                 wall_inprocess_s=rj["wall_total_s"],
                 n_without_orientation=rj["n_without_orientation"],
+                index_s=rj["stats"]["index_s"],
+                index_pairs=rj["stats"]["index_pairs"],
+                index_votes=rj["stats"]["index_votes"],
             )
         res[arm] = d
         print(arm, d["classes"]["all"]["n_wrong"], d["evals_all"], flush=True)
@@ -346,7 +415,12 @@ def write_tables(res: Dict[str, Any], pairs: Dict[str, Any]) -> None:
                     median=r["median_err_deg"],
                     p90=r["p90_err_deg"],
                     trivial_median=r["trivial_median_err_deg"],
-                    closer=f"{100 * r['closer_fraction']:.1f}%",
+                    trivial_wrong=r["trivial_wrong"],
+                    closer=(
+                        "n/a (pools sharp voxels)"
+                        if c == "all"
+                        else f"{100 * r['closer_fraction']:.1f}%"
+                    ),
                 )
             )
     t["tex1_per_class"] = DT.markdown_table(
@@ -361,10 +435,12 @@ def write_tables(res: Dict[str, Any], pairs: Dict[str, Any]) -> None:
             "median",
             "p90",
             "trivial_median",
+            "trivial_wrong",
             "closer",
         ],
         formats={
             "voxels": ",d",
+            "trivial_wrong": ",d",
             "wrong": ",d",
             "no_output": ",d",
             "median": ".4f",
@@ -406,14 +482,51 @@ def write_tables(res: Dict[str, Any], pairs: Dict[str, Any]) -> None:
                     median=s["ratio_p90_median"],
                     q25=s["ratio_p90_q25"],
                     q75=s["ratio_p90_q75"],
+                    within=f"{s['n_within_band']} of {s['n']}",
                 )
             )
     if sp:
         t["tex1_spread_ratio"] = DT.markdown_table(
             sp,
-            ["arm", "grains", "median", "q25", "q75"],
+            ["arm", "grains", "median", "q25", "q75", "within"],
             formats={"median": ".3f", "q25": ".3f", "q75": ".3f"},
         )
+    ng = []
+    for k, d in res.items():
+        for name in ("noise", "both"):
+            r = d["noise_grains"][name]
+            lo, hi = r["recovered_wilson95"]
+            ng.append(
+                dict(
+                    arm=k,
+                    cls=name,
+                    grains=r["n_grains"],
+                    recovered=f"{r['n_recovered']} ({100 * lo:.0f}%, {100 * hi:.0f}%)",
+                    pooled_median=r["recovered_pooled_median_err_deg"],
+                    wrong_in_recovered=(
+                        f"{r['recovered_n_wrong']} of {r['recovered_n_voxels']} "
+                        f"({100 * r['recovered_wrong_fraction']:.1f}%)"
+                        if r["n_recovered"]
+                        else "none recovered"
+                    ),
+                    size_recovered=str(r["size_range_recovered"] or "none"),
+                    size_other=str(r["size_range_other"] or "none"),
+                )
+            )
+    t["tex1_noise_grains"] = DT.markdown_table(
+        ng,
+        [
+            "arm",
+            "cls",
+            "grains",
+            "recovered",
+            "pooled_median",
+            "wrong_in_recovered",
+            "size_recovered",
+            "size_other",
+        ],
+        formats={"pooled_median": ".3f"},
+    )
     DT.write_tables(P.BENCH / "score_tables.md", t)
     print((P.BENCH / "score_tables.md").read_text())
 
