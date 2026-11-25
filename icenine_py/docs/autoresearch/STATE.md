@@ -23,9 +23,7 @@ Read this file first after any restart or wake. It holds only what is true now a
 
 ## Next action
 Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a task branch first.
-0. tex1: whole `RCP` running (see Owner task); when `RCP.done` exists: scoring agent in the
-   worktree (tex1_score.py, tex1_plot.py, report, findings text to .claude/reports), Opus
-   review, fixes, merge (set branch parent first), owner page with the owner's outputs.
+0. Wait for the owner (tex1 merged; see Running jobs for the open questions).
 1. AR5 step 4 (`ar5d`; N16, N18, N20, N23): `S11v2` on `held` 37.4% fewer evaluations than `S8`,
    69 wrong; fix 3 done (fac79f9). BLOCKED on fix 1 (the page; writes refused): the owner places
    it or allows it. Then: sync check, commit, fix 2, merge, close.
@@ -40,20 +38,18 @@ Runbook: "A step, from plan to merge", points 5 to 9. Merge the parent into a ta
 - Step 14 key WAITS (held2). Steps 15 to 29 MERGED (step 29 75af46bb, key 70fe192d; findings
   text waits; held7, held8 disclosed). `fine1` MERGED d149258a: fine7 common voxels 85,676:
   J5S 32.6M evals, 453 wrong, 7,557 s; PS 2,833M, 616, 183,303 s; C++ 2,734 to 4,681 wrong.
-  Owner task of 24 Nov, task `tex1` (textured finer layer, sample `tex24`; arms stock C++
-  `CSP`, recipe `RCP`); PLAN "Owner task of 24 Nov", D-20261124-N1. Phase A DONE: branch
-  feature/eval-reduction-tex1 at 706bb9ee, worktree `.claude/worktrees/agent-a13d57a0b15cfd37a`,
-  report `.claude/reports/20261124-0101-tex1.md` there (hand-back check: one format flag only).
-  `tex24`: 101 sharp, 24 noise only, 99 gradient only, 26 both; gradient spread median 3.56,
-  max 10.26 degrees. RCP slice pilot 2,000 voxels: 6,018,761 evals, 613 s (contended); scaled
-  ~296 M evals, 8.4 h for the layer (plan said 40 to 120 M); ~9x J5S per voxel on fine7.
-  DONE: whole `CSP` (stock C++, 13 ranks) ended 24 Nov 10:31 by itself (guard exit 0, `CSP.done`,
-  map present): wall 32,058 s, contended, oversubscribed (median load 15.9); 3.1x `fine7` 10,267 s.
-  RUNNING: whole `RCP` (recipe, one worker) since 24 Nov 10:33, cap 16 h (ends by 02:33 on 25 Nov),
-  pilot 8.4 h. Check `ls <worktree>/icenine_py/benchmarks/autoresearch/tex1/cache/runs/whole/` for
-  `RCP.done`; `pgrep -f tex1_launch_whole.sh`. No tex24 maps or logs before both end markers.
-  Spec: scratchpad `owner_task_20261124.md`. Regroup page claude.ai/artifact/9phjGZjDQLgtd4nUTwgsoh
-  (v1); every other thread WAITS for the owner; step 30 (`ar5af`) HELD. One IceNine job at a time.
+  `tex1` (owner task of 24 Nov, D-20261124-N1; textured layer `tex24`) MERGED a65aceac (suite 2548
+  passed, 48 skipped, 1 deselected). NOTHING RUNS. 98,280 voxels, 250 grains (101 sharp, 24 noise
+  only, 99 gradient only, 26 both). Stock C++ parallel `CSP`: 11,560 wrong, 4,025,337,766 evals,
+  32,052 s. Recipe `RCP`: 3,992 wrong, 284,235,185 evals (85.0% reseeds), 22,573 s (contended);
+  2,892 evals per voxel, 8.7x J5S on fine7 (332): the plan's roadmap trigger is met. Wrong CSP/RCP:
+  sharp 1,051/15; noise 3,492/2,130; gradient 2,379/391; both 4,638/1,456. Owner page
+  https://claude.ai/artifact/9mM49Sh5ZHVYtmEvDN5JFK; findings text
+  `.claude/reports/20261124-1801-tex1-findings_tex1.md`. Cache `tex1/cache` (untracked).
+  WAITING FOR THE OWNER on: which measure judges noise grains (wrong count or median error);
+  whether a texture-aware step (neighbour, pass, repair constants relative to local scatter) moves
+  up; the earlier regroup decisions (page claude.ai/artifact/9phjGZjDQLgtd4nUTwgsoh). Step 30
+  (`ar5af`) HELD. Wake-ups answer in one line until the owner answers. One more findings page waits.
 ## Queue
 Reading the table: one row per step that is not finished, in order. Finished steps (items 6,
 7, 18, 22, 23, AR0 to AR2, AR3 1 to 11, AR5 1 to 3, 5, 7 to 12, AR4 1): `STATE_HISTORY.md`.
@@ -112,7 +108,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
   D-20261112-N1 to N10, D-20261113-N1 to N10, D-20261114-N1 to N3 (N15: `held`; N17, N18: caps).
 
 ## Bookkeeping
-- Next decision ID: D-20261124-N2 (first of a day is N1).
+- Next decision ID: D-20261125-N1 (or the day's N1) (first of a day is N1).
 - Standing owner rule 24 Nov: owner requests go to subagents. Ilium shmem skill: PR #44 (open).
 - Wake-up job: session cron id 7b627cd5, every 3 hours at :53, created 2026-11-22, expires
   2026-11-29. Create it again on or after 2026-11-28 and write the new id and date here.

@@ -1472,3 +1472,24 @@ wrong voxels and fewer evaluations are better.
 - Why C++ is several times worse on covered voxels is not established.
 - A regroup agenda page was published for the owner. The owner asked on 21 Nov to regroup on
   all threads. AR5 step 30 (approved D-20261121-N2) is held; nothing runs.
+
+### Textured finer layer tex1 (tex24, 98,280 voxels): whole-layer results merged, 2026-11-24
+
+Both whole-layer runs ended. Scored, reviewed by Opus, fixes applied, merged at a65aceac. Suite:
+2548 passed, 48 skipped, 1 deselected. Reports: `20261124-1800-tex1-whole.md`,
+`20261124-1830-review-tex1.md`, `20261124-1900-tex1-fixes.md`. Findings text waiting for the
+owner: `20261124-1801-tex1-findings_tex1.md`. Owner page: https://claude.ai/artifact/9mM49Sh5ZHVYtmEvDN5JFK.
+
+250 grains: 101 sharp, 24 noise only, 99 gradient only, 26 both. Wall times are contended and the
+stock C++ run (13 ranks) was oversubscribed. No voxel is without output. Reading line: fewer wrong
+voxels and fewer evaluations are better.
+
+| Run | Wrong (over 1 degree) | Evaluations | Wall (s) |
+|---|---|---|---|
+| Stock C++ parallel (CSP) | 11,560 | 4,025,337,766 | 32,052 |
+| Recipe (RCP, 16 keys, one worker) | 3,992 | 284,235,185 | 22,573 |
+
+- Wrong by class, CSP/RCP: sharp 1,051/15; noise 3,492/2,130; gradient 2,379/391; both 4,638/1,456.
+- RCP: 85.0% of evaluations are reseeds; indexing 2,437.6 s, not counted as evaluations.
+- RCP uses 2,892 evaluations per voxel against 332 for J5S on fine7 (8.7 times): the plan's roadmap
+  trigger is met. Open for the owner: the measure for noise grains, a texture-aware step.
