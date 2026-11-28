@@ -1,0 +1,203 @@
+{
+ "sample": "mid",
+ "libG_vs_Gl": {
+  "before_pass": {
+   "map": {
+    "same_bytes": true,
+    "voxels_differ": 0,
+    "max_angle_deg": 0.0,
+    "voxels_over_0_001_deg": 0,
+    "voxels_over_1_deg": 0
+   },
+   "evals_total": {
+    "script": 10064185,
+    "library": 10064185
+   },
+   "counters_equal": true,
+   "counters_differ": {
+    "n_script_counters": 36,
+    "differ": {},
+    "only_in_library": {
+     "cma_not_fell": 4705,
+     "index_mixed_cands": 2794,
+     "index_mixed_cma_reached": 1137,
+     "index_mixed_mc_ran": 1657,
+     "index_rescue_evals": 30030,
+     "index_rescue_runs": 13,
+     "index_rescue_tries": 30,
+     "index_rescued": 10,
+     "index_stopped_early": 1544
+    }
+   },
+   "records": {
+    "n_a": 24570,
+    "n_b": 24570,
+    "n_differ": 0,
+    "first": []
+   },
+   "rescues": {
+    "script": 13,
+    "library": 13,
+    "rescued_script": 10,
+    "rescued_library": 10,
+    "tries_script": 30,
+    "tries_library": 30,
+    "rescue_evals_library": 30030,
+    "equal": true
+   }
+  },
+  "after_pass": {
+   "pass_evals": {
+    "script": 3051647,
+    "library": 3051586
+   },
+   "pass_tries": {
+    "script": 50027,
+    "library": 50026
+   },
+   "total_with_pass": {
+    "script": 13115832,
+    "library": 13115771
+   },
+   "map": {
+    "same_bytes": null,
+    "voxels_differ": 1991,
+    "max_angle_deg": 60.19662454414634,
+    "voxels_over_0_001_deg": 1683,
+    "voxels_over_1_deg": 8
+   },
+   "tries": {
+    "tries": {
+     "library": 50026,
+     "script": 50027
+    },
+    "same_order_tries": 11632,
+    "ends_differ": 11626,
+    "costs_differ": 3030,
+    "evals_differ": 0,
+    "first_end_differ": 0,
+    "try0": {
+     "voxel": 0,
+     "cand": 10,
+     "same_cost": true,
+     "angle_deg": 0.009572926578368349
+    },
+    "end_angle_deg": {
+     "median": 0.005741631282418327,
+     "max": 1.2949561280073567
+    },
+    "voxels_with_other_try_count": 1
+   },
+   "accuracy": {
+    "wrong_threshold_deg": 1.0,
+    "wrong": {
+     "library": 37,
+     "script": 37
+    },
+    "fixed": 4,
+    "broken": 4,
+    "both_wrong": 33,
+    "median_error_deg": {
+     "library": 0.02912762712911237,
+     "script": 0.02912762712911237
+    },
+    "n_voxels": 24570,
+    "base": "script pass (Gl, from the stored map)"
+   }
+  },
+  "library_pass_on_stored_map": {
+   "sample": "mid",
+   "n_tries": {
+    "library": 50027,
+    "script": 50027
+   },
+   "evals": {
+    "library": 3051647,
+    "script": 3051647
+   },
+   "wall_s": 320.7592489719391,
+   "timing_label": "contended: timing preflight refused (Python at 100% CPU, spotlightknowledged at 100% CPU); single run, one worker",
+   "wall_label": "contended; not a timing result",
+   "differ_voxel": 0,
+   "differ_cand": 0,
+   "differ_evals": 0,
+   "differ_cost": 0,
+   "differ_hit": 0,
+   "differ_end": 0,
+   "voxels_changed": {
+    "library": 1455,
+    "script": 1455
+   },
+   "same_changed_voxels": true,
+   "map_after_equal": false,
+   "exact": true
+  },
+  "equal_before_pass": true
+ },
+ "control_libS11_vs_stored_S11": {
+  "before_pass": {
+   "map": {
+    "same_bytes": true,
+    "voxels_differ": 0,
+    "max_angle_deg": 0.0,
+    "voxels_over_0_001_deg": 0,
+    "voxels_over_1_deg": 0
+   },
+   "evals_total": {
+    "script": 13034526,
+    "library": 13034526
+   },
+   "counters_equal": true,
+   "counters_differ": {
+    "n_script_counters": 36,
+    "differ": {},
+    "only_in_library": {
+     "cma_not_fell": 4713,
+     "index_mixed_cands": 2814,
+     "index_mixed_cma_reached": 1107,
+     "index_mixed_mc_ran": 1707,
+     "index_stopped_early": 1540
+    }
+   },
+   "records": {
+    "n_a": 24570,
+    "n_b": 24570,
+    "n_differ": 0,
+    "first": []
+   }
+  },
+  "after_pass": {
+   "pass_tries": {
+    "library": 49968,
+    "script": 49970
+   },
+   "pass_evals": {
+    "library": 3048048,
+    "script": 3048170
+   },
+   "tries": {
+    "tries": {
+     "library": 49968,
+     "script": 49970
+    },
+    "same_order_tries": 4872,
+    "ends_differ": 4870,
+    "costs_differ": 1307,
+    "evals_differ": 0,
+    "first_end_differ": 0,
+    "try0": {
+     "voxel": 0,
+     "cand": 10,
+     "same_cost": true,
+     "angle_deg": 0.009572926578368349
+    },
+    "end_angle_deg": {
+     "median": 0.005670677529783934,
+     "max": 0.7415284983503513
+    },
+    "voxels_with_other_try_count": 4
+   }
+  },
+  "equal_before_pass": true
+ }
+}

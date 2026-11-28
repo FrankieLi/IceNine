@@ -1,0 +1,160 @@
+{
+ "whole": {
+  "grid": "cache/grid/fine7_grid.mic",
+  "grid_sha256": "3816e2a9f0e41c7a2ac2949002665e716888251a844e85d369643865a0b09daf",
+  "n_voxels": 98280,
+  "n_voxels_expected": 98280,
+  "sample_filename_same": true,
+  "infile_basename_same": true,
+  "side_lengths": [
+   "0.0046875",
+   "0.0046875"
+  ],
+  "differences": {
+   "BFSReseed": {
+    "python": "1",
+    "cpp": null
+   },
+   "BFSRevisitRefit": {
+    "python": "1",
+    "cpp": null
+   },
+   "FusedCost": {
+    "python": "1",
+    "cpp": null
+   },
+   "OutStructureBasename": {
+    "python": "x",
+    "cpp": "y"
+   },
+   "SecondsBetweenSave": {
+    "python": "1800",
+    "cpp": "100000"
+   }
+  },
+  "differences_unexpected": [],
+  "expected_missing": [],
+  "path_key_files": {
+   "DetectorFilename": {
+    "python_sha256": "cafad05bb223e54f2d5b064b8f3d8ee0c632d22380073315f4af09f4d6d387e9",
+    "cpp_sha256": "cafad05bb223e54f2d5b064b8f3d8ee0c632d22380073315f4af09f4d6d387e9",
+    "same": true
+   },
+   "StructureFilename": {
+    "python_sha256": "9397ea67977a8259668c75ecc7922a902495c0727e360bb820796c58a705b0ad",
+    "cpp_sha256": "9397ea67977a8259668c75ecc7922a902495c0727e360bb820796c58a705b0ad",
+    "same": true
+   },
+   "RotationRangeFilename": {
+    "python_sha256": "b27a6847be3e3a2f89454ab83d0ac875ccbae6a191ad834c7c0a64262b5b06b5",
+    "cpp_sha256": "b27a6847be3e3a2f89454ab83d0ac875ccbae6a191ad834c7c0a64262b5b06b5",
+    "same": true
+   },
+   "FundamentalZoneFilename": {
+    "python_sha256": "94438dfa6b3c65c9be2ab48283d89e896438d557d96955cde03c09ea274f863a",
+    "cpp_sha256": "94438dfa6b3c65c9be2ab48283d89e896438d557d96955cde03c09ea274f863a",
+    "same": true
+   },
+   "OptimizationFilename": {
+    "python_sha256": "00698c657b05df1dbf62316d247f1e2f907ca2e23154a1105785fcefa86eb521",
+    "cpp_sha256": "00698c657b05df1dbf62316d247f1e2f907ca2e23154a1105785fcefa86eb521",
+    "same": true
+   },
+   "DetectionLimitFilename": {
+    "python_sha256": "0c6319e60017440331f1cebef2a87936fcc662b6a0b38900fbf6d1da94f640c2",
+    "cpp_sha256": "0c6319e60017440331f1cebef2a87936fcc662b6a0b38900fbf6d1da94f640c2",
+    "same": true
+   },
+   "OptimizationConstrainFilename": {
+    "python_sha256": "a5abe2439a37c63e961feefbffb438438ad58deaa9689b7f5b65f572da63697c",
+    "cpp_sha256": "a5abe2439a37c63e961feefbffb438438ad58deaa9689b7f5b65f572da63697c",
+    "same": true
+   }
+  },
+  "path_key_files_all_same": true
+ },
+ "slice": {
+  "grid": "cache/grid/fine7_slice2000.mic",
+  "grid_sha256": "89fc0431ec211ee3310c4a6750ecd5799b12941f8d29d9e2d683491c1d1be425",
+  "n_voxels": 2000,
+  "n_voxels_expected": 2000,
+  "sample_filename_same": true,
+  "infile_basename_same": true,
+  "side_lengths": [
+   "0.0046875",
+   "0.0046875"
+  ],
+  "differences": {
+   "BFSReseed": {
+    "python": "1",
+    "cpp": null
+   },
+   "BFSRevisitRefit": {
+    "python": "1",
+    "cpp": null
+   },
+   "FusedCost": {
+    "python": "1",
+    "cpp": null
+   },
+   "OutStructureBasename": {
+    "python": "x",
+    "cpp": "y"
+   },
+   "SecondsBetweenSave": {
+    "python": "1800",
+    "cpp": "100000"
+   }
+  },
+  "differences_unexpected": [],
+  "expected_missing": [],
+  "path_key_files": {
+   "DetectorFilename": {
+    "python_sha256": "cafad05bb223e54f2d5b064b8f3d8ee0c632d22380073315f4af09f4d6d387e9",
+    "cpp_sha256": "cafad05bb223e54f2d5b064b8f3d8ee0c632d22380073315f4af09f4d6d387e9",
+    "same": true
+   },
+   "StructureFilename": {
+    "python_sha256": "9397ea67977a8259668c75ecc7922a902495c0727e360bb820796c58a705b0ad",
+    "cpp_sha256": "9397ea67977a8259668c75ecc7922a902495c0727e360bb820796c58a705b0ad",
+    "same": true
+   },
+   "RotationRangeFilename": {
+    "python_sha256": "b27a6847be3e3a2f89454ab83d0ac875ccbae6a191ad834c7c0a64262b5b06b5",
+    "cpp_sha256": "b27a6847be3e3a2f89454ab83d0ac875ccbae6a191ad834c7c0a64262b5b06b5",
+    "same": true
+   },
+   "FundamentalZoneFilename": {
+    "python_sha256": "94438dfa6b3c65c9be2ab48283d89e896438d557d96955cde03c09ea274f863a",
+    "cpp_sha256": "94438dfa6b3c65c9be2ab48283d89e896438d557d96955cde03c09ea274f863a",
+    "same": true
+   },
+   "OptimizationFilename": {
+    "python_sha256": "00698c657b05df1dbf62316d247f1e2f907ca2e23154a1105785fcefa86eb521",
+    "cpp_sha256": "00698c657b05df1dbf62316d247f1e2f907ca2e23154a1105785fcefa86eb521",
+    "same": true
+   },
+   "DetectionLimitFilename": {
+    "python_sha256": "0c6319e60017440331f1cebef2a87936fcc662b6a0b38900fbf6d1da94f640c2",
+    "cpp_sha256": "0c6319e60017440331f1cebef2a87936fcc662b6a0b38900fbf6d1da94f640c2",
+    "same": true
+   },
+   "OptimizationConstrainFilename": {
+    "python_sha256": "a5abe2439a37c63e961feefbffb438438ad58deaa9689b7f5b65f572da63697c",
+    "cpp_sha256": "a5abe2439a37c63e961feefbffb438438ad58deaa9689b7f5b65f572da63697c",
+    "same": true
+   }
+  },
+  "path_key_files_all_same": true
+ },
+ "frames_equal_stack": true,
+ "lit_pixels": 12054858,
+ "score_match": {
+  "tolerance_mm": 0.001,
+  "nearest_same_direction_mm": 0.004686394297808873,
+  "n_rows_with_second_candidate": 0,
+  "centre_distance_of_edge_neighbours_mm": 0.002706329386826371,
+  "ok": true
+ },
+ "ok": true
+}

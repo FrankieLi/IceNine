@@ -1,0 +1,35 @@
+{
+ "kind": "S5L",
+ "n_tries": [
+  18563,
+  18563
+ ],
+ "evals": [
+  1132343,
+  1132343
+ ],
+ "score_evals_library": 11049,
+ "boundary_voxels": [
+  11049,
+  11049
+ ],
+ "wall_s": 126.49404382705688,
+ "timing_label": "contended: timing preflight refused (mediaanalysisd at 102% CPU, cpptools at 102% CPU); single run, one worker",
+ "differ_voxel": 0,
+ "differ_cand": 0,
+ "differ_evals": 0,
+ "differ_cost": 0,
+ "differ_hit": 0,
+ "differ_conf": 0,
+ "differ_end": 0,
+ "differ_old_score": 0,
+ "voxels_changed": [
+  1038,
+  1038
+ ],
+ "same_changed_voxels": true,
+ "changed_voxels_with_a_different_end_after_the_script_rounding": 0,
+ "first_differing_voxel": [],
+ "max_abs_diff_library_vs_stored_map_at_changed_voxels": 5.476758335731802e-08,
+ "unchanged_voxels_equal": true
+}

@@ -58,7 +58,10 @@ if [ $NO_TESTS -ne 1 ]; then
     if echo "$CHANGED" | grep -q '\.py$'; then
         # No -q: icenine_py's addopts already has -q, and a second one (verbosity -2) drops
         # pytest's final count line from the output.
-        bash -c "${FINISH_TASK_TEST_CMD:-cd icenine_py && uv run pytest tests/}" || exit 1
+        # --extra dev: in a worktree whose .venv has no pytest, a plain `uv run pytest` falls
+        # through to the main checkout's pytest on PATH, which imports icenine from the main
+        # checkout, so the branch's library code would not be tested.
+        bash -c "${FINISH_TASK_TEST_CMD:-cd icenine_py && uv run --extra dev pytest tests/}" || exit 1
     fi
     if echo "$CHANGED" | grep -qE '\.(cpp|h|hpp)$|(^|/)CMakeLists\.txt$'; then
         bash -c "${FINISH_TASK_BUILD_CMD:-cmake -DCMAKE_BUILD_TYPE=Release . && make -j8}" || exit 1

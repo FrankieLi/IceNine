@@ -1,0 +1,211 @@
+{
+ "rule": "Rule PH(500): in the seed step, the MC refinement of a candidate (MC then variance stage) has a stall check after 500 strict-cost evaluations with no strict gain of its best cost: the hit ratio of the running best (the first lowest-cost orientation) is evaluated once; at 0.95 or more the refinement stops and the check is its final evaluation (counted); else it goes on (the check counted as one evaluation) and checks again 500 evaluations after the next gain. No low side. It replaces PH(3000). CMA fits, the five candidates, the 0.95 stop, the seed test 0.80, rules G1 and G2b and the grid search are unchanged. Arm J5 = arm J (step 14) with PH(500).",
+ "verdict": {
+  "held3": true,
+  "held": true,
+  "mid": true,
+  "grad": true,
+  "big": true
+ },
+ "step_passes": true,
+ "predictions": {
+  "p3": {
+   "held3": {
+    "value": 5.36629504866834,
+    "range": [
+     5,
+     8
+    ],
+    "right": true
+   },
+   "held": {
+    "value": 6.206456327810385,
+    "range": [
+     5.5,
+     7
+    ],
+    "right": true
+   },
+   "mid": {
+    "value": 6.247500034970737,
+    "range": [
+     5.5,
+     7.5
+    ],
+    "right": true
+   },
+   "grad": {
+    "value": 1.4623250315201823,
+    "range": [
+     1,
+     2
+    ],
+    "right": true
+   },
+   "big": {
+    "value": 1.8749160994438907,
+    "range": [
+     1.5,
+     3
+    ],
+    "right": true
+   }
+  },
+  "p4": {
+   "held3": {
+    "net": -1,
+    "median_move_deg": 2.204865403736267e-05,
+    "wrong_seed_extra": 0,
+    "grid_equal": true,
+    "right": true
+   },
+   "held": {
+    "net": -1,
+    "median_move_deg": 1.5059998497605337e-05,
+    "wrong_seed_extra": 0,
+    "grid_equal": true,
+    "right": true
+   },
+   "mid": {
+    "net": 0,
+    "median_move_deg": 1.4303791596208953e-05,
+    "wrong_seed_extra": 0,
+    "grid_equal": true,
+    "right": true
+   },
+   "grad": {
+    "net": 0,
+    "median_move_deg": 1.4953891672338238e-06,
+    "wrong_seed_extra": 0,
+    "grid_equal": true,
+    "right": true
+   },
+   "big": {
+    "net": 0,
+    "median_move_deg": 5.768161134581118e-06,
+    "wrong_seed_extra": 0,
+    "grid_equal": true,
+    "right": true
+   }
+  },
+  "p5": {
+   "mid_net_vs_s8": 4,
+   "mid_house_passes": true,
+   "right": true
+  }
+ },
+ "validity": {
+  "held3": {
+   "finished": true,
+   "none_capped": true,
+   "stored_j_counts_reproduce": null,
+   "aligned_draws": true,
+   "seed_steps_j": 3382,
+   "seed_steps_j5": 3379,
+   "matched_steps": 3345,
+   "fits_compared": 12669,
+   "fits_differ": 4494,
+   "mc_fits_differ": 4494
+  },
+  "held": {
+   "finished": true,
+   "none_capped": true,
+   "stored_j_counts_reproduce": true,
+   "aligned_draws": true,
+   "seed_steps_j": 3700,
+   "seed_steps_j5": 3710,
+   "matched_steps": 3668,
+   "fits_compared": 12902,
+   "fits_differ": 4549,
+   "mc_fits_differ": 4549
+  },
+  "mid": {
+   "finished": true,
+   "none_capped": true,
+   "stored_j_counts_reproduce": true,
+   "aligned_draws": true,
+   "seed_steps_j": 1607,
+   "seed_steps_j5": 1618,
+   "matched_steps": 1570,
+   "fits_compared": 4167,
+   "fits_differ": 1355,
+   "mc_fits_differ": 1355
+  },
+  "grad": {
+   "finished": true,
+   "none_capped": true,
+   "stored_j_counts_reproduce": true,
+   "aligned_draws": true,
+   "seed_steps_j": 1281,
+   "seed_steps_j5": 1281,
+   "matched_steps": 1281,
+   "fits_compared": 3030,
+   "fits_differ": 800,
+   "mc_fits_differ": 800
+  },
+  "big": {
+   "finished": true,
+   "none_capped": true,
+   "stored_j_counts_reproduce": true,
+   "aligned_draws": true,
+   "seed_steps_j": 317,
+   "seed_steps_j5": 324,
+   "matched_steps": 266,
+   "fits_compared": 481,
+   "fits_differ": 109,
+   "mc_fits_differ": 109
+  }
+ },
+ "rules": {
+  "held3": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "j_fails_5": false,
+   "total_cut_pct": 5.36629504866834,
+   "passes": true
+  },
+  "held": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "j_fails_5": false,
+   "total_cut_pct": 6.206456327810385,
+   "passes": true
+  },
+  "mid": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "j_fails_5": false,
+   "total_cut_pct": 6.247500034970737,
+   "passes": true
+  },
+  "grad": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "j_fails_5": false,
+   "total_cut_pct": 1.4623250315201823,
+   "passes": true
+  },
+  "big": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true,
+   "r5": true,
+   "j_fails_5": false,
+   "total_cut_pct": 1.8749160994438907,
+   "passes": true
+  }
+ }
+}

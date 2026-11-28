@@ -1,0 +1,304 @@
+{
+ "sample": "mid",
+ "tag": "",
+ "n_voxels": 1626,
+ "old": {
+  "s": 950.6025169580003,
+  "pairs": 163107708,
+  "votes": 85534715
+ },
+ "new": {
+  "s": 417.39419600000014,
+  "pairs": 80264083,
+  "votes": 42210831
+ },
+ "less_pct_seconds": 56.09161678472165,
+ "less_pct_pairs": 50.79074803748698,
+ "less_pct_votes": 50.65064401044652,
+ "blocks": [
+  {
+   "b0": 0,
+   "load1_at_start": 2.2705078125,
+   "old": {
+    "s": 35.799272125,
+    "pairs": 7254706,
+    "votes": 3465830
+   },
+   "new": {
+    "s": 21.113045332999995,
+    "pairs": 4602683,
+    "votes": 2171914
+   }
+  },
+  {
+   "b0": 100,
+   "load1_at_start": 2.587890625,
+   "new": {
+    "s": 25.17593683300001,
+    "pairs": 4987460,
+    "votes": 2530067
+   },
+   "old": {
+    "s": 55.98202441700002,
+    "pairs": 10576908,
+    "votes": 5277417
+   }
+  },
+  {
+   "b0": 200,
+   "load1_at_start": 2.87255859375,
+   "old": {
+    "s": 59.173363499999994,
+    "pairs": 8997889,
+    "votes": 5085614
+   },
+   "new": {
+    "s": 29.323858124999987,
+    "pairs": 4948872,
+    "votes": 2814374
+   }
+  },
+  {
+   "b0": 300,
+   "load1_at_start": 2.62548828125,
+   "new": {
+    "s": 27.38943741700001,
+    "pairs": 4997224,
+    "votes": 2613723
+   },
+   "old": {
+    "s": 86.79013516700002,
+    "pairs": 13384395,
+    "votes": 6909232
+   }
+  },
+  {
+   "b0": 400,
+   "load1_at_start": 2.60546875,
+   "old": {
+    "s": 105.989132375,
+    "pairs": 12967707,
+    "votes": 7740209
+   },
+   "new": {
+    "s": 30.97230000000002,
+    "pairs": 4979055,
+    "votes": 2977818
+   }
+  },
+  {
+   "b0": 500,
+   "load1_at_start": 2.09521484375,
+   "new": {
+    "s": 21.632072833000052,
+    "pairs": 5000000,
+    "votes": 2311551
+   },
+   "old": {
+    "s": 59.44762279199995,
+    "pairs": 13174364,
+    "votes": 6097336
+   }
+  },
+  {
+   "b0": 600,
+   "load1_at_start": 2.21533203125,
+   "old": {
+    "s": 47.54869974999997,
+    "pairs": 10726402,
+    "votes": 5064303
+   },
+   "new": {
+    "s": 22.519533749999937,
+    "pairs": 5000000,
+    "votes": 2398497
+   }
+  },
+  {
+   "b0": 700,
+   "load1_at_start": 2.17626953125,
+   "new": {
+    "s": 27.466378125000006,
+    "pairs": 5000000,
+    "votes": 2883310
+   },
+   "old": {
+    "s": 69.57780908400002,
+    "pairs": 10836230,
+    "votes": 6272391
+   }
+  },
+  {
+   "b0": 800,
+   "load1_at_start": 2.2138671875,
+   "old": {
+    "s": 73.616736791,
+    "pairs": 10254820,
+    "votes": 6089366
+   },
+   "new": {
+    "s": 28.77202695899996,
+    "pairs": 4972965,
+    "votes": 2919497
+   }
+  },
+  {
+   "b0": 900,
+   "load1_at_start": 2.638671875,
+   "new": {
+    "s": 25.836869707999995,
+    "pairs": 4965117,
+    "votes": 2652897
+   },
+   "old": {
+    "s": 58.7031465,
+    "pairs": 9637432,
+    "votes": 5187392
+   }
+  },
+  {
+   "b0": 1000,
+   "load1_at_start": 2.41796875,
+   "old": {
+    "s": 50.635216249999985,
+    "pairs": 9221979,
+    "votes": 4745890
+   },
+   "new": {
+    "s": 26.347086375000003,
+    "pairs": 4984129,
+    "votes": 2607399
+   }
+  },
+  {
+   "b0": 1100,
+   "load1_at_start": 2.80322265625,
+   "new": {
+    "s": 26.452559957999938,
+    "pairs": 4947809,
+    "votes": 2633871
+   },
+   "old": {
+    "s": 48.36408658300002,
+    "pairs": 8645971,
+    "votes": 4543928
+   }
+  },
+  {
+   "b0": 1200,
+   "load1_at_start": 2.3046875,
+   "old": {
+    "s": 51.47537204100013,
+    "pairs": 9821744,
+    "votes": 4886272
+   },
+   "new": {
+    "s": 24.386280624999927,
+    "pairs": 4978893,
+    "votes": 2495268
+   }
+  },
+  {
+   "b0": 1300,
+   "load1_at_start": 2.212890625,
+   "new": {
+    "s": 23.75735325000005,
+    "pairs": 4834613,
+    "votes": 2470558
+   },
+   "old": {
+    "s": 42.66285370800006,
+    "pairs": 8238079,
+    "votes": 4199260
+   }
+  },
+  {
+   "b0": 1400,
+   "load1_at_start": 2.4482421875,
+   "old": {
+    "s": 49.19650704200012,
+    "pairs": 8547311,
+    "votes": 4476225
+   },
+   "new": {
+    "s": 26.461417250000068,
+    "pairs": 4922063,
+    "votes": 2609642
+   }
+  },
+  {
+   "b0": 1500,
+   "load1_at_start": 2.50244140625,
+   "new": {
+    "s": 23.217694084000186,
+    "pairs": 4903866,
+    "votes": 2442038
+   },
+   "old": {
+    "s": 45.78810545800002,
+    "pairs": 9035018,
+    "votes": 4518523
+   }
+  },
+  {
+   "b0": 1600,
+   "load1_at_start": 2.25634765625,
+   "old": {
+    "s": 9.852433374999919,
+    "pairs": 1786753,
+    "votes": 975527
+   },
+   "new": {
+    "s": 6.570345374999988,
+    "pairs": 1239334,
+    "votes": 678407
+   }
+  }
+ ],
+ "verdict_start": "refused: machine not quiet for timing: 1-min load 2.10 > 1.5; busy process pid 5359 (100% CPU): ~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools",
+ "verdict_end": "refused: machine not quiet for timing: 1-min load 2.27 > 1.5; busy process pid 5359 (99% CPU): ~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools",
+ "timing_label": "contended",
+ "preflight_start": {
+  "timestamp": "2026-11-20T02:29:30",
+  "host": "newt.local",
+  "loadavg": [
+   2.09521484375,
+   2.26025390625,
+   2.3994140625
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": "1",
+  "mkl_num_threads": "1",
+  "torch_threads": 1,
+  "busy_processes": [
+   {
+    "pid": 5359,
+    "cpu": 100.0,
+    "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+   }
+  ]
+ },
+ "preflight_end": {
+  "timestamp": "2026-11-20T02:52:41",
+  "host": "newt.local",
+  "loadavg": [
+   2.2724609375,
+   2.3251953125,
+   2.34716796875
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": "1",
+  "mkl_num_threads": "1",
+  "torch_threads": 1,
+  "busy_processes": [
+   {
+    "pid": 5359,
+    "cpu": 99.0,
+    "command": "~/.vscode/extensions/ms-vscode.cpptools-1.35.6-darwin-arm64/bin/cpptools"
+   }
+  ]
+ },
+ "wall_s": 1390.0122418403625
+}

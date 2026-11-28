@@ -1,0 +1,60 @@
+{
+  "name": "P4",
+  "n_voxels": 24570,
+  "n_processed": 24570,
+  "wall_p_s": 4507.581657886505,
+  "wall_r4_s": 92.71791076660156,
+  "setup_s": 0.44133710861206055,
+  "timing_label": "contended: timing preflight refused (cpptools at 100% CPU); single run, one worker",
+  "n_entries": 2535,
+  "evals": {
+    "seed_index": 6383950,
+    "score": 138580,
+    "fit_rejected": 292096,
+    "fit_accepted": 431758,
+    "index_rejected": 241081,
+    "seed_grid": 41126866,
+    "grid_rejected": 1366110
+  },
+  "evals_total": 49980441,
+  "evals_r4": 912255,
+  "n_refined_r4": 14955,
+  "counts": {
+    "seeds": 2535,
+    "fits_accepted": 7078,
+    "fits_rejected": 2212,
+    "failed": 4
+  },
+  "wrapper_after_paint": {
+    "wrapper_calls": 9290,
+    "wrapper_calls_by_caller": {
+      "local_fit": 9290
+    },
+    "picked_fell": 9058,
+    "fallback_runs": 232,
+    "fallback_won": 2,
+    "evals_picked": 566690,
+    "evals_fallback": 157164,
+    "cma_calls_total": 9290,
+    "vmo_calls_total": 5435,
+    "vmo_calls_in_wrapper": 232,
+    "vmo_calls_outside_wrapper": 5203
+  },
+  "wrapper_final": {
+    "wrapper_calls": 9290,
+    "wrapper_calls_by_caller": {
+      "local_fit": 9290
+    },
+    "picked_fell": 9058,
+    "fallback_runs": 232,
+    "fallback_won": 2,
+    "evals_picked": 566690,
+    "evals_fallback": 157164,
+    "cma_calls_total": 24245,
+    "vmo_calls_total": 5435,
+    "vmo_calls_in_wrapper": 232,
+    "vmo_calls_outside_wrapper": 5203
+  },
+  "index_pairing_s": 23.119821875,
+  "truth_sha256": "de0a2ae854d9705c3fcf41ac732b56674a1e5daf3882d73c0f9e41e4a66073c2"
+}

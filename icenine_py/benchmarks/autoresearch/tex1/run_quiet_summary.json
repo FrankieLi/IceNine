@@ -1,0 +1,24 @@
+{
+ "CSP": {
+  "quiet": false,
+  "limit": 3.5,
+  "max_load": 22.232421875,
+  "median_load": 15.88037109375,
+  "n_load": 1069,
+  "relaxed_ok": false,
+  "label": "strict quiet check failed (load max 22.23 > 3.5 in 1068 of 1069 samples; busy: cpptools)",
+  "busy_note": "a cpptools process held about one core (and launchd at times)",
+  "marker": "exit=5 reason=not quiet; relabelled contended; stop, no rerun elapsed_s=32059 label=contended (the run was not quiet: load limit 3.5, see benchmarks/autoresearch/tex1/cache/runs/whole/CSP/quiet.json)"
+ },
+ "RCP": {
+  "quiet": false,
+  "limit": 3.5,
+  "max_load": 3.78955078125,
+  "median_load": 2.28564453125,
+  "n_load": 754,
+  "relaxed_ok": false,
+  "label": "strict quiet check failed (load max 3.79 > 3.5 in 5 of 754 samples; busy: cpptools, launchd)",
+  "busy_note": "a cpptools process held about one core (and launchd at times)",
+  "marker": "exit=5 reason=not quiet; relabelled contended; stop, no rerun elapsed_s=22601 label=contended (the run was not quiet: load limit 3.5, see benchmarks/autoresearch/tex1/cache/runs/whole/RCP/quiet.json)"
+ }
+}

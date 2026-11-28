@@ -1,0 +1,90 @@
+{
+ "id": "fine7_98280",
+ "title": "Whole fine layer (98,280 voxels), clean",
+ "rows": [
+  {
+   "method": "stock C++ (CS)",
+   "arm": "CS",
+   "evaluations": 1670595806,
+   "wrong_on_common_85676": 4681,
+   "wilson95_common": [
+    4552.31835057874,
+    4813.103316139184
+   ],
+   "wrong_all_98280": 15604,
+   "wall_s": 91206.32,
+   "workers": 1,
+   "label": "contended"
+  },
+  {
+   "method": "corrected C++ (CF)",
+   "arm": "CF",
+   "evaluations": 1362495605,
+   "wrong_on_common_85676": 2734,
+   "wilson95_common": [
+    2634.9489683544093,
+    2836.647292411786
+   ],
+   "wrong_all_98280": 12777,
+   "wall_s": 71995.62,
+   "workers": 1,
+   "label": "contended"
+  },
+  {
+   "method": "stock C++ (CSP)",
+   "arm": "CSP",
+   "evaluations": 1380035950,
+   "wrong_on_common_85676": 4416,
+   "wilson95_common": [
+    4290.867088379456,
+    4544.578341781094
+   ],
+   "wrong_all_98280": 14914,
+   "wall_s": 10266.57,
+   "workers": 12,
+   "label": "contended; 13 ranks on 12 cores"
+  },
+  {
+   "method": "corrected C++ (CFP)",
+   "arm": "CFP",
+   "evaluations": 1370501354,
+   "wrong_on_common_85676": 3241,
+   "wilson95_common": [
+    3133.311928335352,
+    3352.2388680330655
+   ],
+   "wrong_all_98280": 13920,
+   "wall_s": 10212.92,
+   "workers": 12,
+   "label": "contended; 13 ranks on 12 cores"
+  },
+  {
+   "method": "Python, latest recipe (J5S)",
+   "arm": "J5S",
+   "evaluations": 32579814,
+   "wrong_on_common_85676": 453,
+   "wilson95_common": [
+    413.25214463572905,
+    496.5486610837808
+   ],
+   "wrong_all_98280": 561,
+   "wall_s": 7566.17,
+   "workers": 1,
+   "label": "contended"
+  },
+  {
+   "method": "Python, stock + 3 Python-only keys (PS)",
+   "arm": "PS",
+   "evaluations": 2832907439,
+   "wrong_on_common_85676": 616,
+   "wilson95_common": [
+    569.3864995142413,
+    666.3996894462198
+   ],
+   "wrong_all_98280": 714,
+   "wall_s": 183312.19,
+   "workers": 1,
+   "label": "contended"
+  }
+ ]
+}

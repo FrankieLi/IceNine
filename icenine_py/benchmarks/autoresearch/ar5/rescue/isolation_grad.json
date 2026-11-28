@@ -1,0 +1,42 @@
+{
+ "sample": "grad",
+ "n_voxels": 24570,
+ "rescued_voxels": [
+  1672,
+  2740,
+  11536,
+  19063,
+  20136,
+  23825
+ ],
+ "differ_before": {
+  "n": 32,
+  "rescued_in": 6,
+  "rescued_not_in": 0,
+  "others": 26,
+  "others_in_a_rescued_grain": 20,
+  "others_max_deg": 0.27072323535782766,
+  "equals_rescued_set": false,
+  "n_over_1e6_deg": 32
+ },
+ "differ_after": {
+  "n": 36,
+  "rescued_in": 6,
+  "rescued_not_in": 0,
+  "others": 30,
+  "others_in_a_rescued_grain": 20,
+  "others_max_deg": 0.15530229234323117,
+  "equals_rescued_set": false,
+  "n_over_1e6_deg": 36
+ },
+ "rescued": {
+  "n": 6,
+  "median_deg": 0.001809653804706421,
+  "max_deg": 0.017813797948959324,
+  "max_voxel": 19063,
+  "a_right": 6,
+  "max_deg_where_a_right": 0.017813797948959324,
+  "a_wrong": []
+ },
+ "note": "voxels whose stored orientation differs between arm A and arm G; with aligned draws only the rescued voxels and voxels grown from them may change"
+}

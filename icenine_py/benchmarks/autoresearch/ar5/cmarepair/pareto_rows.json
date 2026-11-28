@@ -1,0 +1,236 @@
+[
+ {
+  "sample": "held4",
+  "in_sample": false,
+  "arm": "S8",
+  "evals_total": 68033600,
+  "evals_per_voxel": 2768.97,
+  "wrong": 49,
+  "fraction_right": 0.998006,
+  "wrong_wilson95": [
+   0.001509,
+   0.002635
+  ]
+ },
+ {
+  "sample": "held4",
+  "in_sample": false,
+  "arm": "J5",
+  "evals_total": 27350255,
+  "evals_per_voxel": 1113.16,
+  "wrong": 40,
+  "fraction_right": 0.998372,
+  "wrong_wilson95": [
+   0.001196,
+   0.002216
+  ]
+ },
+ {
+  "sample": "held4",
+  "in_sample": false,
+  "arm": "J5C",
+  "evals_total": 27487469,
+  "evals_per_voxel": 1118.74,
+  "wrong": 22,
+  "fraction_right": 0.999105,
+  "wrong_wilson95": [
+   0.000591,
+   0.001355
+  ]
+ },
+ {
+  "sample": "held3",
+  "in_sample": true,
+  "arm": "S8",
+  "evals_total": 67408448,
+  "evals_per_voxel": 2743.53,
+  "wrong": 61,
+  "fraction_right": 0.997517,
+  "wrong_wilson95": [
+   0.001933,
+   0.003188
+  ]
+ },
+ {
+  "sample": "held3",
+  "in_sample": true,
+  "arm": "J5",
+  "evals_total": 23503385,
+  "evals_per_voxel": 956.59,
+  "wrong": 54,
+  "fraction_right": 0.997802,
+  "wrong_wilson95": [
+   0.001685,
+   0.002866
+  ]
+ },
+ {
+  "sample": "held3",
+  "in_sample": true,
+  "arm": "J5C",
+  "evals_total": 23650279,
+  "evals_per_voxel": 962.57,
+  "wrong": 40,
+  "fraction_right": 0.998372,
+  "wrong_wilson95": [
+   0.001196,
+   0.002216
+  ]
+ },
+ {
+  "sample": "held",
+  "in_sample": true,
+  "arm": "S8",
+  "evals_total": 59923523,
+  "evals_per_voxel": 2438.89,
+  "wrong": 70,
+  "fraction_right": 0.997151,
+  "wrong_wilson95": [
+   0.002256,
+   0.003598
+  ]
+ },
+ {
+  "sample": "held",
+  "in_sample": true,
+  "arm": "J5",
+  "evals_total": 22939812,
+  "evals_per_voxel": 933.65,
+  "wrong": 67,
+  "fraction_right": 0.997273,
+  "wrong_wilson95": [
+   0.002148,
+   0.003461
+  ]
+ },
+ {
+  "sample": "held",
+  "in_sample": true,
+  "arm": "J5C",
+  "evals_total": 23063958,
+  "evals_per_voxel": 938.7,
+  "wrong": 49,
+  "fraction_right": 0.998006,
+  "wrong_wilson95": [
+   0.001509,
+   0.002635
+  ]
+ },
+ {
+  "sample": "mid",
+  "in_sample": true,
+  "arm": "S8",
+  "evals_total": 26443074,
+  "evals_per_voxel": 1076.23,
+  "wrong": 31,
+  "fraction_right": 0.998738,
+  "wrong_wilson95": [
+   0.000889,
+   0.00179
+  ]
+ },
+ {
+  "sample": "mid",
+  "in_sample": true,
+  "arm": "J5",
+  "evals_total": 10589493,
+  "evals_per_voxel": 430.99,
+  "wrong": 35,
+  "fraction_right": 0.998575,
+  "wrong_wilson95": [
+   0.001024,
+   0.00198
+  ]
+ },
+ {
+  "sample": "mid",
+  "in_sample": true,
+  "arm": "J5C",
+  "evals_total": 10666328,
+  "evals_per_voxel": 434.12,
+  "wrong": 20,
+  "fraction_right": 0.999186,
+  "wrong_wilson95": [
+   0.000527,
+   0.001257
+  ]
+ },
+ {
+  "sample": "grad",
+  "in_sample": true,
+  "arm": "S8",
+  "evals_total": 18000230,
+  "evals_per_voxel": 732.61,
+  "wrong": 63,
+  "fraction_right": 0.997436,
+  "wrong_wilson95": [
+   0.002005,
+   0.003279
+  ]
+ },
+ {
+  "sample": "grad",
+  "in_sample": true,
+  "arm": "J5",
+  "evals_total": 9041686,
+  "evals_per_voxel": 368.0,
+  "wrong": 56,
+  "fraction_right": 0.997721,
+  "wrong_wilson95": [
+   0.001756,
+   0.002958
+  ]
+ },
+ {
+  "sample": "grad",
+  "in_sample": true,
+  "arm": "J5C",
+  "evals_total": 9158451,
+  "evals_per_voxel": 372.75,
+  "wrong": 25,
+  "fraction_right": 0.998982,
+  "wrong_wilson95": [
+   0.000689,
+   0.001502
+  ]
+ },
+ {
+  "sample": "big",
+  "in_sample": true,
+  "arm": "S8",
+  "evals_total": 8340428,
+  "evals_per_voxel": 339.46,
+  "wrong": 24,
+  "fraction_right": 0.999023,
+  "wrong_wilson95": [
+   0.000657,
+   0.001453
+  ]
+ },
+ {
+  "sample": "big",
+  "in_sample": true,
+  "arm": "J5",
+  "evals_total": 3567098,
+  "evals_per_voxel": 145.18,
+  "wrong": 21,
+  "fraction_right": 0.999145,
+  "wrong_wilson95": [
+   0.000559,
+   0.001306
+  ]
+ },
+ {
+  "sample": "big",
+  "in_sample": true,
+  "arm": "J5C",
+  "evals_total": 3586700,
+  "evals_per_voxel": 145.98,
+  "wrong": 7,
+  "fraction_right": 0.999715,
+  "wrong_wilson95": [
+   0.000138,
+   0.000588
+  ]
+ }
+]

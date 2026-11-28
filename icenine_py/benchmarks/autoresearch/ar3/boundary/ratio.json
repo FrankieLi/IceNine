@@ -1,0 +1,103 @@
+{
+ "n_fit_settled": 7078,
+ "wrong_fit_settled": 135,
+ "wrong_fit_settled_max_ratio": 0.9445372102787555,
+ "rows": [
+  {
+   "set": "A",
+   "theta": 0.9,
+   "fit_settled": 3443,
+   "skipped": 3443,
+   "wrong_skipped": 67,
+   "tries_skipped": 9248,
+   "fixed_lost": 52,
+   "fixed_in_set": 106,
+   "broken_avoided": 0,
+   "lost_ci": "52 of 106 (39.7 to 58.4%)"
+  },
+  {
+   "set": "A",
+   "theta": 0.92,
+   "fit_settled": 3443,
+   "skipped": 3294,
+   "wrong_skipped": 8,
+   "tries_skipped": 8771,
+   "fixed_lost": 4,
+   "fixed_in_set": 106,
+   "broken_avoided": 0,
+   "lost_ci": "4 of 106 (1.5 to 9.3%)"
+  },
+  {
+   "set": "A",
+   "theta": 0.95,
+   "fit_settled": 3443,
+   "skipped": 2992,
+   "wrong_skipped": 0,
+   "tries_skipped": 7829,
+   "fixed_lost": 0,
+   "fixed_in_set": 106,
+   "broken_avoided": 0,
+   "lost_ci": "0 of 106 (0.0 to 3.5%)"
+  },
+  {
+   "set": "A",
+   "theta": 0.98,
+   "fit_settled": 3443,
+   "skipped": 2122,
+   "wrong_skipped": 0,
+   "tries_skipped": 5297,
+   "fixed_lost": 0,
+   "fixed_in_set": 106,
+   "broken_avoided": 0,
+   "lost_ci": "0 of 106 (0.0 to 3.5%)"
+  },
+  {
+   "set": "B",
+   "theta": 0.9,
+   "fit_settled": 3635,
+   "skipped": 3635,
+   "wrong_skipped": 68,
+   "tries_skipped": 10068,
+   "fixed_lost": 48,
+   "fixed_in_set": 98,
+   "broken_avoided": 0,
+   "lost_ci": "48 of 98 (39.3 to 58.7%)"
+  },
+  {
+   "set": "B",
+   "theta": 0.92,
+   "fit_settled": 3635,
+   "skipped": 3442,
+   "wrong_skipped": 14,
+   "tries_skipped": 9450,
+   "fixed_lost": 9,
+   "fixed_in_set": 98,
+   "broken_avoided": 0,
+   "lost_ci": "9 of 98 (4.9 to 16.5%)"
+  },
+  {
+   "set": "B",
+   "theta": 0.95,
+   "fit_settled": 3635,
+   "skipped": 3130,
+   "wrong_skipped": 0,
+   "tries_skipped": 8404,
+   "fixed_lost": 0,
+   "fixed_in_set": 98,
+   "broken_avoided": 0,
+   "lost_ci": "0 of 98 (0.0 to 3.8%)"
+  },
+  {
+   "set": "B",
+   "theta": 0.98,
+   "fit_settled": 3635,
+   "skipped": 2155,
+   "wrong_skipped": 0,
+   "tries_skipped": 5524,
+   "fixed_lost": 0,
+   "fixed_in_set": 98,
+   "broken_avoided": 0,
+   "lost_ci": "0 of 98 (0.0 to 3.8%)"
+  }
+ ]
+}

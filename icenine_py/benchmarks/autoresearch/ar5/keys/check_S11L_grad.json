@@ -1,0 +1,185 @@
+{
+ "kind": "S11L",
+ "sample": "grad",
+ "keys": [
+  "BFSNeighborCMAFirst 1",
+  "CMASigma0 0.05",
+  "CMANeighborMaxEvals 60",
+  "BoundaryPass 1",
+  "SeedIndexCandidates 20 5",
+  "SeedIndexStopHitRatio 0.95",
+  "BFSNeighborCMANoFallback 1",
+  "SeedIndexCMAFirst 200"
+ ],
+ "stored_dir": "S11_grad",
+ "plan_numbers": {
+  "evals_before_pass": [
+   8622191,
+   8622191
+  ],
+  "seeds": [
+   348,
+   348
+  ],
+  "reseeds": [
+   986,
+   986
+  ],
+  "grid_fallbacks": 11
+ },
+ "stored_evals_total": 8622191,
+ "counters": {
+  "n_stored_counters": 36,
+  "differ": {},
+  "only_in_stored": [],
+  "only_in_library": [
+   "boundary_changed",
+   "boundary_tries",
+   "boundary_voxels",
+   "cma_not_fell",
+   "index_mixed_cands",
+   "index_mixed_cma_reached",
+   "index_mixed_mc_ran",
+   "index_stopped_early",
+   "n_evals_boundary_pass",
+   "n_evals_boundary_score"
+  ]
+ },
+ "records": {
+  "equal": true,
+  "n": 24570
+ },
+ "map_before_pass_vs_stored_recon_mic": {
+  "equal": true,
+  "bytes": 6535568
+ },
+ "wrapper_counts": {
+  "fits": [
+   53345,
+   53345
+  ],
+  "cma_not_fell": [
+   4770,
+   4770
+  ],
+  "cma_first_fallback_runs": [
+   null,
+   0
+  ]
+ },
+ "seed_steps": {
+  "steps": [
+   1334,
+   1334
+  ],
+  "stopped_early": [
+   1233,
+   1233
+  ]
+ },
+ "seed_step_log": {
+  "steps": [
+   1334,
+   1334
+  ],
+  "equal": true
+ },
+ "mixed_refinement": {
+  "candidates": [
+   2158,
+   2158
+  ],
+  "mc_ran": [
+   1053,
+   1053
+  ],
+  "equal": true
+ },
+ "mixed_counters": {
+  "cands": 2158,
+  "cma_reached": 1105,
+  "mc_ran": 1053
+ },
+ "pass_in_run": {
+  "tries": [
+   60423,
+   60423
+  ],
+  "evals": [
+   3685803,
+   3685803
+  ],
+  "same_voxel_and_candidate": 60423,
+  "same_evaluations": 60423,
+  "same_end_exact": 21,
+  "max_abs_end_difference": 0.017758607864379883,
+  "tries_differ": 60402,
+  "voxels_touched_by_differing_tries": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   7,
+   8,
+   9,
+   10,
+   11,
+   13,
+   14,
+   15,
+   16,
+   17,
+   18,
+   19,
+   20,
+   21,
+   22,
+   23,
+   24,
+   25,
+   26,
+   27,
+   28,
+   29,
+   30,
+   31,
+   32
+  ],
+  "first_differing_try": {
+   "voxel": 0,
+   "cand": 10,
+   "evals": [
+    61,
+    61
+   ],
+   "max_abs_end_diff": 5.960464477539063e-08
+  }
+ },
+ "pass_counts": {
+  "tries": 60423,
+  "evals": 3685803,
+  "boundary_voxels": 23101,
+  "changed": 688,
+  "evals_total_with_pass": 12307994,
+  "stored_with_pass": 12307994
+ },
+ "wrong": {
+  "lib_before": 207,
+  "lib_after": 62,
+  "stored_before": 207,
+  "stored_after": 62
+ },
+ "paired_before": {
+  "fixed_vs_stored": 0,
+  "broken_vs_stored": 0,
+  "both_wrong": 207
+ },
+ "paired_after": {
+  "fixed_vs_stored": 0,
+  "broken_vs_stored": 0,
+  "both_wrong": 62
+ },
+ "timing_label": "contended: timing preflight refused (cpptools at 100% CPU, Python at 99% CPU); single run, one worker",
+ "wall_total_s": 1763.7276799678802
+}

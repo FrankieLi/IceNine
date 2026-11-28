@@ -1,0 +1,187 @@
+{
+ "sample": "mid",
+ "steps_A": 1607,
+ "steps_Y": 1610,
+ "matched": 1173,
+ "only_A": 434,
+ "only_Y": 437,
+ "taken_differs_matched": 115,
+ "differing_wrong": [
+  0,
+  0
+ ],
+ "wrong_ends_all": [
+  15,
+  13
+ ],
+ "wrong_ends_one_arm": [
+  4,
+  2
+ ],
+ "same_voxel_prefix": 65,
+ "first_taken_difference_index0": 51,
+ "first_taken_difference_step": 52,
+ "diff_before_voxels": 3049,
+ "diff_after_voxels": 3329,
+ "changed_regions": 85,
+ "largest_changed_region": 836,
+ "neighbour_radius": 0.009561365832821871,
+ "flips_fixed": 2,
+ "flips_broken": 5,
+ "flips_made_before": 2,
+ "flips_made_in_pass": 5,
+ "flips": [
+  {
+   "voxel": 1426,
+   "kind": "broken",
+   "made": "in the pass",
+   "source_A": "neighbor",
+   "source_Y": "neighbor",
+   "err_before": [
+    30.269,
+    30.269
+   ],
+   "err_after": [
+    0.075,
+    30.269
+   ],
+   "region": "identical before the pass",
+   "region_size": 0,
+   "seed_steps_A": [],
+   "seed_steps_Y": []
+  },
+  {
+   "voxel": 2078,
+   "kind": "broken",
+   "made": "before the pass",
+   "source_A": "revisit",
+   "source_Y": "neighbor",
+   "err_before": [
+    0.022,
+    24.152
+   ],
+   "err_after": [
+    0.022,
+    24.152
+   ],
+   "region": "changed region with a matched seed step whose taken end differs",
+   "region_size": 836,
+   "seed_steps_A": [],
+   "seed_steps_Y": []
+  },
+  {
+   "voxel": 2541,
+   "kind": "fixed",
+   "made": "in the pass",
+   "source_A": "revisit",
+   "source_Y": "revisit",
+   "err_before": [
+    0.07,
+    0.071
+   ],
+   "err_after": [
+    35.803,
+    0.071
+   ],
+   "region": "changed region with one-arm seed steps only",
+   "region_size": 24,
+   "seed_steps_A": [],
+   "seed_steps_Y": []
+  },
+  {
+   "voxel": 5209,
+   "kind": "broken",
+   "made": "in the pass",
+   "source_A": "revisit",
+   "source_Y": "revisit",
+   "err_before": [
+    0.06,
+    0.098
+   ],
+   "err_after": [
+    0.06,
+    53.321
+   ],
+   "region": "changed region with a matched seed step whose taken end differs",
+   "region_size": 461,
+   "seed_steps_A": [],
+   "seed_steps_Y": []
+  },
+  {
+   "voxel": 8697,
+   "kind": "fixed",
+   "made": "in the pass",
+   "source_A": "neighbor",
+   "source_Y": "revisit",
+   "err_before": [
+    0.091,
+    0.08
+   ],
+   "err_after": [
+    56.384,
+    0.08
+   ],
+   "region": "changed region with a matched seed step whose taken end differs",
+   "region_size": 256,
+   "seed_steps_A": [],
+   "seed_steps_Y": []
+  },
+  {
+   "voxel": 13013,
+   "kind": "broken",
+   "made": "before the pass",
+   "source_A": "revisit",
+   "source_Y": "seed",
+   "err_before": [
+    0.057,
+    44.708
+   ],
+   "err_after": [
+    0.057,
+    44.708
+   ],
+   "region": "changed region with one-arm seed steps only",
+   "region_size": 6,
+   "seed_steps_A": [],
+   "seed_steps_Y": [
+    {
+     "occurrence": 0,
+     "one_arm_only": true,
+     "reseed": true,
+     "stop": -1,
+     "taken": {
+      "j": 0,
+      "kind": "M",
+      "hit": 0.906,
+      "err": 44.70751146902866
+     },
+     "best_hit": {
+      "j": 0,
+      "kind": "M",
+      "hit": 0.906,
+      "err": 44.70751146902866
+     }
+    }
+   ]
+  },
+  {
+   "voxel": 21630,
+   "kind": "broken",
+   "made": "in the pass",
+   "source_A": "revisit",
+   "source_Y": "revisit",
+   "err_before": [
+    0.056,
+    0.046
+   ],
+   "err_after": [
+    0.056,
+    54.741
+   ],
+   "region": "changed region with a matched seed step whose taken end differs",
+   "region_size": 836,
+   "seed_steps_A": [],
+   "seed_steps_Y": []
+  }
+ ]
+}

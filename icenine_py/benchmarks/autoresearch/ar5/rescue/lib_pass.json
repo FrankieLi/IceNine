@@ -1,0 +1,27 @@
+{
+ "sample": "mid",
+ "n_tries": {
+  "library": 50027,
+  "script": 50027
+ },
+ "evals": {
+  "library": 3051647,
+  "script": 3051647
+ },
+ "wall_s": 320.7592489719391,
+ "timing_label": "contended: timing preflight refused (Python at 100% CPU, spotlightknowledged at 100% CPU); single run, one worker",
+ "wall_label": "contended; not a timing result",
+ "differ_voxel": 0,
+ "differ_cand": 0,
+ "differ_evals": 0,
+ "differ_cost": 0,
+ "differ_hit": 0,
+ "differ_end": 0,
+ "voxels_changed": {
+  "library": 1455,
+  "script": 1455
+ },
+ "same_changed_voxels": true,
+ "map_after_equal": false,
+ "exact": true
+}

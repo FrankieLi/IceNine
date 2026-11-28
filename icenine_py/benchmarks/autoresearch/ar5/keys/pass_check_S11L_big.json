@@ -1,0 +1,30 @@
+{
+ "kind": "S11L",
+ "sample": "big",
+ "n_tries": [
+  18617,
+  18617
+ ],
+ "evals": [
+  1135637,
+  1135637
+ ],
+ "total_with_pass": [
+  4015342,
+  4015342
+ ],
+ "wall_s": 124.93311500549316,
+ "timing_label": "contended: timing preflight refused (cpptools at 100% CPU, Python at 99% CPU); single run, one worker",
+ "differ_voxel": 0,
+ "differ_cand": 0,
+ "differ_evals": 0,
+ "differ_cost": 0,
+ "differ_hit": 0,
+ "differ_conf": 0,
+ "differ_end": 0,
+ "voxels_changed": [
+  983,
+  983
+ ],
+ "same_changed_voxels": true
+}

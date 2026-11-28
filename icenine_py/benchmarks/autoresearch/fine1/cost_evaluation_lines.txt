@@ -1,0 +1,37 @@
+# The client cost-evaluation count lines of the four C++ whole-layer runs of fine1.
+# Provenance: the launcher's stdout logs cache/logs/whole_<arm>.log held these lines. A test of
+# the launcher's dry run overwrote whole_CSP.log and whole_CFP.log (2026-11-23 16:36) and
+# freeze_check_whole.log (and slice_CS.log on 2026-11-20 21:29). The 24 lines of CSP and CFP below
+# were recovered from the output of a shell command run on 2026-11-23 16:32 and kept in shmem
+# (the line order is that of the original log: the order in which the clients exited). The CS and
+# CF lines are copied from the logs that survive. The sums equal the totals in score.json.
+# CS (1 client): whole_CS.log
+[cost evaluations] client 1: 1670595806
+# CF (1 client): whole_CF.log
+[cost evaluations] client 1: 1362495605
+# CSP (12 clients, mpirun -n 13)
+[cost evaluations] client 1: 114474504
+[cost evaluations] client 7: 114165061
+[cost evaluations] client 9: 115657889
+[cost evaluations] client 12: 114973241
+[cost evaluations] client 2: 114985358
+[cost evaluations] client 3: 115240293
+[cost evaluations] client 5: 115498349
+[cost evaluations] client 6: 114718263
+[cost evaluations] client 10: 114758430
+[cost evaluations] client 11: 115622497
+[cost evaluations] client 4: 114761698
+[cost evaluations] client 8: 115180367
+# CFP (12 clients, mpirun -n 13)
+[cost evaluations] client 2: 114403203
+[cost evaluations] client 9: 114395882
+[cost evaluations] client 11: 113609088
+[cost evaluations] client 6: 114376203
+[cost evaluations] client 3: 114730712
+[cost evaluations] client 1: 114909544
+[cost evaluations] client 4: 114084336
+[cost evaluations] client 5: 114031845
+[cost evaluations] client 7: 114447545
+[cost evaluations] client 8: 113562707
+[cost evaluations] client 10: 113823331
+[cost evaluations] client 12: 114126958

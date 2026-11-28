@@ -1,0 +1,127 @@
+{
+ "D4L": {
+  "lib_before": 68,
+  "lib_after": 22,
+  "stored_before": 68,
+  "stored_after": 21,
+  "wrong_after_ci95": [
+   0.00059,
+   0.00136
+  ],
+  "expected": {
+   "wrong_before": 68,
+   "wrong_after": 21
+  },
+  "paired_before": {
+   "fixed_vs_stored": 0,
+   "broken_vs_stored": 0,
+   "both_wrong": 68,
+   "n_voxels_with_different_error": 0,
+   "max_abs_error_difference_deg": 0.0,
+   "fixed_voxels": [],
+   "broken_voxels": []
+  },
+  "paired_after": {
+   "fixed_vs_stored": 0,
+   "broken_vs_stored": 1,
+   "both_wrong": 21,
+   "n_voxels_with_different_error": 1082,
+   "max_abs_error_difference_deg": 32.39267302415387,
+   "fixed_voxels": [],
+   "broken_voxels": [
+    19614
+   ]
+  },
+  "pass_on_library_map": {
+   "fixed": 48,
+   "broken": 2,
+   "both_wrong": 20
+  }
+ },
+ "S5L": {
+  "lib_before": 71,
+  "lib_after": 30,
+  "stored_before": 71,
+  "stored_after": 30,
+  "wrong_after_ci95": [
+   0.00086,
+   0.00174
+  ],
+  "expected": {
+   "wrong_before": 71,
+   "wrong_after": 30
+  },
+  "paired_before": {
+   "fixed_vs_stored": 0,
+   "broken_vs_stored": 0,
+   "both_wrong": 71,
+   "n_voxels_with_different_error": 0,
+   "max_abs_error_difference_deg": 0.0,
+   "fixed_voxels": [],
+   "broken_voxels": []
+  },
+  "paired_after": {
+   "fixed_vs_stored": 0,
+   "broken_vs_stored": 0,
+   "both_wrong": 30,
+   "n_voxels_with_different_error": 1067,
+   "max_abs_error_difference_deg": 0.25658277241495303,
+   "fixed_voxels": [],
+   "broken_voxels": []
+  },
+  "pass_on_library_map": {
+   "fixed": 44,
+   "broken": 3,
+   "both_wrong": 27
+  }
+ },
+ "S8L": {
+  "lib_before": 67,
+  "lib_after": 24,
+  "stored_before": 67,
+  "stored_after": 24,
+  "wrong_after_ci95": [
+   0.00066,
+   0.00145
+  ],
+  "expected": {
+   "wrong_before": 67,
+   "wrong_after": 24
+  },
+  "paired_before": {
+   "fixed_vs_stored": 0,
+   "broken_vs_stored": 0,
+   "both_wrong": 67,
+   "n_voxels_with_different_error": 0,
+   "max_abs_error_difference_deg": 0.0,
+   "fixed_voxels": [],
+   "broken_voxels": []
+  },
+  "paired_after": {
+   "fixed_vs_stored": 5,
+   "broken_vs_stored": 5,
+   "both_wrong": 19,
+   "n_voxels_with_different_error": 1335,
+   "max_abs_error_difference_deg": 59.841858797416144,
+   "fixed_voxels": [
+    10325,
+    13838,
+    16458,
+    22347,
+    22612
+   ],
+   "broken_voxels": [
+    12908,
+    17818,
+    19678,
+    20294,
+    22600
+   ]
+  },
+  "pass_on_library_map": {
+   "fixed": 46,
+   "broken": 3,
+   "both_wrong": 21
+  }
+ }
+}

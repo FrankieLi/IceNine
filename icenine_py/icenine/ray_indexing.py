@@ -21,7 +21,7 @@ No cost function is evaluated here: a candidate is a proposal, to be checked wit
 
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 from scipy.sparse import coo_matrix
@@ -139,6 +139,60 @@ def misorientation_deg(Ra: np.ndarray, Rb: np.ndarray, sym: np.ndarray) -> np.nd
     )
     sin_part = 0.5 * np.linalg.norm(axial, axis=1)
     return np.degrees(np.arctan2(sin_part, cos_part)).reshape(shape)
+
+
+# Rule RU (SeedReuseKnown, AR5 step 29; scripts/autoresearch/ar5/ru_rules.py): the constants stay
+# as frozen there and none is a config key.
+REUSE_K_NEAREST = 8  # accepted voxels whose orientations are tried
+REUSE_SIGMA0_DEG = 0.5  # first step of the CMA fit
+REUSE_MAX_EVALS = 200  # evaluations of one fit
+REUSE_SEP_DEG = 0.5  # the second start must be MORE than this from the first
+REUSE_ACCEPT = 0.95  # hit ratio of a fit end that is taken as the seed result
+
+
+def nearest_accepted(
+    tree: Any,
+    pos: np.ndarray,
+    v: int,
+    is_accepted: Callable[[int], bool],
+    k: int = REUSE_K_NEAREST,
+) -> List[int]:
+    """The ``k`` voxels nearest to voxel ``v`` (centre distance; ties by voxel index) among those
+    for which ``is_accepted`` is true, ``v`` itself left out; fewer if fewer exist. ``tree`` is a
+    ``scipy.spatial.cKDTree`` of ``pos`` (shape (N, d)). The query grows until the k-th accepted
+    distance is strictly inside the queried radius, so that no tie at the cut is missed."""
+    n = len(pos)
+    kq = min(n, max(64, 4 * k))
+    while True:
+        _, ii = tree.query(pos[v], k=kq)
+        ii = np.atleast_1d(ii).astype(int)
+        d = np.linalg.norm(pos[ii] - pos[v], axis=1)
+        keep = np.array([int(j) != v and bool(is_accepted(int(j))) for j in ii], dtype=bool)
+        dk, ik = d[keep], ii[keep]
+        order = np.lexsort((ik, np.round(dk, 9)))
+        out = ik[order][:k]
+        if kq >= n:
+            return [int(j) for j in out]
+        if len(dk) >= k:
+            kth = np.round(dk[order][k - 1], 9)
+            if kth < np.round(d.max(), 9):
+                return [int(j) for j in out]
+        kq = min(n, kq * 4)
+
+
+def second_start(
+    order: Sequence[int],
+    R: Sequence[np.ndarray],
+    mis_deg: Callable[[np.ndarray, np.ndarray], float],
+    sep: float = REUSE_SEP_DEG,
+) -> Optional[int]:
+    """Position (in ``R``) of the lowest-cost start (``order`` is the cost order) that is more than
+    ``sep`` degrees from the lowest-cost one; None if there is none."""
+    best = int(order[0])
+    for j in order[1:]:
+        if mis_deg(np.asarray(R[int(j)]), np.asarray(R[best])) > sep:
+            return int(j)
+    return None
 
 
 def _quat_pm(R: np.ndarray) -> np.ndarray:
@@ -477,6 +531,235 @@ def index_voxel(
 
 
 # --------------------------------------------------------------------------------------------
+# a faster indexer with the same candidates (autoresearch AR5 step 26, rule ``IX``)
+#
+# ``index_voxel_fast`` returned the same candidates as ``index_voxel`` on every voxel tested (7,111
+# voxels) and in two live runs; it is NOT exact by construction (see ``_vote_counts_fast``).
+# Nothing about the parameters, the vote generator, the seed order or the merge changes; two
+# things are done differently: (1) the neighbour count of the votes is made once per distinct vote
+# and weighted by its multiplicity (votes that differ by about one rounding error are taken to
+# have the same count: consistent with the tests, not proved), with a larger k-d tree leaf; (2)
+# the part of the refinement that
+# does not depend on the rotation (relative ray length against every reciprocal-vector length) is
+# computed once per voxel, and the explained-ray count is not recomputed when the last match was
+# made at the same rotation. ``index_voxel`` is the reference and stays unchanged.
+# --------------------------------------------------------------------------------------------
+_FAST_LEAF = 64  # k-d tree leaf size of the count (another leaf gave equal counts when tried)
+_DUP_SCALE = 1e11  # votes whose reduced quaternions round to the same value are one distinct vote
+_MAX_MULT_CLASSES = 8  # more distinct multiplicities than this: count with one tree of all votes
+
+
+def _vote_counts_fast(q: np.ndarray, chord: float) -> np.ndarray:
+    """Number of votes within ``chord`` (Euclidean, quaternion space) of every vote, themselves
+    included: what ``cKDTree(q).query_ball_point(q, chord, return_length=True)`` returned on all
+    tested voxels, from one query per distinct vote (votes equal after rounding to ``1 /
+    _DUP_SCALE`` are one vote) against one small tree per multiplicity. Known limit, not exact by
+    construction: every vote of a group gets the representative's count, and the other groups are
+    counted at their representative's position, so a vote whose distance to a group lies within
+    the group's spread of ``chord`` can get another count than the tree gives (see
+    ``test_vote_counts_edge_case_differs_from_tree``)."""
+    n = len(q)
+    key = np.round(q * _DUP_SCALE).astype(np.int64)
+    order = np.lexsort((np.arange(n), key[:, 3], key[:, 2], key[:, 1], key[:, 0]))
+    ks = key[order]
+    start = np.r_[True, np.any(ks[1:] != ks[:-1], axis=1)]
+    gid_sorted = np.cumsum(start) - 1
+    gid = np.empty(n, dtype=np.int64)
+    gid[order] = gid_sorted
+    rep = order[start]  # lowest index of every distinct vote
+    mult = np.bincount(gid_sorted)
+    qr = q[rep]
+    classes = np.unique(mult)
+    if len(rep) == n or len(classes) > _MAX_MULT_CLASSES:
+        tree = cKDTree(q, leafsize=_FAST_LEAF)
+        cnt_rep = np.asarray(tree.query_ball_point(qr, chord, return_length=True), dtype=np.int64)
+    else:
+        cnt_rep = np.zeros(len(rep), dtype=np.int64)
+        for k in classes:
+            sel = mult == k
+            tk = cKDTree(qr[sel], leafsize=_FAST_LEAF)
+            cnt_rep += int(k) * np.asarray(
+                tk.query_ball_point(qr, chord, return_length=True), dtype=np.int64
+            )
+    return cnt_rep[gid]
+
+
+def cluster_votes_fast(
+    votes: np.ndarray, sym: np.ndarray, p: IndexParams
+) -> Tuple[np.ndarray, np.ndarray]:
+    """``cluster_votes`` with the neighbour count of ``_vote_counts_fast``; the seed loop (order,
+    symmetric recount, aligned mean) is the reference's, line for line. Counts as in
+    ``_vote_counts_fast`` (equal on tested voxels, not exact by construction)."""
+    if len(votes) == 0:
+        return np.zeros((0, 3, 3)), np.zeros(0, dtype=int)
+    red = reduce_rotations(votes, sym)
+    q = _quat_pm(red)
+    chord = 2.0 * np.sin(np.radians(p.cluster_deg) / 4.0)
+    cnt = _vote_counts_fast(q, chord)
+    tree = cKDTree(q)
+    seeds = np.argsort(-cnt, kind="stable")
+    assigned = np.zeros(len(q), dtype=bool)
+    sel_R: List[np.ndarray] = []
+    sel_n: List[int] = []
+    sym_t = sym.transpose(0, 2, 1).reshape(len(sym), 9).T
+    for s in seeds:
+        if len(sel_R) >= p.n_seeds:
+            break
+        if assigned[s]:
+            continue
+        Rs = red[s]
+        eq = np.einsum("ij,sjk->sik", Rs, sym)
+        qe = _quat_pm(eq)
+        pts = np.concatenate([qe, -qe])
+        hits = set()
+        for lst in tree.query_ball_point(pts, chord):
+            hits.update(lst)
+        idx = np.fromiter(hits, dtype=np.int64)
+        assigned[idx] = True
+        assigned[s] = True
+        mem = red[idx]
+        tr = np.einsum("ij,mik->mjk", Rs, mem).reshape(len(idx), 9) @ sym_t
+        al = np.einsum("mij,mjk->mik", mem, sym[np.argmax(tr, axis=1)])
+        U, _, Vt = np.linalg.svd(al.sum(0))
+        Rm = U @ np.diag([1.0, 1.0, np.sign(np.linalg.det(U @ Vt))]) @ Vt
+        sel_R.append(Rm)
+        sel_n.append(len(idx))
+    order = np.argsort(-np.asarray(sel_n), kind="stable")
+    return np.stack(sel_R)[order], np.asarray(sel_n)[order]
+
+
+_REFINE_CHUNK = 32  # clusters refined together (the largest array is chunk x rays x vectors)
+
+
+def _refine_clusters_fast(
+    R0: np.ndarray,
+    g: np.ndarray,
+    gl: np.ndarray,
+    gh: np.ndarray,
+    len_ok: np.ndarray,
+    crystal: CrystalModel,
+    p: IndexParams,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """``refine_rotation`` of every cluster rotation in ``R0`` (C, 3, 3), several at a time. Every
+    cluster goes through the same operations in the same order as in the reference (the batch only
+    stacks them; the least-squares fit of each cluster takes the rays it explains), so the
+    rotations and counts are the same. Returns (rotations (C, 3, 3), explained counts (C,))."""
+    C = len(R0)
+    q = crystal.q
+    h = crystal.h
+    R = np.array(R0, dtype=np.float64)
+    explained = np.zeros(C, dtype=np.int64)
+    active = np.arange(C)
+    n_it = p.refine_iters
+    for it in range(n_it + 1):
+        nxt: List[np.ndarray] = []
+        for c0 in range(0, len(active), _REFINE_CHUNK):
+            idx = active[c0 : c0 + _REFINE_CHUNK]
+            ph = np.matmul(h, R[idx].transpose(0, 2, 1))  # (A, K, 3) = h R^T
+            cos = np.where(
+                len_ok[None], np.matmul(gh, (ph / q[None, :, None]).transpose(0, 2, 1)), -2.0
+            )  # (A, n, K)
+            j = np.argmax(cos, axis=2)
+            cmax = np.take_along_axis(cos, j[:, :, None], axis=2)[:, :, 0]
+            found = cmax > -1.5
+            ang = np.where(found, np.degrees(np.arccos(np.clip(cmax, -1.0, 1.0))), np.inf)
+            rel = np.where(found, np.abs(gl[None, :] / q[j] - 1.0), np.inf)
+            j = np.where(found, j, -1)
+            ok = (ang <= p.ang_tol_deg) & (rel <= p.len_tol)
+            n_ok = ok.sum(axis=1)
+            stop = (n_ok < 2) | (it == n_it)
+            explained[idx[stop]] = n_ok[stop]
+            go = np.nonzero(~stop)[0]
+            if len(go) == 0:
+                continue
+            M = np.empty((len(go), 3, 3))
+            for t, a in enumerate(go):
+                M[t] = g[ok[a]].T @ h[j[a][ok[a]]]
+            U, _, Vt = np.linalg.svd(M)
+            d = np.sign(np.linalg.det(U @ Vt))
+            scale = np.ones((len(go), 1, 3))
+            scale[:, 0, 2] = d
+            R[idx[go]] = (U * scale) @ Vt
+            nxt.append(idx[go])
+        active = np.concatenate(nxt) if nxt else np.zeros(0, dtype=np.int64)
+        if len(active) == 0:
+            break
+    return R, explained
+
+
+def index_rays_fast(
+    g: np.ndarray,
+    crystal: CrystalModel,
+    p: IndexParams,
+    top_k: int = 20,
+    keep_votes: bool = False,
+) -> Candidates:
+    """``index_rays`` with ``cluster_votes_fast`` and the hoisted refinement (same output on all
+    tested voxels)."""
+    t0 = time.perf_counter()
+    n = len(g)
+    if n < 2:
+        return Candidates(np.zeros((0, 3, 3)), np.zeros(0, int), np.zeros(0, int), n_rays=n)
+    votes, ne, npairs = cast_votes(g, crystal, p)
+    t1 = time.perf_counter()
+    cl_R, cl_n = cluster_votes_fast(votes, crystal.sym, p)
+    t2 = time.perf_counter()
+    gl = np.linalg.norm(g, axis=1)
+    gh = g / gl[:, None]
+    len_ok = np.abs(gl[:, None] / crystal.q[None, :] - 1.0) <= p.len_tol
+    Rs_a, ex_a = _refine_clusters_fast(cl_R, g, gl, gh, len_ok, crystal, p)
+    vn_a = np.asarray(cl_n, dtype=np.int64)
+    t3 = time.perf_counter()
+    if len(Rs_a) == 0:
+        return Candidates(
+            np.zeros((0, 3, 3)), np.zeros(0, int), np.zeros(0, int), n, ne, npairs, len(votes)
+        )
+    order = np.lexsort((-vn_a, -ex_a))
+    keepR: List[int] = []
+    for i in order:
+        if len(keepR) >= top_k:
+            break
+        if (
+            keepR
+            and (
+                misorientation_deg(Rs_a[i][None], Rs_a[keepR], crystal.sym) < 1.0 * p.merge_deg
+            ).any()
+        ):
+            continue
+        keepR.append(int(i))
+    sel = np.asarray(keepR)
+    t4 = time.perf_counter()
+    return Candidates(
+        Rs_a[sel],
+        ex_a[sel],
+        vn_a[sel],
+        n,
+        ne,
+        npairs,
+        len(votes),
+        seconds=dict(vote=t1 - t0, cluster=t2 - t1, refine=t3 - t2, merge=t4 - t3, total=t4 - t0),
+        vote_R=votes if keep_votes else None,
+    )
+
+
+def index_voxel_fast(
+    sc: Any,
+    voxel_vertices: Any,
+    crystal: CrystalModel,
+    p: IndexParams,
+    top_k: int = 20,
+    keep_votes: bool = False,
+) -> Tuple[Candidates, np.ndarray]:
+    """The candidates and attached rays of ``index_voxel`` (rule ``IX``: same rotations, same
+    counts, same order on all 7,111 tested voxels; not by construction), computed faster.
+    Unused unless called."""
+    att = sc.attached_rays(voxel_vertices)
+    g = scattering_vectors(sc, att)
+    res = index_rays_fast(g, crystal, p, top_k, keep_votes)
+    return res, att
+
+
+# --------------------------------------------------------------------------------------------
 # the BFS seed search (autoresearch AR2): index, strict cost on the first candidates, finisher
 # --------------------------------------------------------------------------------------------
 SEED_N_COST = 5  # candidates that get the strict cost
@@ -506,6 +789,125 @@ class SeedResult:
     finisher_evals: List[int] = field(default_factory=list)
     finisher_R: List[np.ndarray] = field(default_factory=list)
     candidates: Optional[np.ndarray] = None  # (K, 3, 3), the indexer's list
+    # position (in finisher order) of the run that ended the loop at the hit-ratio threshold
+    # (``stop_hit``); -1: no early stop (threshold off, or no run reached it)
+    stopped_at: int = -1
+    # SeedIndexCMAFirst only: one dict per refined candidate, ``cma_hit`` (the hit ratio of the CMA
+    # end) and ``mc_ran`` (the stock MC refinement ran from the same candidate); [] otherwise
+    mixed: List[Dict[str, Any]] = field(default_factory=list)
+    # SeedIndexMCDefer only: positions (in finisher order) of the refinements that were paused at
+    # a stall check that went on, and of those of them that were resumed; [] otherwise
+    paused: List[int] = field(default_factory=list)
+    resumed: List[int] = field(default_factory=list)
+    # ray pairs kept by the indexing (after any subsample) and votes cast (AR5 step 28; 0 for a
+    # stand-in indexer that does not report them)
+    n_pairs: int = 0
+    n_votes: int = 0
+
+
+def mixed_refinement_deferred(
+    R: np.ndarray,
+    cost: float,
+    cma_fn: Any,
+    start_mc: Any,
+    hit_fn: Any,
+    stop_hit: float,
+    allow_pause: bool,
+) -> Tuple[np.ndarray, float, int, Dict[str, Any]]:
+    """``mixed_refinement`` with a pausable MC refinement (``SeedIndexMCDefer``, opt-in).
+
+    The CMA fit and the choice are those of ``mixed_refinement``. ``start_mc(R, cost,
+    allow_pause)`` starts the MC refinement and returns a run with ``paused``, ``partial()``
+    (end, cost, evaluations so far, hit ratio of the check), ``result`` (end, cost, evaluations,
+    when it finished), ``resume()`` (finish it: end, cost, evaluations) and ``abort()``. When the
+    run is paused, the returned end is the lower-cost of the CMA end and the kept best so far, the
+    evaluations are those paid so far (CMA fit, MC part before the check, the check), and ``info``
+    carries ``paused`` True and the callables ``resume`` (finish the refinement and return the
+    result ``mixed_refinement`` would have given: (end, cost, evaluations, info)) and ``abort``.
+    The caller does not test a paused end against the stop ratio."""
+    rc, cc, ec = cma_fn(R, cost)
+    hc = float(hit_fn(rc))
+    if hc >= stop_hit:
+        return rc, cc, int(ec), dict(cma_hit=hc, mc_ran=False)
+    run = start_mc(R, cost, allow_pause)
+
+    def finish(rm: np.ndarray, cm: float, em: int) -> Tuple[np.ndarray, float, int, Dict[str, Any]]:
+        info = dict(cma_hit=hc, mc_ran=True)
+        if cm < cc:
+            return rm, cm, int(ec) + int(em), info
+        return rc, cc, int(ec) + int(em), info
+
+    if run.paused:
+        pm, pc, pe, _hit = run.partial()
+        end, c_end, ev, info = finish(pm, pc, pe)
+
+        def resume() -> Tuple[np.ndarray, float, int, Dict[str, Any]]:
+            return finish(*run.resume())
+
+        info.update(paused=True, resume=resume, abort=run.abort)
+        return end, c_end, ev, info
+    return finish(*run.result)
+
+
+def mixed_refinement(
+    R: np.ndarray,
+    cost: float,
+    cma_fn: Any,
+    mc_fn: Any,
+    hit_fn: Any,
+    stop_hit: float,
+) -> Tuple[np.ndarray, float, int, Dict[str, Any]]:
+    """The mixed seed refinement of one candidate (``SeedIndexCMAFirst``, opt-in): a CMA fit
+    ``cma_fn(R, cost) -> (end, end cost, evaluations)``; its end is kept when
+    ``hit_fn(end) >= stop_hit``. If not, the MC refinement ``mc_fn(R, cost)`` (same return) runs
+    from the same candidate and its end is kept only if its cost is strictly lower (a tie keeps the
+    CMA end). The evaluations of both fits are summed. Returns (end, cost, evaluations, info) with
+    ``info = dict(cma_hit, mc_ran)``."""
+    rc, cc, ec = cma_fn(R, cost)
+    hc = float(hit_fn(rc))
+    if hc >= stop_hit:
+        return rc, cc, int(ec), dict(cma_hit=hc, mc_ran=False)
+    rm, cm, em = mc_fn(R, cost)
+    info = dict(cma_hit=hc, mc_ran=True)
+    if cm < cc:
+        return rm, cm, int(ec) + int(em), info
+    return rc, cc, int(ec) + int(em), info
+
+
+SEED_RESCUE_MAX_TRIES = 5  # SeedRescueCMA: at most this many kept ends are tried
+
+
+def seed_rescue(
+    kept_R: List[np.ndarray],
+    kept_costs: List[float],
+    cma_fn: Any,
+    hit_fn: Any,
+    stop_hit: float,
+    max_tries: int = SEED_RESCUE_MAX_TRIES,
+) -> Dict[str, Any]:
+    """The rescue of a failed seed step (``SeedRescueCMA``, opt-in; rule ``G1`` of AR5 step 9).
+
+    The kept ends (one per refined candidate of the step, with their final costs) are tried in
+    order of cost, ties by position, at most ``max_tries``: ``cma_fn(R) -> (end, end cost,
+    evaluations)`` from each, then ``hit_fn(end) -> (hit ratio, overlap info)``. The first end whose
+    hit ratio is at least ``stop_hit`` is taken and no later end is tried. Returns ``rescued``,
+    ``taken`` (position in ``tries``, -1 if none), ``tries`` (per try: ``k`` the kept end, ``hit``,
+    ``cost``, ``evals``, ``R`` the end, ``info`` its overlap) and ``evals`` (all tries)."""
+    order = sorted(range(len(kept_costs)), key=lambda i: (float(kept_costs[i]), i))[:max_tries]
+    tries: List[Dict[str, Any]] = []
+    taken = -1
+    for k in order:
+        R, cost, ev = cma_fn(np.asarray(kept_R[k], np.float64))
+        hit, info = hit_fn(R)
+        tries.append(
+            dict(k=int(k), hit=float(hit), cost=float(cost), evals=int(ev), R=R, info=info)
+        )
+        if float(hit) >= stop_hit:
+            taken = len(tries) - 1
+            break
+    return dict(
+        rescued=taken >= 0, taken=taken, tries=tries, evals=int(sum(t["evals"] for t in tries))
+    )
 
 
 def seed_by_indexing(
@@ -519,6 +921,10 @@ def seed_by_indexing(
     n_cost: int = SEED_N_COST,
     n_refine: int = SEED_N_REFINE,
     top_k: int = SEED_TOP_K,
+    stop_hit: float = 0.0,
+    hit_fn: Any = None,
+    refine_fn: Any = None,
+    defer: bool = False,
 ) -> SeedResult:
     """The AR2 seed search of one voxel: index it, take the strict cost on the first ``n_cost``
     candidates, run the finisher (``rec.refine_from_candidates``: FindOptimal, VarianceMinimizing,
@@ -528,14 +934,46 @@ def seed_by_indexing(
 
     ``strict_fn(R)`` returns the strict cost of an orientation on this voxel (the caller's strict
     local cost function). Returns a ``SeedResult`` with ``orientation`` None if there is no
-    candidate."""
+    candidate.
+
+    ``stop_hit`` > 0 (AR3 step 10, opt-in): the loop stops at the first run whose end has
+    ``hit_fn(end) >= stop_hit`` and that run's end is the result, although a later run could cost
+    less; if no run reaches it, all are run and the lowest cost is kept. ``hit_fn(R)`` returns the
+    hit ratio of an orientation (one overlap evaluation, not counted in ``evals``). With
+    ``stop_hit`` 0 the loop is the one of AR2.
+
+    ``refine_fn(R, cost) -> (end, end cost, evaluations, info)`` (AR5 step 5, opt-in) replaces the
+    finisher of each candidate (``rec.refine_from_candidates``); ``info`` is appended to
+    ``SeedResult.mixed``. It needs ``stop_hit`` > 0.
+
+    ``defer`` (AR5 step 22, ``SeedIndexMCDefer``, opt-in; needs ``refine_fn``): ``refine_fn(R,
+    cost, allow_pause)`` may return a PAUSED refinement (``info["paused"]`` True, with the
+    callables ``info["resume"]() -> (end, cost, evaluations, info)`` and ``info["abort"]()``),
+    allowed for every candidate but the last. The paused refinement's partial end and the
+    evaluations paid so far are kept in its position and it is not tested against ``stop_hit``; the
+    next candidate is tried. The loop still stops at the first end at ``stop_hit`` or more. If none
+    does, the paused refinements are resumed in candidate order until one does (its end is then the
+    result); a paused refinement that is never resumed is aborted. With no pause the loop is the
+    one above."""
     from .orientation_search import SearchCandidate
 
+    if stop_hit > 0 and hit_fn is None:
+        raise ValueError("stop_hit > 0 needs hit_fn")
+    if refine_fn is not None and stop_hit <= 0:
+        raise ValueError("refine_fn needs stop_hit > 0")
+    if defer and refine_fn is None:
+        raise ValueError("defer needs refine_fn")
     t0 = time.perf_counter()
     res, att = index_voxel(sc, voxel_vertices, crystal, p, top_k)
     index_s = time.perf_counter() - t0
     out = SeedResult(
-        n_cand=len(res.R), n_att=int(len(att)), index_s=index_s, total_s=index_s, candidates=res.R
+        n_cand=len(res.R),
+        n_att=int(len(att)),
+        index_s=index_s,
+        total_s=index_s,
+        candidates=res.R,
+        n_pairs=int(getattr(res, "n_pairs", 0)),
+        n_votes=int(getattr(res, "n_votes", 0)),
     )
     if len(res.R) == 0:
         return out
@@ -545,21 +983,83 @@ def seed_by_indexing(
     out.strict_costs = [float(c) for c in costs]
     out.evals = k
     order = [int(j) for j in np.argsort(costs, kind="stable")[:n_refine]]
-    for j in order:
-        r = rec.refine_from_candidates(
-            [SearchCandidate(orientation=R[j].copy(), cost=float(costs[j]))],
-            voxel_vertices,
-            phase_index,
-            rng=np.random.default_rng(0),
-        )
-        out.refined.append(j)
-        out.finisher_costs.append(float(r.cost))
-        out.finisher_evals.append(int(rec.last_eval_counts[1]))
-        out.finisher_R.append(np.asarray(r.orientation, dtype=np.float64))
+    handles: Dict[int, Dict[str, Any]] = {}  # SeedIndexMCDefer: paused refinements by position
+    try:
+        _seed_loop(rec, voxel_vertices, phase_index, R, costs, order, out, refine_fn, stop_hit,
+                   hit_fn, defer, handles)  # fmt: skip
+    finally:
+        for pos in sorted(handles):  # a paused refinement that was never resumed
+            handles[pos]["abort"]()
     out.evals += int(sum(out.finisher_evals))
-    best = int(np.argmin(out.finisher_costs))  # first of equal costs, as min() in the scripts
+    if out.stopped_at >= 0:
+        best = out.stopped_at
+    else:
+        best = int(np.argmin(out.finisher_costs))  # first of equal costs, as min() in the scripts
     out.taken = out.refined[best]
     out.orientation = out.finisher_R[best]
     out.cost = out.finisher_costs[best]
     out.total_s = time.perf_counter() - t0
     return out
+
+
+def _seed_loop(
+    rec: Any,
+    voxel_vertices: Any,
+    phase_index: int,
+    R: np.ndarray,
+    costs: np.ndarray,
+    order: List[int],
+    out: SeedResult,
+    refine_fn: Any,
+    stop_hit: float,
+    hit_fn: Any,
+    defer: bool,
+    handles: Dict[int, Dict[str, Any]],
+) -> None:
+    """The finisher loop of ``seed_by_indexing`` (see there); ``handles`` receives the callables
+    of every paused refinement (``resume``, ``abort``) and loses those that are resumed."""
+    from .orientation_search import SearchCandidate
+
+    for pos, j in enumerate(order):
+        if refine_fn is not None:
+            if defer:
+                end, c_end, n_ev, info = refine_fn(R[j], float(costs[j]), pos < len(order) - 1)
+            else:
+                end, c_end, n_ev, info = refine_fn(R[j], float(costs[j]))
+            if info.get("paused"):
+                info = dict(info)
+                handles[pos] = dict(resume=info.pop("resume"), abort=info.pop("abort"))
+                out.paused.append(pos)
+            out.mixed.append(info)
+            out.refined.append(j)
+            out.finisher_costs.append(float(c_end))
+            out.finisher_evals.append(int(n_ev))
+            out.finisher_R.append(np.asarray(end, dtype=np.float64))
+            if pos in handles:
+                continue  # paused: not tested against the stop ratio, the next candidate is tried
+        else:
+            r = rec.refine_from_candidates(
+                [SearchCandidate(orientation=R[j].copy(), cost=float(costs[j]))],
+                voxel_vertices,
+                phase_index,
+                rng=np.random.default_rng(0),
+            )
+            out.refined.append(j)
+            out.finisher_costs.append(float(r.cost))
+            out.finisher_evals.append(int(rec.last_eval_counts[1]))
+            out.finisher_R.append(np.asarray(r.orientation, dtype=np.float64))
+        if stop_hit > 0 and float(hit_fn(out.finisher_R[-1])) >= stop_hit:
+            out.stopped_at = len(out.refined) - 1
+            return
+    # no end at the ratio: the paused refinements are resumed in candidate order, each exactly
+    # where it stopped, until one reaches it
+    for pos in sorted(handles):
+        end, c_end, n_ev, info = handles.pop(pos)["resume"]()
+        out.resumed.append(pos)
+        out.mixed[pos] = info
+        out.finisher_costs[pos] = float(c_end)
+        out.finisher_evals[pos] = int(n_ev)
+        out.finisher_R[pos] = np.asarray(end, dtype=np.float64)
+        if float(hit_fn(out.finisher_R[pos])) >= stop_hit:
+            out.stopped_at = pos
+            return

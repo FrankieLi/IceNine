@@ -1,0 +1,1412 @@
+{
+ "threshold": 0.95,
+ "at_threshold": {
+  "big": {
+   "flagged": 1532,
+   "wrong_flagged": 24,
+   "wrong_unflagged": 0,
+   "n": 24570,
+   "n_wrong": 24,
+   "share_flagged": 0.062352462352462355,
+   "recall": 1.0,
+   "unflagged": 23038,
+   "wrong_unflagged_interval": [
+    0,
+    23038,
+    0.0,
+    0.00016672278486629295
+   ],
+   "recall_interval": [
+    24,
+    24,
+    0.8620194241710247,
+    1.0
+   ]
+  },
+  "grad": {
+   "flagged": 2785,
+   "wrong_flagged": 63,
+   "wrong_unflagged": 0,
+   "n": 24570,
+   "n_wrong": 63,
+   "share_flagged": 0.11334961334961335,
+   "recall": 1.0,
+   "unflagged": 21785,
+   "wrong_unflagged_interval": [
+    0,
+    21785,
+    0.0,
+    0.00017631042854522383
+   ],
+   "recall_interval": [
+    63,
+    63,
+    0.9425268096514744,
+    0.9999999999999999
+   ]
+  },
+  "mid": {
+   "flagged": 3709,
+   "wrong_flagged": 31,
+   "wrong_unflagged": 0,
+   "n": 24570,
+   "n_wrong": 31,
+   "share_flagged": 0.15095645095645097,
+   "recall": 1.0,
+   "unflagged": 20861,
+   "wrong_unflagged_interval": [
+    0,
+    20861,
+    0.0,
+    0.00018411834001174493
+   ],
+   "recall_interval": [
+    31,
+    31,
+    0.889740999265246,
+    0.9999999999999999
+   ]
+  }
+ },
+ "pooled_pick": {
+  "flagged": 4317,
+  "n": 49140,
+  "wrong_flagged": 87,
+  "n_wrong": 87,
+  "share_flagged": 0.08785103785103784,
+  "recall": 1.0
+ },
+ "prediction4": {
+  "pick_samples": false,
+  "mid": false,
+  "holds": false
+ },
+ "tables": {
+  "big": {
+   "0.50": {
+    "all": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 24,
+     "n": 24570,
+     "n_wrong": 24
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 37,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 13,
+     "n": 19135,
+     "n_wrong": 13
+    },
+    "revisit": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 11,
+     "n": 5106,
+     "n_wrong": 11
+    },
+    "reseed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 292,
+     "n_wrong": 0
+    },
+    "boundary": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 24,
+     "n": 11054,
+     "n_wrong": 24
+    }
+   },
+   "0.55": {
+    "all": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 24,
+     "n": 24570,
+     "n_wrong": 24
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 37,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 13,
+     "n": 19135,
+     "n_wrong": 13
+    },
+    "revisit": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 11,
+     "n": 5106,
+     "n_wrong": 11
+    },
+    "reseed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 292,
+     "n_wrong": 0
+    },
+    "boundary": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 24,
+     "n": 11054,
+     "n_wrong": 24
+    }
+   },
+   "0.60": {
+    "all": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 24,
+     "n": 24570,
+     "n_wrong": 24
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 37,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 13,
+     "n": 19135,
+     "n_wrong": 13
+    },
+    "revisit": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 11,
+     "n": 5106,
+     "n_wrong": 11
+    },
+    "reseed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 292,
+     "n_wrong": 0
+    },
+    "boundary": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 24,
+     "n": 11054,
+     "n_wrong": 24
+    }
+   },
+   "0.65": {
+    "all": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 24,
+     "n": 24570,
+     "n_wrong": 24
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 37,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 13,
+     "n": 19135,
+     "n_wrong": 13
+    },
+    "revisit": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 11,
+     "n": 5106,
+     "n_wrong": 11
+    },
+    "reseed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 292,
+     "n_wrong": 0
+    },
+    "boundary": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 24,
+     "n": 11054,
+     "n_wrong": 24
+    }
+   },
+   "0.70": {
+    "all": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 24,
+     "n": 24570,
+     "n_wrong": 24
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 37,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 13,
+     "n": 19135,
+     "n_wrong": 13
+    },
+    "revisit": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 11,
+     "n": 5106,
+     "n_wrong": 11
+    },
+    "reseed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 292,
+     "n_wrong": 0
+    },
+    "boundary": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 24,
+     "n": 11054,
+     "n_wrong": 24
+    }
+   },
+   "0.75": {
+    "all": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 24,
+     "n": 24570,
+     "n_wrong": 24
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 37,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 13,
+     "n": 19135,
+     "n_wrong": 13
+    },
+    "revisit": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 11,
+     "n": 5106,
+     "n_wrong": 11
+    },
+    "reseed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 292,
+     "n_wrong": 0
+    },
+    "boundary": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 24,
+     "n": 11054,
+     "n_wrong": 24
+    }
+   },
+   "0.80": {
+    "all": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 24,
+     "n": 24570,
+     "n_wrong": 24
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 37,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 13,
+     "n": 19135,
+     "n_wrong": 13
+    },
+    "revisit": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 11,
+     "n": 5106,
+     "n_wrong": 11
+    },
+    "reseed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 292,
+     "n_wrong": 0
+    },
+    "boundary": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 24,
+     "n": 11054,
+     "n_wrong": 24
+    }
+   },
+   "0.85": {
+    "all": {
+     "flagged": 1,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 24,
+     "n": 24570,
+     "n_wrong": 24
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 37,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 13,
+     "n": 19135,
+     "n_wrong": 13
+    },
+    "revisit": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 11,
+     "n": 5106,
+     "n_wrong": 11
+    },
+    "reseed": {
+     "flagged": 1,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 292,
+     "n_wrong": 0
+    },
+    "boundary": {
+     "flagged": 1,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 24,
+     "n": 11054,
+     "n_wrong": 24
+    }
+   },
+   "0.90": {
+    "all": {
+     "flagged": 80,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 24,
+     "n": 24570,
+     "n_wrong": 24
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 37,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 9,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 13,
+     "n": 19135,
+     "n_wrong": 13
+    },
+    "revisit": {
+     "flagged": 68,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 11,
+     "n": 5106,
+     "n_wrong": 11
+    },
+    "reseed": {
+     "flagged": 3,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 292,
+     "n_wrong": 0
+    },
+    "boundary": {
+     "flagged": 79,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 24,
+     "n": 11054,
+     "n_wrong": 24
+    }
+   },
+   "0.95": {
+    "all": {
+     "flagged": 1532,
+     "wrong_flagged": 24,
+     "wrong_unflagged": 0,
+     "n": 24570,
+     "n_wrong": 24
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 37,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 768,
+     "wrong_flagged": 13,
+     "wrong_unflagged": 0,
+     "n": 19135,
+     "n_wrong": 13
+    },
+    "revisit": {
+     "flagged": 757,
+     "wrong_flagged": 11,
+     "wrong_unflagged": 0,
+     "n": 5106,
+     "n_wrong": 11
+    },
+    "reseed": {
+     "flagged": 7,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 292,
+     "n_wrong": 0
+    },
+    "boundary": {
+     "flagged": 1348,
+     "wrong_flagged": 24,
+     "wrong_unflagged": 0,
+     "n": 11054,
+     "n_wrong": 24
+    }
+   }
+  },
+  "grad": {
+   "0.50": {
+    "all": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 63,
+     "n": 24570,
+     "n_wrong": 63
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 347,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 20,
+     "n": 9511,
+     "n_wrong": 20
+    },
+    "revisit": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 23,
+     "n": 13780,
+     "n_wrong": 23
+    },
+    "reseed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 20,
+     "n": 931,
+     "n_wrong": 20
+    },
+    "boundary": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 63,
+     "n": 23126,
+     "n_wrong": 63
+    }
+   },
+   "0.55": {
+    "all": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 63,
+     "n": 24570,
+     "n_wrong": 63
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 347,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 20,
+     "n": 9511,
+     "n_wrong": 20
+    },
+    "revisit": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 23,
+     "n": 13780,
+     "n_wrong": 23
+    },
+    "reseed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 20,
+     "n": 931,
+     "n_wrong": 20
+    },
+    "boundary": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 63,
+     "n": 23126,
+     "n_wrong": 63
+    }
+   },
+   "0.60": {
+    "all": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 63,
+     "n": 24570,
+     "n_wrong": 63
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 347,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 20,
+     "n": 9511,
+     "n_wrong": 20
+    },
+    "revisit": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 23,
+     "n": 13780,
+     "n_wrong": 23
+    },
+    "reseed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 20,
+     "n": 931,
+     "n_wrong": 20
+    },
+    "boundary": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 63,
+     "n": 23126,
+     "n_wrong": 63
+    }
+   },
+   "0.65": {
+    "all": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 63,
+     "n": 24570,
+     "n_wrong": 63
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 347,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 20,
+     "n": 9511,
+     "n_wrong": 20
+    },
+    "revisit": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 23,
+     "n": 13780,
+     "n_wrong": 23
+    },
+    "reseed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 20,
+     "n": 931,
+     "n_wrong": 20
+    },
+    "boundary": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 63,
+     "n": 23126,
+     "n_wrong": 63
+    }
+   },
+   "0.70": {
+    "all": {
+     "flagged": 1,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 63,
+     "n": 24570,
+     "n_wrong": 63
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 347,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 20,
+     "n": 9511,
+     "n_wrong": 20
+    },
+    "revisit": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 23,
+     "n": 13780,
+     "n_wrong": 23
+    },
+    "reseed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 20,
+     "n": 931,
+     "n_wrong": 20
+    },
+    "boundary": {
+     "flagged": 1,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 63,
+     "n": 23126,
+     "n_wrong": 63
+    }
+   },
+   "0.75": {
+    "all": {
+     "flagged": 1,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 63,
+     "n": 24570,
+     "n_wrong": 63
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 347,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 20,
+     "n": 9511,
+     "n_wrong": 20
+    },
+    "revisit": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 23,
+     "n": 13780,
+     "n_wrong": 23
+    },
+    "reseed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 20,
+     "n": 931,
+     "n_wrong": 20
+    },
+    "boundary": {
+     "flagged": 1,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 63,
+     "n": 23126,
+     "n_wrong": 63
+    }
+   },
+   "0.80": {
+    "all": {
+     "flagged": 3,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 63,
+     "n": 24570,
+     "n_wrong": 63
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 347,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 20,
+     "n": 9511,
+     "n_wrong": 20
+    },
+    "revisit": {
+     "flagged": 1,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 23,
+     "n": 13780,
+     "n_wrong": 23
+    },
+    "reseed": {
+     "flagged": 1,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 20,
+     "n": 931,
+     "n_wrong": 20
+    },
+    "boundary": {
+     "flagged": 3,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 63,
+     "n": 23126,
+     "n_wrong": 63
+    }
+   },
+   "0.85": {
+    "all": {
+     "flagged": 34,
+     "wrong_flagged": 7,
+     "wrong_unflagged": 56,
+     "n": 24570,
+     "n_wrong": 63
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 347,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 20,
+     "n": 9511,
+     "n_wrong": 20
+    },
+    "revisit": {
+     "flagged": 12,
+     "wrong_flagged": 3,
+     "wrong_unflagged": 20,
+     "n": 13780,
+     "n_wrong": 23
+    },
+    "reseed": {
+     "flagged": 21,
+     "wrong_flagged": 4,
+     "wrong_unflagged": 16,
+     "n": 931,
+     "n_wrong": 20
+    },
+    "boundary": {
+     "flagged": 34,
+     "wrong_flagged": 7,
+     "wrong_unflagged": 56,
+     "n": 23126,
+     "n_wrong": 63
+    }
+   },
+   "0.90": {
+    "all": {
+     "flagged": 294,
+     "wrong_flagged": 32,
+     "wrong_unflagged": 31,
+     "n": 24570,
+     "n_wrong": 63
+    },
+    "seed": {
+     "flagged": 1,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 347,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 25,
+     "wrong_flagged": 1,
+     "wrong_unflagged": 19,
+     "n": 9511,
+     "n_wrong": 20
+    },
+    "revisit": {
+     "flagged": 191,
+     "wrong_flagged": 13,
+     "wrong_unflagged": 10,
+     "n": 13780,
+     "n_wrong": 23
+    },
+    "reseed": {
+     "flagged": 76,
+     "wrong_flagged": 18,
+     "wrong_unflagged": 2,
+     "n": 931,
+     "n_wrong": 20
+    },
+    "boundary": {
+     "flagged": 294,
+     "wrong_flagged": 32,
+     "wrong_unflagged": 31,
+     "n": 23126,
+     "n_wrong": 63
+    }
+   },
+   "0.95": {
+    "all": {
+     "flagged": 2785,
+     "wrong_flagged": 63,
+     "wrong_unflagged": 0,
+     "n": 24570,
+     "n_wrong": 63
+    },
+    "seed": {
+     "flagged": 14,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 347,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 687,
+     "wrong_flagged": 20,
+     "wrong_unflagged": 0,
+     "n": 9511,
+     "n_wrong": 20
+    },
+    "revisit": {
+     "flagged": 1928,
+     "wrong_flagged": 23,
+     "wrong_unflagged": 0,
+     "n": 13780,
+     "n_wrong": 23
+    },
+    "reseed": {
+     "flagged": 155,
+     "wrong_flagged": 20,
+     "wrong_unflagged": 0,
+     "n": 931,
+     "n_wrong": 20
+    },
+    "boundary": {
+     "flagged": 2766,
+     "wrong_flagged": 63,
+     "wrong_unflagged": 0,
+     "n": 23126,
+     "n_wrong": 63
+    }
+   }
+  },
+  "mid": {
+   "0.50": {
+    "all": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 31,
+     "n": 24570,
+     "n_wrong": 31
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 156,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 12,
+     "n": 14205,
+     "n_wrong": 12
+    },
+    "revisit": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 10,
+     "n": 8754,
+     "n_wrong": 10
+    },
+    "reseed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 8,
+     "n": 1453,
+     "n_wrong": 8
+    },
+    "boundary": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 31,
+     "n": 17859,
+     "n_wrong": 31
+    }
+   },
+   "0.55": {
+    "all": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 31,
+     "n": 24570,
+     "n_wrong": 31
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 156,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 12,
+     "n": 14205,
+     "n_wrong": 12
+    },
+    "revisit": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 10,
+     "n": 8754,
+     "n_wrong": 10
+    },
+    "reseed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 8,
+     "n": 1453,
+     "n_wrong": 8
+    },
+    "boundary": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 31,
+     "n": 17859,
+     "n_wrong": 31
+    }
+   },
+   "0.60": {
+    "all": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 31,
+     "n": 24570,
+     "n_wrong": 31
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 156,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 12,
+     "n": 14205,
+     "n_wrong": 12
+    },
+    "revisit": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 10,
+     "n": 8754,
+     "n_wrong": 10
+    },
+    "reseed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 8,
+     "n": 1453,
+     "n_wrong": 8
+    },
+    "boundary": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 31,
+     "n": 17859,
+     "n_wrong": 31
+    }
+   },
+   "0.65": {
+    "all": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 31,
+     "n": 24570,
+     "n_wrong": 31
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 156,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 12,
+     "n": 14205,
+     "n_wrong": 12
+    },
+    "revisit": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 10,
+     "n": 8754,
+     "n_wrong": 10
+    },
+    "reseed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 8,
+     "n": 1453,
+     "n_wrong": 8
+    },
+    "boundary": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 31,
+     "n": 17859,
+     "n_wrong": 31
+    }
+   },
+   "0.70": {
+    "all": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 31,
+     "n": 24570,
+     "n_wrong": 31
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 156,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 12,
+     "n": 14205,
+     "n_wrong": 12
+    },
+    "revisit": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 10,
+     "n": 8754,
+     "n_wrong": 10
+    },
+    "reseed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 8,
+     "n": 1453,
+     "n_wrong": 8
+    },
+    "boundary": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 31,
+     "n": 17859,
+     "n_wrong": 31
+    }
+   },
+   "0.75": {
+    "all": {
+     "flagged": 2,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 31,
+     "n": 24570,
+     "n_wrong": 31
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 156,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 12,
+     "n": 14205,
+     "n_wrong": 12
+    },
+    "revisit": {
+     "flagged": 2,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 10,
+     "n": 8754,
+     "n_wrong": 10
+    },
+    "reseed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 8,
+     "n": 1453,
+     "n_wrong": 8
+    },
+    "boundary": {
+     "flagged": 2,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 31,
+     "n": 17859,
+     "n_wrong": 31
+    }
+   },
+   "0.80": {
+    "all": {
+     "flagged": 7,
+     "wrong_flagged": 2,
+     "wrong_unflagged": 29,
+     "n": 24570,
+     "n_wrong": 31
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 156,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 12,
+     "n": 14205,
+     "n_wrong": 12
+    },
+    "revisit": {
+     "flagged": 5,
+     "wrong_flagged": 1,
+     "wrong_unflagged": 9,
+     "n": 8754,
+     "n_wrong": 10
+    },
+    "reseed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 8,
+     "n": 1453,
+     "n_wrong": 8
+    },
+    "boundary": {
+     "flagged": 7,
+     "wrong_flagged": 2,
+     "wrong_unflagged": 29,
+     "n": 17859,
+     "n_wrong": 31
+    }
+   },
+   "0.85": {
+    "all": {
+     "flagged": 54,
+     "wrong_flagged": 5,
+     "wrong_unflagged": 26,
+     "n": 24570,
+     "n_wrong": 31
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 156,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 12,
+     "n": 14205,
+     "n_wrong": 12
+    },
+    "revisit": {
+     "flagged": 31,
+     "wrong_flagged": 1,
+     "wrong_unflagged": 9,
+     "n": 8754,
+     "n_wrong": 10
+    },
+    "reseed": {
+     "flagged": 21,
+     "wrong_flagged": 3,
+     "wrong_unflagged": 5,
+     "n": 1453,
+     "n_wrong": 8
+    },
+    "boundary": {
+     "flagged": 54,
+     "wrong_flagged": 5,
+     "wrong_unflagged": 26,
+     "n": 17859,
+     "n_wrong": 31
+    }
+   },
+   "0.90": {
+    "all": {
+     "flagged": 484,
+     "wrong_flagged": 13,
+     "wrong_unflagged": 18,
+     "n": 24570,
+     "n_wrong": 31
+    },
+    "seed": {
+     "flagged": 0,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 156,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 43,
+     "wrong_flagged": 1,
+     "wrong_unflagged": 11,
+     "n": 14205,
+     "n_wrong": 12
+    },
+    "revisit": {
+     "flagged": 362,
+     "wrong_flagged": 5,
+     "wrong_unflagged": 5,
+     "n": 8754,
+     "n_wrong": 10
+    },
+    "reseed": {
+     "flagged": 77,
+     "wrong_flagged": 6,
+     "wrong_unflagged": 2,
+     "n": 1453,
+     "n_wrong": 8
+    },
+    "boundary": {
+     "flagged": 484,
+     "wrong_flagged": 13,
+     "wrong_unflagged": 18,
+     "n": 17859,
+     "n_wrong": 31
+    }
+   },
+   "0.95": {
+    "all": {
+     "flagged": 3709,
+     "wrong_flagged": 31,
+     "wrong_unflagged": 0,
+     "n": 24570,
+     "n_wrong": 31
+    },
+    "seed": {
+     "flagged": 4,
+     "wrong_flagged": 0,
+     "wrong_unflagged": 0,
+     "n": 156,
+     "n_wrong": 0
+    },
+    "neighbor": {
+     "flagged": 1100,
+     "wrong_flagged": 12,
+     "wrong_unflagged": 0,
+     "n": 14205,
+     "n_wrong": 12
+    },
+    "revisit": {
+     "flagged": 2378,
+     "wrong_flagged": 10,
+     "wrong_unflagged": 0,
+     "n": 8754,
+     "n_wrong": 10
+    },
+    "reseed": {
+     "flagged": 225,
+     "wrong_flagged": 8,
+     "wrong_unflagged": 0,
+     "n": 1453,
+     "n_wrong": 8
+    },
+    "boundary": {
+     "flagged": 3621,
+     "wrong_flagged": 31,
+     "wrong_unflagged": 0,
+     "n": 17859,
+     "n_wrong": 31
+    }
+   }
+  }
+ }
+}

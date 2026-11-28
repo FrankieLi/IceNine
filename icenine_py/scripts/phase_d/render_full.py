@@ -160,6 +160,12 @@ def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser()
     ap.add_argument("--workers", type=int, default=10)
     ap.add_argument("--seed", type=int, default=0, help="new-orientation sample seed")
+    ap.add_argument(
+        "--mic",
+        default="",
+        help="truth .mic to render (path relative to the example folder, or absolute); default: "
+        "SimInput/rand_500grains_1mm_neworient_s<seed>.mic (AR3 step 3: the gradient sample)",
+    )
     ap.add_argument("--n-voxels", type=int, default=0, help="pilot: voxels nearest the centre")
     ap.add_argument("--tag", default="full")
     ap.add_argument("--batch", type=int, default=2000)
@@ -209,7 +215,7 @@ def main() -> None:
         print("WARNING:", e)
         quiet = False
 
-    mic_rel = f"SimInput/rand_500grains_1mm_neworient_s{args.seed}.mic"
+    mic_rel = args.mic or f"SimInput/rand_500grains_1mm_neworient_s{args.seed}.mic"
     voxel_idx = None
     if args.n_voxels:
         raw = np.loadtxt(EX / mic_rel, skiprows=1)

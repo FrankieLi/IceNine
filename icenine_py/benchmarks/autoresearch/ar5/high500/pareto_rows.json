@@ -1,0 +1,482 @@
+[
+ {
+  "sample": "held3",
+  "arm": "S8",
+  "order": "stock seed step",
+  "boundary_pass": false,
+  "evals_total": 62482637,
+  "evals_per_voxel": 2543.05,
+  "wrong": 100,
+  "n": 24570,
+  "interval_pct": [
+   0.33,
+   0.49
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_held3.json",
+  "status": "stored or rerun baseline of step 16 (S8)"
+ },
+ {
+  "sample": "held3",
+  "arm": "S8",
+  "order": "stock seed step",
+  "boundary_pass": true,
+  "evals_total": 67408448,
+  "evals_per_voxel": 2743.53,
+  "wrong": 61,
+  "n": 24570,
+  "interval_pct": [
+   0.19,
+   0.32
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_held3.json",
+  "status": "stored or rerun baseline of step 16 (S8)"
+ },
+ {
+  "sample": "held3",
+  "arm": "J",
+  "order": "interleaved + rescue G1 + stall check PH(3000) + second local optimization G2b",
+  "boundary_pass": false,
+  "evals_total": 19898827,
+  "evals_per_voxel": 809.88,
+  "wrong": 97,
+  "n": 24570,
+  "interval_pct": [
+   0.32,
+   0.48
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_held3.json",
+  "status": "stored or rerun baseline of step 16 (J)"
+ },
+ {
+  "sample": "held3",
+  "arm": "J",
+  "order": "interleaved + rescue G1 + stall check PH(3000) + second local optimization G2b",
+  "boundary_pass": true,
+  "evals_total": 24836167,
+  "evals_per_voxel": 1010.83,
+  "wrong": 55,
+  "n": 24570,
+  "interval_pct": [
+   0.17,
+   0.29
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_held3.json",
+  "status": "stored or rerun baseline of step 16 (J)"
+ },
+ {
+  "sample": "held3",
+  "arm": "J5",
+  "order": "interleaved + rescue G1 + stall check PH(500) + second local optimization G2b",
+  "boundary_pass": false,
+  "evals_total": 18566533,
+  "evals_per_voxel": 755.66,
+  "wrong": 97,
+  "n": 24570,
+  "interval_pct": [
+   0.32,
+   0.48
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_held3.json",
+  "status": "study result of step 16 (rule PH(500): the high stop alone at a 500-evaluation stall in the seed step's MC refinement); phase A only, library key not written (step 12's key SeedIndexMCStallHit already takes k = 500); not a default arm"
+ },
+ {
+  "sample": "held3",
+  "arm": "J5",
+  "order": "interleaved + rescue G1 + stall check PH(500) + second local optimization G2b",
+  "boundary_pass": true,
+  "evals_total": 23503385,
+  "evals_per_voxel": 956.59,
+  "wrong": 54,
+  "n": 24570,
+  "interval_pct": [
+   0.17,
+   0.29
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_held3.json",
+  "status": "study result of step 16 (rule PH(500): the high stop alone at a 500-evaluation stall in the seed step's MC refinement); phase A only, library key not written (step 12's key SeedIndexMCStallHit already takes k = 500); not a default arm"
+ },
+ {
+  "sample": "held",
+  "arm": "S8",
+  "order": "stock seed step",
+  "boundary_pass": false,
+  "evals_total": 54733887,
+  "evals_per_voxel": 2227.67,
+  "wrong": 95,
+  "n": 24570,
+  "interval_pct": [
+   0.32,
+   0.47
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_held.json",
+  "status": "stored or rerun baseline of step 16 (S8)"
+ },
+ {
+  "sample": "held",
+  "arm": "S8",
+  "order": "stock seed step",
+  "boundary_pass": true,
+  "evals_total": 59923523,
+  "evals_per_voxel": 2438.89,
+  "wrong": 70,
+  "n": 24570,
+  "interval_pct": [
+   0.23,
+   0.36
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_held.json",
+  "status": "stored or rerun baseline of step 16 (S8)"
+ },
+ {
+  "sample": "held",
+  "arm": "J",
+  "order": "interleaved + rescue G1 + stall check PH(3000) + second local optimization G2b",
+  "boundary_pass": false,
+  "evals_total": 19259536,
+  "evals_per_voxel": 783.86,
+  "wrong": 101,
+  "n": 24570,
+  "interval_pct": [
+   0.34,
+   0.5
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_held.json",
+  "status": "stored or rerun baseline of step 16 (J)"
+ },
+ {
+  "sample": "held",
+  "arm": "J",
+  "order": "interleaved + rescue G1 + stall check PH(3000) + second local optimization G2b",
+  "boundary_pass": true,
+  "evals_total": 24457773,
+  "evals_per_voxel": 995.43,
+  "wrong": 68,
+  "n": 24570,
+  "interval_pct": [
+   0.22,
+   0.35
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_held.json",
+  "status": "stored or rerun baseline of step 16 (J)"
+ },
+ {
+  "sample": "held",
+  "arm": "J5",
+  "order": "interleaved + rescue G1 + stall check PH(500) + second local optimization G2b",
+  "boundary_pass": false,
+  "evals_total": 17740233,
+  "evals_per_voxel": 722.03,
+  "wrong": 101,
+  "n": 24570,
+  "interval_pct": [
+   0.34,
+   0.5
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_held.json",
+  "status": "study result of step 16 (rule PH(500): the high stop alone at a 500-evaluation stall in the seed step's MC refinement); phase A only, library key not written (step 12's key SeedIndexMCStallHit already takes k = 500); not a default arm"
+ },
+ {
+  "sample": "held",
+  "arm": "J5",
+  "order": "interleaved + rescue G1 + stall check PH(500) + second local optimization G2b",
+  "boundary_pass": true,
+  "evals_total": 22939812,
+  "evals_per_voxel": 933.65,
+  "wrong": 67,
+  "n": 24570,
+  "interval_pct": [
+   0.21,
+   0.35
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_held.json",
+  "status": "study result of step 16 (rule PH(500): the high stop alone at a 500-evaluation stall in the seed step's MC refinement); phase A only, library key not written (step 12's key SeedIndexMCStallHit already takes k = 500); not a default arm"
+ },
+ {
+  "sample": "mid",
+  "arm": "S8",
+  "order": "stock seed step",
+  "boundary_pass": false,
+  "evals_total": 23387035,
+  "evals_per_voxel": 951.85,
+  "wrong": 84,
+  "n": 24570,
+  "interval_pct": [
+   0.28,
+   0.42
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_mid.json",
+  "status": "stored or rerun baseline of step 16 (S8)"
+ },
+ {
+  "sample": "mid",
+  "arm": "S8",
+  "order": "stock seed step",
+  "boundary_pass": true,
+  "evals_total": 26443074,
+  "evals_per_voxel": 1076.23,
+  "wrong": 31,
+  "n": 24570,
+  "interval_pct": [
+   0.09,
+   0.18
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_mid.json",
+  "status": "stored or rerun baseline of step 16 (S8)"
+ },
+ {
+  "sample": "mid",
+  "arm": "J",
+  "order": "interleaved + rescue G1 + stall check PH(3000) + second local optimization G2b",
+  "boundary_pass": false,
+  "evals_total": 8242901,
+  "evals_per_voxel": 335.49,
+  "wrong": 75,
+  "n": 24570,
+  "interval_pct": [
+   0.24,
+   0.38
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_mid.json",
+  "status": "stored or rerun baseline of step 16 (J)"
+ },
+ {
+  "sample": "mid",
+  "arm": "J",
+  "order": "interleaved + rescue G1 + stall check PH(3000) + second local optimization G2b",
+  "boundary_pass": true,
+  "evals_total": 11295158,
+  "evals_per_voxel": 459.71,
+  "wrong": 35,
+  "n": 24570,
+  "interval_pct": [
+   0.1,
+   0.2
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_mid.json",
+  "status": "stored or rerun baseline of step 16 (J)"
+ },
+ {
+  "sample": "mid",
+  "arm": "J5",
+  "order": "interleaved + rescue G1 + stall check PH(500) + second local optimization G2b",
+  "boundary_pass": false,
+  "evals_total": 7537724,
+  "evals_per_voxel": 306.79,
+  "wrong": 76,
+  "n": 24570,
+  "interval_pct": [
+   0.25,
+   0.39
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_mid.json",
+  "status": "study result of step 16 (rule PH(500): the high stop alone at a 500-evaluation stall in the seed step's MC refinement); phase A only, library key not written (step 12's key SeedIndexMCStallHit already takes k = 500); not a default arm"
+ },
+ {
+  "sample": "mid",
+  "arm": "J5",
+  "order": "interleaved + rescue G1 + stall check PH(500) + second local optimization G2b",
+  "boundary_pass": true,
+  "evals_total": 10589493,
+  "evals_per_voxel": 430.99,
+  "wrong": 35,
+  "n": 24570,
+  "interval_pct": [
+   0.1,
+   0.2
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_mid.json",
+  "status": "study result of step 16 (rule PH(500): the high stop alone at a 500-evaluation stall in the seed step's MC refinement); phase A only, library key not written (step 12's key SeedIndexMCStallHit already takes k = 500); not a default arm"
+ },
+ {
+  "sample": "grad",
+  "arm": "S8",
+  "order": "stock seed step",
+  "boundary_pass": false,
+  "evals_total": 14316989,
+  "evals_per_voxel": 582.7,
+  "wrong": 210,
+  "n": 24570,
+  "interval_pct": [
+   0.75,
+   0.98
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_grad.json",
+  "status": "stored or rerun baseline of step 16 (S8)"
+ },
+ {
+  "sample": "grad",
+  "arm": "S8",
+  "order": "stock seed step",
+  "boundary_pass": true,
+  "evals_total": 18000230,
+  "evals_per_voxel": 732.61,
+  "wrong": 63,
+  "n": 24570,
+  "interval_pct": [
+   0.2,
+   0.33
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_grad.json",
+  "status": "stored or rerun baseline of step 16 (S8)"
+ },
+ {
+  "sample": "grad",
+  "arm": "J",
+  "order": "interleaved + rescue G1 + stall check PH(3000) + second local optimization G2b",
+  "boundary_pass": false,
+  "evals_total": 5495005,
+  "evals_per_voxel": 223.65,
+  "wrong": 206,
+  "n": 24570,
+  "interval_pct": [
+   0.73,
+   0.96
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_grad.json",
+  "status": "stored or rerun baseline of step 16 (J)"
+ },
+ {
+  "sample": "grad",
+  "arm": "J",
+  "order": "interleaved + rescue G1 + stall check PH(3000) + second local optimization G2b",
+  "boundary_pass": true,
+  "evals_total": 9175867,
+  "evals_per_voxel": 373.46,
+  "wrong": 56,
+  "n": 24570,
+  "interval_pct": [
+   0.18,
+   0.3
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_grad.json",
+  "status": "stored or rerun baseline of step 16 (J)"
+ },
+ {
+  "sample": "grad",
+  "arm": "J5",
+  "order": "interleaved + rescue G1 + stall check PH(500) + second local optimization G2b",
+  "boundary_pass": false,
+  "evals_total": 5360031,
+  "evals_per_voxel": 218.15,
+  "wrong": 206,
+  "n": 24570,
+  "interval_pct": [
+   0.73,
+   0.96
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_grad.json",
+  "status": "study result of step 16 (rule PH(500): the high stop alone at a 500-evaluation stall in the seed step's MC refinement); phase A only, library key not written (step 12's key SeedIndexMCStallHit already takes k = 500); not a default arm"
+ },
+ {
+  "sample": "grad",
+  "arm": "J5",
+  "order": "interleaved + rescue G1 + stall check PH(500) + second local optimization G2b",
+  "boundary_pass": true,
+  "evals_total": 9041686,
+  "evals_per_voxel": 368.0,
+  "wrong": 56,
+  "n": 24570,
+  "interval_pct": [
+   0.18,
+   0.3
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_grad.json",
+  "status": "study result of step 16 (rule PH(500): the high stop alone at a 500-evaluation stall in the seed step's MC refinement); phase A only, library key not written (step 12's key SeedIndexMCStallHit already takes k = 500); not a default arm"
+ },
+ {
+  "sample": "big",
+  "arm": "S8",
+  "order": "stock seed step",
+  "boundary_pass": false,
+  "evals_total": 7201863,
+  "evals_per_voxel": 293.12,
+  "wrong": 67,
+  "n": 24570,
+  "interval_pct": [
+   0.21,
+   0.35
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_big.json",
+  "status": "stored or rerun baseline of step 16 (S8)"
+ },
+ {
+  "sample": "big",
+  "arm": "S8",
+  "order": "stock seed step",
+  "boundary_pass": true,
+  "evals_total": 8340428,
+  "evals_per_voxel": 339.46,
+  "wrong": 24,
+  "n": 24570,
+  "interval_pct": [
+   0.07,
+   0.15
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_big.json",
+  "status": "stored or rerun baseline of step 16 (S8)"
+ },
+ {
+  "sample": "big",
+  "arm": "J",
+  "order": "interleaved + rescue G1 + stall check PH(3000) + second local optimization G2b",
+  "boundary_pass": false,
+  "evals_total": 2499924,
+  "evals_per_voxel": 101.75,
+  "wrong": 74,
+  "n": 24570,
+  "interval_pct": [
+   0.24,
+   0.38
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_big.json",
+  "status": "stored or rerun baseline of step 16 (J)"
+ },
+ {
+  "sample": "big",
+  "arm": "J",
+  "order": "interleaved + rescue G1 + stall check PH(3000) + second local optimization G2b",
+  "boundary_pass": true,
+  "evals_total": 3635256,
+  "evals_per_voxel": 147.96,
+  "wrong": 21,
+  "n": 24570,
+  "interval_pct": [
+   0.06,
+   0.13
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_big.json",
+  "status": "stored or rerun baseline of step 16 (J)"
+ },
+ {
+  "sample": "big",
+  "arm": "J5",
+  "order": "interleaved + rescue G1 + stall check PH(500) + second local optimization G2b",
+  "boundary_pass": false,
+  "evals_total": 2431217,
+  "evals_per_voxel": 98.95,
+  "wrong": 74,
+  "n": 24570,
+  "interval_pct": [
+   0.24,
+   0.38
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_big.json",
+  "status": "study result of step 16 (rule PH(500): the high stop alone at a 500-evaluation stall in the seed step's MC refinement); phase A only, library key not written (step 12's key SeedIndexMCStallHit already takes k = 500); not a default arm"
+ },
+ {
+  "sample": "big",
+  "arm": "J5",
+  "order": "interleaved + rescue G1 + stall check PH(500) + second local optimization G2b",
+  "boundary_pass": true,
+  "evals_total": 3567098,
+  "evals_per_voxel": 145.18,
+  "wrong": 21,
+  "n": 24570,
+  "interval_pct": [
+   0.06,
+   0.13
+  ],
+  "source": "icenine_py/benchmarks/autoresearch/ar5/high500/stats_big.json",
+  "status": "study result of step 16 (rule PH(500): the high stop alone at a 500-evaluation stall in the seed step's MC refinement); phase A only, library key not written (step 12's key SeedIndexMCStallHit already takes k = 500); not a default arm"
+ }
+]

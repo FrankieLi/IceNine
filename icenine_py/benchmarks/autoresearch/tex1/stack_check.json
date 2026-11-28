@@ -1,0 +1,21 @@
+{
+ "stack": "cache/stacks/tex24_clean.npy",
+ "built_now": true,
+ "stack_shape": [
+  360,
+  2048,
+  2048
+ ],
+ "n_frames": 360,
+ "n_frames_different": 0,
+ "different": [],
+ "lit_pixels_ascii": 19868708,
+ "lit_pixels_stack": 19868708,
+ "render_lit_clean_total": 19868708,
+ "render_spots_total": 581117,
+ "render_wall_s": 223.864581823349,
+ "render_workers": 4,
+ "render_timing_label": "contended (4 workers; machine quiet at start: False)",
+ "stack_sha256": "12b01ddb32d1bb5d5be1d704f9982c148af35b040ada22989e1e54f7d7e8e710",
+ "ok": true
+}

@@ -1,0 +1,238 @@
+{
+ "gate_passed": true,
+ "verdict": "READY TO RUN",
+ "items": {
+  "g1": {
+   "mid": true,
+   "grad": true,
+   "big": true
+  },
+  "g2": {
+   "mid": true,
+   "grad": true,
+   "big": true
+  },
+  "g3": {
+   "mid": true,
+   "grad": true,
+   "big": true
+  },
+  "g4_mid": true
+ },
+ "per_sample": {
+  "mid": {
+   "sample": "mid",
+   "steps_replayed": 770,
+   "steps_expected": 770,
+   "complete": true,
+   "fits": {
+    "same": 3008,
+    "after_last": 262,
+    "moved": 49
+   },
+   "g1_ok": true,
+   "g1_bad_structure_steps": [],
+   "g1_moved_where_not_predicted": [],
+   "prediction_mismatch_steps": [],
+   "taken_changed": 25,
+   "taken_changed_wilson95_of_replayed_steps": [
+    0.02208681431235247,
+    0.04749021540535721
+   ],
+   "taken_changed_limit": 30,
+   "g2_ok": true,
+   "changed_wrong_where_g_right": [],
+   "changed_with_g_error_unknown": [],
+   "failed_seed_tests": {
+    "g": 12,
+    "s": 12,
+    "extra": 0
+   },
+   "g3_ok": true,
+   "g_total_of_replayed_steps": 6598151,
+   "new_total_of_replayed_steps": 5166525,
+   "saved_evals": 1431626,
+   "saved_share_of_g_run": 0.11008733390406074,
+   "steps_costing_more_than_g": [
+    222,
+    752,
+    663
+   ],
+   "changed_paths": {
+    "seed": 25,
+    "rescued": 0,
+    "grid": 0
+   },
+   "grid_searches_new": 0,
+   "g4_ok": true,
+   "changed_stop_type": 22,
+   "changed_stop_type_still_095": 20,
+   "changed_mis_to_g_deg": {
+    "min": 0.010690755253336442,
+    "median": 0.04105885248605865,
+    "max": 0.25362406827103023
+   },
+   "changed_err_new_max": 0.24010495558039568,
+   "prediction1": {
+    "g1": true,
+    "changed_in_range": true,
+    "changed_range": [
+     20,
+     28
+    ],
+    "stop_type_still_095_12_to_20": true,
+    "mis_in_0_01_to_0_3_median_under_0_1": true,
+    "none_wrong": true,
+    "seed_test_failures_within_1": true
+   },
+   "prediction2": {
+    "saving_in_range": true,
+    "range": [
+     0.09,
+     0.114
+    ],
+    "saving": 0.11008733390406074
+   }
+  },
+  "grad": {
+   "sample": "grad",
+   "steps_replayed": 478,
+   "steps_expected": 478,
+   "complete": true,
+   "fits": {
+    "same": 2202,
+    "after_last": 14,
+    "moved": 1
+   },
+   "g1_ok": true,
+   "g1_bad_structure_steps": [],
+   "g1_moved_where_not_predicted": [],
+   "prediction_mismatch_steps": [],
+   "taken_changed": 1,
+   "taken_changed_wilson95_of_replayed_steps": [
+    0.00036938423516124676,
+    0.011754101989357349
+   ],
+   "taken_changed_limit": 3,
+   "g2_ok": true,
+   "changed_wrong_where_g_right": [],
+   "changed_with_g_error_unknown": [],
+   "failed_seed_tests": {
+    "g": 11,
+    "s": 11,
+    "extra": 0
+   },
+   "g3_ok": true,
+   "g_total_of_replayed_steps": 3082774,
+   "new_total_of_replayed_steps": 3062384,
+   "saved_evals": 20390,
+   "saved_share_of_g_run": 0.001999668127663364,
+   "steps_costing_more_than_g": [],
+   "changed_paths": {
+    "seed": 1,
+    "rescued": 0,
+    "grid": 0
+   },
+   "grid_searches_new": 0,
+   "g4_ok": null,
+   "changed_stop_type": 0,
+   "changed_stop_type_still_095": 0,
+   "changed_mis_to_g_deg": {
+    "min": 0.12228410329498728,
+    "median": 0.12228410329498728,
+    "max": 0.12228410329498728
+   },
+   "changed_err_new_max": 0.10909196379062662,
+   "prediction1": {
+    "g1": true,
+    "changed_in_range": true,
+    "changed_range": [
+     0,
+     2
+    ],
+    "stop_type_still_095_12_to_20": null,
+    "mis_in_0_01_to_0_3_median_under_0_1": false,
+    "none_wrong": true,
+    "seed_test_failures_within_1": true
+   },
+   "prediction2": {
+    "saving_in_range": true,
+    "range": [
+     0.0,
+     0.003
+    ],
+    "saving": 0.001999668127663364
+   }
+  },
+  "big": {
+   "sample": "big",
+   "steps_replayed": 99,
+   "steps_expected": 99,
+   "complete": true,
+   "fits": {
+    "same": 299,
+    "after_last": 34,
+    "moved": 8
+   },
+   "g1_ok": true,
+   "g1_bad_structure_steps": [],
+   "g1_moved_where_not_predicted": [],
+   "prediction_mismatch_steps": [],
+   "taken_changed": 4,
+   "taken_changed_wilson95_of_replayed_steps": [
+    0.015822382974672186,
+    0.09932168323977801
+   ],
+   "taken_changed_limit": 6,
+   "g2_ok": true,
+   "changed_wrong_where_g_right": [],
+   "changed_with_g_error_unknown": [],
+   "failed_seed_tests": {
+    "g": 0,
+    "s": 0,
+    "extra": 0
+   },
+   "g3_ok": true,
+   "g_total_of_replayed_steps": 639724,
+   "new_total_of_replayed_steps": 409587,
+   "saved_evals": 230137,
+   "saved_share_of_g_run": 0.06043915207601765,
+   "steps_costing_more_than_g": [],
+   "changed_paths": {
+    "seed": 4,
+    "rescued": 0,
+    "grid": 0
+   },
+   "grid_searches_new": 0,
+   "g4_ok": null,
+   "changed_stop_type": 4,
+   "changed_stop_type_still_095": 4,
+   "changed_mis_to_g_deg": {
+    "min": 0.01239476374511286,
+    "median": 0.01933836373688709,
+    "max": 0.031679558859452235
+   },
+   "changed_err_new_max": 0.0471185864637664,
+   "prediction1": {
+    "g1": true,
+    "changed_in_range": true,
+    "changed_range": [
+     3,
+     5
+    ],
+    "stop_type_still_095_12_to_20": null,
+    "mis_in_0_01_to_0_3_median_under_0_1": true,
+    "none_wrong": true,
+    "seed_test_failures_within_1": true
+   },
+   "prediction2": {
+    "saving_in_range": true,
+    "range": [
+     0.04,
+     0.061
+    ],
+    "saving": 0.06043915207601765
+   }
+  }
+ }
+}

@@ -1,0 +1,432 @@
+{
+ "arm": "X200",
+ "sample": "big",
+ "n_steps": 20,
+ "n_with_mc": 10,
+ "n_same": 20,
+ "evals_live": 121659,
+ "evals_cache": 121659,
+ "all_same": true,
+ "rows": [
+  {
+   "step": 21,
+   "voxel": 23636,
+   "live": {
+    "evals": 30318,
+    "mc_ran": 1,
+    "hit": 0.9934701492537313,
+    "err": 0.0332096861994761,
+    "stopped": true,
+    "taken": 0
+   },
+   "cache": {
+    "evals": 30318,
+    "mc_ran": 1,
+    "hit": 0.9934701492537313,
+    "err": 0.0332096861994761,
+    "stopped": true,
+    "taken": 0
+   },
+   "same": true
+  },
+  {
+   "step": 72,
+   "voxel": 274,
+   "live": {
+    "evals": 2953,
+    "mc_ran": 1,
+    "hit": 0.973404255319149,
+    "err": 0.07040153171996925,
+    "stopped": true,
+    "taken": 1
+   },
+   "cache": {
+    "evals": 2953,
+    "mc_ran": 1,
+    "hit": 0.973404255319149,
+    "err": 0.07040153171996925,
+    "stopped": true,
+    "taken": 1
+   },
+   "same": true
+  },
+  {
+   "step": 104,
+   "voxel": 24295,
+   "live": {
+    "evals": 46283,
+    "mc_ran": 2,
+    "hit": 0.9623015873015873,
+    "err": 0.053526987694813365,
+    "stopped": true,
+    "taken": 1
+   },
+   "cache": {
+    "evals": 46283,
+    "mc_ran": 2,
+    "hit": 0.9623015873015873,
+    "err": 0.053526987694813365,
+    "stopped": true,
+    "taken": 1
+   },
+   "same": true
+  },
+  {
+   "step": 153,
+   "voxel": 2734,
+   "live": {
+    "evals": 6374,
+    "mc_ran": 1,
+    "hit": 0.998046875,
+    "err": 0.01612574456702582,
+    "stopped": true,
+    "taken": 1
+   },
+   "cache": {
+    "evals": 6374,
+    "mc_ran": 1,
+    "hit": 0.998046875,
+    "err": 0.01612574456702582,
+    "stopped": true,
+    "taken": 1
+   },
+   "same": true
+  },
+  {
+   "step": 187,
+   "voxel": 4160,
+   "live": {
+    "evals": 3327,
+    "mc_ran": 1,
+    "hit": 0.9807868252516011,
+    "err": 0.02702951095341692,
+    "stopped": true,
+    "taken": 1
+   },
+   "cache": {
+    "evals": 3327,
+    "mc_ran": 1,
+    "hit": 0.9807868252516011,
+    "err": 0.02702951095341692,
+    "stopped": true,
+    "taken": 1
+   },
+   "same": true
+  },
+  {
+   "step": 208,
+   "voxel": 6197,
+   "live": {
+    "evals": 5565,
+    "mc_ran": 3,
+    "hit": 0.9841427155599604,
+    "err": 0.004928081983371518,
+    "stopped": true,
+    "taken": 2
+   },
+   "cache": {
+    "evals": 5565,
+    "mc_ran": 3,
+    "hit": 0.9841427155599604,
+    "err": 0.004928081983371518,
+    "stopped": true,
+    "taken": 2
+   },
+   "same": true
+  },
+  {
+   "step": 238,
+   "voxel": 20886,
+   "live": {
+    "evals": 13540,
+    "mc_ran": 1,
+    "hit": 0.9595070422535211,
+    "err": 0.00591960267924934,
+    "stopped": true,
+    "taken": 0
+   },
+   "cache": {
+    "evals": 13540,
+    "mc_ran": 1,
+    "hit": 0.9595070422535211,
+    "err": 0.00591960267924934,
+    "stopped": true,
+    "taken": 0
+   },
+   "same": true
+  },
+  {
+   "step": 271,
+   "voxel": 12566,
+   "live": {
+    "evals": 5124,
+    "mc_ran": 2,
+    "hit": 0.9870775347912525,
+    "err": 0.02571383186785808,
+    "stopped": true,
+    "taken": 2
+   },
+   "cache": {
+    "evals": 5124,
+    "mc_ran": 2,
+    "hit": 0.9870775347912525,
+    "err": 0.02571383186785808,
+    "stopped": true,
+    "taken": 2
+   },
+   "same": true
+  },
+  {
+   "step": 306,
+   "voxel": 19407,
+   "live": {
+    "evals": 3676,
+    "mc_ran": 1,
+    "hit": 0.9756326148078726,
+    "err": 0.06703963360689602,
+    "stopped": true,
+    "taken": 0
+   },
+   "cache": {
+    "evals": 3676,
+    "mc_ran": 1,
+    "hit": 0.9756326148078726,
+    "err": 0.06703963360689602,
+    "stopped": true,
+    "taken": 0
+   },
+   "same": true
+  },
+  {
+   "step": 328,
+   "voxel": 24335,
+   "live": {
+    "evals": 2289,
+    "mc_ran": 1,
+    "hit": 0.9953314659197012,
+    "err": 0.019631265856148685,
+    "stopped": true,
+    "taken": 1
+   },
+   "cache": {
+    "evals": 2289,
+    "mc_ran": 1,
+    "hit": 0.9953314659197012,
+    "err": 0.019631265856148685,
+    "stopped": true,
+    "taken": 1
+   },
+   "same": true
+  },
+  {
+   "step": 0,
+   "voxel": 20615,
+   "live": {
+    "evals": 221,
+    "mc_ran": 0,
+    "hit": 1.0,
+    "err": 0.0045319364863475094,
+    "stopped": true,
+    "taken": 0
+   },
+   "cache": {
+    "evals": 221,
+    "mc_ran": 0,
+    "hit": 1.0,
+    "err": 0.0045319364863475094,
+    "stopped": true,
+    "taken": 0
+   },
+   "same": true
+  },
+  {
+   "step": 24,
+   "voxel": 23376,
+   "live": {
+    "evals": 221,
+    "mc_ran": 0,
+    "hit": 0.993601462522852,
+    "err": 0.008264326185524383,
+    "stopped": true,
+    "taken": 0
+   },
+   "cache": {
+    "evals": 221,
+    "mc_ran": 0,
+    "hit": 0.993601462522852,
+    "err": 0.008264326185524383,
+    "stopped": true,
+    "taken": 0
+   },
+   "same": true
+  },
+  {
+   "step": 55,
+   "voxel": 12569,
+   "live": {
+    "evals": 221,
+    "mc_ran": 0,
+    "hit": 1.0,
+    "err": 0.003953870450918963,
+    "stopped": true,
+    "taken": 0
+   },
+   "cache": {
+    "evals": 221,
+    "mc_ran": 0,
+    "hit": 1.0,
+    "err": 0.003953870450918963,
+    "stopped": true,
+    "taken": 0
+   },
+   "same": true
+  },
+  {
+   "step": 95,
+   "voxel": 23490,
+   "live": {
+    "evals": 221,
+    "mc_ran": 0,
+    "hit": 0.9931972789115646,
+    "err": 0.014556385842357583,
+    "stopped": true,
+    "taken": 0
+   },
+   "cache": {
+    "evals": 221,
+    "mc_ran": 0,
+    "hit": 0.9931972789115646,
+    "err": 0.014556385842357583,
+    "stopped": true,
+    "taken": 0
+   },
+   "same": true
+  },
+  {
+   "step": 126,
+   "voxel": 5274,
+   "live": {
+    "evals": 221,
+    "mc_ran": 0,
+    "hit": 1.0,
+    "err": 0.002391249212499106,
+    "stopped": true,
+    "taken": 0
+   },
+   "cache": {
+    "evals": 221,
+    "mc_ran": 0,
+    "hit": 1.0,
+    "err": 0.002391249212499106,
+    "stopped": true,
+    "taken": 0
+   },
+   "same": true
+  },
+  {
+   "step": 162,
+   "voxel": 2993,
+   "live": {
+    "evals": 221,
+    "mc_ran": 0,
+    "hit": 0.9787849566055931,
+    "err": 0.0023802965702477185,
+    "stopped": true,
+    "taken": 0
+   },
+   "cache": {
+    "evals": 221,
+    "mc_ran": 0,
+    "hit": 0.9787849566055931,
+    "err": 0.0023802965702477185,
+    "stopped": true,
+    "taken": 0
+   },
+   "same": true
+  },
+  {
+   "step": 205,
+   "voxel": 5753,
+   "live": {
+    "evals": 221,
+    "mc_ran": 0,
+    "hit": 0.989804587935429,
+    "err": 0.008308033256619198,
+    "stopped": true,
+    "taken": 0
+   },
+   "cache": {
+    "evals": 221,
+    "mc_ran": 0,
+    "hit": 0.989804587935429,
+    "err": 0.008308033256619198,
+    "stopped": true,
+    "taken": 0
+   },
+   "same": true
+  },
+  {
+   "step": 245,
+   "voxel": 8694,
+   "live": {
+    "evals": 221,
+    "mc_ran": 0,
+    "hit": 0.999001996007984,
+    "err": 0.003909657561473756,
+    "stopped": true,
+    "taken": 0
+   },
+   "cache": {
+    "evals": 221,
+    "mc_ran": 0,
+    "hit": 0.999001996007984,
+    "err": 0.003909657561473756,
+    "stopped": true,
+    "taken": 0
+   },
+   "same": true
+  },
+  {
+   "step": 283,
+   "voxel": 15075,
+   "live": {
+    "evals": 221,
+    "mc_ran": 0,
+    "hit": 0.9945994599459946,
+    "err": 0.007030849026516867,
+    "stopped": true,
+    "taken": 0
+   },
+   "cache": {
+    "evals": 221,
+    "mc_ran": 0,
+    "hit": 0.9945994599459946,
+    "err": 0.007030849026516867,
+    "stopped": true,
+    "taken": 0
+   },
+   "same": true
+  },
+  {
+   "step": 327,
+   "voxel": 24040,
+   "live": {
+    "evals": 221,
+    "mc_ran": 0,
+    "hit": 1.0,
+    "err": 0.0402854164456085,
+    "stopped": true,
+    "taken": 0
+   },
+   "cache": {
+    "evals": 221,
+    "mc_ran": 0,
+    "hit": 1.0,
+    "err": 0.0402854164456085,
+    "stopped": true,
+    "taken": 0
+   },
+   "same": true
+  }
+ ]
+}

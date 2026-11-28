@@ -1,0 +1,80 @@
+{
+ "rule": "the arm with the fewer seed-step evaluations among those whose seed-test passes (a) and ends within 1 degree (b) are each at most 1% of all steps below M's (net counts, pooled over the pick samples big and grad); M if neither qualifies",
+ "pick_samples": [
+  "big",
+  "grad"
+ ],
+ "n_steps": 1608,
+ "one_percent_of_steps": 16.08,
+ "pooled": {
+  "n_steps": 1608,
+  "arms": {
+   "M": {
+    "n_pass": 1592,
+    "n_right": 1583,
+    "evals": 5865469,
+    "candidates_refined": 2821,
+    "candidates_mc_ran": 2821,
+    "share_mc_ran": 1.0,
+    "steps_mc_ran": 1608,
+    "steps_missing": 0
+   },
+   "X60": {
+    "n_pass": 1594,
+    "n_right": 1584,
+    "evals": 4390198,
+    "candidates_refined": 2740,
+    "candidates_mc_ran": 2075,
+    "share_mc_ran": 0.7572992700729927,
+    "steps_mc_ran": 978,
+    "steps_missing": 1,
+    "paired_passed": {
+     "both": 1592,
+     "m_only": 0,
+     "arm_only": 2,
+     "neither": 14
+    },
+    "paired_right": {
+     "both": 1583,
+     "m_only": 0,
+     "arm_only": 1,
+     "neither": 24
+    },
+    "evals_fall_vs_M": 0.2515179945542292
+   },
+   "X200": {
+    "n_pass": 1596,
+    "n_right": 1589,
+    "evals": 2501991,
+    "candidates_refined": 2506,
+    "candidates_mc_ran": 1185,
+    "share_mc_ran": 0.4728651237031125,
+    "steps_mc_ran": 603,
+    "steps_missing": 0,
+    "paired_passed": {
+     "both": 1592,
+     "m_only": 0,
+     "arm_only": 4,
+     "neither": 12
+    },
+    "paired_right": {
+     "both": 1582,
+     "m_only": 1,
+     "arm_only": 7,
+     "neither": 18
+    },
+    "evals_fall_vs_M": 0.5734371795332991
+   }
+  }
+ },
+ "rule_a": {
+  "X60": true,
+  "X200": true
+ },
+ "rule_b": {
+  "X60": true,
+  "X200": true
+ },
+ "pick": "X200",
+ "stop_needed": false
+}

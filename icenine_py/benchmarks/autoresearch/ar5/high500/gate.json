@@ -1,0 +1,309 @@
+{
+ "prediction1": {
+  "held": {
+   "sample": "held",
+   "counts": {
+    "sample": "held",
+    "expected": {
+     "total": 24457773,
+     "mc": 11381609
+    },
+    "got": {
+     "total": 24457773,
+     "mc": 11381609,
+     "steps": 3700,
+     "traces": 5443,
+     "mc_fits": 5443
+    },
+    "ok": true
+   },
+   "steps_expected": 2228,
+   "steps_recorded": 2228,
+   "refinements": 5443,
+   "steps_not_equal": 0,
+   "worst_abs_diff": 0.0,
+   "ok": true
+  },
+  "mid": {
+   "sample": "mid",
+   "counts": {
+    "sample": "mid",
+    "expected": {
+     "total": 11295158,
+     "mc": 3795130
+    },
+    "got": {
+     "total": 11295158,
+     "mc": 3795130,
+     "steps": 1607,
+     "traces": 1606,
+     "mc_fits": 1606
+    },
+    "ok": true
+   },
+   "steps_expected": 772,
+   "steps_recorded": 772,
+   "refinements": 1606,
+   "steps_not_equal": 0,
+   "worst_abs_diff": 0.0,
+   "ok": true
+  },
+  "grad": {
+   "sample": "grad",
+   "counts": {
+    "sample": "grad",
+    "expected": {
+     "total": 9175867,
+     "mc": 1078188
+    },
+    "got": {
+     "total": 9175867,
+     "mc": 1078188,
+     "steps": 1281,
+     "traces": 992,
+     "mc_fits": 992
+    },
+    "ok": true
+   },
+   "steps_expected": 479,
+   "steps_recorded": 479,
+   "refinements": 992,
+   "steps_not_equal": 0,
+   "worst_abs_diff": 0.0,
+   "ok": true
+  },
+  "big": {
+   "sample": "big",
+   "counts": {
+    "sample": "big",
+    "expected": {
+     "total": 3635256,
+     "mc": 424450
+    },
+    "got": {
+     "total": 3635256,
+     "mc": 424450,
+     "steps": 317,
+     "traces": 153,
+     "mc_fits": 153
+    },
+    "ok": true
+   },
+   "steps_expected": 99,
+   "steps_recorded": 99,
+   "refinements": 153,
+   "steps_not_equal": 0,
+   "worst_abs_diff": 0.0,
+   "ok": true
+  }
+ },
+ "samples": {
+  "held": {
+   "sample": "held",
+   "j_total_with_pass": 24457773,
+   "steps": 2228,
+   "refinements": 5443,
+   "stops_high": 983,
+   "stops_none": 4460,
+   "checks_went_on": 4933,
+   "moved_steps": [
+    436,
+    438,
+    734,
+    945,
+    1069,
+    1305,
+    1349,
+    2743
+   ],
+   "path_change_steps": [],
+   "saving_walk": 1584152,
+   "delta_arith": 1558608,
+   "delta_live": 25544,
+   "live_rows": 8,
+   "live_taken_changed": [
+    436,
+    438,
+    734,
+    945,
+    1069,
+    1305,
+    1349,
+    2743
+   ],
+   "live_path_changed": [],
+   "live_broken": [],
+   "live_fixed": [],
+   "live_failed_j": 0,
+   "live_failed_new": 0,
+   "live_grid_j": 0,
+   "live_grid_new": 0,
+   "grid_j": 4,
+   "net_saving": 1584152,
+   "net_saving_share": 0.06477090125908029,
+   "saving_walk_share": 0.06477090125908029,
+   "grid_new": 4
+  },
+  "mid": {
+   "sample": "mid",
+   "j_total_with_pass": 11295158,
+   "steps": 772,
+   "refinements": 1606,
+   "stops_high": 392,
+   "stops_none": 1214,
+   "checks_went_on": 1412,
+   "moved_steps": [
+    228,
+    466,
+    556,
+    689,
+    1266,
+    1353
+   ],
+   "path_change_steps": [
+    466
+   ],
+   "saving_walk": 740633,
+   "delta_arith": 725109,
+   "delta_live": 20618,
+   "live_rows": 6,
+   "live_taken_changed": [
+    228,
+    466,
+    556,
+    689,
+    1266,
+    1353
+   ],
+   "live_path_changed": [],
+   "live_broken": [],
+   "live_fixed": [],
+   "live_failed_j": 0,
+   "live_failed_new": 0,
+   "live_grid_j": 0,
+   "live_grid_new": 0,
+   "grid_j": 2,
+   "net_saving": 745727,
+   "net_saving_share": 0.06602182988498258,
+   "saving_walk_share": 0.06557084017771155,
+   "grid_new": 2
+  },
+  "grad": {
+   "sample": "grad",
+   "j_total_with_pass": 9175867,
+   "steps": 479,
+   "refinements": 992,
+   "stops_high": 127,
+   "stops_none": 865,
+   "checks_went_on": 696,
+   "moved_steps": [
+    905
+   ],
+   "path_change_steps": [],
+   "saving_walk": 134974,
+   "delta_arith": 134084,
+   "delta_live": 890,
+   "live_rows": 1,
+   "live_taken_changed": [
+    905
+   ],
+   "live_path_changed": [],
+   "live_broken": [],
+   "live_fixed": [],
+   "live_failed_j": 0,
+   "live_failed_new": 0,
+   "live_grid_j": 0,
+   "live_grid_new": 0,
+   "grid_j": 2,
+   "net_saving": 134974,
+   "net_saving_share": 0.014709672666354034,
+   "saving_walk_share": 0.014709672666354034,
+   "grid_new": 2
+  },
+  "big": {
+   "sample": "big",
+   "j_total_with_pass": 3635256,
+   "steps": 99,
+   "refinements": 153,
+   "stops_high": 41,
+   "stops_none": 112,
+   "checks_went_on": 131,
+   "moved_steps": [
+    22
+   ],
+   "path_change_steps": [],
+   "saving_walk": 88144,
+   "delta_arith": 84486,
+   "delta_live": 3658,
+   "live_rows": 1,
+   "live_taken_changed": [
+    22
+   ],
+   "live_path_changed": [],
+   "live_broken": [],
+   "live_fixed": [],
+   "live_failed_j": 0,
+   "live_failed_new": 0,
+   "live_grid_j": 0,
+   "live_grid_new": 0,
+   "grid_j": 0,
+   "net_saving": 88144,
+   "net_saving_share": 0.024246985631823453,
+   "saving_walk_share": 0.024246985631823453,
+   "grid_new": 0
+  }
+ },
+ "verdict": {
+  "g0": true,
+  "g1": true,
+  "g2": true,
+  "g3": true,
+  "passes": true
+ },
+ "rule": "Rule PH(500): in the seed step, the MC refinement of a candidate (MC then variance stage) has a stall check after 500 strict-cost evaluations with no strict gain of its best cost: the hit ratio of the running best (the first lowest-cost orientation) is evaluated once; at 0.95 or more the refinement stops and the check is its final evaluation (counted); else it goes on (the check counted as one evaluation) and checks again 500 evaluations after the next gain. No low side. It replaces PH(3000). CMA fits, the five candidates, the 0.95 stop, the seed test 0.80, rules G1 and G2b and the grid search are unchanged. Arm J5 = arm J (step 14) with PH(500).",
+ "gate": {
+  "samples": [
+   "held",
+   "mid",
+   "grad",
+   "big"
+  ],
+  "g0": "prediction 1: the stored counts, every recorded step equal to the stored one, and the table's moved steps, path changes and net savings (to the evaluation)",
+  "g1_moved_max": {
+   "held": 10,
+   "mid": 10,
+   "grad": 2,
+   "big": 2
+  },
+  "g1_path_change_max": 2,
+  "g2": "on the live replayed steps: no taken end wrong where J's is right, no extra failed seed test, no extra grid search",
+  "g3_saving_min": 0.055,
+  "g3_samples": [
+   "held",
+   "mid"
+  ],
+  "fails": "stop and report: no tuning, no other k, no whole layer"
+ },
+ "pred1": {
+  "held": {
+   "moved": 8,
+   "path_change": 0,
+   "saving": 1584152
+  },
+  "mid": {
+   "moved": 6,
+   "path_change": 1,
+   "saving": 740633
+  },
+  "grad": {
+   "moved": 1,
+   "path_change": 0,
+   "saving": 134974
+  },
+  "big": {
+   "moved": 1,
+   "path_change": 0,
+   "saving": 88144
+  }
+ }
+}

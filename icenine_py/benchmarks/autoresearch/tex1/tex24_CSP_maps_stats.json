@@ -1,0 +1,14 @@
+[
+ {
+  "label": "CSP: stock C++, 12 workers",
+  "path": "tex1/cache/runs/whole/CSP/tex1_cpp.mic.LBFS",
+  "n_reference": 98280,
+  "n_voxels": 98280,
+  "n_matched": 98280,
+  "n_over_1deg": 11560,
+  "median_deg": 0.07436911244042824,
+  "median_right_deg": 0.04686527575134095,
+  "p90_deg": 1.1153361293246817,
+  "max_deg": 62.00144733957049
+ }
+]

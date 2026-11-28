@@ -1,0 +1,143 @@
+{
+ "formula": "T = t_g x G + t_r x 98,280 / 2,000",
+ "scale": 49.14,
+ "grains": {
+  "n_grains": 250,
+  "n_touch": 8
+ },
+ "label": "contended: the timing preflight refused (a cpptools process at 100% CPU); CS also shared the machine with a C++ rerun, the other arms only with cpptools",
+ "arms": {
+  "CS": {
+   "kind": "cpp",
+   "wall_total_s": 2594.95,
+   "client_total_s": 2560.0,
+   "global_searches": 151,
+   "rejected_seeds": 1,
+   "local_optimizations": 1853,
+   "wall_global_s": 2461.0,
+   "wall_other_s": 99.0,
+   "read_s": 34.12000012397766,
+   "evals_all": 43702331,
+   "eval_count_line": "present",
+   "marker": "exit=5 reason=not quiet; relabelled contended; stop, no rerun elapsed_s=2612 label=contended (the run was not quiet: load limit 3.5, see benchmarks/autoresearch/fine1/cache/runs/slice/CS/quiet.json) run=benchmarks/autoresearch/fine1/cache/runs/slice/CS log=benchmarks/autoresearch/fine1/cache/logs/slice_CS.log",
+   "projection": {
+    "t_g_s": 16.29801324503311,
+    "slice_global_searches": 151,
+    "t_r_s": 99.0,
+    "G_low": 4718.75,
+    "G_high": 7420.14,
+    "T_low_h": 22.71419722222222,
+    "T_high_h": 34.943999999999996,
+    "cap_h": 52.416,
+    "passes_48h_low": false,
+    "passes_48h_high": false
+   }
+  },
+  "J5S": {
+   "kind": "python",
+   "wall_total_s": 61.32422614097595,
+   "global_searches": 25,
+   "n_seeds": 8,
+   "n_reseeds": 17,
+   "wall_global_s": 42.816898584365845,
+   "wall_other_s": 18.507327556610107,
+   "evals_all": 193454,
+   "evals_global": 15575,
+   "evals_by_key": {
+    "n_evals_seed": 9233,
+    "n_evals_neighbor": 121512,
+    "n_evals_revisit": 39284,
+    "n_evals_restart": 0,
+    "n_evals_reseed": 6342,
+    "n_evals_boundary_pass": 3548,
+    "n_evals_boundary_score": 1193,
+    "n_evals_boundary_repair": 12342
+   },
+   "n_without_orientation": 0,
+   "timing_label": "contended: timing preflight refused (cpptools at 100% CPU); single run, one worker",
+   "marker": "exit=5 reason=not quiet; relabelled contended; stop, no rerun elapsed_s=91 label=contended (the run was not quiet: load limit 3.5, see benchmarks/autoresearch/fine1/cache/runs/slice/J5S/quiet.json) run=benchmarks/autoresearch/fine1/cache/runs/slice/J5S log=benchmarks/autoresearch/fine1/cache/logs/slice_J5S.log",
+   "projection": {
+    "t_g_s": 1.7126759433746337,
+    "slice_global_searches": 25,
+    "t_r_s": 18.507327556610107,
+    "G_low": 781.25,
+    "G_high": 1228.5,
+    "T_low_h": 0.6242994880259036,
+    "T_high_h": 0.8370756868243217,
+    "cap_h": 1.2556135302364826,
+    "passes_48h_low": false,
+    "passes_48h_high": false
+   }
+  },
+  "PS": {
+   "kind": "python",
+   "wall_total_s": 3737.142347097397,
+   "global_searches": 159,
+   "n_seeds": 13,
+   "n_reseeds": 146,
+   "wall_global_s": 3484.055718421936,
+   "wall_other_s": 253.08662867546082,
+   "evals_all": 58675910,
+   "evals_global": 54710612,
+   "evals_by_key": {
+    "n_evals_seed": 4474385,
+    "n_evals_neighbor": 1429929,
+    "n_evals_revisit": 2535369,
+    "n_evals_restart": 0,
+    "n_evals_reseed": 50236227,
+    "n_evals_boundary_pass": 0,
+    "n_evals_boundary_score": 0,
+    "n_evals_boundary_repair": 0
+   },
+   "n_without_orientation": 0,
+   "timing_label": "contended: timing preflight refused (cpptools at 100% CPU); single run, one worker",
+   "marker": "exit=5 reason=not quiet; relabelled contended; stop, no rerun elapsed_s=3752 label=contended (the run was not quiet: load limit 3.5, see benchmarks/autoresearch/fine1/cache/runs/slice/PS/quiet.json) run=benchmarks/autoresearch/fine1/cache/runs/slice/PS log=benchmarks/autoresearch/fine1/cache/logs/slice_PS.log",
+   "projection": {
+    "t_g_s": 21.912300115861232,
+    "slice_global_searches": 159,
+    "t_r_s": 253.08662867546082,
+    "G_low": 4968.75,
+    "G_high": 7813.26,
+    "T_low_h": 33.69817170383268,
+    "T_high_h": 51.01199303787947,
+    "cap_h": 76.5179895568192,
+    "passes_48h_low": false,
+    "passes_48h_high": true
+   }
+  },
+  "CF": {
+   "kind": "cpp",
+   "wall_total_s": 2057.95,
+   "client_total_s": 2023.0,
+   "global_searches": 117,
+   "rejected_seeds": 4,
+   "local_optimizations": 2406,
+   "wall_global_s": 1904.0,
+   "wall_other_s": 119.0,
+   "read_s": 33.65700006484985,
+   "evals_all": 34611355,
+   "eval_count_line": "present",
+   "marker": "exit=5 reason=not quiet; relabelled contended; stop, no rerun elapsed_s=2071 label=contended (the run was not quiet: load limit 3.5, see benchmarks/autoresearch/fine1/cache/runs/slice/CF/quiet.json) run=benchmarks/autoresearch/fine1/cache/runs/slice/CF log=benchmarks/autoresearch/fine1/cache/logs/slice_CF.log",
+   "projection": {
+    "t_g_s": 16.273504273504273,
+    "slice_global_searches": 117,
+    "t_r_s": 119.0,
+    "G_low": 3656.25,
+    "G_high": 5749.38,
+    "T_low_h": 18.15212777777778,
+    "T_high_h": 27.61395,
+    "cap_h": 41.420925,
+    "passes_48h_low": false,
+    "passes_48h_high": false
+   }
+  }
+ },
+ "ps_first_try_capped_at_1h": {
+  "progress_lines": 11,
+  "elapsed_s_at_last_line": 3302.1244921684265,
+  "n_records_at_last_line": 2000,
+  "n_seeds": 13,
+  "n_reseeds": 125,
+  "marker": "exit=2 reason=guard rc 124 (124 passed the cap, 125 no log growth for 30 min, 126 RUNTIME_ASSERT or [ConfigFile] Error) elapsed_s=3632 label=contended: timing preflight refused run=benchmarks/autoresearch/fine1/cache/runs/slice/PS log=benchmarks/autoresearch/fine1/cache/logs/slice_PS.log"
+ }
+}

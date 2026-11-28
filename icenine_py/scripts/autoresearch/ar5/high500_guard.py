@@ -1,0 +1,93 @@
+"""AR5 step 16: the read guards on ``held2`` and on ``held3``'s logs (pure; no study imports,
+nothing is opened here).
+
+Step 16 does not use ``held2`` at all. Three guards:
+
+1. ``refuse_sample(name)``: ``RESEED_SAMPLE=held2`` (or any name that is not one of the samples of
+   this step: ``big``, ``grad``, ``mid``, ``held``, ``held3``) raises ``SystemExit(2)``.
+2. ``guarded(path)``: a path with a part that contains ``held2`` (as given or resolved with links
+   followed, missing parts kept: ``J_held2``, ``passes_held2``, ``pass_J_held2.log``,
+   ``stats_held2.json``, ``held2_clean.npy``, ...) raises ``SystemExit(2)``. Every loader of this
+   step goes through it.
+3. ``guarded`` also refuses a path with a part that contains ``held3`` while the marker file
+   ``<cache>/held3_runs_done.json`` does not exist (the plan: nobody reads ``held3``'s logs before
+   its runs end). The run-all script writes the marker after the last ``held3`` run and pass. The
+   run scripts themselves write ``held3`` files through older code; this guard is for readers of
+   this step's layer (summary, stats, gate).
+"""
+
+import os
+import sys
+from pathlib import Path
+from typing import Optional, Union
+
+PathLike = Union[str, Path]
+
+SAMPLES = ("big", "grad", "mid", "held", "held3")
+HELD_SAMPLES = ("held", "held3")  # the ones behind this step's own freeze check
+ICE = Path(__file__).resolve().parents[3]
+H3_MARKER = "held3_runs_done.json"
+
+
+def cache_dir() -> Path:
+    return Path(
+        os.environ.get(
+            "HIGH500_CACHE", str(ICE / "benchmarks" / "autoresearch" / "ar5" / "high500" / "cache")
+        )
+    )
+
+
+def refuse(msg: str) -> None:
+    """Say why on stderr and exit with code 2 (``SystemExit(2)``)."""
+    print(msg, file=sys.stderr)
+    raise SystemExit(2)
+
+
+def refuse_sample(name: str) -> None:
+    """``SystemExit(2)`` unless ``name`` is a sample of step 16 (``held2`` in particular)."""
+    if "held2" in name:
+        refuse("high500 rule: held2 is not used by step 16 (RESEED_SAMPLE=held2 refused)")
+    if name and name not in SAMPLES:
+        refuse(f"high500 rule: sample {name!r} is not one of {', '.join(SAMPLES)}")
+
+
+def _parts(p: PathLike) -> list:
+    q = Path(p)
+    out = list(q.parts)
+    try:
+        out += list(q.resolve().parts)
+    except OSError:
+        pass
+    return out
+
+
+def mentions_held2(p: PathLike) -> bool:
+    return any("held2" in x for x in _parts(p))
+
+
+def mentions_held3(p: PathLike, cache: Optional[Path] = None) -> bool:
+    """A part of the path (below the cache folder, when it is under it) mentions ``held3``."""
+    root = cache or cache_dir()
+    q = Path(p)
+    for base in (root, root.resolve()):
+        try:
+            q = q.relative_to(base)
+            break
+        except ValueError:
+            continue
+    return any("held3" in x for x in _parts(q))
+
+
+def held3_open(cache: Optional[Path] = None) -> bool:
+    """True when the marker that says every ``held3`` run and pass has ended exists."""
+    return ((cache or cache_dir()) / H3_MARKER).exists()
+
+
+def guarded(p: PathLike, cache: Optional[Path] = None) -> Path:
+    """The path as a ``Path``, or ``SystemExit(2)`` when any part of it mentions ``held2``, or
+    ``held3`` before the marker of ended runs exists."""
+    if mentions_held2(p):
+        refuse(f"high500 guard: nothing of held2 is opened by step 16 ({p})")
+    if mentions_held3(p, cache) and not held3_open(cache):
+        refuse(f"high500 guard: held3's logs are not read before its runs end ({p})")
+    return Path(p)

@@ -1,0 +1,72 @@
+{
+ "evals_total": [
+  7201863,
+  7201863,
+  true
+ ],
+ "stages": {
+  "n_evals_seed": [
+   339810,
+   339810,
+   true
+  ],
+  "n_evals_reseed": [
+   2516902,
+   2516902,
+   true
+  ],
+  "n_evals_neighbor": [
+   3491437,
+   3491437,
+   true
+  ],
+  "n_evals_revisit": [
+   853714,
+   853714,
+   true
+  ],
+  "index_evals": [
+   2856712,
+   2856712,
+   true
+  ]
+ },
+ "wrapper": {
+  "wrapper_calls": [
+   32563,
+   32563,
+   true
+  ],
+  "picked_fell": [
+   29366,
+   29366,
+   true
+  ],
+  "fallback_runs": [
+   3197,
+   3197,
+   true
+  ],
+  "fallback_won": [
+   3,
+   3,
+   true
+  ],
+  "evals_fallback": [
+   2358808,
+   2358808,
+   true
+  ]
+ },
+ "seed_log_identical": true,
+ "seed_steps": [
+  329,
+  329
+ ],
+ "map_max_abs_diff": 0.0,
+ "map_identical": true,
+ "wrong_new": 67,
+ "wrong_stored": 67,
+ "error_arrays_identical": true,
+ "reproduces": true
+}

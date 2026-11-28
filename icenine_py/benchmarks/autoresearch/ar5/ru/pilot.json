@@ -1,0 +1,19 @@
+{
+ "what": "the --smoke 40 pilot: a full J5D BFS of mid (all 24,570 voxels), RU arm, without the boundary pass and the screen arm; contended; its map was not scored",
+ "seed_steps": 1728,
+ "reseeds": 1715,
+ "ended_by_a_try": 1434,
+ "share": 0.8298611111111112,
+ "ended_by_second_fit": 223,
+ "min_accepted_hit": 0.95,
+ "wall_s": 603,
+ "label": "contended",
+ "source": "cache_pilot/ru/ru_steps_mid.json.gz (untracked)",
+ "uncounted_hit_ratio_evaluations_of_live_runs": {
+  "mid": 2159,
+  "held": 5233,
+  "held8": 4956,
+  "source": "review of ar5ad (one overlap evaluation per fit end)"
+ },
+ "n_voxels": 24570
+}

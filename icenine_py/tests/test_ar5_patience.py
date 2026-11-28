@@ -1,0 +1,395 @@
+"""AR5 step 11 (task ar5k): rule P(k), patience of the seed step's MC refinement, on synthetic
+traces. Written before the scripts ``patience_*.py`` (plan "AR5 step 11", phase A step 2): the stop
+point, the first lowest cost kept, the final evaluation, the walk of a whole seed step, and that no
+other random draw moves.
+"""
+
+import inspect
+import random
+import sys
+from pathlib import Path
+from typing import Any, Dict, List
+
+import numpy as np
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "scripts" / "autoresearch" / "ar5"))
+
+import patience_rules as PR  # noqa: E402
+
+
+def _trace_from_costs(costs: List[float]) -> List[List[float]]:
+    out: List[List[float]] = []
+    best = float("inf")
+    for i, c in enumerate(costs):
+        if c < best:
+            best = c
+            out.append([i + 1, c])
+    return out
+
+
+def test_constants_are_the_frozen_values() -> None:
+    assert PR.K == 3000 and PR.TAU == 0.95 and PR.SEED_TEST == 0.80
+
+
+def test_counter_fires_after_k_evaluations_without_a_gain() -> None:
+    c = PR.PatienceCounter(3)
+    assert [c.feed(x) for x in (0.5, 0.4, 0.4, 0.45, 0.41)] == [False, False, False, False, True]
+    assert c.n == 5 and c.best == 0.4 and c.best_n == 2  # the tie at 3 does not move it
+
+
+def test_counter_off_never_fires() -> None:
+    c = PR.PatienceCounter(0)
+    assert not any(c.feed(0.5) for _ in range(10_000))
+
+
+def test_first_lowest_cost_is_kept_on_a_tie() -> None:
+    costs = [0.9, 0.3, 0.3, 0.3, 0.5, 0.5, 0.5, 0.3, 0.3]  # final evaluation: 0.3
+    r = PR.run_costs(costs, 3)
+    assert r["stopped"] and r["best_n"] == 2 and r["cost"] == 0.3
+
+
+def test_stop_point_and_final_evaluation() -> None:
+    costs = [0.9, 0.5] + [0.7] * 20 + [0.5]  # the last one is the final evaluation of 0.5
+    r = PR.run_costs(costs, 5)
+    # last gain at evaluation 2; the counter fires at evaluation 7; one final evaluation: 8
+    assert r["stopped"] and r["best_n"] == 2 and r["evals"] == 8 and r["cost"] == 0.5
+
+
+def test_a_run_that_ends_within_k_is_not_stopped() -> None:
+    costs = [0.9, 0.5, 0.7, 0.7, 0.5]
+    r = PR.run_costs(costs, 5)
+    assert not r["stopped"] and r["evals"] == len(costs)
+
+
+def test_a_gain_resets_the_count() -> None:
+    costs = [0.9] + [0.95] * 4 + [0.8] + [0.95] * 4 + [0.7] + [0.95] * 4 + [0.7]
+    r = PR.run_costs(costs, 5)
+    assert not r["stopped"] and r["cost"] == 0.7
+
+
+def test_cut_point_after_the_last_improvement_keeps_the_end() -> None:
+    trace = [[1, 0.5], [10, 0.3], [40, 0.2]]
+    cp = PR.cut_point(trace, 5000, 1000)
+    assert cp["kind"] == "after_last" and cp["cost"] == 0.2 and cp["evals"] == 40 + 1000 + 1
+
+
+def test_cut_point_before_a_later_improvement_moves_the_end() -> None:
+    trace = [[1, 0.5], [10, 0.3], [2000, 0.2]]
+    cp = PR.cut_point(trace, 2100, 1000)
+    assert cp["kind"] == "moved" and cp["cost"] == 0.3 and cp["evals"] == 10 + 1000 + 1
+
+
+def test_cut_point_gap_of_exactly_k_does_not_fire() -> None:
+    # the gain at evaluation 1010 comes at the k-th evaluation after 10: the counter has not fired
+    trace = [[1, 0.5], [10, 0.3], [1010, 0.2]]
+    cp = PR.cut_point(trace, 1011, 1000)
+    assert cp["kind"] == "none" and cp["evals"] == 1011
+    trace2 = [[1, 0.5], [10, 0.3], [1011, 0.2]]
+    assert PR.cut_point(trace2, 1012, 1000)["kind"] == "moved"
+
+
+def test_cut_point_never_costs_more_than_the_uncut_run() -> None:
+    trace = [[1, 0.5], [10, 0.3]]
+    # last gain 10, final evaluation 1011: the counter fires at 1010, the final one is 1011
+    assert PR.cut_point(trace, 1011, 1000)["kind"] == "none"
+    assert PR.cut_point(trace, 1012, 1000) == dict(kind="after_last", evals=1011, cost=0.3)
+    cp = PR.cut_point(trace, 1500, 1000)
+    assert cp["evals"] == 1011 and cp["kind"] == "after_last"
+
+
+def test_cut_point_gate_stops_only_while_worse_than_the_reference() -> None:
+    trace = [[1, 0.5], [10, 0.3], [2000, 0.2]]
+    assert PR.cut_point(trace, 2100, 1000, worse_than=0.35)["kind"] == "none"
+    assert PR.cut_point(trace, 2100, 1000, worse_than=0.25)["kind"] == "moved"
+
+
+def test_cut_point_off_or_short_is_untouched() -> None:
+    trace = [[1, 0.5], [10, 0.3]]
+    assert PR.cut_point(trace, 500, 0)["kind"] == "none"
+    assert PR.cut_point(trace, 500, 1000)["evals"] == 500
+
+
+def test_cut_point_agrees_with_the_counter_on_random_sequences() -> None:
+    rng = np.random.default_rng(1)
+    for _ in range(300):
+        n = int(rng.integers(5, 400))
+        costs = [float(x) for x in np.round(np.cumsum(rng.normal(0.0, 0.05, n)) + 1.0, 2)]
+        costs.append(min(costs))  # the final evaluation of the kept orientation
+        k = int(rng.integers(2, 60))
+        r = PR.run_costs(costs, k)
+        cp = PR.cut_point(_trace_from_costs(costs), len(costs), k)
+        assert cp["evals"] == r["evals"]
+        assert (cp["kind"] != "none") == r["stopped"]
+        assert abs(cp["cost"] - r["cost"]) < 1e-12
+
+
+def _fits(cma_hit: List[float], mc: Dict[int, Dict[str, float]]) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    for p, h in enumerate(cma_hit):
+        out.append(dict(pos=p, kind="C", hit=h, cost=0.30 - 0.01 * p, evals=201))
+        if p in mc:
+            out.append(
+                dict(
+                    pos=p,
+                    kind="M",
+                    evals=int(mc[p]["evals"]),
+                    **{k: mc[p][k] for k in ("hit", "cost")},
+                )
+            )
+    return out
+
+
+def test_walk_without_cuts_is_the_stored_step() -> None:
+    fits = _fits([0.5, 0.97], {0: dict(hit=0.6, cost=0.2, evals=4000)})
+    w = PR.walk_step(fits, {})
+    assert w["evals"] == 201 + 4000 + 201 and w["taken"] == 1 and w["stopped"] and not w["lost"]
+
+
+def test_walk_cut_after_last_improvement_changes_only_the_count() -> None:
+    fits = _fits([0.5, 0.97], {0: dict(hit=0.6, cost=0.2, evals=4000)})
+    cut = dict(kind="after_last", evals=1500, cost=0.2)
+    w = PR.walk_step(fits, {0: cut})
+    assert w["evals"] == 201 + 1500 + 201 and w["taken"] == 1 and w["kept"][0]["cost"] == 0.2
+
+
+def test_walk_moved_end_that_reached_tau_is_lost_when_it_turns_dearer_than_the_cma_end() -> None:
+    fits = _fits([0.5, 0.97, 0.9], {0: dict(hit=0.96, cost=0.1, evals=4000)})
+    # the stored step stops at candidate 0 (MC end hit 0.96); the cut end is dearer than the CMA end
+    assert PR.walk_step(fits, {})["taken"] == 0
+    cut = dict(kind="moved", evals=1500, cost=0.35)  # CMA end cost is 0.30
+    w = PR.walk_step(fits, {0: cut})
+    assert w["kept"][0]["which"] == "C" and w["kept"][0]["hit"] == 0.5
+    assert w["taken"] == 1 and w["stopped"]
+
+
+def test_walk_pessimistic_loses_a_moved_end_that_reached_tau() -> None:
+    fits = _fits([0.5], {0: dict(hit=0.96, cost=0.1, evals=4000)})
+    cut = dict(kind="moved", evals=1500, cost=0.15)  # still below the CMA end (0.30)
+    opt = PR.walk_step(fits, {0: cut})
+    assert opt["stopped"] and opt["taken"] == 0 and not opt["lost"]
+    pes = PR.walk_step(fits, {0: cut}, pessimistic=True, n_avail=5)
+    assert not pes["stopped"] and pes["lost"] and pes["extra_candidates"] == 4
+
+
+def test_walk_without_a_tau_end_takes_the_lowest_cost() -> None:
+    fits = _fits(
+        [0.5, 0.6],
+        {0: dict(hit=0.7, cost=0.25, evals=3000), 1: dict(hit=0.7, cost=0.22, evals=3000)},
+    )
+    w = PR.walk_step(fits, {})
+    assert not w["stopped"] and w["taken"] == 1
+
+
+class _Out:
+    def __init__(self, cost: float) -> None:
+        self.cost = cost
+
+
+class _FakeCost:
+    """A cost function whose cost is the first coordinate of the orientation."""
+
+    def evaluate(self, orientation: Any, *args: Any, **kw: Any) -> _Out:
+        return _Out(float(np.asarray(orientation).ravel()[0]))
+
+
+def _drive(costs: List[float], k: int) -> Dict[str, Any]:
+    meter = PR.Meter()
+    patched = PR.patch_evaluate(_FakeCost.evaluate, meter)
+    fake = _FakeCost()
+    meter.begin(k)
+    stopped = False
+    try:
+        for c in costs:
+            patched(fake, np.full((3, 3), c))
+    except PR.PatienceStop:
+        stopped = True
+    return dict(stopped=stopped, meter=meter)
+
+
+def test_wrapped_evaluate_stops_and_keeps_the_first_lowest_orientation() -> None:
+    costs = [0.9, 0.5, 0.5, 0.7, 0.7, 0.7, 0.7, 0.7, 0.4]
+    r = _drive(costs, 4)
+    m = r["meter"]
+    assert r["stopped"] and not m.on
+    assert m.n == 6 and m.best == 0.5 and m.trace == [[1, 0.9], [2, 0.5]]
+    assert float(m.best_R[0, 0]) == 0.5  # the copy of the first lowest, not the later tie
+
+
+def test_wrapped_evaluate_off_only_records() -> None:
+    costs = [0.9, 0.5, 0.7, 0.7, 0.4]
+    r = _drive(costs, 0)
+    m = r["meter"]
+    assert not r["stopped"] and m.on and m.n == 5 and m.trace == [[1, 0.9], [2, 0.5], [5, 0.4]]
+
+
+def test_wrapped_evaluate_ignores_calls_while_off() -> None:
+    meter = PR.Meter()
+    patched = PR.patch_evaluate(_FakeCost.evaluate, meter)
+    for c in (0.5, 0.6, 0.7):
+        out = patched(_FakeCost(), np.full((3, 3), c))
+        assert out.cost == c  # the value is unchanged
+    assert meter.n == 0 and meter.trace == []
+
+
+def test_wrapped_evaluate_copies_the_orientation() -> None:
+    meter = PR.Meter()
+    patched = PR.patch_evaluate(_FakeCost.evaluate, meter)
+    meter.begin(5)
+    R = np.full((3, 3), 0.3)
+    patched(_FakeCost(), R)
+    R[:] = 9.0
+    assert float(meter.best_R[0, 0]) == 0.3
+
+
+def test_freeze_lists_the_rule_scripts_and_the_library() -> None:
+    import patience_freeze as PF
+
+    assert PF.SCRIPTS[:3] == ["patience_rules.py", "patience_common.py", "patience_run.py"]
+    assert PF.CONSTANTS["k"] == 3000
+    cur = PF.current()
+    assert "scripts/autoresearch/ar5/patience_run.py" in cur["files"]
+    assert "icenine/reconstructor.py" in cur["library"] and "uv.lock" in cur["library"]
+    assert not any("held" in k for k in list(cur["files"]) + list(cur["library"]))
+
+
+def _gate_rows(n: int, changed: int, wrong: bool = False) -> List[Dict[str, Any]]:
+    rows = []
+    for i in range(n):
+        ch = i < changed
+        rows.append(
+            dict(
+                step=i,
+                classes=["same", "moved"] if ch else ["same", "after_last"],
+                pred_mismatch=0,
+                bad=False,
+                path="seed" if ch else "same",
+                path_same=not ch,
+                g_total=1000,
+                new_total=800,
+                g_stopped=True,
+                new_hit=0.97,
+                g_hit=0.97,
+                g_failed=False,
+                new_failed=False,
+                err_g=0.02,
+                err_new=2.0 if (ch and wrong) else 0.02,
+                taken_same=not ch,
+                mis_to_g_deg=0.05 if ch else 0.0,
+            )
+        )
+    return rows
+
+
+def test_gate_passes_a_clean_replay_and_fails_a_wrong_changed_end() -> None:
+    import patience_gate as PG
+
+    ok = PG.sample_gate("big", _gate_rows(99, 4))
+    assert ok["g1_ok"] and ok["g2_ok"] and ok["g3_ok"] and ok["taken_changed"] == 4
+    assert abs(ok["saved_share_of_g_run"] - 99 * 200 / 3807747) < 1e-12
+    bad = PG.sample_gate("big", _gate_rows(99, 4, wrong=True))
+    assert not bad["g3_ok"] and len(bad["changed_wrong_where_g_right"]) == 4
+    many = PG.sample_gate("big", _gate_rows(99, 7))
+    assert not many["g2_ok"]
+    short = PG.sample_gate("big", _gate_rows(98, 4))
+    assert not short["complete"] and not short["g1_ok"]
+
+
+def _house(ok: bool) -> Dict[str, bool]:
+    return dict(a=ok, b=ok, c=ok, passes=ok)
+
+
+def _rules(sample: str, **kw: Any) -> Dict[str, Any]:
+    import patience_judge as PJ
+
+    base: Dict[str, Any] = dict(
+        total_s=94, total_g=100, seed_s=85, seed_g=100, net_vs_g=0, med_s=0.0300, med_g=0.0300,
+        extra_wrong_seeds=0, grid_s=4, grid_g=4, house_s=_house(True), house_g=_house(True),
+    )  # fmt: skip
+    base.update(kw)
+    return PJ.rules(sample, **base)
+
+
+def test_judge_rule_1_by_sample() -> None:
+    assert _rules("held")["r1"]  # 6% total, 15% seed
+    assert not _rules("held", seed_s=95)["r1"]  # seed only 5% fewer
+    assert not _rules("held", total_s=97)["r1"]  # total only 3% fewer
+    assert _rules("mid", total_s=93)["r1"] and not _rules("mid", total_s=93.1)["r1"]
+    assert _rules("big", total_s=97)["r1"] and not _rules("big", total_s=98)["r1"]
+    assert _rules("grad", total_s=101)["r1"] and not _rules("grad", total_s=102)["r1"]
+
+
+def test_judge_rules_2_to_4() -> None:
+    assert _rules("held", net_vs_g=5)["r2"] and not _rules("held", net_vs_g=6)["r2"]
+    assert _rules("held", med_s=0.0310)["r3"] and not _rules("held", med_s=0.03101)["r3"]
+    assert (
+        _rules("held", extra_wrong_seeds=1)["r4"] and not _rules("held", extra_wrong_seeds=2)["r4"]
+    )
+    assert _rules("held", grid_s=5)["r4"] and not _rules("held", grid_s=6)["r4"]
+
+
+def test_judge_rule_5_and_the_g_fails_clause() -> None:
+    r = _rules("mid", total_s=93, house_s=_house(False))
+    assert not r["r5"] and not r["g_fails_5"] and not r["passes"]
+    r = _rules("mid", total_s=93, house_s=_house(False), house_g=_house(False))
+    assert r["g_fails_5"] and r["passes"]  # judged by (1) to (4)
+
+
+def test_judge_step_needs_every_sample() -> None:
+    import patience_judge as PJ
+
+    ok = dict(held=True, mid=True, grad=True, big=True)
+    assert PJ.step_verdict(ok)
+    assert not PJ.step_verdict(dict(ok, mid=False))
+
+
+def test_judge_house_rule_numbers() -> None:
+    import patience_judge as PJ
+
+    assert PJ.house(80, 100, 5, 0, 0.03, 0.03)["passes"]
+    assert not PJ.house(81, 100, 5, 0, 0.03, 0.03)["a"]
+    assert not PJ.house(80, 100, 6, 0, 0.03, 0.03)["b"]
+    assert not PJ.house(80, 100, 0, 0, 0.0351, 0.03)["c"]
+
+
+def test_the_rule_draws_no_random_number() -> None:
+    src = inspect.getsource(PR)
+    assert "random" not in src.replace("no random number", "").replace("random draw", "")
+    state = random.getstate()
+    nstate = np.random.get_state()[1].copy()
+    c = PR.PatienceCounter(4)
+    for x in (0.5, 0.6, 0.6, 0.6, 0.6):
+        c.feed(x)
+    PR.cut_point([[1, 0.5]], 100, 4)
+    assert random.getstate() == state
+    assert (np.random.get_state()[1] == nstate).all()
+
+
+def test_broad_wrong_seed_count_adds_the_s_only_steps() -> None:
+    """Review fix 3: the matched-step count plus S-only steps wrong where G's map is right."""
+    import patience_summary as PS
+
+    d = {"wrong_seeds": {"s_wrong_where_g_right": 0}}
+    assert PS.broad_wrong_seeds(d, {"only_s_wrong_where_g_map_right": 1}) == 1
+    d = {"wrong_seeds": {"s_wrong_where_g_right": 2}}
+    assert PS.broad_wrong_seeds(d, {"only_s_wrong_where_g_map_right": 0}) == 2
+
+
+def test_whatif_md_has_reading_lines_and_both_shares(tmp_path: Path, monkeypatch: Any) -> None:
+    """Review fix 5: whatif.md gives the share with and without the estimated extra candidates."""
+    import patience_whatif as PW
+
+    role = dict(n=3, evals=10, tail=5, share=0.1, tail_share=0.05)
+    rule = dict(saved_share=0.109, saved_share_without_extra=0.114, taken_changed=25)
+    stored = {
+        "mid": dict(
+            roles=dict(reached_095_taken=role, taken_no_095=role, not_taken=role),
+            rules={"P(3000)": rule},
+        )
+    }
+    monkeypatch.setattr(PW, "PAT", tmp_path)
+    PW.write_md(stored, ["mid"])
+    text = (tmp_path / "whatif.md").read_text()
+    assert "Reading line, `patience_whatif_rules`" in text
+    assert "| P(3000) | 10.9%; 11.4%; 25 |" in text
+    assert "table:patience_rules" not in text  # no clash with tables.md's decision-rule table

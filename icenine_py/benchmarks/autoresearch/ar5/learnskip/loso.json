@@ -1,0 +1,235 @@
+{
+ "g0": {
+  "held3": {
+   "sample": "held3",
+   "n_fits": 72458,
+   "n_fits_ok": true,
+   "counts": {
+    "revisits": 48181,
+    "rej_revisits": 38314,
+    "nbr": 24277,
+    "nbr_rej": 12953
+   },
+   "counts_ok": true,
+   "p1_ok": true,
+   "p1_total": 23503385,
+   "total_ok": true
+  },
+  "held": {
+   "sample": "held",
+   "n_fits": 76911,
+   "n_fits_ok": true,
+   "counts": {
+    "revisits": 52638,
+    "rej_revisits": 42756,
+    "nbr": 24273,
+    "nbr_rej": 13295
+   },
+   "counts_ok": true,
+   "p1_ok": true,
+   "p1_total": 22939812,
+   "total_ok": true
+  },
+  "mid": {
+   "sample": "mid",
+   "n_fits": 52027,
+   "n_fits_ok": true,
+   "counts": {
+    "revisits": 27618,
+    "rej_revisits": 18778,
+    "nbr": 24409,
+    "nbr_rej": 10297
+   },
+   "counts_ok": true,
+   "p1_ok": true,
+   "p1_total": 10589493,
+   "total_ok": true
+  },
+  "grad": {
+   "sample": "grad",
+   "n_fits": 53398,
+   "n_fits_ok": true,
+   "counts": {
+    "revisits": 29176,
+    "rej_revisits": 15416,
+    "nbr": 24222,
+    "nbr_rej": 14693
+   },
+   "counts_ok": true,
+   "p1_ok": true,
+   "p1_total": 9041686,
+   "total_ok": true
+  },
+  "big": {
+   "sample": "big",
+   "n_fits": 32543,
+   "n_fits_ok": true,
+   "counts": {
+    "revisits": 8010,
+    "rej_revisits": 2873,
+    "nbr": 24533,
+    "nbr_rej": 5424
+   },
+   "counts_ok": true,
+   "p1_ok": true,
+   "p1_total": 3567098,
+   "total_ok": true
+  }
+ },
+ "samples": {
+  "held3": {
+   "threshold": 0.011453623163484925,
+   "train_share_sum": 0.2891252382472209,
+   "rounds": 152,
+   "n": 72458,
+   "skipped": 22248,
+   "wrong": 30,
+   "allowed": 72,
+   "changed": 1,
+   "saved": 1355298,
+   "net": 1282840,
+   "share_pct": 5.46,
+   "s_net": 934286,
+   "s_share_pct": 3.98,
+   "s_wrong": 21,
+   "s_changed": 1,
+   "ceiling_pct": 13.31,
+   "matches_plan_table": {
+    "share": true,
+    "wrong": true,
+    "allowed": true,
+    "changed": true,
+    "s_share": true,
+    "s_wrong": true,
+    "s_changed": true,
+    "ceiling": true
+   },
+   "within_limits": true,
+   "g1": true
+  },
+  "held": {
+   "threshold": 0.011502510910894832,
+   "train_share_sum": 0.2989335724012627,
+   "rounds": 196,
+   "n": 76911,
+   "skipped": 24488,
+   "wrong": 70,
+   "allowed": 76,
+   "changed": 0,
+   "saved": 1489498,
+   "net": 1412587,
+   "share_pct": 6.16,
+   "s_net": 965091,
+   "s_share_pct": 4.21,
+   "s_wrong": 34,
+   "s_changed": 0,
+   "ceiling_pct": 14.9,
+   "matches_plan_table": {
+    "share": true,
+    "wrong": true,
+    "allowed": true,
+    "changed": true,
+    "s_share": true,
+    "s_wrong": true,
+    "s_changed": true,
+    "ceiling": true
+   },
+   "within_limits": true,
+   "g1": true
+  },
+  "mid": {
+   "threshold": 0.00957237190549021,
+   "train_share_sum": 0.2893745200330983,
+   "rounds": 244,
+   "n": 52027,
+   "skipped": 10949,
+   "wrong": 46,
+   "allowed": 52,
+   "changed": 0,
+   "saved": 665083,
+   "net": 613056,
+   "share_pct": 5.79,
+   "s_net": 383147,
+   "s_share_pct": 3.62,
+   "s_wrong": 26,
+   "s_changed": 0,
+   "ceiling_pct": 16.75,
+   "matches_plan_table": {
+    "share": true,
+    "wrong": true,
+    "allowed": true,
+    "changed": true,
+    "s_share": true,
+    "s_wrong": true,
+    "s_changed": true,
+    "ceiling": true
+   },
+   "within_limits": true,
+   "g1": true
+  },
+  "grad": {
+   "threshold": 0.009764177976432562,
+   "train_share_sum": 0.22807869164224023,
+   "rounds": 268,
+   "n": 53398,
+   "skipped": 18446,
+   "wrong": 43,
+   "allowed": 53,
+   "changed": 0,
+   "saved": 1122583,
+   "net": 1069185,
+   "share_pct": 11.83,
+   "s_net": 790415,
+   "s_share_pct": 8.74,
+   "s_wrong": 24,
+   "s_changed": 0,
+   "ceiling_pct": 20.31,
+   "matches_plan_table": {
+    "share": true,
+    "wrong": true,
+    "allowed": true,
+    "changed": true,
+    "s_share": true,
+    "s_wrong": true,
+    "s_changed": true,
+    "ceiling": true
+   },
+   "within_limits": true,
+   "g1": true
+  },
+  "big": {
+   "threshold": 0.009826263083424373,
+   "train_share_sum": 0.28402545551158936,
+   "rounds": 102,
+   "n": 32543,
+   "skipped": 3699,
+   "wrong": 17,
+   "allowed": 32,
+   "changed": 0,
+   "saved": 224602,
+   "net": 192059,
+   "share_pct": 5.38,
+   "s_net": 113979,
+   "s_share_pct": 3.2,
+   "s_wrong": 6,
+   "s_changed": 0,
+   "ceiling_pct": 14.19,
+   "matches_plan_table": {
+    "share": true,
+    "wrong": true,
+    "allowed": true,
+    "changed": true,
+    "s_share": true,
+    "s_wrong": true,
+    "s_changed": true,
+    "ceiling": true
+   },
+   "within_limits": true,
+   "g1": true
+  }
+ },
+ "wall_s": 54.8,
+ "prediction_1": true,
+ "g0_ok": true,
+ "g1_ok": true
+}

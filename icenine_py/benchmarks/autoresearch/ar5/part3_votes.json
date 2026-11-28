@@ -1,0 +1,158 @@
+{
+ "groups": {
+  "big": {
+   "n_wrong_flagged": 24,
+   "n_right_flagged": 1508,
+   "median_wrong": 2516.0,
+   "median_right": 1476.5,
+   "q25_q75_wrong": [
+    1658.75,
+    3807.25
+   ],
+   "q25_q75_right": [
+    989.75,
+    2028.0
+   ],
+   "n_unflagged_sampled": 485,
+   "median_unflagged_sampled": 1411.0,
+   "wrong_among_unflagged_sampled": 0,
+   "best_cut": {
+    "cut": 2446.0,
+    "wrong_ge": 13,
+    "right_ge": 173,
+    "j": 0.42694518125552605,
+    "n_wrong": 24,
+    "n_right": 1508
+   },
+   "wrong_interval": [
+    13,
+    24,
+    0.35074553553106635,
+    0.7210894164831857
+   ],
+   "right_interval": [
+    173,
+    1508,
+    0.09960624947870209,
+    0.13179471210351656
+   ],
+   "separates": true
+  },
+  "grad": {
+   "n_wrong_flagged": 63,
+   "n_right_flagged": 2722,
+   "median_wrong": 2707.0,
+   "median_right": 1714.0,
+   "q25_q75_wrong": [
+    1630.0,
+    4066.5
+   ],
+   "q25_q75_right": [
+    1258.25,
+    2318.25
+   ],
+   "n_unflagged_sampled": 1018,
+   "median_unflagged_sampled": 1567.0,
+   "wrong_among_unflagged_sampled": 0,
+   "best_cut": {
+    "cut": 3035.0,
+    "wrong_ge": 31,
+    "right_ge": 324,
+    "j": 0.37303336715533625,
+    "n_wrong": 63,
+    "n_right": 2722
+   },
+   "wrong_interval": [
+    31,
+    63,
+    0.3726660281435346,
+    0.6123732288461243
+   ],
+   "right_interval": [
+    324,
+    2722,
+    0.10739851185770745,
+    0.13173555961585143
+   ],
+   "separates": true
+  },
+  "mid": {
+   "n_wrong_flagged": 31,
+   "n_right_flagged": 3678,
+   "median_wrong": 2553.0,
+   "median_right": 1412.0,
+   "q25_q75_wrong": [
+    2007.0,
+    3578.0
+   ],
+   "q25_q75_right": [
+    972.0,
+    2012.5
+   ],
+   "n_unflagged_sampled": 711,
+   "median_unflagged_sampled": 1307.0,
+   "wrong_among_unflagged_sampled": 0,
+   "best_cut": {
+    "cut": 1975.0,
+    "wrong_ge": 25,
+    "right_ge": 955,
+    "j": 0.5467996281288918,
+    "n_wrong": 31,
+    "n_right": 3678
+   },
+   "wrong_interval": [
+    25,
+    31,
+    0.6371939644454013,
+    0.9081311641365236
+   ],
+   "right_interval": [
+    955,
+    3678,
+    0.24573812704184667,
+    0.27406739636796
+   ],
+   "separates": true
+  },
+  "all": {
+   "n_wrong_flagged": 118,
+   "n_right_flagged": 7908,
+   "median_wrong": 2573.0,
+   "median_right": 1535.0,
+   "q25_q75_wrong": [
+    1692.0,
+    3906.25
+   ],
+   "q25_q75_right": [
+    1065.0,
+    2111.0
+   ],
+   "n_unflagged_sampled": 2214,
+   "median_unflagged_sampled": 1445.0,
+   "wrong_among_unflagged_sampled": 0,
+   "best_cut": {
+    "cut": 2369.0,
+    "wrong_ge": 67,
+    "right_ge": 1410,
+    "j": 0.3894961549342867,
+    "n_wrong": 118,
+    "n_right": 7908
+   },
+   "wrong_interval": [
+    67,
+    118,
+    0.4776703089507045,
+    0.6536477302083349
+   ],
+   "right_interval": [
+    1410,
+    7908,
+    0.1700208912692686,
+    0.18689242206096793
+   ],
+   "separates": true
+  }
+ },
+ "note": "the cut is chosen after the result (it is the cut with the largest share of wrong voxels at or above it minus the share of right voxels at or above it)",
+ "separates_rule": "Wilson 95% intervals of the share at or above the cut do not overlap"
+}

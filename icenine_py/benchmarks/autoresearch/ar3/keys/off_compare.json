@@ -1,0 +1,34 @@
+{
+ "recon.mic": {
+  "equal": true,
+  "parent_sha": "b258c810c859529b",
+  "branch_sha": "b258c810c859529b",
+  "bytes": 530981
+ },
+ "orient.npy": {
+  "equal": true,
+  "parent_sha": "2d0d56d064051adb",
+  "branch_sha": "2d0d56d064051adb",
+  "bytes": 144128
+ },
+ "records.json": {
+  "equal": true,
+  "parent_sha": "0dc62ae76f4fa18e",
+  "branch_sha": "0dc62ae76f4fa18e",
+  "bytes": 505215
+ },
+ "stats.json": {
+  "equal": true,
+  "parent_sha": "4862ba1d6e38c74e",
+  "branch_sha": "4862ba1d6e38c74e",
+  "bytes": 843
+ },
+ "logs.json": {
+  "equal": true,
+  "parent_sha": "34518e53ed135fa5",
+  "branch_sha": "34518e53ed135fa5",
+  "bytes": 31917
+ },
+ "all_equal": true,
+ "n_voxels": 2000
+}

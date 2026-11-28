@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-11-10T23:42:39",
+  "host": "newt.local",
+  "loadavg": [
+    3.166015625,
+    3.54736328125,
+    3.89501953125
+  ],
+  "cpu_count": 12,
+  "power": "ac",
+  "omp_num_threads": "1",
+  "mkl_num_threads": "1",
+  "torch_threads": 1,
+  "busy_processes": [
+    {
+      "pid": 18415,
+      "cpu": 99.1,
+      "command": "cpptools"
+    }
+  ]
+}

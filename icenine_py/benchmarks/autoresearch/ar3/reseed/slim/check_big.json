@@ -1,0 +1,22 @@
+{
+ "D4": {
+  "rows": 329,
+  "stored_steps": 329,
+  "evals_replay": 4016458,
+  "evals_stored": 6469147,
+  "equal": 321,
+  "grid_steps": 8,
+  "non_grid_steps": 321,
+  "non_grid_equal": 321
+ },
+ "S5L": {
+  "rows": 349,
+  "stored_steps": 349,
+  "evals_replay": 7469574,
+  "evals_stored": 7469574,
+  "equal": 349,
+  "grid_steps": 0,
+  "non_grid_steps": 349,
+  "non_grid_equal": 349
+ }
+}

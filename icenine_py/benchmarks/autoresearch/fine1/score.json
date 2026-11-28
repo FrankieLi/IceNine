@@ -1,0 +1,408 @@
+{
+ "label": "contended: every arm's quiet check failed (a cpptools process on one core). Wall seconds are `/usr/bin/time -p` real of the launcher command for every arm (wall_inprocess_s is the Python run's own clock). CSP and CFP ran 13 MPI ranks on a 12-core machine (8 performance, 4 efficiency) with cpptools running: oversubscribed.",
+ "arms": {
+  "CS": {
+   "workers": 1,
+   "n_voxels": 98280,
+   "n_output_voxels": 87435,
+   "n_missing": 10845,
+   "n_wrong": 15604,
+   "n_wrong_with_output": 4759,
+   "wrong_fraction": 0.15877085877085878,
+   "wilson95": [
+    0.15649930809479742,
+    0.1610690845513443
+   ],
+   "median_err_deg": 0.08523779404758418,
+   "p90_err_deg": 0.2764337177802259,
+   "p99_err_deg": 50.55226119240567,
+   "n_over_0p05": 58920,
+   "evals_all": 1670595806,
+   "evals_lines": 1,
+   "evals_global": null,
+   "global_searches_in_logs": 5810,
+   "client_logs_found": [
+    "ParallelReconLog_1.log"
+   ],
+   "local_optimizations_in_logs": 81629,
+   "global_search_seconds_in_logs": 87274.0,
+   "wall_s": 91206.32,
+   "user_s": 161228.49,
+   "sys_s": 21030.07,
+   "wall_inprocess_s": null,
+   "common_n": 85676,
+   "common_wrong": 4681,
+   "common_wilson95": [
+    0.05313411399433611,
+    0.05617796484592166
+   ],
+   "common_share": 0.05463607077828096,
+   "common_median_err_deg": 0.08430012951222737
+  },
+  "CF": {
+   "workers": 1,
+   "n_voxels": 98280,
+   "n_output_voxels": 88354,
+   "n_missing": 9926,
+   "n_wrong": 12777,
+   "n_wrong_with_output": 2851,
+   "wrong_fraction": 0.13000610500610502,
+   "wilson95": [
+    0.12791792525185067,
+    0.13212320850863515
+   ],
+   "median_err_deg": 0.07531455296996419,
+   "p90_err_deg": 0.22185051007896797,
+   "p99_err_deg": 46.48144253796071,
+   "n_over_0p05": 56517,
+   "evals_all": 1362495605,
+   "evals_lines": 1,
+   "evals_global": null,
+   "global_searches_in_logs": 4637,
+   "client_logs_found": [
+    "ParallelReconLog_1.log"
+   ],
+   "local_optimizations_in_logs": 103059,
+   "global_search_seconds_in_logs": 67345.0,
+   "wall_s": 71995.62,
+   "user_s": 127306.2,
+   "sys_s": 16583.81,
+   "wall_inprocess_s": null,
+   "common_n": 85676,
+   "common_wrong": 2734,
+   "common_wilson95": [
+    0.03075480844524032,
+    0.03310900710130942
+   ],
+   "common_share": 0.031910920211027594,
+   "common_median_err_deg": 0.07420938230861092
+  },
+  "CSP": {
+   "workers": 12,
+   "n_voxels": 98280,
+   "n_output_voxels": 87869,
+   "n_missing": 10411,
+   "n_wrong": 14914,
+   "n_wrong_with_output": 4503,
+   "wrong_fraction": 0.15175010175010176,
+   "wilson95": [
+    0.14952060972084097,
+    0.15400681772151492
+   ],
+   "median_err_deg": 0.06866495370231004,
+   "p90_err_deg": 0.25914583628606375,
+   "p99_err_deg": 50.081186060757354,
+   "n_over_0p05": 53920,
+   "evals_all": 1380035950,
+   "evals_lines": 12,
+   "evals_global": null,
+   "global_searches_in_logs": 749,
+   "client_logs_found": [
+    "ParallelReconLog_1.log",
+    "ParallelReconLog_2.log"
+   ],
+   "local_optimizations_in_logs": 30051,
+   "global_search_seconds_in_logs": 18046.0,
+   "wall_s": 10266.57,
+   "user_s": 111462.81,
+   "sys_s": 1157.62,
+   "wall_inprocess_s": null,
+   "common_n": 85676,
+   "common_wrong": 4416,
+   "common_wilson95": [
+    0.05008248620826668,
+    0.05304377353962714
+   ],
+   "common_share": 0.051543022550072363,
+   "common_median_err_deg": 0.06746702919511106
+  },
+  "CFP": {
+   "workers": 12,
+   "n_voxels": 98280,
+   "n_output_voxels": 87690,
+   "n_missing": 10590,
+   "n_wrong": 13920,
+   "n_wrong_with_output": 3330,
+   "wrong_fraction": 0.14163614163614163,
+   "wilson95": [
+    0.13947019793544801,
+    0.14383009992348306
+   ],
+   "median_err_deg": 0.0708040179219136,
+   "p90_err_deg": 0.22676145473893522,
+   "p99_err_deg": 48.438570575327034,
+   "n_over_0p05": 55149,
+   "evals_all": 1370501354,
+   "evals_lines": 12,
+   "evals_global": null,
+   "global_searches_in_logs": 748,
+   "client_logs_found": [
+    "ParallelReconLog_1.log",
+    "ParallelReconLog_2.log"
+   ],
+   "local_optimizations_in_logs": 29912,
+   "global_search_seconds_in_logs": 17961.0,
+   "wall_s": 10212.92,
+   "user_s": 110981.23,
+   "sys_s": 1016.87,
+   "wall_inprocess_s": null,
+   "common_n": 85676,
+   "common_wrong": 3241,
+   "common_wilson95": [
+    0.0365716411636322,
+    0.03912693015585538
+   ],
+   "common_share": 0.0378285634249965,
+   "common_median_err_deg": 0.06974192797209433
+  },
+  "J5S": {
+   "workers": 1,
+   "n_voxels": 98280,
+   "n_output_voxels": 98280,
+   "n_missing": 0,
+   "n_wrong": 561,
+   "n_wrong_with_output": 561,
+   "wrong_fraction": 0.005708180708180708,
+   "wilson95": [
+    0.005256105016372099,
+    0.0061988969623051355
+   ],
+   "median_err_deg": 0.029501187467859655,
+   "p90_err_deg": 0.10331522132726845,
+   "p99_err_deg": 0.3313733763635726,
+   "n_over_0p05": 26544,
+   "evals_all": 32579814,
+   "evals_global": 20169429,
+   "evals_by_key": {
+    "n_evals_seed": 755854,
+    "n_evals_neighbor": 5975560,
+    "n_evals_revisit": 4326242,
+    "n_evals_restart": 0,
+    "n_evals_reseed": 19413575,
+    "n_evals_boundary_pass": 259016,
+    "n_evals_boundary_score": 57315,
+    "n_evals_boundary_repair": 1792252
+   },
+   "global_searches_in_logs": 3369,
+   "n_seeds": 320,
+   "n_reseeds": 3049,
+   "wall_s": 7566.17,
+   "wall_global_s": 6090.889731645584,
+   "wall_other_s": 1466.4034795761108,
+   "n_without_orientation": 0,
+   "wall_inprocess_s": 7557.293211221695,
+   "common_n": 85676,
+   "common_wrong": 453,
+   "common_wilson95": [
+    0.00482342948592055,
+    0.005795656439186946
+   ],
+   "common_share": 0.005287361688220738,
+   "common_median_err_deg": 0.028472477814587727
+  },
+  "PS": {
+   "workers": 1,
+   "n_voxels": 98280,
+   "n_output_voxels": 98280,
+   "n_missing": 0,
+   "n_wrong": 714,
+   "n_wrong_with_output": 714,
+   "wrong_fraction": 0.007264957264957265,
+   "wilson95": [
+    0.006752924114034949,
+    0.0078155092793948
+   ],
+   "median_err_deg": 0.06173615979106488,
+   "p90_err_deg": 0.16115157882235243,
+   "p99_err_deg": 0.3462793440189064,
+   "n_over_0p05": 57625,
+   "evals_all": 2832907439,
+   "evals_global": 2634076609,
+   "evals_by_key": {
+    "n_evals_seed": 144826751,
+    "n_evals_neighbor": 69782703,
+    "n_evals_revisit": 129048127,
+    "n_evals_restart": 0,
+    "n_evals_reseed": 2489249858,
+    "n_evals_boundary_pass": 0,
+    "n_evals_boundary_score": 0,
+    "n_evals_boundary_repair": 0
+   },
+   "global_searches_in_logs": 7664,
+   "n_seeds": 423,
+   "n_reseeds": 7241,
+   "wall_s": 183312.19,
+   "wall_global_s": 169100.39651703835,
+   "wall_other_s": 14202.995151996613,
+   "n_without_orientation": 0,
+   "wall_inprocess_s": 183303.39166903496,
+   "common_n": 85676,
+   "common_wrong": 616,
+   "common_wilson95": [
+    0.00664581095656008,
+    0.007778137278190156
+   ],
+   "common_share": 0.007189878145571689,
+   "common_median_err_deg": 0.060399376348161754
+  }
+ },
+ "pairs": [
+  {
+   "n_shared": 86816,
+   "n_same_1e3deg": 49,
+   "n_differ_over_0p05": 48838,
+   "n_differ_over_1": 3910,
+   "median_diff_deg": 0.06260700949459976,
+   "wrong_both": 2670,
+   "wrong_only_a": 2048,
+   "wrong_only_b": 1775,
+   "wrong_neither": 80323,
+   "a": "CS",
+   "b": "CSP",
+   "n_lacking_in_a": 10845,
+   "n_lacking_in_b": 10411,
+   "note": "counts over the voxels both maps have; wrong_only_a = fixed by b, only_b = broken"
+  },
+  {
+   "n_shared": 86237,
+   "n_same_1e3deg": 50,
+   "n_differ_over_0p05": 44874,
+   "n_differ_over_1": 2903,
+   "median_diff_deg": 0.054831429112002686,
+   "wrong_both": 1588,
+   "wrong_only_a": 1168,
+   "wrong_only_b": 1683,
+   "wrong_neither": 81798,
+   "a": "CF",
+   "b": "CFP",
+   "n_lacking_in_a": 9926,
+   "n_lacking_in_b": 10590,
+   "note": "counts over the voxels both maps have; wrong_only_a = fixed by b, only_b = broken"
+  },
+  {
+   "n_shared": 86367,
+   "n_same_1e3deg": 2083,
+   "n_differ_over_0p05": 43522,
+   "n_differ_over_1": 3858,
+   "median_diff_deg": 0.051084432373561084,
+   "wrong_both": 1832,
+   "wrong_only_a": 2875,
+   "wrong_only_b": 927,
+   "wrong_neither": 80733,
+   "a": "CS",
+   "b": "CF",
+   "n_lacking_in_a": 10845,
+   "n_lacking_in_b": 9926,
+   "note": "counts over the voxels both maps have; wrong_only_a = fixed by b, only_b = broken"
+  },
+  {
+   "n_shared": 87435,
+   "n_same_1e3deg": 5,
+   "n_differ_over_0p05": 66041,
+   "n_differ_over_1": 4609,
+   "median_diff_deg": 0.10096965159522008,
+   "wrong_both": 392,
+   "wrong_only_a": 4367,
+   "wrong_only_b": 231,
+   "wrong_neither": 82445,
+   "a": "CS",
+   "b": "PS",
+   "n_lacking_in_a": 10845,
+   "n_lacking_in_b": 0,
+   "note": "counts over the voxels both maps have; wrong_only_a = fixed by b, only_b = broken"
+  },
+  {
+   "n_shared": 87435,
+   "n_same_1e3deg": 2,
+   "n_differ_over_0p05": 61393,
+   "n_differ_over_1": 4610,
+   "median_diff_deg": 0.08829538884387166,
+   "wrong_both": 309,
+   "wrong_only_a": 4450,
+   "wrong_only_b": 155,
+   "wrong_neither": 82521,
+   "a": "CS",
+   "b": "J5S",
+   "n_lacking_in_a": 10845,
+   "n_lacking_in_b": 0,
+   "note": "counts over the voxels both maps have; wrong_only_a = fixed by b, only_b = broken"
+  },
+  {
+   "n_shared": 98280,
+   "n_same_1e3deg": 23,
+   "n_differ_over_0p05": 61855,
+   "n_differ_over_1": 744,
+   "median_diff_deg": 0.0692770556160422,
+   "wrong_both": 266,
+   "wrong_only_a": 448,
+   "wrong_only_b": 295,
+   "wrong_neither": 97271,
+   "a": "PS",
+   "b": "J5S",
+   "n_lacking_in_a": 0,
+   "n_lacking_in_b": 0,
+   "note": "counts over the voxels both maps have; wrong_only_a = fixed by b, only_b = broken"
+  },
+  {
+   "n_shared": 87073,
+   "n_same_1e3deg": 4158,
+   "n_differ_over_0p05": 43727,
+   "n_differ_over_1": 3788,
+   "median_diff_deg": 0.05065357760340948,
+   "wrong_both": 2007,
+   "wrong_only_a": 2463,
+   "wrong_only_b": 1278,
+   "wrong_neither": 81325,
+   "a": "CSP",
+   "b": "CFP",
+   "n_lacking_in_a": 10411,
+   "n_lacking_in_b": 10590,
+   "note": "counts over the voxels both maps have; wrong_only_a = fixed by b, only_b = broken"
+  }
+ ],
+ "derived": {
+  "CS": {
+   "wall_h": 25.33508888888889,
+   "cpu_h": 50.627377777777774,
+   "cores_used": 1.998310643385239,
+   "evals_millions": 1670.595806
+  },
+  "CF": {
+   "wall_h": 19.998783333333332,
+   "cpu_h": 39.96944722222222,
+   "cores_used": 1.9985939422425978,
+   "evals_millions": 1362.495605
+  },
+  "CSP": {
+   "wall_h": 2.851825,
+   "cpu_h": 31.283452777777775,
+   "cores_used": 10.969625688034075,
+   "evals_millions": 1380.03595
+  },
+  "CFP": {
+   "wall_h": 2.8369222222222223,
+   "cpu_h": 31.11058333333333,
+   "cores_used": 10.966315216412152,
+   "evals_millions": 1370.501354
+  },
+  "J5S": {
+   "wall_h": 2.101713888888889,
+   "cpu_h": 2.103477777777778,
+   "cores_used": 1.0008392621365896,
+   "evals_millions": 32.579814
+  },
+  "PS": {
+   "wall_h": 50.92005277777778,
+   "cpu_h": 50.91158611111112,
+   "cores_used": 0.9998337262786507,
+   "evals_millions": 2832.907439
+  },
+  "ratios": {
+   "wall_CS_over_CSP": 8.88381611385302,
+   "wall_CF_over_CFP": 7.049464795572666,
+   "wall_PS_over_J5S": 24.22787090430165,
+   "evals_PS_over_J5S": 86.95284260984424,
+   "evals_CS_over_CSP": 1.210545135436508
+  }
+ }
+}

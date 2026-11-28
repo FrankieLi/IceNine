@@ -1,0 +1,142 @@
+[
+ {
+  "sample": "held5",
+  "in_sample": false,
+  "arm": "S8",
+  "evals_total": 75879690,
+  "evals_per_voxel": 3088.31,
+  "wrong": 62,
+  "n": 24570,
+  "fraction_right": 0.997477,
+  "wrong_wilson95": [
+   0.001969,
+   0.003233
+  ]
+ },
+ {
+  "sample": "held5",
+  "in_sample": false,
+  "arm": "J5",
+  "evals_total": 26270850,
+  "evals_per_voxel": 1069.22,
+  "wrong": 46,
+  "n": 24570,
+  "fraction_right": 0.998128,
+  "wrong_wilson95": [
+   0.001404,
+   0.002496
+  ]
+ },
+ {
+  "sample": "held5",
+  "in_sample": false,
+  "arm": "J5C",
+  "evals_total": 26386526,
+  "evals_per_voxel": 1073.93,
+  "wrong": 33,
+  "n": 24570,
+  "fraction_right": 0.998657,
+  "wrong_wilson95": [
+   0.000957,
+   0.001886
+  ]
+ },
+ {
+  "sample": "held5",
+  "in_sample": false,
+  "arm": "J5S",
+  "evals_total": 22706889,
+  "evals_per_voxel": 924.17,
+  "wrong": 31,
+  "n": 24570,
+  "fraction_right": 0.998738,
+  "wrong_wilson95": [
+   0.000889,
+   0.00179
+  ]
+ },
+ {
+  "sample": "held4",
+  "in_sample": true,
+  "arm": "J5S",
+  "evals_total": 23612288,
+  "evals_per_voxel": 961.02,
+  "wrong": 21,
+  "n": 24570,
+  "fraction_right": 0.999145,
+  "wrong_wilson95": [
+   0.000559,
+   0.001306
+  ]
+ },
+ {
+  "sample": "held3",
+  "in_sample": true,
+  "arm": "J5S",
+  "evals_total": 20240655,
+  "evals_per_voxel": 823.8,
+  "wrong": 38,
+  "n": 24570,
+  "fraction_right": 0.998453,
+  "wrong_wilson95": [
+   0.001127,
+   0.002122
+  ]
+ },
+ {
+  "sample": "held",
+  "in_sample": true,
+  "arm": "J5S",
+  "evals_total": 19457817,
+  "evals_per_voxel": 791.93,
+  "wrong": 43,
+  "n": 24570,
+  "fraction_right": 0.99825,
+  "wrong_wilson95": [
+   0.0013,
+   0.002356
+  ]
+ },
+ {
+  "sample": "mid",
+  "in_sample": true,
+  "arm": "J5S",
+  "evals_total": 8397057,
+  "evals_per_voxel": 341.76,
+  "wrong": 20,
+  "n": 24570,
+  "fraction_right": 0.999186,
+  "wrong_wilson95": [
+   0.000527,
+   0.001257
+  ]
+ },
+ {
+  "sample": "grad",
+  "in_sample": true,
+  "arm": "J5S",
+  "evals_total": 6257077,
+  "evals_per_voxel": 254.66,
+  "wrong": 25,
+  "n": 24570,
+  "fraction_right": 0.998982,
+  "wrong_wilson95": [
+   0.000689,
+   0.001502
+  ]
+ },
+ {
+  "sample": "big",
+  "in_sample": true,
+  "arm": "J5S",
+  "evals_total": 2631446,
+  "evals_per_voxel": 107.1,
+  "wrong": 5,
+  "n": 24570,
+  "fraction_right": 0.999796,
+  "wrong_wilson95": [
+   8.7e-05,
+   0.000476
+  ]
+ }
+]

@@ -1,0 +1,30 @@
+{
+  "first_frozen_at": "2026-11-20T08:35:43",
+  "first_freeze_commit": "9c25b185",
+  "what_it_pinned": "rule PXF, gates, predictions, every script of this step and of older steps, the library",
+  "refreezes": [
+    {
+      "commit": "4e3a7172",
+      "time": "2026-11-20T10:20:53",
+      "reason": "pxf_common.py: step 16's guard learns the sample name held7 (the first S8 launch on held7 was refused in 11 s)",
+      "already_run": "pilot, live mid and held (c1 c2 c3 t2 judged), held7 built and its hashes committed; nothing had run on held7"
+    },
+    {
+      "commit": "38f31b7d",
+      "time": "2026-11-20T10:22:25",
+      "reason": "pxf_common.py: seed 7 put into the shared sample table before the older set-ups boot (second launch guard)",
+      "already_run": "as above; the refused S8 launch had run nothing"
+    },
+    {
+      "commit": "c667318f",
+      "time": "2026-11-20T16:16:05",
+      "reason": "pxf_run_all.sh: stage pxf7 (new J5SD on held7 alone) and the pass-folder check looks at passes_<s>/D4_J5D, because S8's pass folder in the same cache made the inherited check refuse the new J5SD",
+      "already_run": "S8 and plain J5SD had ended on held7 (unread); the new J5SD had not run"
+    }
+  ],
+  "unchanged_through_all_refreezes": "pxf_rules.py (rule, gates, thresholds, predictions), pxf_launch.py, the library and the tests",
+  "other_disclosures": [
+    "S8 held7 log: 3 lines (voxel count, first seed voxel) were tailed at launch; no result",
+    "logs/bf_runs.done was present (exit=1, jobs refused or partial) 10:19:04 to 10:20:09 and 16:14:54 to 16:15:19; nothing of held7 was read then; both were moved aside"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+ "only_j_n": 0,
+ "only_h_n": 0,
+ "only_j_wrong": 0,
+ "only_h_wrong": 0,
+ "only_j_wrong_where_h_map_right": 0,
+ "only_h_wrong_where_j_map_right": 0,
+ "only_j_wrong_where_h_map_right_voxels": [],
+ "only_j": [],
+ "only_h": []
+}

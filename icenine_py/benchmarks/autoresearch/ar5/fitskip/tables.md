@@ -1,0 +1,45 @@
+<!-- table:pick -->
+Reading line: the pick on each sample's recording, against the share the gate needs.
+
+| sample | fits | skipped | wrong skips | changed final answers | net saving % | gate needs % | met |
+|---|---|---|---|---|---|---|---|
+| held3 | 72458 | 16525 | 21 | 1 | 3.98 | 3 | yes |
+| held | 76911 | 17116 | 34 | 0 | 4.21 | 4 | yes |
+| mid | 52027 | 7160 | 26 | 0 | 3.62 | 4 | NO |
+| grad | 53398 | 13857 | 24 | 0 | 8.74 | 3 | yes |
+| big | 32543 | 2408 | 6 | 0 | 3.20 | 1 | yes |
+<!-- /table:pick -->
+
+<!-- table:rules -->
+Reading line: each row is one rule replayed on the recording of the five samples; a wrong skip is a skipped fit that J5 accepted; net share is the saved evaluations of skipped fits that J5 rejected, minus every check, as a share of J5's total with the pass; admissible means at most 0.1% wrong skips and at most 2 changed final answers on every sample; rank is by the sum of net shares among the admissible rules.
+
+| rule | admissible | rank | sum of net shares (5 samples) | wrong skips (held3 / held / mid / grad / big) | net share % (held3 / held / mid / grad / big) |
+|---|---|---|---|---|---|
+| D(0.1) | yes | 12 | 0.0003 | 3 / 0 / 4 / 0 / 20 | 0.00 / 0.00 / 0.01 / 0.00 / 0.01 |
+| D(0.25) | no |  | 0.0017 | 15 / 9 / 37 / 4 / 67 | 0.01 / 0.02 / 0.05 / 0.01 / 0.07 |
+| D(0.5) | no |  | 0.0051 | 79 / 87 / 175 / 11 / 225 | 0.06 / 0.08 / 0.16 / 0.02 / 0.18 |
+| S(0.3,revisit) | yes | 4 | 0.1270 | 20 / 25 / 24 / 22 / 4 | 2.85 / 3.01 / 1.91 / 4.28 / 0.64 |
+| S(0.3,neighbour) | yes | 8 | 0.1103 | 1 / 9 / 2 / 2 / 2 | 1.12 / 1.20 / 1.70 / 4.46 / 2.55 |
+| S(0.3,both) | yes | 1 | 0.2374 | 21 / 34 / 26 / 24 / 6 | 3.98 / 4.21 / 3.62 / 8.74 / 3.20 |
+| S(0.4,revisit) | no |  | 0.2158 | 146 / 162 / 131 / 105 / 37 | 4.89 / 5.47 / 3.92 / 5.93 / 1.36 |
+| S(0.4,neighbour) | yes | 3 | 0.1577 | 17 / 53 / 27 / 21 / 17 | 1.68 / 1.78 / 2.53 / 5.98 / 3.81 |
+| S(0.4,both) | no |  | 0.3735 | 163 / 215 / 158 / 126 / 54 | 6.57 / 7.25 / 6.45 / 11.91 / 5.17 |
+| S(0.5,revisit) | no |  | 0.2984 | 506 / 568 / 432 / 363 / 129 | 6.73 / 7.64 / 5.96 / 7.30 / 2.21 |
+| S(0.5,neighbour) | no |  | 0.2017 | 111 / 195 / 145 / 95 / 101 | 2.21 / 2.35 / 3.50 / 7.21 / 4.91 |
+| S(0.5,both) | no |  | 0.5002 | 617 / 763 / 577 / 458 / 230 | 8.94 / 9.99 / 9.46 / 14.50 / 7.13 |
+| S(0.6,revisit) | no |  | 0.3663 | 1237 / 1396 / 1112 / 946 / 336 | 8.00 / 9.17 / 7.76 / 8.38 / 3.31 |
+| S(0.6,neighbour) | no |  | 0.2403 | 419 / 533 / 532 / 283 / 381 | 2.62 / 2.79 / 4.31 / 8.07 / 6.24 |
+| S(0.6,both) | no |  | 0.6065 | 1656 / 1929 / 1644 / 1229 / 717 | 10.63 / 11.96 / 12.07 / 16.45 / 9.55 |
+| C(0.3,revisit) | yes | 10 | 0.0594 | 2 / 1 / 2 / 0 / 0 | 1.37 / 1.33 / 0.67 / 2.40 / 0.17 |
+| C(0.3,neighbour) | yes | 11 | 0.0554 | 0 / 0 / 0 / 0 / 0 | 0.56 / 0.59 / 0.80 / 2.56 / 1.01 |
+| C(0.3,both) | yes | 6 | 0.1148 | 2 / 1 / 2 / 0 / 0 | 1.93 / 1.92 / 1.47 / 4.96 / 1.19 |
+| C(0.4,revisit) | yes | 7 | 0.1116 | 14 / 16 / 10 / 8 / 5 | 2.60 / 2.79 / 1.79 / 3.41 / 0.57 |
+| C(0.4,neighbour) | yes | 9 | 0.0901 | 0 / 6 / 2 / 1 / 1 | 0.95 / 0.99 / 1.42 / 3.61 / 2.04 |
+| C(0.4,both) | yes | 2 | 0.2016 | 14 / 22 / 12 / 9 / 6 | 3.54 / 3.79 / 3.20 / 7.03 / 2.61 |
+| C(0.5,revisit) | no |  | 0.1635 | 70 / 100 / 81 / 42 / 24 | 3.83 / 4.26 / 3.06 / 4.23 / 0.98 |
+| C(0.5,neighbour) | yes | 5 | 0.1174 | 10 / 28 / 14 / 5 / 13 | 1.29 / 1.35 / 1.97 / 4.44 / 2.70 |
+| C(0.5,both) | no |  | 0.2809 | 80 / 128 / 95 / 47 / 37 | 5.11 / 5.61 / 5.02 / 8.67 / 3.67 |
+| C(0.6,revisit) | no |  | 0.2107 | 278 / 331 / 253 / 150 / 66 | 4.79 / 5.45 / 4.30 / 4.93 / 1.60 |
+| C(0.6,neighbour) | no |  | 0.1411 | 54 / 84 / 69 / 37 / 40 | 1.55 / 1.64 / 2.47 / 5.01 / 3.45 |
+| C(0.6,both) | no |  | 0.3518 | 332 / 415 / 322 / 187 / 106 | 6.34 / 7.09 / 6.77 / 9.94 / 5.04 |
+<!-- /table:rules -->
