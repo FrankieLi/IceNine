@@ -110,7 +110,7 @@ Do not remove these worktrees (all under `.claude/worktrees/`). Link the data, d
 ## Bookkeeping
 - Next decision ID: D-20261125-N1 (or the day's N1) (first of a day is N1).
 - Standing owner rule 24 Nov: owner requests go to subagents. Ilium shmem skill: PR #44 (open).
-- Wake-up job: session cron id 7b627cd5, every 3 hours at :53, created 2026-11-22, expires
-  2026-11-29. Create it again on or after 2026-11-28 and write the new id and date here.
+- Wake-up job: session cron id 528ebb18, every 3 hours at :53, created 2026-11-28, expires
+  2026-12-05. Create it again on or after 2026-12-04 and write the new id and date here.
 - Ilium: AR6 closed 20 Nov on `origin/feature/grain-opt` (read at c3245818, SUMMARY.md); and
   Track S at 347a8a4. OWNER FLAG 20 Nov: I printed 2 held2 rows from tracked pareto_rows files.
